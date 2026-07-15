@@ -239,4 +239,34 @@ producers were fixed behind the already-compliant committed artifacts.
    `RAPPID_SPEC.md`, trackers) with literal `rapp-rappid/2.0` strings — not a
    runtime pipe, not `rapp_check`-linted; a bulk doc sweep.
 
+## Schema-label sweep (`rapp-rappid/2.0` → `rapp/1`) — done for producers, surfaced for canon
+
+The estate carries `rapp-rappid/2.0` in ~55 non-`.py` files. Exercising them split
+the set sharply into "safe live label" vs "do-not-hand-edit":
+
+**Swept (live producers that STAMP the label on new output — real pipes, just not `.py`):**
+- `neighborhood-example/index.html` (`const IDENTITY_SCHEMA`), `rapp-commons/tether.html`
+  + `rappter-distro/examples/rapp-commons/tether.html` + `RAPP/pages/tether.html` +
+  `rapp2mcs/pages/tether.html` (JS builds a `rappid.json` envelope),
+  `rapp-commons/neighborhood.json` (+ mirror) grail-file manifest. **8 files, 5 repos, pushed.**
+
+**NOT hand-swept — each needs its proper flow, not a `sed`:**
+| class | files | why not, correct path |
+|---|---|---|
+| **hash-addressed** | `twin/frames/*.json`, `twin/feed.json` | payload is content-addressed; editing breaks `payload_hash`/`frame_hash` → `verify_frame` fails. Leave (frames are immutable history). |
+| **sealed legacy** | `twin/frames/legacy/*.json` | changing bytes breaks the FRAME-01 seal. Leave. |
+| **OPUS canon** | `rapp-body/rappid.json`, `README.md` | schema already `rapp/1`; only a prose citation remains. Canon — not a mechanical edit. |
+| **drift-map data** | `rapp-map/neurons.json`, `estate-map.json`, `neurons-manifest.json` (+ narrative) | these RECORD the schema-version sprawl as drift findings; editing corrupts the map's own accounting. Regenerate via the mesh sweep. |
+| **synced spec legs** | `rapp-map/ecosystem-spec.json`, `RAPP/specs/ecosystem-spec.json` | one of the "four legs"; a hand-edit diverges the legs. Route through `ecosystem-sync`. |
+| **canon governance + frozen bundles** | `CONSTITUTION.md`, `ESTATE_SPEC.md`, `OSI.md`, 14× frozen `specs/RAPPID_SPEC.md`, vault essays | **the schema NAME is a canon decision.** The Constitution declares `rapp-rappid/2.0`; rapp_check §12 requires `rapp/1`. Editing the excerpts to `rapp/1` without ratifying it in the Constitution would *create* a new excerpt-vs-Constitution inconsistency. Needs Kody's canon call, then re-bundle + ecosystem-sync propagation. |
+| **migration history** | `rapp-oneclick-deploy/MIGRATION-TRACKER.md` | records a past migration verbatim; rewriting it falsifies history. |
+
+**The compliance-critical layer is done:** every artifact `rapp_check` enforces
+(`**/rappid.json` §12) already reads `rapp/1`, and every runtime PRODUCER now emits
+`rapp/1`. The remaining occurrences are documentation/canon naming — a schema-name
+reconciliation (`rapp-rappid/2.0` the Constitution-era name vs `rapp/1` the reference
+name), which is a canon decision, not a drift fix.
+
+---
+
 *Ledger continues per repo as each one's pipes are exercised.*
