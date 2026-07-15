@@ -55,7 +55,7 @@ __manifest__ = {
                    "GitHubs — and back again. Builds on the public RAPP standard (kody-w/rapp-1).",
     "author": "Kody Wildfeuer",
     "tags": ["starter", "rapp", "sdk", "identity", "frame", "builder"],
-    "category": "protocol",
+    "category": "devtools",
     "quality_tier": "official",
     "requires_env": [],
     "example_call": "scaffold a new RAPP organism called @me/scratch",
