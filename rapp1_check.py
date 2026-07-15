@@ -1,0 +1,131 @@
+"""rapp1_check.py — the RAPP/1 compliance linter.
+
+Point it at any repo checkout and it verdicts every RAPP artifact (rappid.json,
+frame chains, egg/schema labels) against the RAPP/1 standard, using the reference
+implementation. It classifies a repo as:
+
+  CLEAN     — no RAPP artifacts; nothing to migrate
+  COMPLIANT — has artifacts, all pass RAPP/1
+  DRIFT     — has artifacts that violate RAPP/1 (lists each, by §)
+
+This is the tool that makes the estate-wide migration tractable: run it per repo,
+fix on a branch until it reads COMPLIANT, and the owner authorizes the rebirth by merge.
+
+Usage:  python3 rapp1_check.py <repo_path> [--json]
+Exit:   0 CLEAN/COMPLIANT · 1 DRIFT · 2 error
+"""
+import glob
+import hashlib
+import json
+import os
+import re
+import sys
+
+import rapp1 as R
+
+_32HEX = re.compile(r"^[0-9a-f]{32}$")
+
+
+def _untagged(payload):
+    return hashlib.sha256(R.canonical(payload).encode("utf-8")).hexdigest()
+
+
+def check_repo(root):
+    """Return (verdict, findings[], evidence[]). findings/evidence are dicts."""
+    findings, evidence = [], []
+    has_artifact = False
+
+    # ---- identity records ----
+    for path in sorted(glob.glob(os.path.join(root, "**", "rappid.json"), recursive=True)):
+        if ".git/" in path:
+            continue
+        has_artifact = True
+        rel = os.path.relpath(path, root)
+        try:
+            d = json.load(open(path))
+        except Exception as ex:
+            findings.append({"artifact": rel, "rule": "unreadable", "detail": str(ex)})
+            continue
+        rid = d.get("rappid", "")
+        schema = d.get("schema", "?")
+        if R.rappid_valid(rid):
+            m = R._RAPPID.match(rid)
+            owner, slug, tail = m.group(1), m.group(2), m.group(3)
+            if tail == hashlib.sha256(f"{owner}/{slug}".encode()).hexdigest():
+                findings.append({"artifact": rel, "rule": "§6.2 name-hash mint",
+                                 "detail": f"tail == sha256('{owner}/{slug}')"})
+            else:
+                evidence.append({"artifact": rel, "ok": f"rappid §6.1 grammar OK: {rid}"})
+        else:
+            tail = rid.rsplit(":", 1)[-1] if ":" in rid else rid
+            if _32HEX.match(tail):
+                findings.append({"artifact": rel, "rule": "§6.1 short-tail (C3)",
+                                 "detail": f"32-hex tail, not 64-hex: {rid}"})
+            else:
+                findings.append({"artifact": rel, "rule": "§6.1 grammar (C2)",
+                                 "detail": f"not rappid:@owner/slug:64hex — {rid}"})
+        if schema not in ("rapp/1",):
+            findings.append({"artifact": rel, "rule": "§12 schema label",
+                             "detail": f"schema='{schema}', not 'rapp/1'"})
+
+    # ---- frame chains ----
+    for fdir in sorted({os.path.dirname(p) for p in
+                        glob.glob(os.path.join(root, "**", "frames", "*.json"), recursive=True)
+                        if ".git/" not in p}):
+        files = sorted((f for f in glob.glob(os.path.join(fdir, "*.json"))
+                        if re.match(r"^\d+\.json$", os.path.basename(f))),
+                       key=lambda f: int(os.path.basename(f)[:-5]))
+        if not files:
+            continue
+        has_artifact = True
+        rel = os.path.relpath(fdir, root)
+        canon_ok = conformant = 0
+        for f in files:
+            fr = json.load(open(f))
+            p, s = fr.get("payload"), (fr.get("sha256") or fr.get("hash"))
+            if p is not None and s is not None and _untagged(p) == s:
+                canon_ok += 1
+            ok, _, _ = R.verify_frame(fr)
+            if ok:
+                conformant += 1
+        if conformant == len(files):
+            evidence.append({"artifact": rel, "ok": f"{len(files)} frames conform to §7 envelope"})
+        else:
+            keys = sorted(json.load(open(files[0])).keys())
+            missing = sorted(R.FRAME_KEYS - set(keys))
+            findings.append({"artifact": rel, "rule": "§7 frame envelope (C1)",
+                             "detail": f"{len(files)-conformant}/{len(files)} non-conformant; "
+                                       f"missing {missing}"})
+        # positive evidence: does RAPP/1 canonicalization already reproduce the real hashes?
+        if canon_ok:
+            evidence.append({"artifact": rel,
+                             "ok": f"§4 canonicalization reproduces {canon_ok}/{len(files)} real payload hashes"})
+
+    if not has_artifact:
+        return "CLEAN", [], []
+    return ("DRIFT" if findings else "COMPLIANT"), findings, evidence
+
+
+def main():
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    as_json = "--json" in sys.argv
+    if not args:
+        print(__doc__.strip().splitlines()[-2]); sys.exit(2)
+    root = args[0]
+    verdict, findings, evidence = check_repo(root)
+    if as_json:
+        print(json.dumps({"repo": root, "verdict": verdict,
+                          "findings": findings, "evidence": evidence}, indent=2))
+    else:
+        name = os.path.basename(os.path.abspath(root))
+        dot = {"CLEAN": "○", "COMPLIANT": "✅", "DRIFT": "🔧"}[verdict]
+        print(f"{dot} {name}: {verdict}")
+        for e in evidence:
+            print(f"    ✓ {e['artifact']}: {e['ok']}")
+        for f in findings:
+            print(f"    ✗ {f['artifact']}  [{f['rule']}]  {f['detail']}")
+    sys.exit(1 if verdict == "DRIFT" else 0)
+
+
+if __name__ == "__main__":
+    main()
