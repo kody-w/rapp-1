@@ -59,11 +59,11 @@ PY
       "payload_hash": "…", "frame_hash": "…", "prev": null, "prev_wave": null, "sig": null
     }
   },
-  "note": "A ready-to-plant RAPP/1 organism seed. Commit rappid.json + frames/0.json; the genesis passes §7.5 verify."
+  "note": "A ready-to-plant RAPP organism seed. Commit rappid.json + frames/0.json; the genesis passes §7.5 verify."
 }
 ```
 
-Two files, and they are everything a RAPP/1 organism needs to exist:
+Two files, and they are everything a RAPP organism needs to exist:
 
 - **`rappid.json`** — the identity record, already `schema: "rapp/1"`, with a compliant rappid and
   a null `parent_rappid` (this organism has no parent; a child would carry its parent's rappid
@@ -83,7 +83,7 @@ To turn the seed into a live organism, commit the two files to a GitHub repo:
 mkdir scratch && cd scratch && git init
 #   write rappid.json  and  frames/0.json  from the scaffold output
 mkdir frames   #   put frames/0.json here
-git add . && git commit -m "plant @me/scratch — RAPP/1 organism genesis"
+git add . && git commit -m "plant @me/scratch — RAPP organism genesis"
 git push
 ```
 
@@ -97,7 +97,7 @@ Everything above was a direct call. The same capability is one sentence to your 
 
 ```
 curl -s -X POST http://localhost:7071/chat -H 'Content-Type: application/json' \
- -d '{"user_input": "Use the RappSdkBuilder agent to scaffold a new RAPP/1 organism with id @me/scratch, then tell me the minted rappid and whether its genesis frame verified."}'
+ -d '{"user_input": "Use the RappSdkBuilder agent to scaffold a new RAPP organism with id @me/scratch, then tell me the minted rappid and whether its genesis frame verified."}'
 ```
 
 Real response from the running brainstem:
@@ -114,6 +114,6 @@ AGENT_LOGS: [RappSdkBuilder] { "status": "ok", "action": "scaffold", "verified":
 
 Read the `agent_logs` line: `[RappSdkBuilder]` with the real scaffold JSON. That is proof the model
 did not *describe* minting an identity — it *called the agent*, which minted and verified for real.
-The plain English "scaffold a new RAPP/1 organism" routed, through the tool schema, to
+The plain English "scaffold a new RAPP organism" routed, through the tool schema, to
 `perform(action="scaffold", id="@me/scratch")`. This is the whole promise of the SDK-as-agent: the
 protocol becomes something you *talk* your brainstem into doing, correctly, every time.

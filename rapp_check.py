@@ -1,12 +1,12 @@
-"""rapp_check.py — the RAPP/1 compliance linter.
+"""rapp_check.py — the RAPP compliance linter.
 
 Point it at any repo checkout and it verdicts every RAPP artifact (rappid.json,
-frame chains, egg/schema labels) against the RAPP/1 standard, using the reference
+frame chains, egg/schema labels) against the RAPP standard, using the reference
 implementation. It classifies a repo as:
 
   CLEAN     — no RAPP artifacts; nothing to migrate
-  COMPLIANT — has artifacts, all pass RAPP/1
-  DRIFT     — has artifacts that violate RAPP/1 (lists each, by §)
+  COMPLIANT — has artifacts, all pass RAPP
+  DRIFT     — has artifacts that violate RAPP (lists each, by §)
 
 This is the tool that makes the estate-wide migration tractable: run it per repo,
 fix on a branch until it reads COMPLIANT, and the owner authorizes the rebirth by merge.
@@ -67,11 +67,11 @@ def check_repo(root):
         if schema not in ("rapp/1",):
             findings.append({"artifact": rel, "rule": "§12 schema label",
                              "detail": f"schema='{schema}', not 'rapp/1'"})
-        # §6.3: a parent_rappid must itself be a valid RAPP/1 rappid (not a legacy/provisional id)
+        # §6.3: a parent_rappid must itself be a valid RAPP rappid (not a legacy/provisional id)
         parent = d.get("parent_rappid")
         if parent and not R.rappid_valid(parent):
             findings.append({"artifact": rel, "rule": "§6.3 parent_rappid",
-                             "detail": f"parent_rappid not RAPP/1 grammar: {parent}"})
+                             "detail": f"parent_rappid not RAPP grammar: {parent}"})
 
     # ---- frame chains ----
     for fdir in sorted({os.path.dirname(p) for p in
@@ -103,7 +103,7 @@ def check_repo(root):
             findings.append({"artifact": rel, "rule": "§7 frame envelope (C1)",
                              "detail": f"{len(files)-conformant}/{len(files)} non-conformant; "
                                        f"missing {missing}"})
-        # positive evidence: does RAPP/1 canonicalization already reproduce the real hashes?
+        # positive evidence: does RAPP canonicalization already reproduce the real hashes?
         if canon_ok:
             evidence.append({"artifact": rel,
                              "ok": f"§4 canonicalization reproduces {canon_ok}/{len(files)} real payload hashes"})

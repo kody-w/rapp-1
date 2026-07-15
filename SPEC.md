@@ -1,4 +1,4 @@
-# RAPP/1 — The RAPP Protocol Suite
+# The RAPP Protocol Suite
 ### Unified normative specification of identity, canonicalization, the frame, the wire, and the egg
 
 **Status:** Draft standard for ratification (Kody, estate owner). **rev-5.** **Obsoletes / consolidates:**
@@ -270,7 +270,7 @@ All interaction rides one of exactly two forms:
    detectable.
 
 ## 9. The Egg (L5) — the single egg spec of record
-An **egg** is a cartridge packing a unit of the estate. **RAPP/1 §9 is the one egg spec of record** (it
+An **egg** is a cartridge packing a unit of the estate. **RAPP §9 is the one egg spec of record** (it
 subsumes and retires `EGG_FAMILY.md`, `NEIGHBORHOOD_EGG_SPEC.md`, `ESTATE_SPEC.md`, `rappterbook/EGG_SPEC.md`,
 and the rest — drift C7). No other document may re-specify eggs; they cite this section.
 
@@ -369,7 +369,7 @@ not authorship).
   Art. VII), serves only provenance-stamped hash-matching mirrors (Art. VIII).
 
 ## 12. Versioning, evolution, no-legacy
-RAPP/1 is a **living standard** (WHATWG): revised in place, never forked into parallel versions; a `name/X.Y`
+RAPP is a **living standard** (WHATWG): revised in place, never forked into parallel versions; a `name/X.Y`
 label **MUST NOT** ever denote two shapes (Art. II) — a shape change moves the token (§7.1). Published
 content-addressed artifacts are **immutable** (SemVer/crates). Because the estate has **no uncontrolled
 userspace**, there is **no perpetual backward compatibility** (Art. III): a change to a canonical form is a

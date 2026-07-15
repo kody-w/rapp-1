@@ -3,7 +3,7 @@
 A rappid is `rappid:@<owner>/<slug>:<64hex>`. The 64-hex tail is minted ONCE from
 entropy (keyless) or from a public key (keyed) — it is NEVER sha256("owner/slug").
 A name-hash collides the moment two things share a name, which is the whole disease
-RAPP/1 §6 exists to end. Run: python3 examples/03_identity.py
+RAPP §6 exists to end. Run: python3 examples/03_identity.py
 """
 import sys, os, hashlib
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -23,4 +23,4 @@ print("keyed is deterministic (mint-once):", R.mint_rappid("kody", "twin", spki)
 name_hash = hashlib.sha256(b"kody/twin").hexdigest()
 print("\nFORBIDDEN name-hash tail:", name_hash)
 print("  → collides for every actor that ever names something 'kody/twin'.")
-print("  → RAPP/1's mint tail differs from it:", keyless.rsplit(':', 1)[1] != name_hash)
+print("  → RAPP's mint tail differs from it:", keyless.rsplit(':', 1)[1] != name_hash)

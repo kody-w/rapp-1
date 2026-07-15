@@ -45,7 +45,7 @@ Two disciplines carried from how this SDK itself was built:
   compliance check shipped with a blind spot that only a hostile pass against live repos exposed.
 - **Prove provenance.** If you embed protocol logic, add (or keep) a `sync`-style action that binds
   your copy to the public standard and can prove parity. A component that cannot demonstrate it
-  speaks the real protocol is exactly the drift RAPP/1 exists to end.
+  speaks the real protocol is exactly the drift RAPP exists to end.
 
 ## 8.3 Action reference
 
@@ -84,10 +84,10 @@ python3 -c "import rapp_sdk_builder_agent as A; print(A.RappSdkBuilderAgent().pe
 
 ## 8.4 Where to go next
 
-- The **reference book** (`book/`) — the RAPP/1 protocol in prose, front to back.
+- The **reference book** (`book/`) — the RAPP protocol in prose, front to back.
 - The **visual guide** (`guide/`) — the same protocol in pictures.
 - `SPEC.md` — the normative standard, when you need the exact letter.
 - `rapp.py` — the reference implementation the SDK embeds; read it, it is ~140 lines.
 
-You now hold the whole loop: a grail brainstem, an SDK that makes correct RAPP/1 the only thing you
+You now hold the whole loop: a grail brainstem, an SDK that makes correct RAPP the only thing you
 can build, and the ability to drive it all by talking. Go plant something.

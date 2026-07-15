@@ -1,14 +1,14 @@
 # Chapter 7 — Building an Organism by Conversation
 
 This is the payoff. Everything so far was a capability; here we chain them into the real thing —
-minting, planting, and *growing* a RAPP/1 organism, mostly by talking to the brainstem. By the end
+minting, planting, and *growing* a RAPP organism, mostly by talking to the brainstem. By the end
 you have a living door with a verifiable worldline that anyone can check.
 
 ## 7.1 Birth
 
 Ask the brainstem to scaffold the organism:
 
-> **You:** Use RappSdkBuilder to scaffold a new RAPP/1 organism `@me/scratch`, then give me the rappid and confirm the genesis verified.
+> **You:** Use RappSdkBuilder to scaffold a new RAPP organism `@me/scratch`, then give me the rappid and confirm the genesis verified.
 
 > **Brainstem:** Done. Minted rappid `rappid:@me/scratch:b07586ea…`. Genesis frame verified: yes.
 
@@ -22,7 +22,7 @@ Commit the seed to a repo so the organism is addressable on the public web:
 ```
 mkdir scratch && cd scratch && git init && mkdir frames
 #   write rappid.json (root) and frames/0.json from the scaffold output
-git add . && git commit -m "plant @me/scratch — RAPP/1 genesis" && git push
+git add . && git commit -m "plant @me/scratch — RAPP genesis" && git push
 ```
 
 Your organism is live. `raw.githubusercontent.com/you/scratch/main/rappid.json` and `frames/0.json`
@@ -93,4 +93,4 @@ Step back and count what a single dropped-in file gave you:
 - a **growing worldline** where every frame is checked against the last,
 - and a **conversational interface** to all of it, because the SDK rode the brainstem's one door.
 
-You did not implement RAPP/1. You *used* it — correctly, by construction, and out loud.
+You did not implement RAPP. You *used* it — correctly, by construction, and out loud.

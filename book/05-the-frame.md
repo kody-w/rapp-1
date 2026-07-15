@@ -1,6 +1,6 @@
 # Chapter 5 — The Frame
 
-The frame is the heart of RAPP/1. It is the record of a single moment in an agent's life:
+The frame is the heart of RAPP. It is the record of a single moment in an agent's life:
 tamper-evident, content-addressed, chained to the moment before it, and verifiable by a stranger.
 Chapters 2, 3, and 4 exist to make this chapter's object trustworthy. Here we specify it in full.
 
@@ -90,7 +90,7 @@ highest-seq frame. Appending means: build a frame whose `prev` is the head's par
 `seq` is the head's `seq + 1`, then verify it against the head before you publish.
 
 A **fork** is two frames claiming the same `seq` with the same `prev` — a genuine ambiguity about
-what came next. RAPP/1 does not pretend forks cannot happen (networks partition); it makes them
+what came next. RAPP does not pretend forks cannot happen (networks partition); it makes them
 *detectable* and gives one resolution rule: the stream's authority (its owner, or for swarm
 streams the registry order of chapter 13) picks the canonical branch, and the abandoned branch is
 sealed, never silently overwritten. A reader who has both frames can see the fork exactly because
@@ -100,13 +100,13 @@ both are content-addressed; nothing is hidden.
 
 Here is the hard case the protocol takes seriously. A chain is immutable by design — that is its
 value. So what happens when a chain must change *form*? The estate's existing frames (chapter 8)
-use a legacy envelope; they cannot be edited into RAPP/1 shape, because editing an immutable
+use a legacy envelope; they cannot be edited into RAPP shape, because editing an immutable
 chain is a contradiction. The answer is **re-genesis** (§7.6 / §12.1):
 
 1. The old chain is **terminated** with a final frame of a `*.re-genesis` kind, whose payload
    names the successor stream and carries a **seal** — `H("rapp/1:seal", …)` — over the old
    head. The old chain is now closed: never extended, never served as current.
-2. A **new** genesis frame (seq 0) begins the successor chain in full RAPP/1 form, its payload
+2. A **new** genesis frame (seq 0) begins the successor chain in full RAPP form, its payload
    citing the sealed old head so the lineage is provable.
 3. The old frames are **retained under `legacy/`** as a sealed historical record — readable as
    history, never as a live chain (Federal Constitution Amendment III-a). Retention-as-sealed-

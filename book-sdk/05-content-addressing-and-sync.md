@@ -2,13 +2,13 @@
 
 Under identity and frames sits the machinery that makes them trustworthy: canonicalization and
 domain-separated hashing. This chapter uses the SDK's `canonicalize` action to see that machinery
-directly, and the `sync` action to prove — not assume — that this agent computes the *real* RAPP/1
+directly, and the `sync` action to prove — not assume — that this agent computes the *real* RAPP
 addresses.
 
 ## 5.1 Canonicalize and address a value
 
 The `canonicalize` action turns any I-JSON value into its one canonical byte string and its
-addresses in the RAPP/1 hash spaces:
+addresses in the RAPP hash spaces:
 
 ```
 python3 - <<'PY'
@@ -38,7 +38,7 @@ Two lessons in one output:
 
 ## 5.2 The `sync` action: provenance you can check
 
-The SDK embeds the RAPP/1 primitives so it runs offline. Fair question: is the embedded copy the
+The SDK embeds the RAPP primitives so it runs offline. Fair question: is the embedded copy the
 *real* thing, or a drifted fork? Do not trust — verify. The `sync` action fetches the canonical
 reference implementation from the public standard repo and hashes a known vector through *both*:
 
@@ -54,13 +54,13 @@ PY
  "embedded_matches_public_reference": true,
  "source": "https://raw.githubusercontent.com/kody-w/rapp-1/main/rapp.py",
  "vector_particle": "d1edcfc5b6d3d3b7556d286476d0ea41c2433e28acc553726b89012c3d4bdada",
- "note": "Same vector hashed through the embedded and the freshly-fetched reference implementation; equal ⇒ this agent computes canonical RAPP/1 addresses."}
+ "note": "Same vector hashed through the embedded and the freshly-fetched reference implementation; equal ⇒ this agent computes canonical RAPP addresses."}
 ```
 
 `embedded_matches_public_reference: true`. The agent just downloaded the live `rapp.py`, executed
 it, and confirmed its own embedded `H("rapp/1:particle", …)` produces the *identical* address. This
 is the SDK-builder's answer to the whole disease this ecosystem fought: a component that does not
-merely *claim* to speak RAPP/1 but *demonstrates*, against the public source of truth, that it
+merely *claim* to speak RAPP but *demonstrates*, against the public source of truth, that it
 computes the same bytes. If a future edit ever drifted the embedded copy, `sync` would go `false`
 and you would know.
 
@@ -69,7 +69,7 @@ and you would know.
 Notice what `sync` really is: the agent reaching across the network to the **publicly deployed**
 standard and binding itself to it. The same move powers `check` (next chapter), which fetches a
 repo's real `rappid.json` from `raw.githubusercontent.com` and lints it. The SDK Builder is not a
-static copy of a spec frozen at authoring time — it is a client of the live, public RAPP/1, able to
+static copy of a spec frozen at authoring time — it is a client of the live, public RAPP, able to
 prove its own fidelity and to measure the stack against the standard as the standard actually
 exists today.
 
@@ -77,7 +77,7 @@ exists today.
 
 ```
 curl -s -X POST http://localhost:7071/chat -H 'Content-Type: application/json' \
- -d '{"user_input": "Ask RappSdkBuilder to sync and confirm its embedded RAPP/1 implementation matches the public reference."}'
+ -d '{"user_input": "Ask RappSdkBuilder to sync and confirm its embedded RAPP implementation matches the public reference."}'
 ```
 
 The brainstem calls `perform(action="sync")` and reports the match. It is a satisfying thing to be

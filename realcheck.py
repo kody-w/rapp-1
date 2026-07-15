@@ -1,7 +1,7 @@
-"""realcheck.py — run the RAPP/1 reference implementation against the REAL,
+"""realcheck.py — run the RAPP reference implementation against the REAL,
 committed artifacts of the kody-w estate (cloned under ./estate) and report,
-byte for byte, where reality already conforms to RAPP/1 and where reality IS
-the drift RAPP/1 standardizes away.
+byte for byte, where reality already conforms to RAPP and where reality IS
+the drift RAPP standardizes away.
 
 This is not a curated vector. It walks every frame chain and every rappid.json
 that was actually committed to the public repos, and breaks the spec against them.
@@ -47,14 +47,14 @@ def check_frame_chain(name, frame_dir):
         seq = fr.get("seq")
         sha = fr.get("sha256") or fr.get("hash")
         payload = fr.get("payload")
-        # (1) does RAPP/1's canonicalizer reproduce the REAL stored payload hash?
+        # (1) does RAPP's canonicalizer reproduce the REAL stored payload hash?
         if payload is not None and sha is not None:
             if untagged(payload) == sha:
                 canon_ok += 1
             else:
                 drift.append((f"{name}/{os.path.basename(f)}", "canon-mismatch",
                               f"sha256(canonical(payload))={untagged(payload)[:12]} != stored {sha[:12]}"))
-        # (2) does the real chain link the way RAPP/1 §7.4 requires (prev == parent payload hash)?
+        # (2) does the real chain link the way RAPP §7.4 requires (prev == parent payload hash)?
         parent = fr.get("parent_sha") if "parent_sha" in fr else fr.get("prev_hash")
         if seq == 0:
             if parent in (None, "", "null"):
@@ -64,15 +64,15 @@ def check_frame_chain(name, frame_dir):
         else:
             drift.append((f"{name}/{os.path.basename(f)}", "chain-break",
                           f"parent_sha={str(parent)[:12]} != prev.sha256={str(prev_sha)[:12]}"))
-        # (3) is the REAL frame conformant to the RAPP/1 §7 envelope as-is?
+        # (3) is the REAL frame conformant to the RAPP §7 envelope as-is?
         ok, step, why = R.verify_frame(fr)
         if ok:
             rapp_conformant += 1
         prev_sha = sha
     keys = sorted(json.load(open(files[0])).keys())
     print(f"   canonicalization reproduces real stored hash : {canon_ok}/{len(files)} frames")
-    print(f"   real chain links per RAPP/1 §7.4 (prev=parent): {chain_ok}/{len(files)} frames")
-    print(f"   frames conformant to RAPP/1 §7 envelope as-is : {rapp_conformant}/{len(files)}")
+    print(f"   real chain links per RAPP §7.4 (prev=parent): {chain_ok}/{len(files)} frames")
+    print(f"   frames conformant to RAPP §7 envelope as-is : {rapp_conformant}/{len(files)}")
     print(f"   real envelope keys: {keys}")
     if canon_ok == len(files):
         conform.append((name, f"canonicalization + chain integrity reproduce all {len(files)} real payload hashes"))
@@ -125,7 +125,7 @@ def bootstrap_estate():
 
 
 print("=" * 74)
-print("RAPP/1 rev-5 — REAL-WORLD CHECK against committed kody-w estate artifacts")
+print("RAPP rev-5 — REAL-WORLD CHECK against committed kody-w estate artifacts")
 print("=" * 74)
 if not os.path.isdir(ROOT) or not os.listdir(ROOT):
     print("\nestate/ not present — cloning the real public repos (needs git + network):")
@@ -143,12 +143,12 @@ for path in sorted(glob.glob(os.path.join(ROOT, "**", "rappid.json"), recursive=
     check_rappid(path)
 
 print("\n" + "=" * 74)
-print("VERDICT — where reality meets RAPP/1")
+print("VERDICT — where reality meets RAPP")
 print("=" * 74)
-print(f"\n✅ CONFORMS TO RAPP/1 ({len(conform)}):")
+print(f"\n✅ CONFORMS TO RAPP ({len(conform)}):")
 for a, note in conform:
     print(f"   • {a}: {note}")
-print(f"\n🔧 IS THE DRIFT RAPP/1 FIXES ({len(drift)}):")
+print(f"\n🔧 IS THE DRIFT RAPP FIXES ({len(drift)}):")
 by_cat = {}
 for a, cat, detail in drift:
     by_cat.setdefault(cat, []).append((a, detail))
@@ -159,9 +159,9 @@ for cat in sorted(by_cat):
 
 print(f"""
 ── what this proves ──
-  RAPP/1's canonicalizer (§4) reproduces the real, committed payload hashes
+  RAPP's canonicalizer (§4) reproduces the real, committed payload hashes
   byte-for-byte — the spec MATCHES reality where reality already content-addresses.
-  RAPP/1 then REFUSES every real frame's envelope and every short-tail rappid —
+  RAPP then REFUSES every real frame's envelope and every short-tail rappid —
   those refusals ARE the {len(drift)} drifts the standard exists to end (C1 envelope,
   C2/C3 identity, schema label). Reality is one owner-authorized re-genesis (§12.1)
   away from full conformance; nothing here is a spec bug, it's the drift ledger, live.

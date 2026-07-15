@@ -1,12 +1,12 @@
-# Estate → RAPP/1 compliance tracker
+# Estate → RAPP compliance tracker
 
-The kody-w estate predates RAPP/1. This tracks bringing every RAPP-artifact-bearing repo to
-compliance **now, before RAPP/1 is adopted by anyone outside the estate** — the one window where
+The kody-w estate predates RAPP. This tracks bringing every RAPP-artifact-bearing repo to
+compliance **now, before RAPP is adopted by anyone outside the estate** — the one window where
 re-anchoring identity at the root costs nothing, because no external actor references the old
 addresses yet.
 
 **How compliance is decided:** `python3 rapp_check.py <repo>` verdicts each repo `CLEAN` (no RAPP
-artifacts), `COMPLIANT` (all artifacts pass RAPP/1), or `DRIFT` (lists each violation by §). The
+artifacts), `COMPLIANT` (all artifacts pass RAPP), or `DRIFT` (lists each violation by §). The
 migration is deterministic and identity-preserving — `rapp_migrate.py` re-anchors each legacy
 rappid from its *own UUID* into the domain-tagged 64-hex form (§5/§6.2), records the old string in
 `_migrated_from` so references resolve forward (§6.3), and sets the schema label to `rapp/1` (§12).
@@ -24,7 +24,7 @@ a new genesis begins in the eleven-field form citing the sealed head.
 | **rapp-map** | ✅ CLEAN | — | — | nothing to do |
 | **RAR** | ✅ CLEAN | — | — | nothing to do (ID-01 already fixed on a prior branch) |
 
-*(Positive evidence the linter already confirms: RAPP/1 canonicalization reproduces twin's 3 and
+*(Positive evidence the linter already confirms: RAPP canonicalization reproduces twin's 3 and
 rapp-body's 29 real committed payload hashes byte-for-byte — the content-addressing is already
 correct; only the envelope and identity encoding drift.)*
 
@@ -63,7 +63,7 @@ GitHub code search finds **~30 repos** with a `rappid.json`. Of these:
 - **EXCLUDED — publishing boundary (never touched by automation):** `microsoft-se-team-neighborhood`,
   `microsoft-se-team-neighborhood-private`, `microsoft-365-team`, `billwhalen-agent-team`. These carry
   work / Microsoft-internal / person-named content; upstream→downstream only, so they are not migrated
-  here and any RAPP/1 adoption for them is a separate, work-side decision.
+  here and any RAPP adoption for them is a separate, work-side decision.
 
 ## Two-pass migration model
 

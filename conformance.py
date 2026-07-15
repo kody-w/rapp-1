@@ -1,4 +1,4 @@
-"""conformance.py — executable proof that RAPP/1 (rev-5) is implementable and
+"""conformance.py — executable proof that RAPP (rev-5) is implementable and
 self-consistent, plus a real-world check against a live estate artifact.
 
 Run: python3 conformance.py
@@ -16,7 +16,7 @@ def check(name, ok, detail=""):
     print(f"  [{PASS if ok else FAIL}] {name}" + (f"  — {detail}" if detail and not ok else ""))
 
 print("=" * 70)
-print("RAPP/1 rev-5 — conformance vectors")
+print("RAPP rev-5 — conformance vectors")
 print("=" * 70)
 
 # V1 canonicalization determinism (key order independence)
@@ -80,7 +80,7 @@ check("V9 unsigned swarm frame refused at step 6", (not ok) and step == "6")
 
 print()
 print("=" * 70)
-print("REAL-WORLD CHECK — RAPP/1 vs a live estate artifact (kody-w/twin/frames/0.json)")
+print("REAL-WORLD CHECK — RAPP vs a live estate artifact (kody-w/twin/frames/0.json)")
 print("=" * 70)
 try:
     raw = urllib.request.urlopen(
@@ -88,16 +88,16 @@ try:
     real = json.loads(raw)
     payload = real["payload"]
     stored = real.get("sha256")
-    # (a) does RAPP/1's canonicalize + UNTAGGED payload hash reproduce twin's stored value?
+    # (a) does RAPP's canonicalize + UNTAGGED payload hash reproduce twin's stored value?
     untagged = hashlib.sha256(R.canonical(payload).encode()).hexdigest()
-    check("R1 RAPP/1 canonicalization reproduces twin's real stored sha256",
+    check("R1 RAPP canonicalization reproduces twin's real stored sha256",
           untagged == stored, f"computed {untagged[:16]} vs stored {str(stored)[:16]}")
-    # (b) RAPP/1's domain-tagged particle deliberately differs (the hardening)
+    # (b) RAPP's domain-tagged particle deliberately differs (the hardening)
     tagged = R.H("rapp/1:particle", payload)
-    print(f"       (RAPP/1 domain-tagged particle = {tagged[:16]}… — deliberately != untagged; §5 fix)")
-    # (c) RAPP/1 correctly identifies the legacy frame as non-conformant drift
+    print(f"       (RAPP domain-tagged particle = {tagged[:16]}… — deliberately != untagged; §5 fix)")
+    # (c) RAPP correctly identifies the legacy frame as non-conformant drift
     ok, step, why = R.verify_frame(real)
-    check("R2 RAPP/1 flags the legacy twin frame as non-conformant (the drift it fixes)",
+    check("R2 RAPP flags the legacy twin frame as non-conformant (the drift it fixes)",
           not ok, "")
     print(f"       → refused at step {step}: {why}")
     print(f"       real frame keys: {sorted(real.keys())}")

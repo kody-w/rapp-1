@@ -1,6 +1,6 @@
 # Chapter 1 — A Tutorial Introduction
 
-Let us begin with the smallest complete RAPP/1 program that does something real: it creates a
+Let us begin with the smallest complete RAPP program that does something real: it creates a
 record, addresses it by its content, and verifies it. In the tradition of the book this one is
 named after, we do not start by explaining every rule. We start by making something work, and
 then we go back and understand why it worked.
@@ -33,7 +33,7 @@ print("OK" if ok else f"FAILED at {step}: {why}")
 ```
 
 Three calls: mint an identity, build a frame, verify it. That is a complete transaction in
-RAPP/1. When you run it, `build_frame` prints the whole record, and the last line prints `OK`.
+RAPP. When you run it, `build_frame` prints the whole record, and the last line prints `OK`.
 
 The record it built looks like this:
 
@@ -55,7 +55,7 @@ The record it built looks like this:
 
 Eleven fields, always exactly these eleven. Two of them are hashes the library computed for
 you: `payload_hash` and `frame_hash`. Understanding what those two are — and why there are
-*two* — is most of understanding RAPP/1.
+*two* — is most of understanding RAPP.
 
 ## 1.2 The Particle and the Wave
 
@@ -75,7 +75,7 @@ A frame is one object that is both. You do not choose between them when you emit
 frame and the reader observes whichever address the situation calls for. This is the resolution
 of a real bug in the ecosystem's history, where two teams built "the frame" — one hashing the
 payload, one hashing the whole envelope — under the same version number, and the two could
-never read each other. RAPP/1's frame carries both hashes so the question "which one is *the*
+never read each other. RAPP's frame carries both hashes so the question "which one is *the*
 hash?" never has to be asked. It is a particle when you follow the worldline and a wave when
 you check the wire. (Chapter 5 is entirely about the frame; this is the intuition.)
 
@@ -126,7 +126,7 @@ forward," which is exactly the property we wanted.
 We called `mint_rappid("kody", "hello")` and got back a string like
 `rappid:@kody/hello:b62415b2…`. The human-readable part — `@kody/hello` — is a convenience.
 The identity is the 64-hex tail, and where that tail comes from is the single most important
-rule in RAPP/1's identity system:
+rule in RAPP's identity system:
 
 > The tail is minted **once**, from entropy or from a public key. It is **never** the hash of
 > the name.

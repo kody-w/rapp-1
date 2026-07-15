@@ -15,7 +15,7 @@ curl -sSL https://raw.githubusercontent.com/kody-w/rapp-1/main/agents/rapp_sdk_b
 ```
 
 That is the whole install. No `pip install`, no config, no restart. The agent has zero third-party
-dependencies — it embeds the RAPP/1 primitives — so there is nothing else to resolve.
+dependencies — it embeds the RAPP primitives — so there is nothing else to resolve.
 
 ## 2.2 Watch the brainstem discover it
 
@@ -43,7 +43,7 @@ file. Our agent gives it three things:
 __manifest__ = {                       # 1. the registry card — schema, name, tags, example call
     "schema": "rapp-agent/1.0",
     "name": "@rapp/sdk_builder",
-    "display_name": "RAPP/1 SDK Builder",
+    "display_name": "RAPP SDK Builder",
     ...
 }
 

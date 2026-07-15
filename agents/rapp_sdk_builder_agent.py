@@ -1,9 +1,9 @@
-"""rapp_sdk_builder_agent.py — a hotloadable RAPP/1 SDK, as a brainstem agent.
+"""rapp_sdk_builder_agent.py — a hotloadable RAPP SDK, as a brainstem agent.
 
 Drop this one file into any RAPP brainstem's `agents/` directory (no restart) and the
-brainstem gains a working RAPP/1 toolkit: mint compliant identities, build and verify
+brainstem gains a working RAPP toolkit: mint compliant identities, build and verify
 frames, canonicalize + content-address values, scaffold a ready-to-plant organism seed,
-and lint any public repo in the stack for RAPP/1 compliance.
+and lint any public repo in the stack for RAPP compliance.
 
 Install straight from the public standard repo:
 
@@ -12,11 +12,11 @@ Install straight from the public standard repo:
 
 Then just talk to your brainstem:
     "mint a keyless rappid for @me/notes"
-    "scaffold a new RAPP/1 organism called @me/scratch"
+    "scaffold a new RAPP organism called @me/scratch"
     "verify this frame: { … }"
-    "check https://github.com/kody-w/twin for RAPP/1 compliance"
+    "check https://github.com/kody-w/twin for RAPP compliance"
 
-The RAPP/1 primitives are embedded here verbatim from the reference implementation
+The RAPP primitives are embedded here verbatim from the reference implementation
 (kody-w/rapp-1 · rapp.py), so the agent is self-contained and offline-capable. The
 `sync` action fetches the canonical rapp.py from the public repo and proves this file's
 embedded copy is byte-identical — provenance you can check, not trust.
@@ -48,16 +48,16 @@ __manifest__ = {
     "schema": "rapp-agent/1.0",
     "name": "@rapp/sdk_builder",
     "version": "1.0.0",
-    "display_name": "RAPP/1 SDK Builder",
-    "description": "A hotloadable RAPP/1 toolkit: mint compliant rappids, build/verify frames, "
+    "display_name": "RAPP SDK Builder",
+    "description": "A hotloadable RAPP toolkit: mint compliant rappids, build/verify frames, "
                    "content-address values, scaffold organism seeds, and lint repos for compliance. "
-                   "Builds on the public RAPP/1 standard (kody-w/rapp-1).",
+                   "Builds on the public RAPP standard (kody-w/rapp-1).",
     "author": "RAPP",
     "tags": ["starter", "rapp", "sdk", "identity", "frame", "builder"],
     "category": "protocol",
     "quality_tier": "official",
     "requires_env": [],
-    "example_call": "scaffold a new RAPP/1 organism called @me/scratch",
+    "example_call": "scaffold a new RAPP organism called @me/scratch",
 }
 
 SPEC = "rapp/1"
@@ -69,7 +69,7 @@ FRAME_KEYS = {"spec", "kind", "stream_id", "seq", "utc", "payload",
               "payload_hash", "frame_hash", "prev", "prev_wave", "sig"}
 
 
-# ── RAPP/1 primitives (embedded verbatim from rapp.py; the `sync` action proves parity) ──
+# ── RAPP primitives (embedded verbatim from rapp.py; the `sync` action proves parity) ──
 def canonical(v):
     if v is None or isinstance(v, bool):
         return json.dumps(v)
@@ -188,9 +188,9 @@ class RappSdkBuilderAgent(BasicAgent):
         self.name = "RappSdkBuilder"
         self.metadata = {
             "name": self.name,
-            "description": "RAPP/1 SDK toolkit. Use for any RAPP/1 protocol operation: mint a "
+            "description": "RAPP SDK toolkit. Use for any RAPP protocol operation: mint a "
                            "compliant rappid, scaffold a new organism seed, build or verify a frame, "
-                           "canonicalize/content-address a value, or check a repo for RAPP/1 compliance.",
+                           "canonicalize/content-address a value, or check a repo for RAPP compliance.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -258,7 +258,7 @@ class RappSdkBuilderAgent(BasicAgent):
         return json.dumps({"status": "ok", "action": "scaffold",
                            "verified": ok, "verify_step": step,
                            "files": {"rappid.json": rappid_json, "frames/0.json": genesis},
-                           "note": "A ready-to-plant RAPP/1 organism seed. Commit rappid.json + frames/0.json; "
+                           "note": "A ready-to-plant RAPP organism seed. Commit rappid.json + frames/0.json; "
                                    "the genesis passes §7.5 verify. (A keyed organism would sign the genesis, §10.)"},
                           indent=2)
 
@@ -314,12 +314,12 @@ class RappSdkBuilderAgent(BasicAgent):
             evidence.append(f"rappid §6.1 grammar OK: {rid}")
         else:
             tail = rid.rsplit(":", 1)[-1] if ":" in rid else rid
-            findings.append(f"§6.1 identity: {'32-hex short-tail (C3)' if re.match(r'^[0-9a-f]{32}$', tail) else 'not RAPP/1 grammar'} — {rid}")
+            findings.append(f"§6.1 identity: {'32-hex short-tail (C3)' if re.match(r'^[0-9a-f]{32}$', tail) else 'not RAPP grammar'} — {rid}")
         if d.get("schema") != "rapp/1":
             findings.append(f"§12 schema label: schema='{d.get('schema')}', not 'rapp/1'")
         p = d.get("parent_rappid")
         if p and not rappid_valid(p):
-            findings.append(f"§6.3 parent_rappid not RAPP/1 grammar: {p}")
+            findings.append(f"§6.3 parent_rappid not RAPP grammar: {p}")
         verdict = "COMPLIANT" if not findings else "DRIFT"
         return json.dumps({"status": "ok", "action": "check", "repo": f"{owner}/{name}",
                            "verdict": verdict, "findings": findings, "evidence": evidence}, indent=2)
@@ -341,7 +341,7 @@ class RappSdkBuilderAgent(BasicAgent):
                            "embedded_matches_public_reference": match,
                            "source": SRC, "vector_particle": local_particle,
                            "note": "Same vector hashed through the embedded and the freshly-fetched "
-                                   "reference implementation; equal ⇒ this agent computes canonical RAPP/1 addresses."})
+                                   "reference implementation; equal ⇒ this agent computes canonical RAPP addresses."})
 
 
 # standalone self-test: `python3 rapp_sdk_builder_agent.py`

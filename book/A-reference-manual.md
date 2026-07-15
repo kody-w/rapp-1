@@ -1,4 +1,4 @@
-# Appendix A — RAPP/1 Reference Manual
+# Appendix A — RAPP Reference Manual
 
 Terse, normative-mirroring. The tutorial (chapters 1–8) teaches; this reference is what you keep
 open while building. Section numbers cite `SPEC.md`. Requirements language (MUST / MUST NOT /

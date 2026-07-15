@@ -1,7 +1,7 @@
-"""01 — Hello, frame. The smallest complete RAPP/1 program.
+"""01 — Hello, frame. The smallest complete RAPP program.
 
 Mint one genesis frame, then verify it. If verify returns ok, you have produced
-a byte-for-byte content-addressed record that any other RAPP/1 implementation on
+a byte-for-byte content-addressed record that any other RAPP implementation on
 earth will accept. Run: python3 examples/01_hello_frame.py
 """
 import sys, os, json

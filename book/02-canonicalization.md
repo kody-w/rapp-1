@@ -1,19 +1,19 @@
 # Chapter 2 — Canonicalization
 
-Every hash in RAPP/1 is a hash of *bytes*. But agents exchange *values* — objects, arrays,
+Every hash in RAPP is a hash of *bytes*. But agents exchange *values* — objects, arrays,
 strings, numbers. Between a value and its hash sits a question that has sunk more distributed
 systems than any other: **which bytes?** `{"a":1,"b":2}` and `{"b":2,"a":1}` are the same value
 and different bytes. If two implementations disagree about which byte string represents a value,
 they compute different hashes for the same content, and every downstream promise — content
 addressing, chaining, signatures — silently breaks.
 
-Canonicalization is the rule that makes the answer unique. RAPP/1 §4 adopts **RFC 8785, JSON
+Canonicalization is the rule that makes the answer unique. RAPP §4 adopts **RFC 8785, JSON
 Canonicalization Scheme (JCS)**, because this is a solved problem and inventing a fourth JSON
 canonicalizer is exactly the kind of drift this protocol exists to end.
 
 ## 2.1 The Rules
 
-A canonical RAPP/1 value is **I-JSON** (RFC 7493) serialized by JCS. In practice:
+A canonical RAPP value is **I-JSON** (RFC 7493) serialized by JCS. In practice:
 
 - **Object keys are sorted** by their UTF-16 code units, ascending.
 - **No insignificant whitespace.** `{"a":1}`, never `{ "a": 1 }`.
@@ -57,7 +57,7 @@ foundation the whole tower stands on.
 Numbers are where JSON canonicalization gets genuinely hard. Is `1`, `1.0`, `1e0`, and `10e-1`
 the same number? RFC 8785 specifies an exact IEEE-754 serialization (the ECMAScript
 `Number.prototype.toString` algorithm) so that every binary64 value has one canonical form. A
-production RAPP/1 implementation MUST implement it, and the test is a round-trip: `0.1` must
+production RAPP implementation MUST implement it, and the test is a round-trip: `0.1` must
 survive canonicalization unchanged.
 
 The **reference profile** in `rapp.py` deliberately refuses floats and accepts only exact
@@ -75,7 +75,7 @@ Two temptations, both refused, both for the same reason: they make the same byte
 differently on different machines.
 
 - **No Unicode normalization (no NFC) for new content.** It is tempting to NFC-normalize strings
-  so that visually identical text hashes identically. RAPP/1 does not, for new content: NFC
+  so that visually identical text hashes identically. RAPP does not, for new content: NFC
   behavior varies across library versions, so folding it into canonicalization would make the
   hash depend on which Unicode table you linked against. The rule is: the bytes you put in are
   the bytes that are hashed. Normalize *before* you hand a value to the protocol if your

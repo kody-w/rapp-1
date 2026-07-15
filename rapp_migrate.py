@@ -1,4 +1,4 @@
-"""rapp_migrate.py — re-anchor a legacy rappid.json into RAPP/1 compliance.
+"""rapp_migrate.py — re-anchor a legacy rappid.json into RAPP compliance.
 
 The migration is DETERMINISTIC and identity-preserving: it derives the new
 domain-tagged 64-hex tail from the SAME underlying UUID anchor the legacy identity

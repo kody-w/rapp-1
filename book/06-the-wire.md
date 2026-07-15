@@ -1,6 +1,6 @@
 # Chapter 6 — The Wire: `POST /chat`
 
-Frames are the record; the wire is how they move and how agents actually talk. RAPP/1 keeps the
+Frames are the record; the wire is how they move and how agents actually talk. RAPP keeps the
 wire deliberately small — one endpoint. "Engine, not experience" means there is one door, and
 everything an agent can do enters through it.
 
@@ -30,7 +30,7 @@ new route: the wire does not grow.
 
 ## 6.2 Errors Are Typed, Not Prose
 
-A protocol you can rely on fails in named ways. RAPP/1 §8 specifies structured errors — HTTP
+A protocol you can rely on fails in named ways. RAPP §8 specifies structured errors — HTTP
 status plus a machine-readable reason — so that a caller can branch on the failure:
 
 - `422 Unprocessable` — the request shape was wrong (missing `user_input`, malformed history).

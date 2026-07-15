@@ -1,7 +1,7 @@
 # Chapter 4 — Identity: the rappid
 
 An agent needs a name that stays the same as its content changes. Its biography grows every day;
-its address must not. This is the one place in RAPP/1 where content addressing is *wrong*, and
+its address must not. This is the one place in RAPP where content addressing is *wrong*, and
 understanding why is understanding the `rappid`.
 
 ## 4.1 The Grammar
@@ -75,7 +75,7 @@ agents that happen to choose the same `owner/slug` get the same tail and become,
 the same agent. Worse, an identity minted this way cannot be bound to a key — there is nothing
 secret behind it — so it can be impersonated by anyone who can type the name. This precise mistake
 was live in production in this ecosystem: `_frame.mjs` computed `sha256("<owner>/<slug>")` as an
-"eternity hex." RAPP/1 §6.2 outlaws it. Names are chosen; identities are minted. They must not be
+"eternity hex." RAPP §6.2 outlaws it. Names are chosen; identities are minted. They must not be
 the same operation.
 
 ## 4.4 Re-anchoring: the Three Lawful Cases

@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RAPP — Design and Build Agents · the visual guide (RAPP/1)</title>
+<title>RAPP — Design and Build Agents · the visual guide (RAPP)</title>
 <style>
   /* ─────────────────────────────────────────────────────────────
-     RAPP/1 — Design and Build Agents
+     RAPP — Design and Build Agents
      A visual guide in the spirit of Jon Duckett's design books:
      one idea per spread, colour-coded chapters, big friendly diagrams.
      Self-contained. Print-book light palette by intent.
@@ -188,7 +188,7 @@
 
 <!-- COVER -->
 <header class="cover"><div class="wrap">
-  <div class="kicker">RAPP · The Visual Guide · RAPP/1 rev-5</div>
+  <div class="kicker">RAPP · The Visual Guide · RAPP rev-5</div>
   <h1>Design &amp; Build<br><em>Agents</em></h1>
   <p class="lede">RAPP — one protocol for agents that keep a verifiable memory and talk over one wire, taught in pictures.</p>
   <div class="chips">
@@ -210,7 +210,7 @@
 </div></div>
 
 <section class="spread" style="--accent:var(--intro)"><div class="wrap narrow">
-  <p class="lead">RAPP is a <strong>protocol</strong>, in the same sense that HTTP, JSON, and git's object model are protocols: a small number of exact rules that let programs written by strangers produce bytes each other can trust. <strong>RAPP/1</strong> is its first versioned standard — the way <em>HTTP/1.1</em> is a version of HTTP.</p>
+  <p class="lead">RAPP is a <strong>protocol</strong>, in the same sense that HTTP, JSON, and git's object model are protocols: a small number of exact rules that let programs written by strangers produce bytes each other can trust.</p>
   <div class="plain">
     <b>In plain English</b>
     <p>It is not a framework or an app. It is a shared agreement about <em>bytes on a wire</em>. Follow the rules and your agent's memory can be verified by anyone, anywhere, forever — no shared database, no trust required.</p>
@@ -277,7 +277,7 @@
   <p class="hook" style="opacity:1">Name content by its hash and something magical follows: two things with the same address <em>are</em> the same thing.</p></div>
 </div></div>
 <section class="spread" style="--accent:var(--addr)"><div class="wrap">
-  <p class="lead narrow">git built its whole object store on this. So does RAPP/1. But there is a trap that quietly brings the collisions back — and the fix is <strong>domain separation</strong>.</p>
+  <p class="lead narrow">git built its whole object store on this. So does RAPP. But there is a trap that quietly brings the collisions back — and the fix is <strong>domain separation</strong>.</p>
   <div class="two">
     <div>
       <p class="label">The trap</p>
@@ -321,7 +321,7 @@ H(<span class="s">"rapp/1:egg"</span>,      v) → <span class="n">e5f6…</span
   </div>
   <div class="two" style="margin-top:26px">
     <div>
-      <p>The <code>@owner/slug</code> part is a convenience for humans and resolvers. The identity is the <strong>64-hex tail</strong>, and where it comes from is the single most important rule in RAPP/1.</p>
+      <p>The <code>@owner/slug</code> part is a convenience for humans and resolvers. The identity is the <strong>64-hex tail</strong>, and where it comes from is the single most important rule in RAPP.</p>
       <div class="plain" style="--accent:var(--id)"><b>The one rule</b><p>The tail is minted <strong>once</strong>, from entropy or from a public key. It is <strong>never</strong> the hash of the name.</p></div>
     </div>
     <div>
@@ -416,7 +416,7 @@ tail = Hb(<span class="s">"rapp/1:rappid"</span>, SPKI_DER)
   <span class="tagword">one door</span>
   <div class="num">6</div>
   <div><h2>The wire</h2>
-  <p class="hook">Frames are the record. The wire is how they move — and RAPP/1 keeps it to exactly one door.</p></div>
+  <p class="hook">Frames are the record. The wire is how they move — and RAPP keeps it to exactly one door.</p></div>
 </div></div>
 <section class="spread" style="--accent:var(--wire)"><div class="wrap">
   <div class="two">
@@ -473,7 +473,7 @@ tail = Hb(<span class="s">"rapp/1:rappid"</span>, SPKI_DER)
   <span class="tagword">proof</span>
   <div class="num">8</div>
   <div><h2>Meeting a real world</h2>
-  <p class="hook">A specification you cannot test is a wish. So we pointed RAPP/1 at a real, committed, drifted estate.</p></div>
+  <p class="hook">A specification you cannot test is a wish. So we pointed RAPP at a real, committed, drifted estate.</p></div>
 </div></div>
 <section class="spread" style="--accent:var(--real)"><div class="wrap">
   <p class="lead narrow">The reference implementation was run against <strong>every frame and rappid actually committed</strong> to the live public repos — written by other programs, months before the spec existed. Two numbers tell the whole story.</p>
@@ -486,7 +486,7 @@ tail = Hb(<span class="s">"rapp/1:rappid"</span>, SPKI_DER)
   <div class="ledger">
     <p class="label" style="margin-bottom:14px">The drift ledger — generated by running code, not asserted</p>
     <div class="drow"><span class="badge" style="background:var(--frame)">envelope · C1</span><small>all 32 frames use <code>twin_id / ts / sha256 / parent_sha</code> — the legacy shape minted in two incompatible envelopes under one name.</small></div>
-    <div class="drow"><span class="badge" style="background:var(--id)">identity · C3</span><small>twin &amp; rapp-commons rappids carry a <strong>32-hex</strong> tail — the short-form name-hash lineage RAPP/1 outlaws.</small></div>
+    <div class="drow"><span class="badge" style="background:var(--id)">identity · C3</span><small>twin &amp; rapp-commons rappids carry a <strong>32-hex</strong> tail — the short-form name-hash lineage RAPP outlaws.</small></div>
     <div class="drow"><span class="badge">schema label</span><small>all four records still say <code>rapp-rappid/2.0</code>, not <code>rapp/1</code>.</small></div>
   </div>
   <div class="plain narrow" style="--accent:var(--real);margin-top:24px"><b>What this proves</b><p>Nothing in that output is a spec bug — the refusals are the spec working. Reality is one owner-authorized <strong>re-genesis</strong> per chain away from full conformance. Until then, the output <em>is</em> the drift ledger, computed against real bytes.</p></div>
@@ -498,7 +498,7 @@ tail = Hb(<span class="s">"rapp/1:rappid"</span>, SPKI_DER)
   <h3>That's the whole protocol.</h3>
   <p style="color:#cfd0d8">Five primitives, one wire, a reference implementation that passes its own vectors and reproduces a real estate's hashes, and a gate that tells conformance from drift by computing, not asserting.</p>
   <p style="margin-top:18px"><a href="../">← back to rapp-1</a> &nbsp;·&nbsp; <a href="https://github.com/kody-w/rapp-1/blob/main/book/00-preface.md">the reference book (K&amp;R style)</a> &nbsp;·&nbsp; <a href="https://github.com/kody-w/rapp-1/blob/main/SPEC.md">the normative standard</a> &nbsp;·&nbsp; <a href="https://github.com/kody-w/rapp-1">source</a></p>
-  <p class="colophon">RAPP/1 rev-5 — <em>Design &amp; Build Agents</em>, the visual guide. One spec, one canonicalizer, one mint, one frame. Set in the system humanist sans; colour-coded by primitive in the tradition of the visual design books that taught a generation to build for the web. The protocol is meant to be implemented.</p>
+  <p class="colophon">RAPP rev-5 — <em>Design &amp; Build Agents</em>, the visual guide. One spec, one canonicalizer, one mint, one frame. Set in the system humanist sans; colour-coded by primitive in the tradition of the visual design books that taught a generation to build for the web. The protocol is meant to be implemented.</p>
 </div></footer>
 
 </body>

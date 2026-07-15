@@ -12,7 +12,7 @@ independently specified in roughly six documents across the ecosystem — an `EG
 re-defining the format, none authoritative. That is how a real incident happened: five different
 eggs stamped a schema that was `MUST-NOT-emit`, because there was no single spec to obey.
 
-RAPP/1 §9 is the **one** egg spec of record. Every other document now *cites* it rather than
+RAPP §9 is the **one** egg spec of record. Every other document now *cites* it rather than
 re-specifying it. There is one format with named **variants** distinguished by a field, not by a
 fork:
 

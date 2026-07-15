@@ -1,4 +1,4 @@
-# Building with RAPP/1
+# Building with RAPP
 
 ### The SDK Builder Agent in a Grail Brainstem
 
@@ -9,24 +9,24 @@
 
 ## Preface
 
-The other two books in this repository teach the RAPP/1 **protocol** — the reference book in
+The other two books in this repository teach the RAPP **protocol** — the reference book in
 prose, the visual guide in pictures. This book is different. It teaches you to **build with
-RAPP/1 using your own hands and your own brainstem**, through one file you drop in:
+RAPP using your own hands and your own brainstem**, through one file you drop in:
 `rapp_sdk_builder_agent.py`.
 
 By the end you will have:
 
 - a **grail brainstem** running locally — the canonical RAPP engine,
 - the **SDK Builder agent** hotloaded into it, discovered with no restart,
-- a real **RAPP/1 organism** you minted, scaffolded, and grew a verifiable worldline for,
-- and the ability to **lint any repo in the stack** for RAPP/1 compliance — all by talking to
+- a real **RAPP organism** you minted, scaffolded, and grew a verifiable worldline for,
+- and the ability to **lint any repo in the stack** for RAPP compliance — all by talking to
   your brainstem in plain English.
 
 ### What you need
 
 - Python 3.11 and a GitHub account (the brainstem authenticates to the GitHub Copilot API).
 - Nothing else. The SDK agent is a single self-contained file with no third-party dependencies —
-  it embeds the RAPP/1 reference primitives and can prove, on demand, that its embedded copy
+  it embeds the RAPP reference primitives and can prove, on demand, that its embedded copy
   computes byte-identical addresses to the public standard.
 
 ### The shape of the thing

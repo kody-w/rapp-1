@@ -91,4 +91,4 @@ in one flow, which is exactly what `scaffold` and the growth loop in chapter 7 d
 The SDK builds frames through `build_frame`, which always emits exactly the eleven keys and always
 computes the particle before the wave. There is no code path that produces a ten-field frame, an
 extra ad-hoc key, or a stale hash. As with identity, the invalid shape is unreachable — the SDK's
-job is to make "correct RAPP/1" the only thing you *can* build.
+job is to make "correct RAPP" the only thing you *can* build.

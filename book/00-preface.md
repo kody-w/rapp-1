@@ -1,8 +1,8 @@
-# The RAPP/1 Protocol
+# The RAPP Protocol
 
 ### A tutorial and reference for the wire that carries agents
 
-*Written against RAPP/1 rev-5. Every code fragment in this book runs on `rapp.py`, the
+*Written against RAPP rev-5. Every code fragment in this book runs on `rapp.py`, the
 stdlib-only reference implementation that ships beside it, and every claim about "the real
 world" is checked by `realcheck.py` against the actual committed artifacts of a live estate.*
 
@@ -10,8 +10,9 @@ world" is checked by `realcheck.py` against the actual committed artifacts of a 
 
 ## Preface
 
-RAPP is a protocol for **agents that keep a verifiable memory and talk over one wire**. *RAPP/1*
-is its first versioned standard — the way *HTTP/1.1* is a version of HTTP — and this book teaches it.
+RAPP is a protocol for **agents that keep a verifiable memory and talk over one wire**, and this
+book teaches it. (Like C has its standards, RAPP has spec revisions and a wire tag, `rapp/1` — but
+the thing itself is just RAPP.)
 
 That is the whole ambition. Not a framework, not an SDK, not a product — a *protocol*, in the
 sense that HTTP and JSON and git's object model are protocols: a small number of exact rules
@@ -39,7 +40,7 @@ was minted twice under one version string with two different hash rules. An iden
 computed three different ways in production, one of them the cardinal sin of hashing a *name*
 into an address. This is not exotic; it is the oldest failure in distributed systems, and it
 has been solved before — by Linux's one-mainline rule, by the Web's single living standard, by
-git making the hash the name. RAPP/1 is the convergence: **one spec, one canonicalizer, one
+git making the hash the name. RAPP is the convergence: **one spec, one canonicalizer, one
 mint, one frame.** This book teaches that spec so completely that the drift cannot come back,
 because everyone building on it turns the same bytes into the same tree.
 

@@ -1,6 +1,6 @@
 # Chapter 6 — Linting the Stack for Compliance
 
-The SDK does not only *build* RAPP/1 — it *judges* it. The `check` action fetches any public repo's
+The SDK does not only *build* RAPP — it *judges* it. The `check` action fetches any public repo's
 identity record and verdicts it against the standard. This is how you find drift before it spreads,
 and it works on any repo in the stack, live.
 
@@ -21,7 +21,7 @@ PY
   "findings": [
     "§6.1 identity: 32-hex short-tail (C3) — rappid:@kody-w/twin:257afa7958982c28258c1d97701182b1",
     "§12 schema label: schema='rapp-rappid/2.0', not 'rapp/1'",
-    "§6.3 parent_rappid not RAPP/1 grammar: rappid:@kody-w/kody-twin:91d006ca7bd052bfa5021d623122012f"
+    "§6.3 parent_rappid not RAPP grammar: rappid:@kody-w/kody-twin:91d006ca7bd052bfa5021d623122012f"
   ],
   "evidence": []
 }
@@ -55,14 +55,14 @@ full gate. They agree on identity findings by construction — both are the refe
 > **A note on honesty.** This SDK's `check` was itself sharpened by adversarial review. An early
 > version missed `parent_rappid` drift; a reviewer running it against real artifacts caught the
 > blind spot, and the check now flags §6.3. The lesson, worth carrying into anything you build with
-> RAPP/1: a green checker proves nothing until an adversary has tried to make it lie against real
+> RAPP: a green checker proves nothing until an adversary has tried to make it lie against real
 > inputs. Verify your verifier.
 
 ## 6.3 Say it to the brainstem
 
 ```
 curl -s -X POST http://localhost:7071/chat -H 'Content-Type: application/json' \
- -d '{"user_input": "Use RappSdkBuilder to check whether kody-w/twin is RAPP/1 compliant, and summarize the findings by section."}'
+ -d '{"user_input": "Use RappSdkBuilder to check whether kody-w/twin is RAPP compliant, and summarize the findings by section."}'
 ```
 
 The brainstem calls `perform(action="check", repo="kody-w/twin")` and gives you the verdict and
@@ -73,6 +73,6 @@ and it answers by fetching and measuring, live.
 
 Put the pieces together and you have a real practice. Before you build on another organism —
 fork it, parent to it, invite it — ask your brainstem to `check` it. If it comes back DRIFT on
-identity, you know its address is not yet stable in the RAPP/1 sense, and you can wait for its
+identity, you know its address is not yet stable in the RAPP sense, and you can wait for its
 owner to re-anchor before you bind to it. The SDK turns "trust the ecosystem" into "measure the
 ecosystem," one repo at a time.

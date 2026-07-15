@@ -1,12 +1,12 @@
-"""rapp.py — reference implementation of the RAPP/1 protocol suite (rev-5).
+"""rapp.py — reference implementation of the RAPP protocol suite (rev-5).
 
 Stdlib only (json, hashlib, uuid, re, base64). Implements the primitives that the
 spec claims are byte-for-byte interoperable, so the conformance suite can PROVE the
 standard is implementable and self-consistent — and so it can be run against real
-estate artifacts to see where reality conforms and where reality is the drift RAPP/1 fixes.
+estate artifacts to see where reality conforms and where reality is the drift RAPP fixes.
 
 Scope note: §4 canonicalization here is JCS restricted to the string/int/bool/null/
-array/object domain (no floats) — exactly the profile RAPP/1 §4 allows for payloads.
+array/object domain (no floats) — exactly the profile RAPP §4 allows for payloads.
 Full IEEE-754 number serialization (RFC 8785) is the production requirement; the
 reference vectors use exact-integer payloads so the hashes are reproducible anywhere.
 """
