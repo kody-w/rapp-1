@@ -1,4 +1,4 @@
-"""rapp1_migrate.py — re-anchor a legacy rappid.json into RAPP/1 compliance.
+"""rapp_migrate.py — re-anchor a legacy rappid.json into RAPP/1 compliance.
 
 The migration is DETERMINISTIC and identity-preserving: it derives the new
 domain-tagged 64-hex tail from the SAME underlying UUID anchor the legacy identity
@@ -9,8 +9,8 @@ existing reference resolves forward (§6.3 re-anchor). Schema label → 'rapp/1'
   legacy tail (32-hex UUID, or _legacy_uuid)  →  Hb("rapp/1:rappid", uuid_bytes)
 
 Usage:
-  python3 rapp1_migrate.py <rappid.json> [--write]      # re-anchor one record
-  import rapp1_migrate; new = rapp1_migrate.reanchor(dict)   # library form
+  python3 rapp_migrate.py <rappid.json> [--write]      # re-anchor one record
+  import rapp_migrate; new = rapp_migrate.reanchor(dict)   # library form
 
 Without --write it prints the proposed new record (dry run).
 """
@@ -19,7 +19,7 @@ import re
 import sys
 import uuid as _uuid
 
-import rapp1 as R
+import rapp as R
 
 _32HEX = re.compile(r"^[0-9a-f]{32}$")
 _64HEX = re.compile(r"^[0-9a-f]{64}$")
@@ -87,7 +87,7 @@ def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     write = "--write" in sys.argv
     if not args:
-        print("usage: python3 rapp1_migrate.py <rappid.json> [--write]"); sys.exit(2)
+        print("usage: python3 rapp_migrate.py <rappid.json> [--write]"); sys.exit(2)
     path = args[0]
     d = json.load(open(path))
     new, mapping = reanchor(d)

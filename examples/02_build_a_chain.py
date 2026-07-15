@@ -6,7 +6,7 @@ stops matching. Run: python3 examples/02_build_a_chain.py
 """
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import rapp1 as R
+import rapp as R
 
 stream = R.mint_rappid("kody", "diary")
 events = [

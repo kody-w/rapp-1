@@ -5,9 +5,9 @@ compliance **now, before RAPP/1 is adopted by anyone outside the estate** — th
 re-anchoring identity at the root costs nothing, because no external actor references the old
 addresses yet.
 
-**How compliance is decided:** `python3 rapp1_check.py <repo>` verdicts each repo `CLEAN` (no RAPP
+**How compliance is decided:** `python3 rapp_check.py <repo>` verdicts each repo `CLEAN` (no RAPP
 artifacts), `COMPLIANT` (all artifacts pass RAPP/1), or `DRIFT` (lists each violation by §). The
-migration is deterministic and identity-preserving — `rapp1_migrate.py` re-anchors each legacy
+migration is deterministic and identity-preserving — `rapp_migrate.py` re-anchors each legacy
 rappid from its *own UUID* into the domain-tagged 64-hex form (§5/§6.2), records the old string in
 `_migrated_from` so references resolve forward (§6.3), and sets the schema label to `rapp/1` (§12).
 Frame chains converge by re-genesis (§7.6/§12.1): legacy frames retained sealed under `frames/legacy/`,
@@ -35,16 +35,16 @@ correct; only the envelope and identity encoding drift.)*
 2. **children rewire** — twin, rapp-body, rapp-commons re-anchor and update any `parent_rappid`
    pointing at the old root form.
 3. **frame re-genesis** — twin then rapp-body (the heavier, owner-authorized rebirths).
-4. **sweep the tail** — run `rapp1_check.py` over every remaining repo; the ~170 non-artifact repos
+4. **sweep the tail** — run `rapp_check.py` over every remaining repo; the ~170 non-artifact repos
    verdict `CLEAN`, the rest get the same deterministic re-anchor.
 
 ## Method (per repo)
 
 ```
-git checkout -b rapp1-compliance
-python3 rapp1_migrate.py rappid.json --write        # deterministic re-anchor
+git checkout -b rapp-compliance
+python3 rapp_migrate.py rappid.json --write        # deterministic re-anchor
 #   … re-genesis frames if present …
-python3 rapp1_check.py .                             # must read COMPLIANT
+python3 rapp_check.py .                             # must read COMPLIANT
 #   Fable adversarial review
 #   → owner authorizes the rebirth by merging the branch
 ```

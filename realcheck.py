@@ -14,7 +14,7 @@ import json
 import os
 import re
 
-import rapp1 as R
+import rapp as R
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "estate")
 _32HEX = re.compile(r"^[0-9a-f]{32}$")
@@ -41,7 +41,7 @@ def check_frame_chain(name, frame_dir):
     prev_sha = None
     canon_ok = 0
     chain_ok = 0
-    rapp1_conformant = 0
+    rapp_conformant = 0
     for f in files:
         fr = json.load(open(f))
         seq = fr.get("seq")
@@ -67,16 +67,16 @@ def check_frame_chain(name, frame_dir):
         # (3) is the REAL frame conformant to the RAPP/1 §7 envelope as-is?
         ok, step, why = R.verify_frame(fr)
         if ok:
-            rapp1_conformant += 1
+            rapp_conformant += 1
         prev_sha = sha
     keys = sorted(json.load(open(files[0])).keys())
     print(f"   canonicalization reproduces real stored hash : {canon_ok}/{len(files)} frames")
     print(f"   real chain links per RAPP/1 §7.4 (prev=parent): {chain_ok}/{len(files)} frames")
-    print(f"   frames conformant to RAPP/1 §7 envelope as-is : {rapp1_conformant}/{len(files)}")
+    print(f"   frames conformant to RAPP/1 §7 envelope as-is : {rapp_conformant}/{len(files)}")
     print(f"   real envelope keys: {keys}")
     if canon_ok == len(files):
         conform.append((name, f"canonicalization + chain integrity reproduce all {len(files)} real payload hashes"))
-    if rapp1_conformant == 0:
+    if rapp_conformant == 0:
         # identify the envelope drift precisely
         fr = json.load(open(files[0]))
         missing = R.FRAME_KEYS - set(fr.keys())

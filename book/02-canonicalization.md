@@ -60,7 +60,7 @@ the same number? RFC 8785 specifies an exact IEEE-754 serialization (the ECMAScr
 production RAPP/1 implementation MUST implement it, and the test is a round-trip: `0.1` must
 survive canonicalization unchanged.
 
-The **reference profile** in `rapp1.py` deliberately refuses floats and accepts only exact
+The **reference profile** in `rapp.py` deliberately refuses floats and accepts only exact
 integers, strings, booleans, null, arrays, and objects. This is not a weaker canonicalizer; it
 is the same canonicalizer over the value domain where the answer is unambiguous on every
 platform. The reference vectors use integer payloads so the published hashes are reproducible

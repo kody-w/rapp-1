@@ -52,12 +52,12 @@ PY
 ```json
 {"status": "ok", "action": "sync",
  "embedded_matches_public_reference": true,
- "source": "https://raw.githubusercontent.com/kody-w/rapp-1/main/rapp1.py",
+ "source": "https://raw.githubusercontent.com/kody-w/rapp-1/main/rapp.py",
  "vector_particle": "d1edcfc5b6d3d3b7556d286476d0ea41c2433e28acc553726b89012c3d4bdada",
  "note": "Same vector hashed through the embedded and the freshly-fetched reference implementation; equal ⇒ this agent computes canonical RAPP/1 addresses."}
 ```
 
-`embedded_matches_public_reference: true`. The agent just downloaded the live `rapp1.py`, executed
+`embedded_matches_public_reference: true`. The agent just downloaded the live `rapp.py`, executed
 it, and confirmed its own embedded `H("rapp/1:particle", …)` produces the *identical* address. This
 is the SDK-builder's answer to the whole disease this ecosystem fought: a component that does not
 merely *claim* to speak RAPP/1 but *demonstrates*, against the public source of truth, that it

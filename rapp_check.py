@@ -1,4 +1,4 @@
-"""rapp1_check.py — the RAPP/1 compliance linter.
+"""rapp_check.py — the RAPP/1 compliance linter.
 
 Point it at any repo checkout and it verdicts every RAPP artifact (rappid.json,
 frame chains, egg/schema labels) against the RAPP/1 standard, using the reference
@@ -11,7 +11,7 @@ implementation. It classifies a repo as:
 This is the tool that makes the estate-wide migration tractable: run it per repo,
 fix on a branch until it reads COMPLIANT, and the owner authorizes the rebirth by merge.
 
-Usage:  python3 rapp1_check.py <repo_path> [--json]
+Usage:  python3 rapp_check.py <repo_path> [--json]
 Exit:   0 CLEAN/COMPLIANT · 1 DRIFT · 2 error
 """
 import glob
@@ -21,7 +21,7 @@ import os
 import re
 import sys
 
-import rapp1 as R
+import rapp as R
 
 _32HEX = re.compile(r"^[0-9a-f]{32}$")
 

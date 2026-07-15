@@ -2,7 +2,7 @@
 
 ### A tutorial and reference for the wire that carries agents
 
-*Written against RAPP/1 rev-5. Every code fragment in this book runs on `rapp1.py`, the
+*Written against RAPP/1 rev-5. Every code fragment in this book runs on `rapp.py`, the
 stdlib-only reference implementation that ships beside it, and every claim about "the real
 world" is checked by `realcheck.py` against the actual committed artifacts of a live estate.*
 

@@ -6,7 +6,7 @@ earth will accept. Run: python3 examples/01_hello_frame.py
 """
 import sys, os, json
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import rapp1 as R
+import rapp as R
 
 # A stream is identified by a rappid. Mint one (keyless: a UUID-anchored join key).
 stream = R.mint_rappid("kody", "hello")

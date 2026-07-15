@@ -7,7 +7,7 @@ RAPP/1 §6 exists to end. Run: python3 examples/03_identity.py
 """
 import sys, os, hashlib
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import rapp1 as R
+import rapp as R
 
 # Keyless: tail = Hb("rapp/1:rappid", uuid4_octets) — a stable, opaque join key.
 keyless = R.mint_rappid("kody", "twin")

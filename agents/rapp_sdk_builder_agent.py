@@ -17,8 +17,8 @@ Then just talk to your brainstem:
     "check https://github.com/kody-w/twin for RAPP/1 compliance"
 
 The RAPP/1 primitives are embedded here verbatim from the reference implementation
-(kody-w/rapp-1 · rapp1.py), so the agent is self-contained and offline-capable. The
-`sync` action fetches the canonical rapp1.py from the public repo and proves this file's
+(kody-w/rapp-1 · rapp.py), so the agent is self-contained and offline-capable. The
+`sync` action fetches the canonical rapp.py from the public repo and proves this file's
 embedded copy is byte-identical — provenance you can check, not trust.
 """
 import hashlib
@@ -53,7 +53,7 @@ __manifest__ = {
                    "content-address values, scaffold organism seeds, and lint repos for compliance. "
                    "Builds on the public RAPP/1 standard (kody-w/rapp-1).",
     "author": "RAPP",
-    "tags": ["starter", "rapp1", "sdk", "identity", "frame", "builder"],
+    "tags": ["starter", "rapp", "sdk", "identity", "frame", "builder"],
     "category": "protocol",
     "quality_tier": "official",
     "requires_env": [],
@@ -61,7 +61,7 @@ __manifest__ = {
 }
 
 SPEC = "rapp/1"
-SRC = "https://raw.githubusercontent.com/kody-w/rapp-1/main/rapp1.py"
+SRC = "https://raw.githubusercontent.com/kody-w/rapp-1/main/rapp.py"
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 _UTC = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$")
 _RAPPID = re.compile(r"^rappid:@([a-z0-9]+(?:-[a-z0-9]+)*)/([a-z0-9]+(?:-[a-z0-9]+)*):([0-9a-f]{64})$")
@@ -69,7 +69,7 @@ FRAME_KEYS = {"spec", "kind", "stream_id", "seq", "utc", "payload",
               "payload_hash", "frame_hash", "prev", "prev_wave", "sig"}
 
 
-# ── RAPP/1 primitives (embedded verbatim from rapp1.py; the `sync` action proves parity) ──
+# ── RAPP/1 primitives (embedded verbatim from rapp.py; the `sync` action proves parity) ──
 def canonical(v):
     if v is None or isinstance(v, bool):
         return json.dumps(v)

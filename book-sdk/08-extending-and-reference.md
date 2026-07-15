@@ -87,7 +87,7 @@ python3 -c "import rapp_sdk_builder_agent as A; print(A.RappSdkBuilderAgent().pe
 - The **reference book** (`book/`) — the RAPP/1 protocol in prose, front to back.
 - The **visual guide** (`guide/`) — the same protocol in pictures.
 - `SPEC.md` — the normative standard, when you need the exact letter.
-- `rapp1.py` — the reference implementation the SDK embeds; read it, it is ~140 lines.
+- `rapp.py` — the reference implementation the SDK embeds; read it, it is ~140 lines.
 
 You now hold the whole loop: a grail brainstem, an SDK that makes correct RAPP/1 the only thing you
 can build, and the ability to drive it all by talking. Go plant something.

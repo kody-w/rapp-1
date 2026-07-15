@@ -1,4 +1,4 @@
-"""rapp1.py — reference implementation of the RAPP/1 protocol suite (rev-5).
+"""rapp.py — reference implementation of the RAPP/1 protocol suite (rev-5).
 
 Stdlib only (json, hashlib, uuid, re, base64). Implements the primitives that the
 spec claims are byte-for-byte interoperable, so the conformance suite can PROVE the

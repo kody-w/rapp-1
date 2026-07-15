@@ -111,9 +111,9 @@ current form citing the sealed head → old frames retained under `legacy/` (sea
 
 ## A.9 The Reference Implementation
 
-`rapp1.py` (stdlib only) implements A.1–A.4: `canonical`, `H`/`Hb`, `mint_rappid`/`rappid_valid`,
+`rapp.py` (stdlib only) implements A.1–A.4: `canonical`, `H`/`Hb`, `mint_rappid`/`rappid_valid`,
 `build_frame`/`verify_frame`. `conformance.py` runs V1–V9. `realcheck.py` runs the whole thing
-against the live estate. Read `rapp1.py` — it is ~140 lines and it is the spec made executable.
+against the live estate. Read `rapp.py` — it is ~140 lines and it is the spec made executable.
 
 ## A.10 Normative References
 

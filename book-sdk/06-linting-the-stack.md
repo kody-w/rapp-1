@@ -47,9 +47,9 @@ not let "I didn't look" masquerade as "no problems."
 ## 6.2 The relationship to the full linter
 
 The agent's `check` is a fast, network, identity-level lint — perfect for "is this repo drifting?"
-from inside a conversation. The repository also ships a deeper offline linter, `rapp1_check.py`,
+from inside a conversation. The repository also ships a deeper offline linter, `rapp_check.py`,
 which additionally walks *frame chains* (verifying seq/prev/utc linkage) and can be pointed at a
-local checkout. Use `check` from the brainstem for a quick read; use `rapp1_check.py` in CI for the
+local checkout. Use `check` from the brainstem for a quick read; use `rapp_check.py` in CI for the
 full gate. They agree on identity findings by construction — both are the reference primitives.
 
 > **A note on honesty.** This SDK's `check` was itself sharpened by adversarial review. An early

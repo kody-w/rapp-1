@@ -7,7 +7,7 @@ then we go back and understand why it worked.
 
 ## 1.1 Getting Started
 
-Everything in this chapter runs against `rapp1.py`, which needs nothing but a Python 3
+Everything in this chapter runs against `rapp.py`, which needs nothing but a Python 3
 standard library. From the repository root:
 
 ```
@@ -17,7 +17,7 @@ python3 examples/01_hello_frame.py
 Here is the program:
 
 ```python
-import rapp1 as R
+import rapp as R
 
 stream = R.mint_rappid("kody", "hello")          # 1. an identity for the stream
 frame = R.build_frame(                             # 2. a record in that stream
@@ -155,4 +155,4 @@ That is the spine of the protocol. Everything from here is precision:
 - And then chapter 8, where we point all of this at a real, drifted estate and watch the
   protocol tell conformance from drift, byte by byte.
 
-Read `rapp1.py` now if you like — it is short, and you have already used most of it.
+Read `rapp.py` now if you like — it is short, and you have already used most of it.

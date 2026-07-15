@@ -7,7 +7,7 @@ Exit 0 = all vectors pass.
 import json
 import urllib.request
 import hashlib
-import rapp1 as R
+import rapp as R
 
 PASS, FAIL = "\033[32mPASS\033[0m", "\033[31mFAIL\033[0m"
 results = []
