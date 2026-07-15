@@ -192,4 +192,51 @@ handles stragglers, not the resolver). `test_door_address.py` +
 
 ---
 
+## RAPP installer — the primary distribution path
+
+`installer/plant.sh` + `initialize-variant.sh` are what the curl one-liner runs.
+**Every door planted by the installer was born non-compliant:**
+
+| defect | before | after |
+|---|---|---|
+| `mint_rappid` / `NEW_RAPPID` tail | `uuid4().hex` = **32 hex** → `rappid_valid False`; owner/repo verbatim (uppercase login) | `Hb("rapp/1:rappid", uuid4)` 64-hex + §6.1-canonicalized |
+| `SPECIES_ROOT_RAPPID` / `PARENT_RAPPID` | `rappid:@kody-w/RAPP:0b635450…` — uppercase + 32-hex → **invalid parent on every door** | canonical `rappid:@kody-w/rapp:9a8f0a4b…` |
+| `rappid.json` schema | `rapp-rappid/2.0` | `rapp/1` |
+
+**Verified live:** `plant.sh` mint over `{Kody-W/RAPP, kody-w/my-mirror, ACME/Cool_Repo.v2}`
+→ all `rappid_valid` True; `bash -n` clean. (`RAPP@f9102ac`)
+
+## Two more distinct-repo producers
+
+| repo · file | defect | verify |
+|---|---|---|
+| `RAR/staging/@kody-w/project_twin` 0.3.2 | `_mint_v2_rappid` = `sha256(uuid4)` (no domain-sep) + no canonicalization; schema `2.0` | `project_twin(Kody-W/My_Project)` valid |
+| `RAR/stacks/fleet/twin_egg_hatcher` 1.0.2 | hatched neighborhood stamped schema `rapp-rappid/2.0` (rappid echoed from egg — reader) | schema → `rapp/1` |
+| `neighborhood-example/egg_hatcher` | **airgapped fallback minted `uuid4().hex` = 32-hex** invalid rappid; host slug uncanonicalized; schema `2.0` | `egg_hatcher(Kodys-MacBook.local)` → 64-hex, valid |
+
+**Status:** committed + pushed (`RAR@46c3f2e`, `neighborhood-example`).
+
+---
+
+## No regression — estate stays green
+
+After all producer fixes, `rapp_check.py` over **all 28 repos**: every committed
+`rappid.json` passes §6.1, every `frames/` log conforms to §7, **zero DRIFT**. The
+producers were fixed behind the already-compliant committed artifacts.
+
+## Deferred (scope forks — need the operator's steer, not done unilaterally)
+
+1. **§9 egg-manifest format** — `brainstem-egg/2.2-*` → `rapp/1-egg` is a
+   cross-estate format migration touching ~33 producer/consumer files; RAPP's own
+   `CLAUDE.md` documents `brainstem-egg/2.2-*` as the *current, deliberate* egg
+   format. A spec decision, not a drift fix.
+2. **Downstream agent copies** (`rapp-batcave/`, `rapp-midden/` — 11 files) carry
+   the pre-fix schema/mint. They are point-in-time distributions of the canonical
+   RAR agents now fixed upstream; correct handling is re-sync-from-upstream (or
+   leave as archival snapshots — `rapp-midden` is literally an archive), not
+   independent edits that create divergence.
+3. **Non-code data/docs** (`neighborhood.json`, `tether.html`, `rapp-map/*.json`,
+   `RAPPID_SPEC.md`, trackers) with literal `rapp-rappid/2.0` strings — not a
+   runtime pipe, not `rapp_check`-linted; a bulk doc sweep.
+
 *Ledger continues per repo as each one's pipes are exercised.*
