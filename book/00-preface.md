@@ -10,7 +10,8 @@ world" is checked by `realcheck.py` against the actual committed artifacts of a 
 
 ## Preface
 
-RAPP/1 is a protocol for **agents that keep a verifiable memory and talk over one wire**.
+RAPP is a protocol for **agents that keep a verifiable memory and talk over one wire**. *RAPP/1*
+is its first versioned standard — the way *HTTP/1.1* is a version of HTTP — and this book teaches it.
 
 That is the whole ambition. Not a framework, not an SDK, not a product — a *protocol*, in the
 sense that HTTP and JSON and git's object model are protocols: a small number of exact rules

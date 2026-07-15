@@ -1,4 +1,7 @@
-# RAPP/1 — the wire that carries agents
+# RAPP — the wire that carries agents
+
+> **RAPP** is the protocol; **RAPP/1** is its first versioned standard — the way *HTTP/1.1* is a
+> version of HTTP. This repository is the RAPP/1 standard.
 
 **One protocol for agents that keep a verifiable memory and talk over one wire.** Five primitives
 — canonicalization, content addressing, identity, the frame, the egg — specified exactly enough
