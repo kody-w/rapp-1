@@ -322,6 +322,17 @@ Also grep for mint-shaped code the pattern net can miss: any `hashlib.sha256` wh
 
 ### Step 6 — Fix at the real layer, re-run until green
 
+**For legacy-identity DRIFT** (a committed `rappid.json` bearing a v2 string, a 32-hex
+short tail, or a `rapp-rappid/2.0` schema), the estate-standard fix is published as a
+tool: **`standing_guard_reanchor.py`** (`https://raw.githubusercontent.com/kody-w/rapp-1/main/standing_guard_reanchor.py`).
+It widens the legacy 128-bit id to the §6.1 256-bit tail via `Hb("rapp/1:rappid",
+bytes.fromhex(old32))` (deterministic, ordering-free — a child computes its parent's new
+id identically), coordinates the replacement across every grail file, refreshes the frozen
+spec's mint teaching, and records lineage in `_migrated_from`. Run it, then verify with
+`rapp_check.py`. Do NOT invent a `parent_rappid` where one is absent (a missing parent is
+§6.3-valid); only re-anchor an existing legacy one.
+
+
 - Fix the **producer**, then regenerate its outputs through the fixed producer (never hand-patch outputs to match).
 - For **version-pinned artifacts** (e.g. RAR agents): bump the artifact version and rebuild the registry index — a silent in-place change under a pinned version is itself drift.
 - Re-run Steps 3–5 from scratch after fixing. The pass is complete only when `rapp_check` is COMPLIANT/CLEAN **and** every live pipe validates **and** the residue grep yields only justified keep-category hits.
