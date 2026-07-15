@@ -67,6 +67,11 @@ def check_repo(root):
         if schema not in ("rapp/1",):
             findings.append({"artifact": rel, "rule": "§12 schema label",
                              "detail": f"schema='{schema}', not 'rapp/1'"})
+        # §6.3: a parent_rappid must itself be a valid RAPP/1 rappid (not a legacy/provisional id)
+        parent = d.get("parent_rappid")
+        if parent and not R.rappid_valid(parent):
+            findings.append({"artifact": rel, "rule": "§6.3 parent_rappid",
+                             "detail": f"parent_rappid not RAPP/1 grammar: {parent}"})
 
     # ---- frame chains ----
     for fdir in sorted({os.path.dirname(p) for p in
@@ -80,14 +85,16 @@ def check_repo(root):
         has_artifact = True
         rel = os.path.relpath(fdir, root)
         canon_ok = conformant = 0
+        head = None  # thread the head so chain linkage (seq/prev/utc) is actually checked
         for f in files:
             fr = json.load(open(f))
             p, s = fr.get("payload"), (fr.get("sha256") or fr.get("hash"))
             if p is not None and s is not None and _untagged(p) == s:
                 canon_ok += 1
-            ok, _, _ = R.verify_frame(fr)
+            ok, _, _ = R.verify_frame(fr, head=head, stream_id_of_record=fr.get("stream_id"))
             if ok:
                 conformant += 1
+                head = fr  # advance only on a valid frame, so seq contiguity is enforced
         if conformant == len(files):
             evidence.append({"artifact": rel, "ok": f"{len(files)} frames conform to §7 envelope"})
         else:
