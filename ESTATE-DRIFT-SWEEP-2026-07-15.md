@@ -34,15 +34,24 @@ They compute **different** identities for the same repo. Per the spec, Eternity 
 - All verified: mints are 64-hex `Hb("rapp/1:rappid", uuid4)`, **not** `sha256(name)`; callers are
   idempotent via stored `rappid.json`, so the random tail is safe.
 
-**⏳ DATA re-anchor — needs your greenlight (the tracked batcave illegal mint, RAR#187 / rapp-map#8):**
-`rapp-batcave/rappid.json` (`72c739f2…` = `sha256("kody-w/rapp-batcave")`) and `rapp-midden/rappid.json`
-(`0fb59d7d…`) still carry the legacy name-hash identity. Re-anchoring is **not** a text-edit:
-the batcave id is referenced in **~15 files** (served `index.html`, `holo.md`, `card.json`, `members.json`,
-specs, `cubbies/index.json`, `rar/index.json`) **+ a packed `.well-known/batcave.egg`** (must be
-re-packed, not sed'd) **+ rapp-map** (`neurons.json`, `neurons-manifest.json`). Doing it blind corrupts
-served history — the exact failure mode caught before. **Recommend:** greenlight and I run it as one
-coordinated pass using the batcave's own re-pack tooling (it's key-free; no signatures), then update
-rapp-map and close RAR#187.
+**✅ DATA re-anchor — DONE & pushed (greenlit 2026-07-15, resolves RAR#187 / rapp-map#8):**
+`rapp-batcave` (`72c739f2…` → `3a17e42f…`) and `rapp-midden` (`0fb59d7d…` → `4858798a…`) re-anchored
+to proper keyless mints (verified not name-hashes, §6.1 valid). The `.well-known/batcave.egg` turned
+out to be **JSON, not a zip** (no re-pack needed, no self-hash). Updated **all** references
+coordinatedly — 16 batcave files + 9 midden files + `rapp-map` (`neurons.json`, `neurons-manifest.json`)
+— old id now survives only in each `rappid.json`'s `_migrated_from` bridge; **zero dangling references**
+across the estate. (Cosmetic follow-up: batcave/midden holocard art (`holo.svg`) derives a seed from the
+old rappid and could be regenerated with the holocard tool — visual only, identity refs are correct.)
+
+## ✅ twin frame re-genesis — DONE & pushed
+
+The genesis chain was `rapp-frame/2.0` citing the old 32-hex id, while `feed.json` had been partially
+migrated to the 64-hex id — served history had **diverged** (feed `head_sha` reflected old-id frames,
+inlined copies showed the new id). Re-cast frames 0–2 to canonical `rapp/1` (`spec` + `payload_hash` +
+`prev_hash` + `frame_hash`), re-anchored in-payload id refs, **sealed** the legacy chain
+(`Hb("rapp/1:seal", old_head)`) and retained it under `frames/legacy/` + `SEAL.json`, rebuilt `feed.json`.
+**Every frame verified against `rapp.py`** (particle/wave/chain); feed and disk frames now identical.
+Unsigned throughout — no keys involved. New chain head `f459b238…`.
 
 ## Remaining, smaller
 
