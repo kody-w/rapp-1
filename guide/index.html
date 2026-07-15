@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAPP/1 — Design and Build Agents · the visual guide</title>
+<style>
+  /* ─────────────────────────────────────────────────────────────
+     RAPP/1 — Design and Build Agents
+     A visual guide in the spirit of Jon Duckett's design books:
+     one idea per spread, colour-coded chapters, big friendly diagrams.
+     Self-contained. Print-book light palette by intent.
+  ────────────────────────────────────────────────────────────── */
+  :root{
+    --paper:#fbf7f0; --card:#ffffff; --ink:#2a2b31; --soft:#6d6f7a;
+    --line:#ece5d8; --shadow:0 10px 30px rgba(40,30,10,.08);
+    --intro:#e8514f; --canon:#f5872e; --addr:#eab308; --id:#37a866;
+    --frame:#12ab9f; --wire:#2f7fd6; --egg:#8a63d2; --real:#e0559b; --ink2:#20222a;
+    --mono:"SF Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.65 var(--sans);
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 26px}
+  .narrow{max-width:720px}
+  h1,h2,h3{line-height:1.08;letter-spacing:-.02em;font-weight:800}
+  p{margin:0 0 18px}
+  a{color:inherit}
+  .mono{font-family:var(--mono)}
+
+  /* sticky chapter rail */
+  nav.rail{position:sticky;top:0;z-index:50;background:rgba(251,247,240,.92);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  nav.rail .wrap{display:flex;align-items:center;gap:4px;height:52px;overflow-x:auto}
+  nav.rail .brand{font-weight:800;margin-right:14px;white-space:nowrap;font-size:15px}
+  nav.rail a{display:flex;align-items:center;gap:7px;padding:6px 11px;border-radius:20px;
+    font-size:13px;font-weight:600;color:var(--soft);text-decoration:none;white-space:nowrap}
+  nav.rail a:hover{color:var(--ink);background:#fff}
+  nav.rail .dot{width:10px;height:10px;border-radius:50%}
+
+  /* cover */
+  .cover{padding:90px 0 70px;text-align:center;position:relative;overflow:hidden}
+  .cover .kicker{font:700 13px/1 var(--sans);letter-spacing:.22em;text-transform:uppercase;color:var(--soft)}
+  .cover h1{font-size:clamp(46px,9vw,92px);margin:20px 0 6px}
+  .cover h1 em{font-style:normal;
+    background:linear-gradient(100deg,var(--intro),var(--canon) 20%,var(--addr) 38%,var(--id) 55%,var(--frame) 70%,var(--wire) 84%,var(--egg));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .cover .lede{font-size:22px;color:var(--soft);max-width:600px;margin:14px auto 34px}
+  .chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:640px;margin:0 auto}
+  .chip{padding:8px 15px;border-radius:22px;font-weight:700;font-size:14px;color:#fff}
+  .cover .foot{margin-top:40px;color:var(--soft);font-size:14px}
+  .cover .foot a{font-weight:700;color:var(--ink)}
+
+  /* chapter opener — full bleed colour */
+  .opener{color:#fff;padding:78px 0;margin-top:0;position:relative}
+  .opener .wrap{display:flex;align-items:flex-end;gap:26px;flex-wrap:wrap}
+  .opener .num{font:800 108px/.8 var(--sans);opacity:.4;letter-spacing:-.04em}
+  .opener h2{font-size:clamp(34px,6vw,60px);margin:0}
+  .opener .hook{font-size:20px;opacity:.95;max-width:640px;margin:18px 0 0;font-weight:500}
+  .opener .tagword{position:absolute;right:-10px;top:-24px;font:800 200px/1 var(--sans);
+    opacity:.09;pointer-events:none;user-select:none}
+
+  /* body spreads */
+  section.spread{padding:56px 0}
+  section.spread h3{font-size:27px;margin:0 0 14px}
+  .lead{font-size:20px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:start}
+  @media(max-width:760px){.two{grid-template-columns:1fr}.opener .num{font-size:76px}}
+
+  /* callout: in plain english */
+  .plain{border-left:5px solid var(--accent,#ccc);background:#fff;border-radius:0 14px 14px 0;
+    padding:18px 22px;box-shadow:var(--shadow);margin:8px 0 22px}
+  .plain b{display:block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent,#888);margin-bottom:6px}
+  .plain p{margin:0;font-size:16px}
+
+  /* code panel with annotations */
+  .code{background:var(--ink2);color:#e9e9ee;border-radius:14px;padding:18px 20px;
+    font:14px/1.75 var(--mono);overflow-x:auto;box-shadow:var(--shadow)}
+  .code .k{color:#c792ea}.code .s{color:#c3e88d}.code .n{color:#f78c6c}
+  .code .c{color:#7f8496}.code .f{color:#82aaff}.code .hl{color:var(--accent);font-weight:700}
+  .label{font:700 12px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--soft);margin:0 0 10px}
+
+  /* primitive cards */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+  .pcard{background:#fff;border-radius:16px;padding:22px;box-shadow:var(--shadow);border-top:5px solid var(--c,#ccc)}
+  .pcard .n{font:800 13px/1 var(--sans);color:var(--c);letter-spacing:.08em;text-transform:uppercase}
+  .pcard h4{margin:8px 0 6px;font-size:20px}
+  .pcard p{margin:0;font-size:15px;color:var(--soft)}
+
+  /* anatomy diagram (rappid / url style) */
+  .anatomy{background:#fff;border-radius:16px;padding:30px 24px 22px;box-shadow:var(--shadow);overflow-x:auto}
+  .anatomy .row{display:flex;font:700 clamp(13px,2.4vw,20px)/1 var(--mono);white-space:nowrap;justify-content:center}
+  .anatomy .seg{padding:12px 10px;border-radius:8px;position:relative}
+  .anatomy .seg small{position:absolute;left:50%;transform:translateX(-50%);top:100%;margin-top:12px;
+    font:600 12px/1.3 var(--sans);white-space:normal;width:120px;text-align:center;color:var(--soft)}
+  .anatomy .caps{height:80px}
+
+  /* frame field table */
+  .frame-card{background:#fff;border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+  .frame-card .fh{background:var(--frame);color:#fff;padding:12px 18px;font-weight:800;display:flex;justify-content:space-between}
+  .frow{display:grid;grid-template-columns:150px 1fr;gap:14px;padding:9px 18px;border-top:1px solid var(--line);font-size:14.5px}
+  .frow .fk{font-family:var(--mono);font-weight:700}
+  .frow.particle{background:#fff5f4}.frow.wave{background:#eafbf9}
+  .frow .fk .tagp{color:var(--intro)}.frow .fk .tagw{color:var(--frame)}
+  .legend{display:flex;gap:18px;margin:14px 0 0;font-size:13px;font-weight:600;flex-wrap:wrap}
+  .legend span{display:flex;align-items:center;gap:7px}
+  .sw{width:14px;height:14px;border-radius:4px;display:inline-block}
+
+  /* chain diagram */
+  .chain{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding:6px 2px 10px}
+  .fblock{min-width:150px;background:#fff;border:2px solid var(--frame);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow)}
+  .fblock .t{font:700 12px/1 var(--sans);color:var(--frame);text-transform:uppercase;letter-spacing:.06em}
+  .fblock .p{margin:8px 0 0;font:13px/1.5 var(--mono)}
+  .fblock .p b{color:var(--intro)}
+  .arrow{display:flex;align-items:center;justify-content:center;min-width:46px;color:var(--frame);font-size:26px;font-weight:800}
+  .arrow small{position:absolute;margin-top:44px;font:600 11px var(--sans);color:var(--soft)}
+
+  /* split — particle & wave */
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:680px){.split{grid-template-columns:1fr}}
+  .half{border-radius:16px;padding:22px;color:#fff;box-shadow:var(--shadow)}
+  .half.p{background:linear-gradient(140deg,var(--intro),#f0776f)}
+  .half.w{background:linear-gradient(140deg,var(--frame),#3ecec2)}
+  .half h4{margin:0 0 4px;font-size:22px}
+  .half .sm{opacity:.9;font-size:14px;margin:0 0 14px}
+  .half .mono{background:rgba(0,0,0,.22);border-radius:9px;padding:10px 12px;font-size:13px;display:block;overflow-x:auto}
+
+  /* steps */
+  .steps{counter-reset:s;display:grid;gap:12px}
+  .step{display:grid;grid-template-columns:44px 1fr;gap:16px;align-items:start;background:#fff;
+    border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .step .b{counter-increment:s;width:44px;height:44px;border-radius:50%;background:var(--accent,#ccc);
+    color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:19px}
+  .step .b::before{content:counter(s)}
+  .step h5{margin:0 0 3px;font-size:17px}
+  .step p{margin:0;font-size:15px;color:var(--soft)}
+
+  /* forbidden / allowed */
+  .versus{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:680px){.versus{grid-template-columns:1fr}}
+  .vbox{border-radius:16px;padding:20px 22px;box-shadow:var(--shadow)}
+  .vbox.no{background:#fff0f0;border:2px solid #f3b7b4}
+  .vbox.yes{background:#eefaf1;border:2px solid #a9dfbb}
+  .vbox .tag{font-weight:800;font-size:13px;letter-spacing:.1em;text-transform:uppercase;display:flex;gap:8px;align-items:center}
+  .vbox.no .tag{color:#d64541}.vbox.yes .tag{color:#2e9e5b}
+  .vbox .mono{display:block;background:#fff;border-radius:8px;padding:10px 12px;margin:12px 0 8px;font-size:12.5px;overflow-x:auto;border:1px solid var(--line)}
+
+  /* stat infographic */
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:680px){.stats{grid-template-columns:1fr}}
+  .bigstat{border-radius:18px;padding:28px;color:#fff;box-shadow:var(--shadow)}
+  .bigstat.ok{background:linear-gradient(140deg,var(--id),#4cc07f)}
+  .bigstat.fix{background:linear-gradient(140deg,var(--canon),#f7a24e)}
+  .bigstat .huge{font:800 62px/.9 var(--sans);letter-spacing:-.03em}
+  .bigstat p{margin:12px 0 0;font-size:15px;opacity:.96}
+  .ledger{background:#fff;border-radius:16px;padding:20px 22px;box-shadow:var(--shadow);margin-top:20px}
+  .drow{display:grid;grid-template-columns:130px 1fr;gap:14px;padding:10px 0;border-top:1px solid var(--line);align-items:center}
+  .drow:first-of-type{border-top:0}
+  .badge{font:700 11px/1 var(--sans);letter-spacing:.04em;text-transform:uppercase;color:#fff;
+    padding:6px 9px;border-radius:7px;text-align:center;background:var(--real)}
+  .drow small{color:var(--soft);font-size:13.5px}
+
+  /* try-it */
+  .tryit{background:#fff;border:2px dashed var(--accent,#ccc);border-radius:16px;padding:20px 22px;margin-top:22px}
+  .tryit .t{font-weight:800;color:var(--accent);font-size:13px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+
+  footer{background:var(--ink2);color:#cfd0d8;padding:56px 0 70px;margin-top:20px}
+  footer h3{color:#fff;font-size:24px;margin:0 0 10px}
+  footer a{color:#82aaff;text-decoration:none;font-weight:600}
+  .colophon{font-size:13px;color:#8a8d99;margin-top:26px;line-height:1.7}
+</style>
+</head>
+<body>
+
+<nav class="rail"><div class="wrap">
+  <span class="brand">RAPP/1 · visual guide</span>
+  <a href="#c1"><span class="dot" style="background:var(--intro)"></span>What it is</a>
+  <a href="#c2"><span class="dot" style="background:var(--canon)"></span>Canonical</a>
+  <a href="#c3"><span class="dot" style="background:var(--addr)"></span>Addressing</a>
+  <a href="#c4"><span class="dot" style="background:var(--id)"></span>Identity</a>
+  <a href="#c5"><span class="dot" style="background:var(--frame)"></span>The frame</a>
+  <a href="#c6"><span class="dot" style="background:var(--wire)"></span>The wire</a>
+  <a href="#c7"><span class="dot" style="background:var(--egg)"></span>The egg</a>
+  <a href="#c8"><span class="dot" style="background:var(--real)"></span>Real world</a>
+</div></nav>
+
+<!-- COVER -->
+<header class="cover"><div class="wrap">
+  <div class="kicker">The Visual Guide · RAPP/1 rev-5</div>
+  <h1>Design &amp; Build<br><em>Agents</em></h1>
+  <p class="lede">One protocol for agents that keep a verifiable memory and talk over one wire — taught in pictures.</p>
+  <div class="chips">
+    <span class="chip" style="background:var(--canon)">Canonicalization</span>
+    <span class="chip" style="background:var(--addr);color:#3a2f00">Content addressing</span>
+    <span class="chip" style="background:var(--id)">Identity</span>
+    <span class="chip" style="background:var(--frame)">The frame</span>
+    <span class="chip" style="background:var(--egg)">The egg</span>
+  </div>
+  <p class="foot">A companion to the reference standard &amp; implementation · <a href="../">back to rapp-1</a> · <a href="https://github.com/kody-w/rapp-1">source</a></p>
+</div></header>
+
+<!-- ══════════════ CHAPTER 1 ══════════════ -->
+<div class="opener" id="c1" style="background:var(--intro)"><div class="wrap">
+  <span class="tagword">why</span>
+  <div class="num">1</div>
+  <div><h2>What is RAPP/1?</h2>
+  <p class="hook">A medium for agents — a way to write down what an agent did, address it by its content, chain it into a life, and hand it to anyone.</p></div>
+</div></div>
+
+<section class="spread" style="--accent:var(--intro)"><div class="wrap narrow">
+  <p class="lead">RAPP/1 is a <strong>protocol</strong>, in the same sense that HTTP, JSON, and git's object model are protocols: a small number of exact rules that let programs written by strangers produce bytes each other can trust.</p>
+  <div class="plain">
+    <b>In plain English</b>
+    <p>It is not a framework or an app. It is a shared agreement about <em>bytes on a wire</em>. Follow the rules and your agent's memory can be verified by anyone, anywhere, forever — no shared database, no trust required.</p>
+  </div>
+  <p>Everything in RAPP/1 is built from <strong>five primitives</strong>. The whole rest of this guide is these five, one chapter at a time.</p>
+</div></div>
+<div class="wrap"><div class="cards">
+  <div class="pcard" style="--c:var(--canon)"><div class="n">One</div><h4>Canonicalization</h4><p>Turn a value into exactly one sequence of bytes.</p></div>
+  <div class="pcard" style="--c:var(--addr)"><div class="n">Two</div><h4>Content addressing</h4><p>Name those bytes by their hash — the hash <em>is</em> the name.</p></div>
+  <div class="pcard" style="--c:var(--id)"><div class="n">Three</div><h4>Identity</h4><p>The rappid: a name minted once, never a hash of a name.</p></div>
+  <div class="pcard" style="--c:var(--frame)"><div class="n">Four</div><h4>The frame</h4><p>One record that is both a particle and a wave.</p></div>
+  <div class="pcard" style="--c:var(--egg)"><div class="n">Five</div><h4>The egg</h4><p>A content-addressed package for a whole organism.</p></div>
+</div></div>
+<section class="spread" style="--accent:var(--intro)"><div class="wrap narrow">
+  <h3>Why a protocol, and why now</h3>
+  <p>The RAPP ecosystem is real, and it drifted. The same idea — “a frame,” “a rappid” — got built more than once, in incompatible ways, each copy claiming the same name. A frame was minted <em>twice</em> under one version string with two different hash rules. An identity was computed three ways in production, one of them the cardinal sin: hashing a <em>name</em> into an address.</p>
+  <p>This is the oldest failure in distributed systems, and it was solved long ago — by Linux's one mainline, by the Web's single living standard, by git making the hash the name. <strong>RAPP/1 is the convergence:</strong> one spec, one canonicalizer, one mint, one frame.</p>
+</div></div>
+
+<!-- ══════════════ CHAPTER 2 ══════════════ -->
+<div class="opener" id="c2" style="background:var(--canon)"><div class="wrap">
+  <span class="tagword">bytes</span>
+  <div class="num">2</div>
+  <div><h2>Canonicalization</h2>
+  <p class="hook">Between a value and its hash sits one question that has sunk more systems than any other: <em>which bytes?</em></p></div>
+</div></div>
+<section class="spread" style="--accent:var(--canon)"><div class="wrap">
+  <div class="two">
+    <div>
+      <p class="lead"><code>{"a":1,"b":2}</code> and <code>{"b":2,"a":1}</code> are the <strong>same value</strong> and <strong>different bytes</strong>. If two programs disagree about which bytes represent a value, they hash it differently — and every promise above breaks silently.</p>
+      <div class="plain"><b>The fix</b><p>One rule, shared by everyone: <strong>RFC 8785 (JCS)</strong>. Sort object keys. No spaces. Keep array order. Reject duplicate keys. Now every value has exactly one byte form.</p></div>
+    </div>
+    <div>
+      <p class="label">The same value → one canonical form</p>
+      <div class="code"><span class="c"># two ways to write the same thing</span>
+{<span class="s">"b"</span>:1, <span class="s">"a"</span>:[3,2]}
+{<span class="s">"a"</span>:[3,2], <span class="s">"b"</span>:1}
+        │
+        ▼   <span class="c">canonical()</span>
+<span class="hl">{"a":[3,2],"b":1}</span>   <span class="c"># identical bytes, always</span></div>
+      <div class="tryit" style="--accent:var(--canon)"><div class="t">Try it</div>
+        <p class="mono" style="margin:0;font-size:13.5px">python3 -c "import rapp1 as R;<br>print(R.canonical({'b':1,'a':[3,2]}))"</p></div>
+    </div>
+  </div>
+</div></section>
+<section class="spread" style="--accent:var(--canon);padding-top:0"><div class="wrap narrow">
+  <h3>Two rules that surprise people</h3>
+  <div class="versus">
+    <div class="vbox yes"><div class="tag">✓ order matters in arrays</div>
+      <span class="mono">[1,2] ≠ [2,1]</span>
+      <p style="margin:0;font-size:14.5px">Array position is meaning. Canonicalization preserves it.</p></div>
+    <div class="vbox no"><div class="tag">✗ order is erased in objects</div>
+      <span class="mono">{"a":1,"b":2} = {"b":2,"a":1}</span>
+      <p style="margin:0;font-size:14.5px">Key order is not meaning. Canonicalization sorts it away.</p></div>
+  </div>
+  <p style="margin-top:22px">There is <strong>no Unicode normalization</strong> and <strong>no schema coercion</strong> — both would make the same value hash differently on different machines. The bytes you put in are the bytes that are hashed.</p>
+</div></div>
+
+<!-- ══════════════ CHAPTER 3 ══════════════ -->
+<div class="opener" id="c3" style="background:var(--addr);color:#3a2f00"><div class="wrap">
+  <span class="tagword" style="opacity:.13">hash</span>
+  <div class="num" style="opacity:.5">3</div>
+  <div><h2>Content addressing</h2>
+  <p class="hook" style="opacity:1">Name content by its hash and something magical follows: two things with the same address <em>are</em> the same thing.</p></div>
+</div></div>
+<section class="spread" style="--accent:var(--addr)"><div class="wrap">
+  <p class="lead narrow">git built its whole object store on this. So does RAPP/1. But there is a trap that quietly brings the collisions back — and the fix is <strong>domain separation</strong>.</p>
+  <div class="two">
+    <div>
+      <p class="label">The trap</p>
+      <p>Hash a payload, a public key, and an egg all with plain SHA-256, and a value that can appear in more than one role gets the <em>same address</em> in every role. You built a system where a payload address and an identity can collide — not from a hash weakness, but because raw hashes were used as addresses in several namespaces at once.</p>
+    </div>
+    <div>
+      <p class="label">The fix — tag the space, then hash</p>
+      <div class="code"><span class="f">H</span>(space, v) =
+   SHA256( space <span class="hl">‖ 0x0A ‖</span> canonical(v) )
+
+<span class="c"># same value {"x":1}, three spaces:</span>
+H(<span class="s">"rapp/1:particle"</span>, v) → <span class="n">a1b2…</span>
+H(<span class="s">"rapp/1:wave"</span>,     v) → <span class="n">c3d4…</span>
+H(<span class="s">"rapp/1:egg"</span>,      v) → <span class="n">e5f6…</span>
+<span class="c">#  three different addresses, by design</span></div>
+    </div>
+  </div>
+  <div class="plain narrow" style="margin-top:26px"><b>Why it works</b><p>The tag is part of what gets hashed, so a payload address can <em>never</em> equal a frame address can <em>never</em> equal an identity — even when the underlying bytes are identical. Cross-space collision isn't unlikely; it is <strong>unrepresentable</strong>.</p></div>
+  <p class="narrow">One hash, everywhere: <strong>SHA-256</strong>, lowercase, 64 hex characters. Not a menu. A protocol whose hash is negotiable is really several protocols, and an attacker picks the weakest.</p>
+</div></section>
+
+<!-- ══════════════ CHAPTER 4 ══════════════ -->
+<div class="opener" id="c4" style="background:var(--id)"><div class="wrap">
+  <span class="tagword">name</span>
+  <div class="num">4</div>
+  <div><h2>Identity — the rappid</h2>
+  <p class="hook">An agent needs a name that stays the same as its content changes. This is the one place where content addressing is <em>wrong</em>.</p></div>
+</div></div>
+<section class="spread" style="--accent:var(--id)"><div class="wrap">
+  <p class="label" style="text-align:center">Anatomy of a rappid</p>
+  <div class="anatomy">
+    <div class="row">
+      <span class="seg" style="background:#eef7f0;color:#37a866">rappid:@<small>the scheme</small></span>
+      <span class="seg" style="background:#dff0e5;color:#2e8f57">kody-w<small>owner — who</small></span>
+      <span class="seg" style="color:#9aa">/</span>
+      <span class="seg" style="background:#dff0e5;color:#2e8f57">rapp-body<small>slug — what</small></span>
+      <span class="seg" style="color:#9aa">:</span>
+      <span class="seg" style="background:#37a866;color:#fff">324197c1…a8ba71f6<small>the minted 64-hex tail — <b>the identity</b></small></span>
+    </div>
+    <div class="caps"></div>
+  </div>
+  <div class="two" style="margin-top:26px">
+    <div>
+      <p>The <code>@owner/slug</code> part is a convenience for humans and resolvers. The identity is the <strong>64-hex tail</strong>, and where it comes from is the single most important rule in RAPP/1.</p>
+      <div class="plain" style="--accent:var(--id)"><b>The one rule</b><p>The tail is minted <strong>once</strong>, from entropy or from a public key. It is <strong>never</strong> the hash of the name.</p></div>
+    </div>
+    <div>
+      <p class="label">Two lawful mints</p>
+      <div class="code"><span class="c"># keyless — anchored on random entropy</span>
+tail = Hb(<span class="s">"rapp/1:rappid"</span>, uuid4_bytes)
+
+<span class="c"># keyed — anchored on the public key</span>
+tail = Hb(<span class="s">"rapp/1:rappid"</span>, SPKI_DER)
+<span class="c"># verifiable: recompute from the key</span></div>
+    </div>
+  </div>
+</div></section>
+<section class="spread" style="--accent:var(--id);padding-top:0"><div class="wrap">
+  <h3 class="narrow">Why a name-hash is fatal</h3>
+  <div class="versus">
+    <div class="vbox no"><div class="tag">✗ forbidden</div>
+      <span class="mono">tail = sha256("kody/twin")</span>
+      <p style="margin:0;font-size:14.5px">Anyone who names something <code>kody/twin</code> computes the same tail. Identity <em>is</em> the name in hex — it collides by construction, and can't be bound to a key. This was live in production. §6.2 outlaws it.</p></div>
+    <div class="vbox yes"><div class="tag">✓ minted once</div>
+      <span class="mono">tail = Hb("rapp/1:rappid", uuid4)</span>
+      <p style="margin:0;font-size:14.5px">Born from entropy or a key, never recomputed from mutable facts. Names are chosen; identities are minted. They must not be the same operation.</p></div>
+  </div>
+</div></section>
+
+<!-- ══════════════ CHAPTER 5 ══════════════ -->
+<div class="opener" id="c5" style="background:var(--frame)"><div class="wrap">
+  <span class="tagword">both</span>
+  <div class="num">5</div>
+  <div><h2>The frame</h2>
+  <p class="hook">The record of one moment in an agent's life: tamper-evident, content-addressed, chained to the moment before it — and both a particle and a wave.</p></div>
+</div></div>
+<section class="spread" style="--accent:var(--frame)"><div class="wrap">
+  <div class="two">
+    <div>
+      <p class="label">Eleven fields — always all eleven</p>
+      <div class="frame-card">
+        <div class="fh"><span>a frame</span><span>rapp/1</span></div>
+        <div class="frow"><span class="fk">spec</span><span>"rapp/1"</span></div>
+        <div class="frow"><span class="fk">kind</span><span>noun.verb — the event type</span></div>
+        <div class="frow"><span class="fk">stream_id</span><span>the rappid this belongs to</span></div>
+        <div class="frow"><span class="fk">seq</span><span>position in the chain (0, 1, 2…)</span></div>
+        <div class="frow"><span class="fk">utc</span><span>millisecond timestamp, always Z</span></div>
+        <div class="frow particle"><span class="fk">payload</span><span>the content of the moment</span></div>
+        <div class="frow particle"><span class="fk"><span class="tagp">payload_hash</span></span><span>the <b style="color:var(--intro)">particle</b> — hash of the payload</span></div>
+        <div class="frow wave"><span class="fk"><span class="tagw">frame_hash</span></span><span>the <b style="color:var(--frame)">wave</b> — hash of the whole frame</span></div>
+        <div class="frow"><span class="fk">prev</span><span>previous frame's particle</span></div>
+        <div class="frow"><span class="fk">prev_wave</span><span>previous wave (swarm streams)</span></div>
+        <div class="frow"><span class="fk">sig</span><span>signature, or null</span></div>
+      </div>
+      <div class="legend">
+        <span><span class="sw" style="background:#fff5f4;border:1px solid #f3b7b4"></span> particle — the worldline</span>
+        <span><span class="sw" style="background:#eafbf9;border:1px solid #9fe0d9"></span> wave — the wire</span>
+      </div>
+    </div>
+    <div>
+      <p class="label">One object, two addresses</p>
+      <div class="split" style="grid-template-columns:1fr">
+        <div class="half p"><h4>Particle</h4><p class="sm">the address of <em>what happened</em></p>
+          <span class="mono">H("rapp/1:particle", payload)</span>
+          <p style="margin:12px 0 0;font-size:14px">Follows the worldline. Each frame's <code>prev</code> points to the previous particle. This is the chain.</p></div>
+        <div class="half w"><h4>Wave</h4><p class="sm">the address of <em>this exact record</em></p>
+          <span class="mono">H("rapp/1:wave", frame∖{frame_hash,sig})</span>
+          <p style="margin:12px 0 0;font-size:14px">Checks the wire — envelope and all. Byte-for-byte integrity in transit.</p></div>
+      </div>
+      <div class="plain" style="--accent:var(--frame);margin-top:18px"><b>The double-slit idea</b><p>A frame is one object that is <em>both</em>. You never choose when you emit — you emit one frame and observe the particle when you follow the life, the wave when you check the wire. This resolves the real bug where two teams built “the frame” with two different hash rules.</p></div>
+    </div>
+  </div>
+</div></section>
+
+<section class="spread" style="--accent:var(--frame);padding-top:6px"><div class="wrap">
+  <h3 class="narrow">A chain is a biography</h3>
+  <p class="narrow">One frame is a fact. Each frame's <code>prev</code> is the previous frame's particle — that single link makes the whole history tamper-evident.</p>
+  <div class="chain">
+    <div class="fblock"><div class="t">seq 0 · genesis</div><div class="p">particle <b>7ab0…</b><br>prev: null</div></div>
+    <div class="arrow">→<small>prev</small></div>
+    <div class="fblock"><div class="t">seq 1</div><div class="p">particle <b>8c69…</b><br>prev: 7ab0…</div></div>
+    <div class="arrow">→<small>prev</small></div>
+    <div class="fblock"><div class="t">seq 2</div><div class="p">particle <b>946e…</b><br>prev: 8c69…</div></div>
+  </div>
+  <h3 class="narrow" style="margin-top:34px">Try to forge the past — you must beat three layers</h3>
+  <div class="steps narrow" style="--accent:var(--frame)">
+    <div class="step"><div class="b"></div><div><h5>Edit a past payload</h5><p>The <b>particle</b> no longer matches → rejected at step 2.</p></div></div>
+    <div class="step"><div class="b"></div><div><h5>Recompute the particle to cover it</h5><p>Now the <b>wave</b> no longer matches → rejected at step 3.</p></div></div>
+    <div class="step"><div class="b"></div><div><h5>Recompute the wave too</h5><p>The new particle isn't what the <em>next</em> frame recorded as its <code>prev</code> → rejected at step 4. To fix that you must forge every frame to the head.</p></div></div>
+  </div>
+  <p class="narrow" style="margin-top:18px">The chain turns “rewrite one moment” into “rewrite the entire history from that moment forward.” That is exactly the property we wanted.</p>
+</div></section>
+
+<!-- ══════════════ CHAPTER 6 ══════════════ -->
+<div class="opener" id="c6" style="background:var(--wire)"><div class="wrap">
+  <span class="tagword">one door</span>
+  <div class="num">6</div>
+  <div><h2>The wire</h2>
+  <p class="hook">Frames are the record. The wire is how they move — and RAPP/1 keeps it to exactly one door.</p></div>
+</div></div>
+<section class="spread" style="--accent:var(--wire)"><div class="wrap">
+  <div class="two">
+    <div>
+      <p class="lead">Everything an agent can do enters through one endpoint: <code>POST /chat</code>. New capability is a new agent file dropped in — never a new route. The wire does not grow.</p>
+      <div class="plain" style="--accent:var(--wire)"><b>One shape, every tier</b><p>Local laptop, cloud endpoint, managed studio — all speak the identical <code>/chat</code>. Moving tiers is a change of URL, not of protocol. The moment there are two doors, the tiers drift apart.</p></div>
+    </div>
+    <div>
+      <div class="code"><span class="k">POST</span> /chat
+<span class="c">→ request</span>
+{ <span class="s">"user_input"</span>: <span class="s">"deploy the notes agent"</span>,
+  <span class="s">"session_id"</span>: <span class="s">"…"</span> }
+
+<span class="c">← response</span>
+{ <span class="s">"response"</span>: <span class="s">"…"</span>,
+  <span class="s">"agent_logs"</span>: <span class="s">"…"</span>,
+  <span class="s">"session_id"</span>: <span class="s">"…"</span> }</div>
+      <p style="font-size:14px;color:var(--soft);margin-top:12px">Only <code>user_input</code> is required. Errors are <strong>typed</strong>, not prose: <code>422</code> malformed, <code>401</code> needs a token, and a bad frame comes back with the exact verify step that failed.</p>
+    </div>
+  </div>
+  <div class="versus" style="margin-top:26px">
+    <div class="vbox yes" style="background:#eef4fc;border-color:#b6cdf0"><div class="tag" style="color:var(--wire)">◆ biography stream</div>
+      <p style="margin:8px 0 0;font-size:14.5px">Addressed by a <strong>rappid</strong>. One agent's worldline. <code>prev_wave</code> is null; the particle chain is the integrity; a signature is optional.</p></div>
+    <div class="vbox yes" style="background:#eef4fc;border-color:#b6cdf0"><div class="tag" style="color:var(--wire)">◆ swarm stream</div>
+      <p style="margin:8px 0 0;font-size:14.5px">Addressed by a <strong>net:</strong> id — a shared space many actors append to. <code>prev_wave</code> chains the waves, and every frame <strong>must be signed</strong>.</p></div>
+  </div>
+</div></section>
+
+<!-- ══════════════ CHAPTER 7 ══════════════ -->
+<div class="opener" id="c7" style="background:var(--egg)"><div class="wrap">
+  <span class="tagword">handoff</span>
+  <div class="num">7</div>
+  <div><h2>The egg</h2>
+  <p class="hook">To <em>give</em> an agent to someone, you pack its identity, code, soul, and memory into one addressable thing.</p></div>
+</div></div>
+<section class="spread" style="--accent:var(--egg)"><div class="wrap">
+  <p class="lead narrow">An egg is a stored (uncompressed) ZIP — a manifest plus the files it references, each content-addressed. One spec, six named variants distinguished by a field, never a fork.</p>
+  <div class="cards">
+    <div class="pcard" style="--c:var(--egg)"><div class="n">organism</div><p>a living agent: rappid, soul, agents, memory, frames</p></div>
+    <div class="pcard" style="--c:var(--egg)"><div class="n">rapplication</div><p>a runnable app built on the brainstem</p></div>
+    <div class="pcard" style="--c:var(--egg)"><div class="n">session</div><p>a point-in-time capture of state</p></div>
+    <div class="pcard" style="--c:var(--egg)"><div class="n">invite</div><p>a signed invitation to a space</p></div>
+    <div class="pcard" style="--c:var(--egg)"><div class="n">neighborhood</div><p>a shared-space definition</p></div>
+    <div class="pcard" style="--c:var(--egg)"><div class="n">estate</div><p>a whole federation of organisms</p></div>
+  </div>
+  <div class="two" style="margin-top:28px">
+    <div class="plain" style="--accent:var(--egg)"><b>Born from a frame</b><p>An organism egg can carry a <strong>constructor pin</strong> — the exact <code>{stream_id, seq, particle}</code> of the parent frame it hatched from. Anyone can refetch that frame, recompute, and prove the origin moment. Provenance becomes a computation, not a claim.</p></div>
+    <div class="plain" style="--accent:var(--egg)"><b>Same idea as the frame</b><p>The egg content-addresses “what it contains” (the manifest hash) and “these exact bytes” (the egg hash, excluding the signature so it can be signed later) — the frame's particle/wave duality, at organism scale.</p></div>
+  </div>
+</div></section>
+
+<!-- ══════════════ CHAPTER 8 ══════════════ -->
+<div class="opener" id="c8" style="background:var(--real)"><div class="wrap">
+  <span class="tagword">proof</span>
+  <div class="num">8</div>
+  <div><h2>Meeting a real world</h2>
+  <p class="hook">A specification you cannot test is a wish. So we pointed RAPP/1 at a real, committed, drifted estate.</p></div>
+</div></div>
+<section class="spread" style="--accent:var(--real)"><div class="wrap">
+  <p class="lead narrow">The reference implementation was run against <strong>every frame and rappid actually committed</strong> to the live public repos — written by other programs, months before the spec existed. Two numbers tell the whole story.</p>
+  <div class="stats">
+    <div class="bigstat ok"><div class="huge">32 / 32</div>
+      <p>real committed payload hashes the reference canonicalizer reproduces <strong>byte-for-byte</strong>. The spec <em>matches reality</em> exactly where reality already content-addresses. Every chain link holds, too.</p></div>
+    <div class="bigstat fix"><div class="huge">8</div>
+      <p>live drifts the protocol <strong>refuses</strong> — legacy envelopes and short-tail identities. These refusals <em>are</em> the drift the standard exists to end.</p></div>
+  </div>
+  <div class="ledger">
+    <p class="label" style="margin-bottom:14px">The drift ledger — generated by running code, not asserted</p>
+    <div class="drow"><span class="badge" style="background:var(--frame)">envelope · C1</span><small>all 32 frames use <code>twin_id / ts / sha256 / parent_sha</code> — the legacy shape minted in two incompatible envelopes under one name.</small></div>
+    <div class="drow"><span class="badge" style="background:var(--id)">identity · C3</span><small>twin &amp; rapp-commons rappids carry a <strong>32-hex</strong> tail — the short-form name-hash lineage RAPP/1 outlaws.</small></div>
+    <div class="drow"><span class="badge">schema label</span><small>all four records still say <code>rapp-rappid/2.0</code>, not <code>rapp/1</code>.</small></div>
+  </div>
+  <div class="plain narrow" style="--accent:var(--real);margin-top:24px"><b>What this proves</b><p>Nothing in that output is a spec bug — the refusals are the spec working. Reality is one owner-authorized <strong>re-genesis</strong> per chain away from full conformance. Until then, the output <em>is</em> the drift ledger, computed against real bytes.</p></div>
+  <div class="tryit narrow" style="--accent:var(--real)"><div class="t">See it yourself</div>
+    <p class="mono" style="margin:0;font-size:13.5px">git clone https://github.com/kody-w/rapp-1 &amp;&amp; cd rapp-1<br>python3 conformance.py     <span style="color:var(--soft)"># 18/18</span><br>python3 realcheck.py       <span style="color:var(--soft)"># 32/32 real hashes, 8 drifts</span></p></div>
+</div></section>
+
+<footer><div class="wrap narrow">
+  <h3>That's the whole protocol.</h3>
+  <p style="color:#cfd0d8">Five primitives, one wire, a reference implementation that passes its own vectors and reproduces a real estate's hashes, and a gate that tells conformance from drift by computing, not asserting.</p>
+  <p style="margin-top:18px"><a href="../">← back to rapp-1</a> &nbsp;·&nbsp; <a href="https://github.com/kody-w/rapp-1/blob/main/book/00-preface.md">the reference book (K&amp;R style)</a> &nbsp;·&nbsp; <a href="https://github.com/kody-w/rapp-1/blob/main/SPEC.md">the normative standard</a> &nbsp;·&nbsp; <a href="https://github.com/kody-w/rapp-1">source</a></p>
+  <p class="colophon">RAPP/1 rev-5 — <em>Design &amp; Build Agents</em>, the visual guide. One spec, one canonicalizer, one mint, one frame. Set in the system humanist sans; colour-coded by primitive in the tradition of the visual design books that taught a generation to build for the web. The protocol is meant to be implemented.</p>
+</div></footer>
+
+</body>
+</html>

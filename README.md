@@ -40,7 +40,15 @@ to end.
 | **`examples/`** | runnable, tutorial-paced programs (`01_hello_frame`, `02_build_a_chain`, `03_identity`) |
 | **`book/`** | *The RAPP/1 Protocol* — a tutorial and reference, K&R-style (below) |
 
-## The book
+## Two books
+
+- **[The Visual Guide — *Design & Build Agents*](https://kody-w.github.io/rapp-1/guide/)** — a
+  full-colour, one-idea-per-spread visual book in the spirit of Jon Duckett's design books.
+  Diagrams, colour-coded chapters, annotated code. Start here if you like to *see* it.
+- **The Reference Book — *The RAPP/1 Protocol*** (below) — a K&R-style tutorial + reference in
+  prose, for reading front to back.
+
+### The reference book
 
 A complete tutorial and reference. Read it in order, or jump to a primitive.
 
