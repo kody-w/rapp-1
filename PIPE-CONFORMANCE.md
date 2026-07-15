@@ -171,4 +171,25 @@ what it hunts for). `registry.json` rebuilt on every version bump.
 
 ---
 
+## RAPP — the kernel + tools
+
+The kernel repo commits no `bond.py`/`egg.py`/`frames.py` (those live in
+`rappter-distro`, already converged) — its identity pipes are in `tools/`.
+
+| tool | defect | fix / verify |
+|---|---|---|
+| `tools/sim/plant_two_brainstems.py` | 2× schema `rapp-rappid/2.0`; `_mint_rappid` = `sha256(uuid4)` (no domain-sep) + no owner/name canonicalization | schema → `rapp/1`; mint → `Hb("rapp/1:rappid", uuid4)` + §6.1-canonicalized. `_mint_rappid(Kody-W/Test.v2)` → `rappid:@kody-w/test-v2:…` **valid** |
+| `tools/backfill_seeds.py` | schema `rapp-rappid/2.0` (mint already correct) | → `rapp/1` |
+| `tools/ecosystem_contract.py` | **6× `expected_schemas["rappid.json"] = "rapp-rappid/2.0"`** — the door contract would REJECT the correctly-converged `rapp/1` doors it validates | → `rapp/1` (§12) |
+
+**Resolver verified:** `door_address.door_from_rappid` round-trips a canonical
+rappid unchanged (`canonical == input`, `rappid_valid` True); the retired v2 form
+is correctly **refused** on the live path (`InvalidRappidError` — the migrator
+handles stragglers, not the resolver). `test_door_address.py` +
+`test_migrate_rappid.py`: **28 passed**.
+
+**Status:** committed + pushed (`RAPP@40f00e1`).
+
+---
+
 *Ledger continues per repo as each one's pipes are exercised.*
