@@ -131,4 +131,44 @@ assert f1["prev"] == f0["payload_hash"]                                   # §7 
 
 ---
 
+## RAR — the agent registry (`agents/@*/…_agent.py`)
+
+Single-file agents that mint identity / hatch twins / plant doors at runtime.
+The registry lints CLEAN (no `rappid.json` under `agents/`), yet **running each
+agent's `mint` / `summon` / `batcave` / `_summon` action and validating the
+produced `rappid.json` against `rapp.py` surfaced 11 real defects across 6 agents.**
+
+### `@rapp/rapp` 1.0.4 — six defects
+
+| # | pipe | defect | fix |
+|---|---|---|---|
+| 1 | `_summon` | tail `sha256("kody/<name>-twin")[:32]` — **cardinal-sin name-hash**, 32-hex, `rappid_valid==False` | keyless §6.2 mint via `mint_rappid`, minted once & reused (idempotent identity); name-hash demoted to a filesystem dir key only |
+| 2 | 4 sites | `"schema":"rapp-rappid/2.0"` | `"rapp/1"` (§12) |
+| 3 | `_mint`/front-door | fallback parent `f"rappid:@{RAPP_SPECIES.replace('/',':')}"` = `rappid:@kody-w:RAPP` — malformed | real `SPECIES_ROOT_RAPPID` constant |
+| 4 | `mint_rappid` | owner/slug verbatim → login `Kody-W` mints an uppercase rappid, `rappid_valid==False` | canonicalize via `_slugify` before assembly |
+| 5 | `_batcave` | parent = `ctx["rappid"]` = sentinel `rappid:unregistered` (truthy but invalid); `or` fallback never fired | grammar-guard on `_ETERNITY_RE`, else species root |
+| 6 | `_mint` `notes` | prose claimed the tail was "the deterministic sha256 of owner/slug" — **describes the cardinal sin** | corrected to name the keyless `Hb("rapp/1:rappid", uuid4)` mint |
+
+**Verified:** `mint` over `{Kody-W/My_Door.v2, kody-w/clean-door, ACME/Wild_Repo}`
+→ all `rappid_valid + parent_valid + schema_ok` True; `batcave` with & without a
+prior operator identity → both parents valid.
+
+### Five more agents
+
+| agent | ver | defect(s) | verified |
+|---|---|---|---|
+| `@rapp/twin_agent` | 1.1.2 | `WILDHAVEN_RAPPID` was 32-hex → **invalid parent on every summoned twin**; schema `2.0`; non-domain-separated tail | converged to the twin's real `df9c3f1f…` (from its own `rappid.json`); `rappid_valid` True |
+| `@kody-w/twin_me` | 1.0.2 | 2× schema `rapp-rappid/2.0` | → `rapp/1` |
+| `@kody-w/transcript2prototype` | 1.0.2 | schema `rapp-rappid/3.0` | → `rapp/1` |
+| `@kody-w/launch_to_public` | 1.0.3 | schema `2.0`; `gh_user`/`repo_name` uncanonicalized (uppercase login → invalid rappid) | canonicalized; mint valid |
+| `@kody-w/plant_seed` | 1.0.3 | 2× schema `2.0`; `_mint_rappid` no owner/name canonicalization + non-domain-separated tail | `plant_seed(Kody-W/My_Seed.v2)` → `rappid:@kody-w/my-seed-v2:…` valid |
+
+**Kept intentionally:** `@kody-w/twin_egg_hatcher` (v2/legacy **reader** — hatches
+old eggs, emits nothing), `@rapp/drift_agent` (v2 **detector** — the regexes are
+what it hunts for). `registry.json` rebuilt on every version bump.
+
+**Status:** committed + pushed (`RAR@3445f4b`, prior `@rapp/rapp` `@9b16808`).
+
+---
+
 *Ledger continues per repo as each one's pipes are exercised.*
