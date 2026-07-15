@@ -43,13 +43,32 @@ to end.
 | **`examples/`** | runnable, tutorial-paced programs (`01_hello_frame`, `02_build_a_chain`, `03_identity`) |
 | **`book/`** | *The RAPP/1 Protocol* — a tutorial and reference, K&R-style (below) |
 
-## Two books
+## Build with it: the SDK Builder agent
+
+Drop one file into any RAPP brainstem's `agents/` directory (no restart) and it gains a working
+RAPP/1 toolkit — mint compliant rappids, scaffold organism seeds, build/verify frames,
+content-address values, and lint public repos for compliance, all drivable in plain English:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/kody-w/rapp-1/main/agents/rapp_sdk_builder_agent.py \
+  -o ~/.brainstem/src/rapp_brainstem/agents/rapp_sdk_builder_agent.py
+# then just talk to your brainstem: "scaffold a new RAPP/1 organism @me/scratch"
+```
+
+It's self-contained (embeds the reference primitives; its `sync` action proves byte-identical
+addresses to the public `rapp1.py`) and falls back to a standalone base so it also runs outside a
+brainstem: `python3 agents/rapp_sdk_builder_agent.py`.
+
+## Three books
 
 - **[The Visual Guide — *Design & Build Agents*](https://kody-w.github.io/rapp-1/guide/)** — a
   full-colour, one-idea-per-spread visual book in the spirit of Jon Duckett's design books.
   Diagrams, colour-coded chapters, annotated code. Start here if you like to *see* it.
 - **The Reference Book — *The RAPP/1 Protocol*** (below) — a K&R-style tutorial + reference in
   prose, for reading front to back.
+- **[The Hands-On Textbook — *Building with RAPP/1*](book-sdk/00-preface.md)** — teaches the
+  SDK Builder agent dropped into a grail brainstem: stand up the engine, hotload the agent, and
+  build a real organism by conversation. Every command was run against a live brainstem.
 
 ### The reference book
 
