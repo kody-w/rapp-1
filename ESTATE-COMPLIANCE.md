@@ -52,7 +52,46 @@ python3 rapp_check.py .                             # must read COMPLIANT
 Nothing is force-migrated on a live `main` without the owner's merge — that merge *is* the
 constitutional owner-authorization for a content-addressed rebirth (Federal Constitution Art. X).
 
+## The full artifact surface
+
+GitHub code search finds **~30 repos** with a `rappid.json`. Of these:
+
+- **Migratable (personal RAPP):** RAPP, twin, rapp-body, rapp-commons, rapp-batcave, rapp-midden,
+  rapp-stack-cubby, rappter-distro, rappterbook, kody-w-twin, ant-farm, heimdall, neighborhood-example,
+  rapp-oneclick-deploy, rapp-test-neighbor, rapp2mcs, sim-art-collective, tide-brainstem, lumen-brainstem,
+  rapp-cave, the pkstop-* set, wildhaven-ai-homes-twin, twin-private.
+- **EXCLUDED — publishing boundary (never touched by automation):** `microsoft-se-team-neighborhood`,
+  `microsoft-se-team-neighborhood-private`, `microsoft-365-team`, `billwhalen-agent-team`. These carry
+  work / Microsoft-internal / person-named content; upstream→downstream only, so they are not migrated
+  here and any RAPP/1 adoption for them is a separate, work-side decision.
+
+## Two-pass migration model
+
+Every repo migrates in two passes, because they need different authority:
+
+1. **Identity layer (deterministic, no keys)** — re-anchor rappid + schema label + parent_rappid rewire.
+   Coordinated across the estate via one global old→new map (the species root must re-anchor first so
+   children rewire to it). Frames and test fixtures are never string-edited. Validated by adversarial
+   review (the identity math is exact). **This is done on branches.**
+2. **Frame + succession layer (owner-signed)** — re-genesis each legacy frame chain (§7.6/§12.1) with a
+   correct `Hb("rapp/1:seal", head_octets)` seal, an *owner-signed* re-genesis genesis, a `rapp-map`
+   registry entry, and the frame-producer code converged. **Requires the master signing keys** — cannot
+   be forged, intentionally not done autonomously. (An early unsigned attempt on twin FAILED Fable review
+   on exactly these points; not replicated.)
+
 ## Status log
 
-- 2026-07-15 — linter + migration engine built; surface mapped (above); template repo migration
-  in progress. Identity re-anchor proven deterministic + idempotent across all four DRIFT repos.
+- 2026-07-15 — linter + migration engine built; full surface mapped. **Identity layer migrated on
+  `rapp-compliance` branches (pushed) for the species root and two children:**
+  - **rapp-commons** → ✅ COMPLIANT (no frames; identity+schema done).
+  - **rapp-body** → identity+schema done (both rappids re-anchored, parent rewired to new root); frames
+    await pass 2.
+  - **RAPP** (canon root) → root re-anchored `…RAPP:0b635450…` → `…rapp:9a8f0a4b…`; two residual items
+    (a `@rapp/origin` legacy parent alias in `cave/rapplications/`, and the deliberately-legacy
+    `tests/fixtures/`, which should be excluded from the gate).
+  - **twin** → earlier branch has identity done; its frame re-genesis FAILED Fable review and will be
+    redone correctly in pass 2 with keys.
+  - Remaining personal artifact repos (rappter-distro, rappterbook, ant-farm, heimdall, the pkstop set,
+    the twin templates, …) queue for the same coordinated identity pass.
+  - **Blocked on Kody:** master signing keys for pass 2 (frame re-genesis + registry). Merge of the
+    pushed `rapp-compliance` branches = owner authorization for the identity layer.
