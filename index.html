@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAPP/1 — the wire that carries agents</title>
+<style>
+  :root{
+    --bg:#0b0c0e; --panel:#141619; --ink:#e8eaed; --dim:#9aa0a6; --line:#26292e;
+    --acc:#7fd1ff; --acc2:#b8f397; --warn:#ffb454; --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#fbfbfa; --panel:#fff; --ink:#1a1c1e; --dim:#5f6368; --line:#e4e4e2;
+           --acc:#0b6bcb; --acc2:#2e7d32; --warn:#b26a00; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  a{color:var(--acc);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:860px;margin:0 auto;padding:0 22px}
+  header{padding:76px 0 40px;border-bottom:1px solid var(--line)}
+  .tag{font:600 12px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+  h1{font-size:clamp(38px,7vw,64px);line-height:1.02;margin:16px 0 10px;letter-spacing:-.02em}
+  h1 .s{color:var(--acc)}
+  .sub{font-size:20px;color:var(--dim);max-width:640px;margin:0 0 26px}
+  .cta{display:flex;gap:12px;flex-wrap:wrap}
+  .btn{display:inline-block;padding:10px 18px;border:1px solid var(--line);border-radius:9px;
+    background:var(--panel);color:var(--ink);font-weight:600;font-size:15px}
+  .btn.p{background:var(--acc);color:#00121f;border-color:transparent}
+  @media (prefers-color-scheme: light){.btn.p{color:#fff}}
+  section{padding:44px 0;border-bottom:1px solid var(--line)}
+  h2{font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin:0 0 22px;font-weight:700}
+  pre{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:18px 20px;
+    overflow-x:auto;font:13.5px/1.7 var(--mono);color:var(--ink)}
+  pre .c{color:var(--dim)}
+  pre .g{color:var(--acc2)}
+  pre .w{color:var(--warn)}
+  .prims{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .prim{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:16px}
+  .prim b{display:block;font-size:15px;margin-bottom:4px}
+  .prim span{font-size:13.5px;color:var(--dim)}
+  .toc{list-style:none;padding:0;margin:0;counter-reset:ch -1}
+  .toc li{border-bottom:1px solid var(--line)}
+  .toc li:last-child{border-bottom:0}
+  .toc a{display:flex;gap:14px;align-items:baseline;padding:13px 4px}
+  .toc a:hover{text-decoration:none;background:var(--panel)}
+  .toc .n{font:600 13px var(--mono);color:var(--dim);min-width:26px}
+  .toc .t{font-weight:600}
+  .toc .d{color:var(--dim);font-size:14px;margin-left:auto;text-align:right}
+  .ev{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .ev div{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:18px}
+  .ev .big{font:700 30px/1 var(--mono);margin-bottom:6px}
+  .ev .ok .big{color:var(--acc2)} .ev .fix .big{color:var(--warn)}
+  .ev p{margin:0;font-size:14px;color:var(--dim)}
+  @media(max-width:620px){.ev{grid-template-columns:1fr}}
+  footer{padding:40px 0 80px;color:var(--dim);font-size:14px}
+  code{font:13px var(--mono);background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="tag">RAPP/1 · rev-5 · reference standard</div>
+  <h1>The wire that carries <span class="s">agents</span>.</h1>
+  <p class="sub">One protocol for agents that keep a verifiable memory and talk over one wire.
+    Five primitives, specified exactly enough that independent implementations produce bytes each
+    other can trust.</p>
+  <div class="cta">
+    <a class="btn p" href="https://github.com/kody-w/rapp-1/blob/main/book/00-preface.md">Read the book →</a>
+    <a class="btn" href="https://github.com/kody-w/rapp-1/blob/main/SPEC.md">The standard</a>
+    <a class="btn" href="https://github.com/kody-w/rapp-1">Source & code</a>
+  </div>
+</div></header>
+
+<section><div class="wrap">
+  <h2>Quickstart</h2>
+  <pre><span class="c"># clone, then watch the spec prove itself — and meet the real world</span>
+git clone https://github.com/kody-w/rapp-1 && cd rapp-1
+
+python3 conformance.py     <span class="c"># <span class="g">18/18</span> — the spec exercised against its own claims</span>
+python3 realcheck.py       <span class="c"># RAPP/1 vs the REAL committed estate</span>
+python3 examples/01_hello_frame.py   <span class="c"># build & verify your first frame</span></pre>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Five primitives, one wire</h2>
+  <div class="prims">
+    <div class="prim"><b>Canonicalization</b><span>one value → exactly one sequence of bytes (RFC 8785 JCS)</span></div>
+    <div class="prim"><b>Content addressing</b><span>the hash is the name, domain-separated so spaces never collide</span></div>
+    <div class="prim"><b>Identity</b><span>the rappid — minted once, never a hash of a name</span></div>
+    <div class="prim"><b>The frame</b><span>one record that is both particle (worldline) and wave (wire)</span></div>
+    <div class="prim"><b>The egg</b><span>a content-addressed package for a whole organism</span></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Proven against a real, drifted estate</h2>
+  <div class="ev">
+    <div class="ok"><div class="big">32 / 32</div>
+      <p>real committed frames whose stored payload hash the reference canonicalizer reproduces
+         <b>byte-for-byte</b> — the spec matches reality where reality content-addresses.</p></div>
+    <div class="fix"><div class="big">8 drifts</div>
+      <p>legacy envelopes and short-tail identities the protocol <b>refuses</b> — and those
+         refusals <em>are</em> the drift RAPP/1 exists to end. Generated by running code, not prose.</p></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>The book — <em>The RAPP/1 Protocol</em></h2>
+  <ol class="toc">
+    <li><a href="https://github.com/kody-w/rapp-1/blob/main/book/00-preface.md"><span class="n">—</span><span class="t">Preface</span><span class="d">what it is, how to read it</span></a></li>
+    <li><a href="https://github.com/kody-w/rapp-1/blob/main/book/01-a-tutorial-introduction.md"><span class="n">1</span><span class="t">A Tutorial Introduction</span><span class="d">build a chain in one sitting</span></a></li>
+    <li><a href="https://github.com/kody-w/rapp-1/blob/main/book/02-canonicalization.md"><span class="n">2</span><span class="t">Canonicalization</span><span class="d">which bytes?</span></a></li>
+    <li><a href="https://github.com/kody-w/rapp-1/blob/main/book/03-content-addressing.md"><span class="n">3</span><span class="t">Content Addressing</span><span class="d">domain separation</span></a></li>
+    <li><a href="https://github.com/kody-w/rapp-1/blob/main/book/04-identity.md"><span class="n">4</span><span class="t">Identity</span><span class="d">the rappid</span></a></li>
+    <li><a href="https://github.com/kody-w/rapp-1/blob/main/book/05-the-frame.md"><span class="n">5</span><span class="t">The Frame</span><span class="d">particle & wave</span></a></li>
+    <li><a href="https://github.com/kody-w/rapp-1/blob/main/book/06-the-wire.md"><span class="n">6</span><span class="t">The Wire</span><span class="d">POST /chat</span></a></li>
+    <li><a href="https://github.com/kody-w/rapp-1/blob/main/book/07-the-egg.md"><span class="n">7</span><span class="t">The Egg</span><span class="d">handoff</span></a></li>
+    <li><a href="https://github.com/kody-w/rapp-1/blob/main/book/08-conformance-and-drift.md"><span class="n">8</span><span class="t">Conformance & a Real World</span><span class="d">the suite, the estate</span></a></li>
+    <li><a href="https://github.com/kody-w/rapp-1/blob/main/book/A-reference-manual.md"><span class="n">A</span><span class="t">Reference Manual</span><span class="d">the terse normative mirror</span></a></li>
+  </ol>
+</div></section>
+
+<footer><div class="wrap">
+  RAPP/1 rev-5 — one spec, one canonicalizer, one mint, one frame. The protocol is meant to be
+  implemented. <a href="https://github.com/kody-w/rapp-1">Do →</a>
+</div></footer>
+</body>
+</html>

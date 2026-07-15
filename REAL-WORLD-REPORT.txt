@@ -1,0 +1,56 @@
+==========================================================================
+RAPP/1 rev-5 — REAL-WORLD CHECK against committed kody-w estate artifacts
+==========================================================================
+
+estate/ not present — cloning the real public repos (needs git + network):
+   cloning kody-w/twin …
+   cloning kody-w/rapp-body …
+   cloning kody-w/rapp-commons …
+   cloning kody-w/rapp-map …
+   cloning kody-w/RAR …
+
+── rapp-body  (29 committed frames: estate/rapp-body/frames) ──
+   canonicalization reproduces real stored hash : 29/29 frames
+   real chain links per RAPP/1 §7.4 (prev=parent): 29/29 frames
+   frames conformant to RAPP/1 §7 envelope as-is : 0/29
+   real envelope keys: ['kernel_version', 'kind', 'parent_sha', 'payload', 'seq', 'sha256', 'sig', 'spec', 'ts', 'twin_id']
+
+── twin  (3 committed frames: estate/twin/frames) ──
+   canonicalization reproduces real stored hash : 3/3 frames
+   real chain links per RAPP/1 §7.4 (prev=parent): 3/3 frames
+   frames conformant to RAPP/1 §7 envelope as-is : 0/3
+   real envelope keys: ['kernel_version', 'kind', 'parent_sha', 'payload', 'seq', 'sha256', 'sig', 'spec', 'ts', 'twin_id']
+
+── rappid identity records ──
+
+==========================================================================
+VERDICT — where reality meets RAPP/1
+==========================================================================
+
+✅ CONFORMS TO RAPP/1 (4):
+   • rapp-body: canonicalization + chain integrity reproduce all 29 real payload hashes
+   • twin: canonicalization + chain integrity reproduce all 3 real payload hashes
+   • estate/rapp-body/door/rappid.json: rappid grammar §6.1 OK (64-hex tail): rappid:@kody-w/rapp-body:97d5b1504ee1fd397221fd1800cc98c7bf0464faff555020d327a59354a96f33
+   • estate/rapp-body/rappid.json: rappid grammar §6.1 OK (64-hex tail): rappid:@kody-w/rapp-body:324197c16e7e0ca78e19f8a4e1aef76ed34b6694527bb566753c4c89a8ba71f6
+
+🔧 IS THE DRIFT RAPP/1 FIXES (8):
+   [envelope-drift/C1]
+      • rapp-body/frames: legacy envelope: missing ['frame_hash', 'payload_hash', 'prev', 'prev_wave', 'stream_id', 'utc'], aliases ['kernel_version', 'parent_sha', 'sha256', 'ts', 'twin_id']
+      • twin/frames: legacy envelope: missing ['frame_hash', 'payload_hash', 'prev', 'prev_wave', 'stream_id', 'utc'], aliases ['kernel_version', 'parent_sha', 'sha256', 'ts', 'twin_id']
+   [schema-label]
+      • estate/rapp-body/door/rappid.json: schema='rapp-rappid/2.0', not 'rapp/1' (§12 living standard)
+      • estate/rapp-body/rappid.json: schema='rapp-rappid/2.0', not 'rapp/1' (§12 living standard)
+      • estate/rapp-commons/rappid.json: schema='rapp-rappid/2.0', not 'rapp/1' (§12 living standard)
+      • estate/twin/rappid.json: schema='rapp-rappid/2.0', not 'rapp/1' (§12 living standard)
+   [short-tail/C3]
+      • estate/rapp-commons/rappid.json: 32-hex (128-bit) tail, not §6.1 64-hex: rappid:@kody-w/rapp-commons:3929ce90ebe97fe2a95432e9f647f3a3
+      • estate/twin/rappid.json: 32-hex (128-bit) tail, not §6.1 64-hex: rappid:@kody-w/twin:257afa7958982c28258c1d97701182b1
+
+── what this proves ──
+  RAPP/1's canonicalizer (§4) reproduces the real, committed payload hashes
+  byte-for-byte — the spec MATCHES reality where reality already content-addresses.
+  RAPP/1 then REFUSES every real frame's envelope and every short-tail rappid —
+  those refusals ARE the 8 drifts the standard exists to end (C1 envelope,
+  C2/C3 identity, schema label). Reality is one owner-authorized re-genesis (§12.1)
+  away from full conformance; nothing here is a spec bug, it's the drift ledger, live.
+
