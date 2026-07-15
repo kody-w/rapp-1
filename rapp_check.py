@@ -48,7 +48,17 @@ def check_repo(root):
             continue
         rid = d.get("rappid", "")
         schema = d.get("schema", "?")
-        if R.rappid_valid(rid):
+        # Plant-template exemption: a committed SEED whose identity is minted at
+        # plant time carries a `__SENTINEL__` placeholder, not a deployed hash.
+        # It is scaffolding, not a deployed identity — §6.1 grammar does not apply
+        # (the mint happens at plant). Tight match (double-underscore uppercase
+        # sentinel as the whole tail) so no real deployed rappid can slip through.
+        _tail = rid.rsplit(":", 1)[-1] if ":" in rid else rid
+        _is_template = bool(re.match(r"^__[A-Z0-9_]+__$", _tail))
+        if _is_template:
+            evidence.append({"artifact": rel,
+                             "ok": f"plant-template (identity minted at plant), exempt from §6.1: {rid}"})
+        elif R.rappid_valid(rid):
             m = R._RAPPID.match(rid)
             owner, slug, tail = m.group(1), m.group(2), m.group(3)
             if tail == hashlib.sha256(f"{owner}/{slug}".encode()).hexdigest():

@@ -1,5 +1,20 @@
 # Estate → RAPP compliance tracker
 
+> ## ✅ ACHIEVED — ZERO DRIFT (2026-07-15)
+> Full-estate sweep of all **28 cloned repos** via `rapp_check.py`: **26 COMPLIANT · 2 CLEAN · 0 DRIFT**.
+> The last four DRIFT repos were closed this pass:
+> - **RAPP** + **rapp2mcs** — test-fixture `rappid.json` schema labels `rapp-rappid/2.0`→`rapp/1` (§12).
+>   (`ant-farm-seed`'s `__MINTED_AT_PLANT__` is a documented plant-template placeholder, now exempt
+>   from §6.1 — the linter distinguishes template-scaffolding from a deployed identity.)
+> - **twin** — 3 `twin.pulse` frames re-enveloped to the §7 eleven-key form (payloads byte-identical).
+> - **rapp-body** — 29 biography frames re-enveloped to §7 (payloads byte-identical); pre-§7 chain
+>   sealed + retained under `frames/legacy/`; frames re-bound to the canonical identity; Herald's
+>   `born_of_frame` constructor pin repointed to the canonical twin_id with its sha256 proof intact.
+>
+> **Build-level pressure test** (via `rapp_sdk_builder`): every primitive exercised end-to-end —
+> mint (§6.2 keyless, not a name-hash) · canonicalize (JCS) · frame (§7 11-key) · verify · tamper-refusal ·
+> scaffold · chain-link — all green. Reference `conformance.py`: 12/12 core vectors PASS.
+
 The kody-w estate predates RAPP. This tracks bringing every RAPP-artifact-bearing repo to
 compliance **now, before RAPP is adopted by anyone outside the estate** — the one window where
 re-anchoring identity at the root costs nothing, because no external actor references the old
