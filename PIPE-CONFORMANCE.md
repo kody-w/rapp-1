@@ -85,7 +85,7 @@ species root; `write_rappid_json` schema → `rapp/1`.
 
 ### Pipe 2 — `installer/initialize-variant.sh` (template clone self-initializes)
 
-Same v2 defect in `NEW_RAPPID` (minted `rappid:v2:variant:…`) and `PARENT_RAPPID`.
+Same v2 defect in `NEW_RAPPID` (minted `rappid:v2:variant:…`) and `PARENT_RAPPID`. <!-- legacy v2 form: read-forever, never written -->
 **Fixed** to the identical keyless §6.1 mint + canonical species root. Verify by
 running the mint snippet above with the variant's `owner`/`repo`.
 

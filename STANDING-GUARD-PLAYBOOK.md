@@ -314,7 +314,7 @@ The grep is a net, not a verdict. Route every hit through the §5 taxonomy:
 |---|---|---|---|
 | `sha256(...owner...slug...)`, `sha256(name)` as a tail | the cardinal sin | fix the mint to `Hb("rapp/1:rappid", uuid4().bytes)` | keep (e.g. the test that *detects* the sin) |
 | `uuid4().hex` as a tail | 32-hex short tail (fails §6.1) | fix as above | keep |
-| `rappid:v2:` emission | retired v2 string | fix producer; re-mint output | keep |
+| `rappid:v2:` emission | retired (legacy) v2 string | fix producer; re-mint output | keep |
 | `rapp-rappid/2.0` / `rapp-rappid/1.1` | retired schema names | update declaration to `rapp/1` | keep / regenerate / never-edit per §5 |
 | `brainstem-egg/2.` | retired egg stamps | fix packer; re-pack eggs | keep |
 

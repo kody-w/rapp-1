@@ -130,7 +130,7 @@ def main(repo):
         t = t.replace('"schema": "rapp-rappid/2.0"', '"schema": "rapp/1"')
         if t != b and "SUPERSEDED by RAPP/1 §6" not in t:
             t = ("> **Refresh (2026-07-15):** identity/mint sections are SUPERSEDED by RAPP/1 §6 — canonical "
-                 "`rappid:@owner/slug:64hex`, keyless mint `Hb(\"rapp/1:rappid\", uuid4)`; the `rappid:v2:...@host` "
+                 "`rappid:@owner/slug:64hex`, keyless mint `Hb(\"rapp/1:rappid\", uuid4)`; the legacy `rappid:v2:...@host` "
                  "form shown below is legacy, read-forever, never emitted. See "
                  "https://raw.githubusercontent.com/kody-w/rapp-1/main/SPEC.md\n\n") + t
         if t != b: open(fp,"w").write(t)
