@@ -14,6 +14,8 @@ import hashlib
 import json
 import re
 import uuid
+import io
+import zipfile
 
 SPEC = "rapp/1"
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
@@ -139,3 +141,139 @@ def verify_frame(frame, head=None, stream_id_of_record=None):
     if is_swarm and frame["sig"] is None:
         return False, "6", "swarm frame must be signed"
     return True, None, "ok"
+
+
+# ---------- §9 the egg (L5) — the one egg spec of record ----------
+EGG_VARIANTS = {"organism", "rapplication", "session", "invite", "neighborhood", "estate"}
+_EGG_JSON_VARIANTS = {"session", "invite"}          # JSON object eggs (no packed files)
+_EGG_MANIFEST_KEYS = {"schema", "variant", "rappid", "created_utc", "contents", "payload", "sig"}
+
+
+def egg_address(manifest):
+    """§9.1 the egg's one §5 address: H('rapp/1:egg-manifest', manifest \\ {sig})."""
+    return H("rapp/1:egg-manifest", {k: v for k, v in manifest.items() if k != "sig"})
+
+
+def _egg_contents(files):
+    """§9.1 contents: {path: Hb('rapp/1:egg', octets)}, sorted ascending by UTF-8 bytes of path."""
+    items = [{"path": p, "hash": Hb("rapp/1:egg", octets)} for p, octets in files.items()]
+    items.sort(key=lambda c: c["path"].encode("utf-8"))
+    return items
+
+
+def pack_egg(variant, rappid, created_utc, files=None, payload=None, sig=None):
+    """Build a byte-reproducible §9 `rapp/1-egg`. Returns bytes.
+
+    files: {relative_posix_path: octets} for ZIP (tree) variants; MUST be empty for
+    JSON variants (session/invite). Two conformant packers of the same manifest value
+    emit byte-identical eggs (ZIP stored, manifest.json first, timestamps 1980-01-01)."""
+    if variant not in EGG_VARIANTS:
+        raise ValueError(f"unknown variant: {variant}")
+    files = dict(files or {})
+    payload = {} if payload is None else payload
+    is_json = variant in _EGG_JSON_VARIANTS
+    if is_json and files:
+        raise ValueError(f"{variant} is a JSON variant — no packed files")
+    manifest = {
+        "schema": "rapp/1-egg", "variant": variant, "rappid": rappid,
+        "created_utc": created_utc,
+        "contents": [] if is_json else _egg_contents(files),
+        "payload": payload, "sig": sig,
+    }
+    man_octets = canonical(manifest).encode("utf-8")
+    if is_json:
+        return man_octets                                  # JSON egg serialized == canonical(manifest)
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_STORED) as z:
+        def _w(name, data):
+            zi = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+            zi.compress_type = zipfile.ZIP_STORED
+            zi.flag_bits |= 0x800                          # UTF-8 filename flag
+            z.writestr(zi, data)
+        _w("manifest.json", man_octets)                    # manifest.json first
+        for c in manifest["contents"]:                     # then contents order
+            _w(c["path"], files[c["path"]])
+    return buf.getvalue()
+
+
+def read_egg(blob):
+    """Parse a rapp/1-egg → (manifest_dict, files_dict). files={} for JSON variants."""
+    if blob[:2] == b"PK":
+        z = zipfile.ZipFile(io.BytesIO(blob))
+        manifest = json.loads(z.read("manifest.json"))
+        files = {n: z.read(n) for n in z.namelist() if n != "manifest.json"}
+        return manifest, files
+    return json.loads(blob), {}
+
+
+def _egg_variant_ok(v, m, files):
+    p = m["payload"]
+    if v == "organism":
+        if not {"rappid.json", "soul.md"} <= set(files):
+            return "organism contents MUST include rappid.json + soul.md"
+    elif v == "rapplication":
+        if "rappid.json" not in files:
+            return "rapplication MUST include rappid.json"
+        root_py = [n for n in files if "/" not in n and n.endswith(".py")]
+        if len(root_py) != 1:
+            return "rapplication MUST have exactly one root agent.py"
+    elif v == "session":
+        if set(p.keys()) != {"runtime", "transcript"}:
+            return "session payload MUST be {runtime, transcript}"
+    elif v == "invite":
+        if set(p.keys()) != {"target_rappid", "target_url", "target_kind"}:
+            return "invite payload MUST be {target_rappid, target_url, target_kind}"
+        if m["sig"] is None:
+            return "invite sig is REQUIRED"
+    elif v == "neighborhood":
+        if set(p.keys()) != {"members"}:
+            return "neighborhood payload MUST be {members}"
+    elif v == "estate":
+        if set(p.keys()) != {"neighborhoods"}:
+            return "estate payload MUST be {neighborhoods}"
+    return None
+
+
+def verify_egg(blob):
+    """§9.3 consumer verify — integrity then viability. Returns (ok, failing_step, reason)."""
+    try:
+        manifest, files = read_egg(blob)
+    except Exception as e:
+        return (False, "parse", str(e))
+    if not isinstance(manifest, dict) or set(manifest.keys()) != _EGG_MANIFEST_KEYS:
+        return (False, "§9.1", "manifest must have exactly the 7 members")
+    if manifest["schema"] != "rapp/1-egg":
+        return (False, "§9.1", f"schema != rapp/1-egg ({manifest.get('schema')})")
+    v = manifest["variant"]
+    if v not in EGG_VARIANTS:
+        return (False, "§9.2", f"unknown variant {v}")
+    if not rappid_valid(manifest["rappid"]):
+        return (False, "§6.1", f"bad rappid {manifest['rappid']}")
+    if not (isinstance(manifest["created_utc"], str) and _UTC.match(manifest["created_utc"])):
+        return (False, "§7.4", "created_utc not the fixed millisecond form")
+    contents = manifest["contents"]
+    if not isinstance(contents, list):
+        return (False, "§9.1", "contents not a list")
+    paths = [c["path"] for c in contents]
+    for p in paths:
+        if p.startswith("/") or "\\" in p or any(seg in ("", ".", "..") for seg in p.split("/")):
+            return (False, "§9.1", f"bad path grammar: {p}")
+    if paths != sorted(paths, key=lambda x: x.encode("utf-8")):
+        return (False, "§9.1", "contents not sorted by path bytes")
+    if len(paths) != len(set(paths)):
+        return (False, "§9.1", "duplicate path")
+    if v in _EGG_JSON_VARIANTS:
+        if contents != []:
+            return (False, "§9.1", "JSON variant contents MUST be []")
+        if blob != canonical(manifest).encode("utf-8"):
+            return (False, "§9.1", "JSON egg serialized form != canonical(manifest)")
+    else:
+        if set(files.keys()) != set(paths):                # zip-slip defense
+            return (False, "§9.1", "archive entry set != contents")
+        for c in contents:
+            if Hb("rapp/1:egg", files[c["path"]]) != c["hash"]:
+                return (False, "§5", f"content hash mismatch: {c['path']}")
+    why = _egg_variant_ok(v, manifest, files)
+    if why:
+        return (False, "§9.2", why)
+    return (True, None, "ok")

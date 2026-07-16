@@ -118,6 +118,29 @@ def check_repo(root):
             evidence.append({"artifact": rel,
                              "ok": f"§4 canonicalization reproduces {canon_ok}/{len(files)} real payload hashes"})
 
+    # ---- eggs (§9) ----
+    for e in sorted(glob.glob(os.path.join(root, "**", "*.egg"), recursive=True)):
+        if ".git/" in e:
+            continue
+        has_artifact = True
+        rel = os.path.relpath(e, root)
+        try:
+            blob = open(e, "rb").read()
+            ok, step, why = R.verify_egg(blob)
+            if ok:
+                evidence.append({"artifact": rel, "ok": "egg conforms to §9 (rapp/1-egg)"})
+            else:
+                try:
+                    m, _ = R.read_egg(blob)
+                    sch = m.get("schema", "?")
+                except Exception:
+                    sch = "?"
+                findings.append({"artifact": rel, "rule": "§9 egg",
+                                 "detail": f"not a conformant rapp/1-egg (schema={sch}; {step}: {why})"})
+        except Exception as ex:
+            findings.append({"artifact": rel, "rule": "§9 egg",
+                             "detail": f"unreadable egg: {ex}"})
+
     if not has_artifact:
         return "CLEAN", [], []
     return ("DRIFT" if findings else "COMPLIANT"), findings, evidence
