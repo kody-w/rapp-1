@@ -60,7 +60,7 @@ def repack(blob, name_hint="thing"):
         names = z.namelist()
         mnames = [n for n in names if n.endswith("manifest.json")]
         manifest = json.loads(z.read(mnames[0])) if mnames else {}
-        files = {n: z.read(n) for n in names if not n.endswith("manifest.json")}
+        files = {n: z.read(n) for n in names if not n.endswith("manifest.json") and not n.endswith("/")}
     else:
         manifest = json.loads(blob); files = {}
         _sch = manifest.get("schema", "")
