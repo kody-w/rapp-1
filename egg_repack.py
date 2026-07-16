@@ -63,14 +63,19 @@ def repack(blob, name_hint="thing"):
         files = {n: z.read(n) for n in names if not n.endswith("manifest.json")}
     else:
         manifest = json.loads(blob); files = {}
-        # rappterbook .rappter/.rapp data blob → UNIFY as an organism egg holding its data
-        if "_format" in manifest or ("body" in manifest and "lineage" in manifest):
+        _sch = manifest.get("schema", "")
+        _known_json = _sch in ("brainstem-egg/2.3-session", "brainstem-egg/2.3-neighborhood")
+        # ANY other JSON blob (rappterbook .rappter, hologram-cartridge, rapp-application,
+        # rapp-leviathan-egg, unknown) → UNIFY as an organism egg holding its data. No legacy.
+        if "_format" in manifest or ("body" in manifest and "lineage" in manifest) or not _known_json:
             _org = manifest.get("organism")
             _sname = _org.get("name") if isinstance(_org, dict) else (_org if isinstance(_org, str) else None)
-            _sname = _sname or (manifest.get("body", {}).get("name") if isinstance(manifest.get("body"), dict) else None) or name_hint
+            _sname = _sname or (manifest.get("body", {}).get("name") if isinstance(manifest.get("body"), dict) else None) \
+                     or manifest.get("name") or manifest.get("slug") or name_hint
             slug = re.sub(r"[^a-z0-9]+", "-", str(_sname).lower()).strip("-") or name_hint
             files = {"organism.json": (canon_json := json.dumps(manifest, indent=2)).encode()}
-            rid_src = (manifest.get("lineage") or {}).get("rappid") if isinstance(manifest.get("lineage"), dict) else None
+            rid_src = manifest.get("rappid") \
+                      or ((manifest.get("lineage") or {}).get("rappid") if isinstance(manifest.get("lineage"), dict) else None)
             canon, migrated = _canon_rid(rid_src, "kody-w", slug)
             if canon is None:
                 canon = f"rappid:@kody-w/{slug}:{rapp.Hb('rapp/1:rappid', hashlib.sha256(files['organism.json']).digest())}"
