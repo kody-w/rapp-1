@@ -38,12 +38,13 @@ The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHOULD**, **MAY
 [RFC 8174] when in **bold caps**. (The Federal Constitution adopts the same clause.)
 
 ## 3. Terminology
-**organism** — a running brainstem with persistent identity. **rappid** — the eternal content-addressed
-name of an organism/door/object (§6). **frame** — one immutable content-addressed event (§7). **stream**
-— an append-only hash-chained frame sequence sharing one `stream_id`. **particle / wave** — a frame's two
-domain-separated addresses: payload-hash / whole-frame-hash (§7.3). **canonical form** — the one [RFC 8785]
-byte string for a value (§4). **legacy form** — any other historical encoding; legacy is drift and **MUST**
-be migrated out (Fed. Const. Art. III), except sealed re-genesis history (§12.1).
+**organism** — a running brainstem with persistent identity. **rappid** — the eternal, mint-once name of an
+organism/door/object (§6): minted once from a UUIDv4 or a public key, never derived from content or name.
+**frame** — one immutable content-addressed event (§7). **stream** — an append-only hash-chained frame
+sequence sharing one `stream_id`. **particle / wave** — a frame's two domain-separated addresses:
+payload-hash / whole-frame-hash (§7.3). **canonical form** — the one [RFC 8785] byte string for a value
+(§4). **legacy form** — any other historical encoding; legacy is drift and **MUST** be migrated out
+(Fed. Const. Art. III), except sealed re-genesis history (§12.1).
 
 ## 4. Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **[RFC 8785] JCS** for the value `v`, defined **only**
