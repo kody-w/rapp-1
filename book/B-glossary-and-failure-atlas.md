@@ -2,11 +2,12 @@
 layout: book
 title: Glossary and Failure Atlas
 book_label: Appendix B
-book_progress: 100
+book_progress: 96
 description: RAPP terms, address spaces, and verification failures at a glance
 ---
 
-[← Appendix A: Reference Manual](A-reference-manual.md) · [Book contents](README.md)
+[← Appendix A: Reference Manual](A-reference-manual.md) · [Book contents](README.md) ·
+[Appendix C: Selected Exercise Solutions →](C-selected-exercise-solutions.md)
 
 # Appendix B — Glossary and Failure Atlas
 
@@ -223,4 +224,5 @@ authorized migration; do not mutate the received frame until it passes.
 
 ---
 
-[← Appendix A: Reference Manual](A-reference-manual.md) · [Book contents](README.md)
+[← Appendix A: Reference Manual](A-reference-manual.md) · [Book contents](README.md) ·
+[Appendix C: Selected Exercise Solutions →](C-selected-exercise-solutions.md)

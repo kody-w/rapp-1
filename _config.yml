@@ -1,5 +1,5 @@
 title: The RAPP Programming Language
-description: A tutorial and reference manual for verifiable agents
+description: A tutorial, programming workbook, and reference manual for verifiable agents
 baseurl: /rapp-1
 markdown: kramdown
 kramdown:

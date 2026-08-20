@@ -170,6 +170,8 @@ That is the spine of the protocol. Everything from here is precision:
 - **Registry and evolution** — current heads, owner succession, and lawful migration (chapter 9).
 - And then chapter 10, where we follow a real estate from eight drift findings to 46 verified
   frames and watch the language tell the difference byte by byte.
+- Finally, **implementation** — how to build the language from safe values through atomic append
+  and independent interop (chapter 11).
 
 Read `rapp.py` now if you like — it is short, and you have already used most of it.
 
@@ -192,7 +194,22 @@ value → particle → wave → chain → stream binding
 Do not “fix” a received frame while testing. Build a new candidate and let the consumer refuse the
 old one. Verification that mutates its input destroys evidence.
 
-## 1.7 Chapter Summary
+## 1.7 Exercises
+
+**Exercise 1-1.** Add a fourth event to `examples/02_build_a_chain.py`. Print the complete
+particle and wave for each frame, then explain which address appears in the next frame.
+
+**Exercise 1-2.** Construct one fresh mutation for every verifier step from 1 through 6, including
+1a. Assert the expected step instead of matching only the reason text. *A selected solution appears
+in Appendix C and `examples/05_failure_atlas.py`.*
+
+**Exercise 1-3.** Serialize the valid chain to files, load it into a new process, and verify from
+genesis to head without reusing any in-memory object from construction.
+
+**Exercise 1-4.** Assume a hostile mirror serves a self-consistent replacement chain. Write down
+the minimum trusted state a returning consumer needs to detect the replacement.
+
+## 1.8 Chapter Summary
 
 - A RAPP history begins with a minted identity and a sequence-zero frame.
 - The particle addresses the payload; the wave addresses the unsigned envelope.

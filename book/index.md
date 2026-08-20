@@ -4,15 +4,15 @@ title: The RAPP Programming Language
 book_label: Book home
 book_home: true
 book_progress: 0
-description: A tutorial and reference manual for verifiable agents
+description: A tutorial, programming workbook, and reference manual for verifiable agents
 ---
 
 <section class="book-title-sheet" aria-label="Book title page">
   <p class="book-title-kicker">RAPP rev-5 · book edition</p>
   <p class="book-title-words">The RAPP <span>Programming</span> Language</p>
   <div class="book-title-glyph" aria-hidden="true">R/1</div>
-  <p class="book-title-subtitle">A tutorial and reference manual for agents that keep a
-  verifiable memory and communicate over one exact wire.</p>
+  <p class="book-title-subtitle">A tutorial, programming workbook, and reference manual for
+  agents that keep a verifiable memory and communicate over one exact wire.</p>
 </section>
 
 RAPP is a programming language for durable agent behavior in the same sense that a wire format
@@ -20,8 +20,9 @@ can be a language: it gives independent programs one vocabulary for values, addr
 events, trust, and portable packages. Its executable grammar is the RAPP protocol.
 
 The book starts with a working frame, derives every byte rule beneath it, then adds identity,
-packaging, signatures, authority, migration, and real-world conformance. No API keys or third-party
-packages are needed for the core examples.
+packaging, signatures, authority, migration, real-world conformance, and a complete implementation
+plan. Numbered exercises turn each chapter into a workbook. No API keys or third-party packages
+are needed for the core examples.
 
 **[Begin the book →](00-preface.md)**
 
@@ -48,10 +49,16 @@ packages are needed for the core examples.
 10. **[Conformance, and Meeting a Real World](10-conformance-and-drift.md)** — the code meets the
     committed estate
 
+### Part IV — Implementing the language
+
+11. **[Implementing the Language](11-implementing-rapp.md)** — build the parser, addresses,
+    identity, frames, packages, trust adapter, and transactional append
+
 ### Reference
 
 - **[Appendix A — Reference Manual](A-reference-manual.md)**
 - **[Appendix B — Glossary and Failure Atlas](B-glossary-and-failure-atlas.md)**
+- **[Appendix C — Selected Exercise Solutions](C-selected-exercise-solutions.md)**
 
 ## Start at the Terminal
 
@@ -61,6 +68,9 @@ cd rapp-1
 
 python3 examples/01_hello_frame.py
 python3 examples/02_build_a_chain.py
+python3 examples/04_typed_addresses.py
+python3 examples/05_failure_atlas.py
+python3 examples/06_pack_an_egg.py
 python3 conformance.py
 ```
 

@@ -142,14 +142,13 @@ def sync_estate():
     os.makedirs(ROOT, exist_ok=True)
     for repo in ("twin", "rapp-body", "rapp-commons", "rapp-map", "RAR"):
         dst = os.path.join(ROOT, repo)
+        print(f"   syncing kody-w/{repo} …")
         if os.path.isdir(os.path.join(dst, ".git")):
-            print(f"   updating kody-w/{repo} …")
             subprocess.run(
                 ["git", "-C", dst, "pull", "--ff-only", "-q"],
                 check=True,
             )
         else:
-            print(f"   cloning kody-w/{repo} …")
             subprocess.run(
                 ["git", "clone", "--depth", "1", "-q",
                  f"https://github.com/kody-w/{repo}.git", dst],

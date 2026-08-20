@@ -193,7 +193,24 @@ Take any signed-frame design and ask these questions in order:
 If any answer is “the sender tells us,” the design has not completed verification. It has only
 checked a signature.
 
-## 8.8 Chapter Summary
+## 8.8 Exercises
+
+**Exercise 8-1.** Canonicalize the four-member protected header and base64url-encode it without
+padding. Change the source member order and prove the encoded result remains the same.
+
+**Exercise 8-2.** Add an extra protected-header member and make the verifier refuse it even when
+the underlying cryptographic signature is valid.
+
+**Exercise 8-3.** Construct the exact detached signing input for one frame and identify every byte
+that is and is not base64url-encoded. *A selected solution appears in Appendix C.*
+
+**Exercise 8-4.** Create frames immediately before, at, and after a rotation time. Build the
+expected old-key/new-key acceptance table.
+
+**Exercise 8-5.** Wrap a maintained Ed25519 library behind a RAPP-specific adapter. Keep header,
+canonicalization, and key-discovery policy outside the primitive signature call.
+
+## 8.9 Chapter Summary
 
 - Hashes prove byte integrity; signatures add authorship; the registry adds authority.
 - Memory and body streams may be unsigned; swarm streams must be signed.

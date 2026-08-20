@@ -7,7 +7,7 @@ description: Run RAPP against controlled vectors and committed estate artifacts
 ---
 
 [← Chapter 9: The Registry, Evolution, and Security](09-registry-evolution-and-security.md) ·
-[Book contents](README.md) · [Appendix A: Reference Manual →](A-reference-manual.md)
+[Book contents](README.md) · [Chapter 11: Implementing the Language →](11-implementing-rapp.md)
 
 # Chapter 10 — Conformance, and Meeting a Real World
 
@@ -256,7 +256,25 @@ A disciplined migration has a beginning and an end:
 The current report demonstrates the last step that many standards efforts omit: go back to the
 world and prove that the migration landed.
 
-## 10.10 Chapter Summary
+## 10.10 Exercises
+
+**Exercise 10-1.** Run both `conformance.py` and `realcheck.py`. Explain why only the first can be
+a stable offline protocol gate.
+
+**Exercise 10-2.** Create six synthetic findings: canonical mismatch, wrong address space, shape
+drift, stream replay, chain break, and stale registry. Classify each at its first normative
+boundary. *A selected solution appears in Appendix C.*
+
+**Exercise 10-3.** Capture a small estate fixture for offline regression without calling it
+“live.” Record source repository, commit, path, and capture time.
+
+**Exercise 10-4.** Make a local estate clone one commit stale, run an intentionally non-refreshing
+audit, then run `realcheck.py`. Explain the evidence difference.
+
+**Exercise 10-5.** Write an acceptance statement for a migration that names the red baseline, the
+owner authorization, the changed producer, the current green result, and the retained history.
+
+## 10.11 Chapter Summary
 
 - Controlled vectors prove selected implementation claims without depending on mutable remote
   state.
@@ -274,4 +292,4 @@ current form.
 ---
 
 [← Chapter 9: The Registry, Evolution, and Security](09-registry-evolution-and-security.md) ·
-[Book contents](README.md) · [Appendix A: Reference Manual →](A-reference-manual.md)
+[Book contents](README.md) · [Chapter 11: Implementing the Language →](11-implementing-rapp.md)

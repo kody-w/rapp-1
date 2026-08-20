@@ -161,7 +161,25 @@ The ordering is useful operationally. A step-2 failure says the payload address 
 failure says the envelope address is false; a step-4 failure can involve two individually valid
 frames that do not form one history.
 
-## 5.7 Chapter Summary
+## 5.7 Exercises
+
+**Exercise 5-1.** Run `examples/05_failure_atlas.py`, then add one malformed `kind`, one boolean
+`seq`, and one invalid UTC. All three must stop at step 1.
+
+**Exercise 5-2.** List the exact nine fields in the wave preimage. Explain why removing any field
+or retaining `sig` would create a different protocol.
+
+**Exercise 5-3.** Given an unordered set of individually valid frames, detect two children with
+the same `(stream_id, seq, prev)` and different waves. Do not choose a winner. *A selected solution
+appears in Appendix C.*
+
+**Exercise 5-4.** Implement a remembered-head store that refuses lower sequences and a different
+wave at an already observed sequence.
+
+**Exercise 5-5.** Add calendar-valid UTC checking to a verifier. Test leap years, month length,
+hour 24, leap second 60, offsets, and fractional precision.
+
+## 5.8 Chapter Summary
 
 - A frame always has exactly eleven keys; absent and null are not interchangeable.
 - The producer computes particle first, then wave, then optionally signs.

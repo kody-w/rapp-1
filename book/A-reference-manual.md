@@ -6,16 +6,16 @@ book_progress: 92
 description: Terse implementation reference for RAPP rev-5
 ---
 
-[← Chapter 10: Conformance, and Meeting a Real World](10-conformance-and-drift.md) ·
+[← Chapter 11: Implementing the Language](11-implementing-rapp.md) ·
 [Book contents](README.md) · [Appendix B: Glossary and Failure Atlas →](B-glossary-and-failure-atlas.md)
 
 # Appendix A — RAPP Reference Manual
 
-Terse, normative-mirroring. The tutorial (chapters 1–8) teaches; this reference is what you keep
+Terse, normative-mirroring. Chapters 1–11 teach; this reference is what you keep
 open while building. Section numbers cite `SPEC.md`. Requirements language (MUST / MUST NOT /
 SHOULD / MAY) is RFC 2119 / RFC 8174.
 
-This appendix summarizes chapters 1–10. If its wording and `SPEC.md` differ, the specification is
+This appendix summarizes chapters 1–11. If its wording and `SPEC.md` differ, the specification is
 authoritative.
 
 ## A.1 Canonicalization (§4)
@@ -139,5 +139,5 @@ RFC 2119/8174 (requirements) · RFC 8785 (JCS) · RFC 8259/7493 (JSON/I-JSON) ·
 
 ---
 
-[← Chapter 10: Conformance, and Meeting a Real World](10-conformance-and-drift.md) ·
+[← Chapter 11: Implementing the Language](11-implementing-rapp.md) ·
 [Book contents](README.md) · [Appendix B: Glossary and Failure Atlas →](B-glossary-and-failure-atlas.md)

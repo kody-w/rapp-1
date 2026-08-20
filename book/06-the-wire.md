@@ -130,7 +130,22 @@ Repeat the exact request. A conformant implementation returns the original resul
 creating a duplicate turn. Then send `{ "messages": [] }`: the server should return a typed 422,
 not guess that `messages` meant `user_input`.
 
-## 6.8 Chapter Summary
+## 6.8 Exercises
+
+**Exercise 6-1.** Send missing, empty, and wrong-typed `user_input` values to a test server. Record
+the exact 422 envelope and require a registered error code.
+
+**Exercise 6-2.** Implement an idempotency result store that deduplicates both an existing-session
+turn and session creation. Store the complete original response. *A selected solution appears in
+Appendix C.*
+
+**Exercise 6-3.** Write a client that rejects a 200 response with missing or extra members rather
+than accepting a private server dialect.
+
+**Exercise 6-4.** Build an asynchronous reader that receives a frame and a path-of-record stream
+identifier separately. Prove a valid genesis replayed under another path fails at 1a.
+
+## 6.9 Chapter Summary
 
 - RAPP has one synchronous endpoint, `POST /chat`, and one asynchronous form, the §7 frame.
 - Only `user_input` is required; successful responses have exactly three members.
