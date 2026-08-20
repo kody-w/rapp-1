@@ -33,14 +33,84 @@ RAPP rev-5 — conformance vectors
   [PASS] V7  cross-stream genesis replay refused at 1a
   [PASS] V8  missing key refused at step 1 (no absent-vs-null)
   [PASS] V9  unsigned swarm frame refused at step 6
-  ── 18 checks | 18 PASS | 0 FAIL
+
+§7.7 — dimensional growth: one mint-once identity, many dimensions
+  [PASS] V10 a grown body-stream verifies and reconstructs
+  [PASS] V10 the fold reaches the declared stage and both dimensions
+  [PASS] V10 every growth frame is still exactly the 11-key §7.1 envelope
+  [PASS] V10 the profile adds only registry-shaped body-family kinds
+  [PASS] V11 one identity across every frame of the growth
+  [PASS] V11 the stage changed while the identity did not
+  [PASS] V11 an identity swap dressed as growth refused at §7.7.1
+  [PASS] V11 a stage regression refused at §7.7.1
+  [PASS] V11 a non-advancing dimension version refused at §7.7.4
+  [PASS] V11 a dimension frame off the body-stream refused at §7.2
+  [PASS] V12 a media reference is the §9 egg address of the same octets
+  [PASS] V12 the reference carries domain, hash, media type, and length only
+  [PASS] V12 frame size is independent of media size (§4's 1 MiB ceiling holds)
+  [PASS] V12 media octets smuggled into the frame refused at §7.7.2
+  [PASS] V12 a media hash in a foreign address space refused at §7.7.2
+  [PASS] V12 a non-canonical media type refused at §7.7.2
+  [PASS] V13 traits_hash is the particle-space address of the traits
+  [PASS] V13 a traits/traits_hash mismatch refused at §7.7.3
+  [PASS] V13 an asserted fold that differs from the rebuilt one refused at §7.7.6
+  [PASS] V13 unordered source pointers refused at §7.7.4
+  [PASS] V14 offspring verifies against the resolved parent fold
+  [PASS] V14 offspring is a new identity carrying a parent pointer
+  [PASS] V14 an unresolved parent fails closed at §7.7.5
+  [PASS] V14 an organism claiming itself as parent refused at §7.7.1
+  [PASS] V14 ancestry acquired mid-life refused at §7.7.5
+  [PASS] V14 an inheritance the parent never had refused at §7.7.5
+
+§7.8 — weight: a RAPPID's data size, in verified bytes
+  [PASS] V15 weight is exact integers only — no float ever reaches a payload
+  [PASS] V15 total = frames + assets
+  [PASS] V15 resident + linked = total
+  [PASS] V15 a frame weighs its canonical bytes
+  [PASS] V16 the same frames presented twice weigh once
+  [PASS] V16 one asset referenced by two dimensions weighs once
+  [PASS] V17 with nothing hydrated, every asset is linked
+  [PASS] V17 with the octets hydrated, the asset becomes resident
+  [PASS] V17 the attested weight is habitat-independent
+  [PASS] V18 a local copy that fails §5 is not counted as resident
+  [PASS] V18 two sizes for one address makes that size unknown, not averaged
+  [PASS] V19 the growth frame attests the weight of everything before it
+  [PASS] V19 an organism claiming more weight than its bytes refused at §7.8
+  [PASS] V19 weight only grows as the chain appends
+  [PASS] V19 gaining weight changed no identity
+  [PASS] V20 format_weight renders bytes for humans (presentation only)
+
+§7.9 — the creature card: exact stats, presentation height, and proposals
+  [PASS] V21 frame_height == accepted frames == head seq + 1
+  [PASS] V21 re-presenting a frame cannot inflate the height (refused at step 4)
+  [PASS] V21 …nor can it inflate the weight
+  [PASS] V21 one asset under two roles weighs once
+  [PASS] V22 the stat block has exactly the §7.9.3 members
+  [PASS] V22 stats mirror the fold, not a claim
+  [PASS] V22 an unrenderable height is null and the card says it is incomplete
+  [PASS] V23 the same species, curve, and height render the same millimetres
+  [PASS] V23 a different curve version renders differently and changes nothing else
+  [PASS] V23 no display height appears in any frame
+  [PASS] V23 changing a declared species refused at §7.9.2
+  [PASS] V24 predicting mutated no canonical state
+  [PASS] V24 a proposal invents no bytes — a frame that does not exist has no weight
+  [PASS] V24 a proposal is not a conformant payload
+  [PASS] V24 a proposal becomes authoritative only once appended and verified
+  ── 98 protocol checks, plus the two real-world checks below
 ```
 
 Each vector maps to a promise made earlier in the book: V1/V1b is canonicalization (ch. 2), V2 is
 domain separation (ch. 3), V3 is mint-once identity (ch. 4), V4–V9 are the frame's build and its
-six-step verify (ch. 5). This is what "conformance class" means concretely: an implementation is
-RAPP-conformant when it produces and rejects exactly these bytes. Green here is not a clean
-build; it is the spec exercised against its own claims.
+six-step verify (ch. 5), V10–V14 are §7.7 dimensional growth (ch. 5.6) — one organism growing under
+one mint-once name, its media held by reference, its offspring minting their own identity — and
+V15–V20 are §7.8 weight (ch. 5.7): verified bytes, de-duplicated by content address, resident against
+linked, and incompleteness surfaced rather than estimated. V21–V24 are §7.9 stats (ch. 5.8): exact
+chain depth that repetition cannot pad, a display height that is deterministic *and* labelled as
+presentation, and proposals that read without writing. Note how many of them are *refusals*: a
+protocol is defined at least as much by what it will not accept as by what it will. This is what
+"conformance class" means concretely: an implementation is RAPP-conformant when it produces and
+rejects exactly these bytes. Green here is not a clean build; it is the spec exercised against its
+own claims.
 
 ## 8.2 The Real-World Harness
 
