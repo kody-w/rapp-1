@@ -1,8 +1,9 @@
 """conformance.py — executable proof that RAPP (rev-5) is implementable and
-self-consistent, plus a real-world check against a live estate artifact.
+self-consistent, plus a non-gating observation of one live estate artifact.
 
 Run: python3 conformance.py
-Exit 0 = all vectors pass.
+Exit 0 = all controlled vectors pass. Mutable remote state never defines
+whether the protocol implementation conforms; use realcheck.py for that audit.
 """
 import json
 import urllib.request
@@ -79,35 +80,43 @@ ok, step, _ = R.verify_frame(sw, head=None, stream_id_of_record="net:commons")
 check("V9 unsigned swarm frame refused at step 6", (not ok) and step == "6")
 
 print()
+vector_count = len(results)
+vector_ok = sum(results)
+print("-" * 70)
+print(f"CONTROLLED VECTORS: {vector_count} checks | {vector_ok} PASS | {vector_count - vector_ok} FAIL")
+
+print()
 print("=" * 70)
-print("REAL-WORLD CHECK — RAPP vs a live estate artifact (kody-w/twin/frames/0.json)")
+print("LIVE OBSERVATION — kody-w/twin/frames/0.json (non-gating)")
 print("=" * 70)
 try:
     raw = urllib.request.urlopen(
         "https://raw.githubusercontent.com/kody-w/twin/main/frames/0.json", timeout=20).read()
     real = json.loads(raw)
     payload = real["payload"]
-    stored = real.get("sha256")
-    # (a) does RAPP's canonicalize + UNTAGGED payload hash reproduce twin's stored value?
-    untagged = hashlib.sha256(R.canonical(payload).encode()).hexdigest()
-    check("R1 RAPP canonicalization reproduces twin's real stored sha256",
-          untagged == stored, f"computed {untagged[:16]} vs stored {str(stored)[:16]}")
-    # (b) RAPP's domain-tagged particle deliberately differs (the hardening)
-    tagged = R.H("rapp/1:particle", payload)
-    print(f"       (RAPP domain-tagged particle = {tagged[:16]}… — deliberately != untagged; §5 fix)")
-    # (c) RAPP correctly identifies the legacy frame as non-conformant drift
-    ok, step, why = R.verify_frame(real)
-    check("R2 RAPP flags the legacy twin frame as non-conformant (the drift it fixes)",
-          not ok, "")
-    print(f"       → refused at step {step}: {why}")
-    print(f"       real frame keys: {sorted(real.keys())}")
-    print(f"       twin_id: {real.get('twin_id')}  (32-hex name-hash — the C3/ID-01 drift)")
+    if set(real) == R.FRAME_KEYS and real.get("spec") == R.SPEC:
+        tagged = R.H("rapp/1:particle", payload)
+        hash_ok = tagged == real["payload_hash"]
+        ok, step, why = R.verify_frame(
+            real, head=None, stream_id_of_record=real["stream_id"])
+        print(f"  [{'CURRENT' if hash_ok and ok else 'DRIFT'}] frame uses the rapp/1 envelope")
+        print(f"       particle reproduces stored payload_hash: {hash_ok}")
+        print(f"       frame verifies as its stream genesis: {ok}"
+              + ("" if ok else f" (step {step}: {why})"))
+    else:
+        stored = real.get("sha256") or real.get("hash")
+        untagged = hashlib.sha256(R.canonical(payload).encode()).hexdigest()
+        ok, step, why = R.verify_frame(real)
+        print("  [HISTORICAL] frame uses a pre-RAPP envelope")
+        print(f"       canonical bytes reproduce legacy stored hash: {untagged == stored}")
+        print(f"       current verifier refusal: {not ok}"
+              + (f" (step {step}: {why})" if not ok else ""))
+        print(f"       envelope keys: {sorted(real.keys())}")
 except Exception as ex:
-    check("R1 real-world fetch", False, f"network: {ex}")
+    print(f"  [UNAVAILABLE] live observation not fetched: {ex}")
 
 print()
-n = len(results); ok = sum(results)
 print("-" * 70)
-print(f"{n} checks | {ok} PASS | {n - ok} FAIL")
+print(f"{vector_count} controlled checks | {vector_ok} PASS | {vector_count - vector_ok} FAIL")
 import sys
-sys.exit(0 if ok == n else 1)
+sys.exit(0 if vector_ok == vector_count else 1)

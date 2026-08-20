@@ -1,4 +1,18 @@
+---
+layout: book
+title: Content Addressing
+book_label: Chapter 3
+book_progress: 28
+description: Name RAPP values with domain-separated content addresses
+---
+
+[← Chapter 2: Canonicalization](02-canonicalization.md) · [Book contents](README.md) ·
+[Chapter 4: Identity →](04-identity.md)
+
 # Chapter 3 — Content Addressing
+
+> **In this chapter:** turn canonical values and raw octets into typed addresses, see exactly what
+> domain separation prevents, and learn why stores must key by both space and digest.
 
 Once a value has exactly one byte representation (chapter 2), we can name it by its hash. This
 is content addressing, and it is the mechanism that makes "the hash is the name" true: identical
@@ -44,8 +58,8 @@ defined spaces are:
 | `rapp/1:particle`    | a frame's payload (the worldline link)      |
 | `rapp/1:wave`        | a whole frame (wire integrity)              |
 | `rapp/1:rappid`      | an identity tail (from entropy or a key)    |
-| `rapp/1:egg`         | a packed egg archive                        |
-| `rapp/1:egg-manifest`| an egg's manifest                           |
+| `rapp/1:egg`         | one file's raw octets inside an egg         |
+| `rapp/1:egg-manifest`| a whole egg through its canonical manifest  |
 | `rapp/1:seal`        | a terminal re-genesis seal (chapter 5)      |
 
 Because the tag is part of the preimage, the *same value* produces a *different address* in each
@@ -57,20 +71,21 @@ space, by construction:
 ('…', '…', '…')     # three distinct addresses
 ```
 
-That is conformance vector V2. A payload address can never be a frame address can never be an
-identity, even if the underlying bytes are identical, because they live in different, tagged
-spaces. Cross-space collision is not merely unlikely; it is *unrepresentable*.
+That is conformance vector V2. Reusing identical underlying bytes cannot accidentally turn a
+payload address into a frame address or an identity, because each role has a different preimage.
+Address equality across spaces would require an actual SHA-256 collision rather than a type
+confusion, and SHA-256 collision resistance is an explicit security assumption of the protocol.
 
 ## 3.3 A Consequence Worth Stating
 
 Domain separation means RAPP addresses are **deliberately incompatible** with an untagged
-`sha256(canonical(value))`. This matters when you meet real data. In chapter 8 you will see that
-the estate's existing frames store an *untagged* payload hash. The reference `canonical()`
-reproduces that untagged value exactly — proving the canonicalization agrees — but
+`sha256(canonical(value))`. This matters when you meet historical data. In chapter 10 you will see
+that the estate’s baseline frames stored an *untagged* payload hash. The reference `canonical()`
+reproduced that untagged value exactly — proving the canonicalization agreed — but
 `H("rapp/1:particle", payload)` is a different 64-hex string, on purpose. The difference is not a
 bug on either side; it is the §5 hardening. An implementation adopting RAPP tags its hashes;
-that is part of what "adopting RAPP" means, and it is why the migration in chapter 8 is a
-genuine re-genesis and not a no-op relabel.
+that is part of what “adopting RAPP” means. The current estate now stores the tagged form; the
+migration was a genuine convergence, not a no-op relabel.
 
 ## 3.4 Why SHA-256
 
@@ -84,3 +99,53 @@ With canonical bytes (chapter 2) and tagged addresses (this chapter), we have ev
 to name content unambiguously. Next we use that to build the one name that is *not* derived from
 content at all — because deriving identity from content is the one place content addressing must
 not be used.
+
+## 3.5 Addresses Are Pairs
+
+A 64-hex digest is not a self-describing global identifier. The complete lookup key is:
+
+```text
+(space, digest)
+```
+
+This matters at storage boundaries. A table keyed only by `digest` invites later code to fetch a
+particle as if it were a wave or a file blob as if it were an egg manifest. Keep the space in the
+path, column, object key, or API type:
+
+```text
+objects/rapp-1-particle/<digest>
+objects/rapp-1-wave/<digest>
+objects/rapp-1-egg/<digest>
+```
+
+The exact storage layout is application policy; preserving the pair is protocol safety.
+
+## 3.6 Checkpoint: Same Value, Different Roles
+
+```bash
+python3 - <<'PY'
+import rapp as R
+
+value = {"x": 1}
+for space in ("rapp/1:particle", "rapp/1:wave", "rapp/1:egg-manifest"):
+    print(space, R.H(space, value))
+PY
+```
+
+Run it twice: each line is stable across runs, and all three lines differ from one another. Then
+change `"x"` to `"y"` and observe that every address changes. Stability comes from canonical
+bytes; role separation comes from the tag.
+
+## 3.7 Chapter Summary
+
+- RAPP uses SHA-256 with a newline-delimited domain tag.
+- `H` addresses canonical values; `Hb` addresses raw octets.
+- The same bytes in two roles have different preimages and therefore different expected addresses.
+- A store treats `(space, digest)` as the address, never the digest alone.
+- Untagged historical hashes may prove canonicalization agreement while still being non-conformant
+  RAPP addresses.
+
+---
+
+[← Chapter 2: Canonicalization](02-canonicalization.md) · [Book contents](README.md) ·
+[Chapter 4: Identity →](04-identity.md)

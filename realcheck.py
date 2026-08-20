@@ -1,10 +1,10 @@
-"""realcheck.py — run the RAPP reference implementation against the REAL,
+"""realcheck.py — run the RAPP reference implementation against the current,
 committed artifacts of the kody-w estate (cloned under ./estate) and report,
-byte for byte, where reality already conforms to RAPP and where reality IS
-the drift RAPP standardizes away.
+byte for byte, what conforms and what remains drift.
 
 This is not a curated vector. It walks every frame chain and every rappid.json
-that was actually committed to the public repos, and breaks the spec against them.
+that was actually committed to the public repos. Existing clones are fast-forwarded
+before every run so a successful migration cannot leave a stale "live" report.
 
 Run: python3 realcheck.py            (expects ./estate/{twin,rapp-body,...})
 """
@@ -22,6 +22,7 @@ _64HEX = re.compile(r"^[0-9a-f]{64}$")
 
 conform = []   # (artifact, note)
 drift = []     # (artifact, category, detail)
+frame_stats = {"total": 0, "address_ok": 0, "chain_ok": 0, "conformant": 0}
 
 
 def untagged(payload):
@@ -38,45 +39,69 @@ def check_frame_chain(name, frame_dir):
     if not files:
         return
     print(f"\n── {name}  ({len(files)} committed frames: {frame_dir.replace(ROOT, 'estate')}) ──")
-    prev_sha = None
-    canon_ok = 0
+    prev_address = None
+    head = None
+    address_ok = 0
     chain_ok = 0
     rapp_conformant = 0
+    legacy_envelope = False
+    stream_id_of_record = None
     for f in files:
         fr = json.load(open(f))
         seq = fr.get("seq")
-        sha = fr.get("sha256") or fr.get("hash")
         payload = fr.get("payload")
-        # (1) does RAPP's canonicalizer reproduce the REAL stored payload hash?
-        if payload is not None and sha is not None:
-            if untagged(payload) == sha:
-                canon_ok += 1
+        is_current = set(fr) == R.FRAME_KEYS and fr.get("spec") == R.SPEC
+        if is_current:
+            stored_address = fr.get("payload_hash")
+            computed_address = R.H("rapp/1:particle", payload)
+            parent = fr.get("prev")
+            stream_id_of_record = stream_id_of_record or fr.get("stream_id")
+        else:
+            legacy_envelope = True
+            stored_address = fr.get("sha256") or fr.get("hash")
+            computed_address = untagged(payload) if payload is not None else None
+            parent = fr.get("parent_sha") if "parent_sha" in fr else fr.get("prev_hash")
+
+        # (1) does the reference canonicalizer reproduce the stored address?
+        if payload is not None and stored_address is not None:
+            if computed_address == stored_address:
+                address_ok += 1
             else:
                 drift.append((f"{name}/{os.path.basename(f)}", "canon-mismatch",
-                              f"sha256(canonical(payload))={untagged(payload)[:12]} != stored {sha[:12]}"))
-        # (2) does the real chain link the way RAPP §7.4 requires (prev == parent payload hash)?
-        parent = fr.get("parent_sha") if "parent_sha" in fr else fr.get("prev_hash")
+                              f"computed={str(computed_address)[:12]} != stored {str(stored_address)[:12]}"))
+        # (2) does the chain link through the previous payload address?
         if seq == 0:
             if parent in (None, "", "null"):
                 chain_ok += 1
-        elif parent == prev_sha:
+        elif parent == prev_address:
             chain_ok += 1
         else:
             drift.append((f"{name}/{os.path.basename(f)}", "chain-break",
-                          f"parent_sha={str(parent)[:12]} != prev.sha256={str(prev_sha)[:12]}"))
-        # (3) is the REAL frame conformant to the RAPP §7 envelope as-is?
-        ok, step, why = R.verify_frame(fr)
+                          f"parent={str(parent)[:12]} != previous={str(prev_address)[:12]}"))
+        # (3) is the committed frame conformant to the RAPP §7 envelope as-is?
+        ok, step, why = R.verify_frame(
+            fr,
+            head=head if is_current else None,
+            stream_id_of_record=stream_id_of_record if is_current else None,
+        )
         if ok:
             rapp_conformant += 1
-        prev_sha = sha
+            head = fr
+        elif is_current:
+            drift.append((f"{name}/{os.path.basename(f)}", f"frame-refusal/step-{step}", why))
+        prev_address = stored_address
     keys = sorted(json.load(open(files[0])).keys())
-    print(f"   canonicalization reproduces real stored hash : {canon_ok}/{len(files)} frames")
-    print(f"   real chain links per RAPP §7.4 (prev=parent): {chain_ok}/{len(files)} frames")
+    print(f"   canonicalization reproduces stored address  : {address_ok}/{len(files)} frames")
+    print(f"   chain links per RAPP §7.4 (prev=parent)     : {chain_ok}/{len(files)} frames")
     print(f"   frames conformant to RAPP §7 envelope as-is : {rapp_conformant}/{len(files)}")
-    print(f"   real envelope keys: {keys}")
-    if canon_ok == len(files):
-        conform.append((name, f"canonicalization + chain integrity reproduce all {len(files)} real payload hashes"))
-    if rapp_conformant == 0:
+    print(f"   committed envelope keys: {keys}")
+    frame_stats["total"] += len(files)
+    frame_stats["address_ok"] += address_ok
+    frame_stats["chain_ok"] += chain_ok
+    frame_stats["conformant"] += rapp_conformant
+    if address_ok == len(files) and chain_ok == len(files):
+        conform.append((name, f"addresses + chain integrity reproduce all {len(files)} committed frames"))
+    if legacy_envelope and rapp_conformant == 0:
         # identify the envelope drift precisely
         fr = json.load(open(files[0]))
         missing = R.FRAME_KEYS - set(fr.keys())
@@ -111,25 +136,32 @@ def check_rappid(path):
         drift.append((short, "schema-label", f"schema='{schema}', not 'rapp/1' (§12 living standard)"))
 
 
-def bootstrap_estate():
-    """Clone the real public repos so this check is reproducible from a fresh checkout."""
+def sync_estate():
+    """Clone or fast-forward public repos so "live" never means a stale cache."""
     import subprocess
     os.makedirs(ROOT, exist_ok=True)
     for repo in ("twin", "rapp-body", "rapp-commons", "rapp-map", "RAR"):
         dst = os.path.join(ROOT, repo)
-        if os.path.isdir(dst):
-            continue
-        print(f"   cloning kody-w/{repo} …")
-        subprocess.run(["git", "clone", "--depth", "1", "-q",
-                        f"https://github.com/kody-w/{repo}.git", dst], check=False)
+        if os.path.isdir(os.path.join(dst, ".git")):
+            print(f"   updating kody-w/{repo} …")
+            subprocess.run(
+                ["git", "-C", dst, "pull", "--ff-only", "-q"],
+                check=True,
+            )
+        else:
+            print(f"   cloning kody-w/{repo} …")
+            subprocess.run(
+                ["git", "clone", "--depth", "1", "-q",
+                 f"https://github.com/kody-w/{repo}.git", dst],
+                check=True,
+            )
 
 
 print("=" * 74)
-print("RAPP rev-5 — REAL-WORLD CHECK against committed kody-w estate artifacts")
+print("RAPP rev-5 — REAL-WORLD CHECK against current kody-w estate artifacts")
 print("=" * 74)
-if not os.path.isdir(ROOT) or not os.listdir(ROOT):
-    print("\nestate/ not present — cloning the real public repos (needs git + network):")
-    bootstrap_estate()
+print("\nsynchronizing public repos (needs git + network):")
+sync_estate()
 
 # every frame chain that was actually committed
 for name in sorted(os.listdir(ROOT)):
@@ -159,10 +191,13 @@ for cat in sorted(by_cat):
 
 print(f"""
 ── what this proves ──
-  RAPP's canonicalizer (§4) reproduces the real, committed payload hashes
-  byte-for-byte — the spec MATCHES reality where reality already content-addresses.
-  RAPP then REFUSES every real frame's envelope and every short-tail rappid —
-  those refusals ARE the {len(drift)} drifts the standard exists to end (C1 envelope,
-  C2/C3 identity, schema label). Reality is one owner-authorized re-genesis (§12.1)
-  away from full conformance; nothing here is a spec bug, it's the drift ledger, live.
-""")
+  Inspected frames: {frame_stats["total"]}
+  Stored addresses reproduced: {frame_stats["address_ok"]}/{frame_stats["total"]}
+  Chain links verified: {frame_stats["chain_ok"]}/{frame_stats["total"]}
+  Current RAPP envelopes accepted: {frame_stats["conformant"]}/{frame_stats["total"]}
+  Remaining drift findings: {len(drift)}
+
+  This is a synchronized observation of mutable public repositories, not a
+  conformance vector. A clean result means the inspected current estate converged;
+  repository history and sealed legacy artifacts preserve the migration evidence.
+""".rstrip())
