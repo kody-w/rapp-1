@@ -1,0 +1,11 @@
+title: The RAPP Programming Language
+description: A tutorial and reference manual for verifiable agents
+baseurl: /rapp-1
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter_opts:
+    disable: true
+exclude:
+  - .gitignore
+  - estate

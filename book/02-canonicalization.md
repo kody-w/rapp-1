@@ -1,4 +1,19 @@
+---
+layout: book
+title: Canonicalization
+book_label: Chapter 2
+book_progress: 20
+description: Turn one RAPP value into exactly one sequence of bytes
+---
+
+[← Chapter 1: A Tutorial Introduction](01-a-tutorial-introduction.md) ·
+[Book contents](README.md) · [Chapter 3: Content Addressing →](03-content-addressing.md)
+
 # Chapter 2 — Canonicalization
+
+> **In this chapter:** see why semantic equality is not byte equality, inspect canonical bytes,
+> understand the reference profile’s number boundary, and learn which “helpful” normalizations a
+> conformant consumer must refuse.
 
 Every hash in RAPP is a hash of *bytes*. But agents exchange *values* — objects, arrays,
 strings, numbers. Between a value and its hash sits a question that has sunk more distributed
@@ -86,11 +101,66 @@ differently on different machines.
 
 ## 2.4 The Payoff
 
-Because canonicalization is exact and shared, everything above it can be exact and shared. When
-chapter 8 runs the reference `canonical()` against 32 frames that were committed to a public
-repository by a *different* program, months earlier, it reproduces all 32 stored payload hashes
-byte-for-byte. That is the whole point: the canonicalizer here and the canonicalizer that wrote
-those frames agree, because they are both JCS, and JCS has exactly one answer.
+Because canonicalization is exact and shared, everything above it can be exact and shared. The
+first chapter 10 audit ran the reference `canonical()` against 32 historical frames written by a
+different program and reproduced every stored payload hash byte-for-byte. After migration, the
+current sweep reproduces the domain-tagged addresses of 46/46 frames. That is the whole point:
+independent producers and consumers agree because JCS has exactly one answer.
 
-Next we take those canonical bytes and turn them into addresses — carefully, so that a payload's
-address can never be mistaken for a frame's address, even when the bytes are identical.
+## 2.5 Failure Modes: Refuse, Do Not Normalize
+
+| Input | Why it is unsafe | Consumer action |
+|---|---|---|
+| duplicate object member | parsers may keep the first or last value | refuse the whole value |
+| lone UTF-16 surrogate | not interoperable I-JSON text | refuse |
+| non-round-tripping number | two runtimes may see different mathematical values | refuse |
+| value deeper than 64 levels | parser/resource attack surface | refuse |
+| canonical form over 1 MiB | unbounded hashing and memory cost | refuse |
+| visually equal but code-point-different strings | normalization would change addressed bytes | preserve as distinct values |
+
+Canonicalization is not cleanup. A consumer that silently repairs an unsafe value may hash bytes
+the producer never sent and then claim agreement.
+
+## 2.6 Checkpoint: Inspect the Bytes
+
+From the repository root:
+
+```bash
+python3 - <<'PY'
+import rapp as R
+
+a = {"message": "café", "n": 1, "items": [3, 2, 1]}
+b = {"items": [3, 2, 1], "n": 1, "message": "café"}
+
+ca, cb = R.canonical(a), R.canonical(b)
+print(ca)
+print(ca.encode("utf-8").hex())
+print("same bytes:", ca.encode("utf-8") == cb.encode("utf-8"))
+PY
+```
+
+Observe three things: the object construction order disappears, the array order remains, and the
+non-ASCII `é` is emitted as UTF-8 rather than a `\u` escape.
+
+Then replace integer `1` with float `0.1`. The small reference profile refuses it. That refusal
+does not mean RAPP forbids all binary64 values; it means a production implementation that accepts
+them must implement the complete RFC 8785 number form rather than inheriting a language’s default
+formatter.
+
+## 2.7 Chapter Summary
+
+- Hashes consume bytes, so interoperable hashes require one byte representation per value.
+- RAPP uses I-JSON serialized by RFC 8785 JCS.
+- Object order is canonicalized; array order is data.
+- New strings are created in NFC, but existing values are never normalized during verification.
+- The small reference profile accepts exact integers and refuses floats; full producers implement
+  the RFC 8785 binary64 rules.
+- Malformed or ambiguous input is refused whole, never repaired.
+
+Next we turn canonical bytes into addresses — carefully, so a payload address cannot be confused
+with a frame address even when the underlying bytes are identical.
+
+---
+
+[← Chapter 1: A Tutorial Introduction](01-a-tutorial-introduction.md) ·
+[Book contents](README.md) · [Chapter 3: Content Addressing →](03-content-addressing.md)

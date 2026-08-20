@@ -1,8 +1,22 @@
+---
+layout: book
+title: RAPP Reference Manual
+book_label: Appendix A
+book_progress: 92
+description: Terse implementation reference for RAPP rev-5
+---
+
+[← Chapter 10: Conformance, and Meeting a Real World](10-conformance-and-drift.md) ·
+[Book contents](README.md) · [Appendix B: Glossary and Failure Atlas →](B-glossary-and-failure-atlas.md)
+
 # Appendix A — RAPP Reference Manual
 
 Terse, normative-mirroring. The tutorial (chapters 1–8) teaches; this reference is what you keep
 open while building. Section numbers cite `SPEC.md`. Requirements language (MUST / MUST NOT /
 SHOULD / MAY) is RFC 2119 / RFC 8174.
+
+This appendix summarizes chapters 1–10. If its wording and `SPEC.md` differ, the specification is
+authoritative.
 
 ## A.1 Canonicalization (§4)
 
@@ -28,8 +42,8 @@ SHOULD / MAY) is RFC 2119 / RFC 8174.
 - Mint **once**: keyless `tail = Hb("rapp/1:rappid", uuid4_octets)` (RFC 9562); keyed
   `tail = Hb("rapp/1:rappid", SPKI_DER)` (RFC 5280).
 - MUST NOT: `sha256("<owner>/<slug>")` or any name-hash; MUST NOT recompute from mutable facts.
-- Re-anchor (§6.3), verifiable via a signed frame in the chain, only for: (a) keyless→keyed,
-  (b) key rotation (signed by old key), (c) pre-standard tail migrated once then deleted.
+- Re-anchor (§6.3), verifiable via an owner-signed registry record, only for `upgrade`, `rotation`
+  (with old-key proof), `compromise` (with tombstone), or `tag-migrate`.
 
 ## A.4 The Frame (§7)
 
@@ -48,7 +62,7 @@ prev_wave, sig`.
 | `frame_hash` | `H("rapp/1:wave", frame∖{frame_hash,sig})` — the **wave** |
 | `prev` | previous particle, or `null` at genesis |
 | `prev_wave` | previous wave on `net:` past genesis; else `null` |
-| `sig` | detached JWS (§10) or `null` |
+| `sig` | detached JWS string (§10) or `null` |
 
 **Build order:** particle first, then wave over the frame minus `{frame_hash, sig}`.
 
@@ -80,12 +94,14 @@ current form citing the sealed head → old frames retained under `legacy/` (sea
 
 ## A.6 The Egg (§9)
 
-- Stored (uncompressed) ZIP; manifest + payload files. Variants: `organism`, `rapplication`,
-  `session`, `invite`, `neighborhood`, `estate` — one spec, distinguished by field.
-- Addresses: manifest `H("rapp/1:egg-manifest", manifest)`; egg `H("rapp/1:egg", archive)`
-  **excluding** `sig` (sign after packing).
-- `organism` MAY carry a constructor pin `{stream_id, seq, particle}` proving the parent frame it
-  hatched from (verifiable by refetch+recompute).
+- Exact seven-member manifest:
+  `{schema,variant,rappid,created_utc,contents,payload,sig}`.
+- JSON containers: `session`, `invite`; serialized as `canonical(manifest)`, `contents:[]`.
+- Deterministic stored-ZIP containers: `organism`, `rapplication`, `neighborhood`, `estate`;
+  `manifest.json` first, then all files in UTF-8 path order, fixed timestamps, no extra fields.
+- File address: `Hb("rapp/1:egg", file_octets)`.
+- Egg identity: `H("rapp/1:egg-manifest", manifest∖{sig})`; signing or re-signing does not change
+  this address.
 - `invite` MUST be signed by the space's estate-owner succession.
 
 ## A.7 Signatures (§10)
@@ -120,3 +136,8 @@ against the live estate. Read `rapp.py` — it is ~140 lines and it is the spec 
 RFC 2119/8174 (requirements) · RFC 8785 (JCS) · RFC 8259/7493 (JSON/I-JSON) · FIPS 180-4
 (SHA-256) · RFC 3986 (URI) · RFC 9562 (UUID) · RFC 5280 (X.509 SPKI) · RFC 7515/7797/8037/7518/6979
 (JWS/signatures) · RFC 7405 (case-sensitive ABNF).
+
+---
+
+[← Chapter 10: Conformance, and Meeting a Real World](10-conformance-and-drift.md) ·
+[Book contents](README.md) · [Appendix B: Glossary and Failure Atlas →](B-glossary-and-failure-atlas.md)

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4efe2">
+  <meta name="description" content="{{ page.description | default: site.description | escape }}">
+  <title>{% if page.book_home %}{{ site.title }}{% else %}{{ page.title }} · {{ site.title }}{% endif %}</title>
+  <link rel="stylesheet" href="{{ '/book/assets/book.css' | relative_url }}">
+</head>
+<body class="book-shell{% if page.book_home %} book-home{% endif %}">
+  <a class="skip-link" href="#book-text">Skip to the book</a>
+
+  <aside class="book-rail" aria-label="Book navigation">
+    <a class="book-mark" href="{{ '/book/' | relative_url }}" aria-label="The RAPP Programming Language home">
+      <span>R</span><span>/</span><span>1</span>
+    </a>
+    <p class="book-rail-title">The RAPP<br>Programming<br>Language</p>
+    <p class="book-edition">RAPP rev-5<br>book edition</p>
+
+    <nav class="book-toc" aria-label="Table of contents">
+      <p class="part">Front matter</p>
+      <a href="{{ '/book/00-preface.html' | relative_url }}">Preface</a>
+
+      <p class="part">I · Values to addresses</p>
+      <a href="{{ '/book/01-a-tutorial-introduction.html' | relative_url }}"><b>1</b> Tutorial introduction</a>
+      <a href="{{ '/book/02-canonicalization.html' | relative_url }}"><b>2</b> Canonicalization</a>
+      <a href="{{ '/book/03-content-addressing.html' | relative_url }}"><b>3</b> Content addressing</a>
+
+      <p class="part">II · Identity to organism</p>
+      <a href="{{ '/book/04-identity.html' | relative_url }}"><b>4</b> Identity</a>
+      <a href="{{ '/book/05-the-frame.html' | relative_url }}"><b>5</b> The frame</a>
+      <a href="{{ '/book/06-the-wire.html' | relative_url }}"><b>6</b> The wire</a>
+      <a href="{{ '/book/07-the-egg.html' | relative_url }}"><b>7</b> The egg</a>
+
+      <p class="part">III · Trust and proof</p>
+      <a href="{{ '/book/08-trust-and-signatures.html' | relative_url }}"><b>8</b> Trust and signatures</a>
+      <a href="{{ '/book/09-registry-evolution-and-security.html' | relative_url }}"><b>9</b> Registry and evolution</a>
+      <a href="{{ '/book/10-conformance-and-drift.html' | relative_url }}"><b>10</b> Conformance</a>
+
+      <p class="part">Reference</p>
+      <a href="{{ '/book/A-reference-manual.html' | relative_url }}"><b>A</b> Reference manual</a>
+      <a href="{{ '/book/B-glossary-and-failure-atlas.html' | relative_url }}"><b>B</b> Glossary</a>
+    </nav>
+
+    <p class="book-source"><a href="{{ '/SPEC.md' | relative_url }}">Normative standard</a><br>
+      <a href="https://github.com/kody-w/rapp-1">Source on GitHub</a></p>
+  </aside>
+
+  <header class="book-running-head">
+    <a href="{{ '/book/' | relative_url }}">The RAPP Programming Language</a>
+    <span>{{ page.book_label | default: page.title }}</span>
+  </header>
+
+  <div class="book-progress" aria-hidden="true">
+    <span style="width: {{ page.book_progress | default: 0 }}%"></span>
+  </div>
+
+  <main id="book-text" class="book-page">
+    <article class="book-manuscript">
+      {% assign book_content = content | replace: 'README.md', 'index.html' | replace: '00-preface.md', '00-preface.html' | replace: '01-a-tutorial-introduction.md', '01-a-tutorial-introduction.html' | replace: '02-canonicalization.md', '02-canonicalization.html' | replace: '03-content-addressing.md', '03-content-addressing.html' | replace: '04-identity.md', '04-identity.html' | replace: '05-the-frame.md', '05-the-frame.html' | replace: '06-the-wire.md', '06-the-wire.html' | replace: '07-the-egg.md', '07-the-egg.html' | replace: '08-trust-and-signatures.md', '08-trust-and-signatures.html' | replace: '09-registry-evolution-and-security.md', '09-registry-evolution-and-security.html' | replace: '10-conformance-and-drift.md', '10-conformance-and-drift.html' | replace: 'A-reference-manual.md', 'A-reference-manual.html' | replace: 'B-glossary-and-failure-atlas.md', 'B-glossary-and-failure-atlas.html' %}
+      {{ book_content }}
+    </article>
+    <footer class="book-colophon">
+      <span>RAPP rev-5</span>
+      <span>The normative authority is <a href="{{ '/SPEC.md' | relative_url }}">SPEC.md</a>.</span>
+    </footer>
+  </main>
+
+</body>
+</html>
