@@ -79,9 +79,10 @@ If you have written a little Python and seen a hash function before, you can rea
 start to finish. Chapter 1 is a fast, complete tour — by the end of it you will have built and
 verified a real chain of frames. Chapters 2 through 7 take the five primitives one at a time.
 Chapters 8 and 9 add signatures, authority, evolution, and the security boundaries hashes cannot
-cross. Chapter 10 turns the whole apparatus loose on a live estate and shows you exactly where
-reality conforms and where it is the drift the protocol exists to end. Appendix A is the terse
-reference; Appendix B is the vocabulary and failure atlas.
+cross. Chapter 10 follows a live estate from a drifted baseline to verified convergence. Chapter
+11 turns the whole dependency graph into an implementation plan. Appendix A is the terse
+reference; Appendix B is the vocabulary and failure atlas; Appendix C contains selected exercise
+solutions.
 
 Run everything. The reference implementation is 140 lines; you are meant to read it, and the
 book will tell you when. A protocol you have only read about is a rumor. A protocol whose

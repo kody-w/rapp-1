@@ -147,7 +147,25 @@ does not mean RAPP forbids all binary64 values; it means a production implementa
 them must implement the complete RFC 8785 number form rather than inheriting a language’s default
 formatter.
 
-## 2.7 Chapter Summary
+## 2.7 Exercises
+
+**Exercise 2-1.** Predict the canonical text for five values before running the code: an empty
+object, an empty array, two objects with reversed construction order, and two arrays with reversed
+element order.
+
+**Exercise 2-2.** Build a fixture table containing the input value, canonical text, and UTF-8 hex
+for nested values and non-ASCII strings. *A selected solution appears in Appendix C.*
+
+**Exercise 2-3.** Explain why Python’s `bool` being a subclass of `int` can be dangerous in a
+validator. Find the guards in `rapp.py` that prevent `True` from becoming a valid `seq`.
+
+**Exercise 2-4.** Write a pre-walk that refuses nesting depth greater than 64 and canonical output
+larger than 1 MiB without partially accepting the value.
+
+**Exercise 2-5.** Advanced: compare two full RFC 8785 libraries on the boundary values `0.1`,
+`-0`, `9007199254740991`, `9007199254740993`, and `1e999`. Record acceptance and canonical bytes.
+
+## 2.8 Chapter Summary
 
 - Hashes consume bytes, so interoperable hashes require one byte representation per value.
 - RAPP uses I-JSON serialized by RFC 8785 JCS.

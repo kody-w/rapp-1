@@ -169,7 +169,22 @@ This is the intended split:
 | two mints from one SPKI | yes | yes | yes |
 | raw `sha256(owner/slug)` | yes | no anchor exists | forbidden |
 
-## 4.8 Chapter Summary
+## 4.8 Exercises
+
+**Exercise 4-1.** Mint two keyless rappids with the same owner and slug, then mint twice from one
+SPKI fixture. Explain both equality results without using the word “random” alone.
+
+**Exercise 4-2.** Audit a directory of identity records for the forbidden
+`sha256(owner/slug)` derivation. Report paths and identifiers; do not rewrite them. *A selected
+solution appears in Appendix C.*
+
+**Exercise 4-3.** Design separate `mint` and `load` APIs. Make a failed load impossible to convert
+silently into a fresh identity.
+
+**Exercise 4-4.** Draw the authorization evidence required for `upgrade`, `rotation`,
+`compromise`, and `tag-migrate`. Mark which cases can and cannot provide an old-key signature.
+
+## 4.9 Chapter Summary
 
 - A rappid contains a self-locating owner/slug and a 64-hex minted identity tail.
 - Keyless identity anchors on fresh UUIDv4 octets; keyed identity anchors on SPKI DER.

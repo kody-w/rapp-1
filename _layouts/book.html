@@ -38,9 +38,13 @@
       <a href="{{ '/book/09-registry-evolution-and-security.html' | relative_url }}"><b>9</b> Registry and evolution</a>
       <a href="{{ '/book/10-conformance-and-drift.html' | relative_url }}"><b>10</b> Conformance</a>
 
+      <p class="part">IV · Implementing</p>
+      <a href="{{ '/book/11-implementing-rapp.html' | relative_url }}"><b>11</b> Implementing RAPP</a>
+
       <p class="part">Reference</p>
       <a href="{{ '/book/A-reference-manual.html' | relative_url }}"><b>A</b> Reference manual</a>
       <a href="{{ '/book/B-glossary-and-failure-atlas.html' | relative_url }}"><b>B</b> Glossary</a>
+      <a href="{{ '/book/C-selected-exercise-solutions.html' | relative_url }}"><b>C</b> Solutions</a>
     </nav>
 
     <p class="book-source"><a href="{{ '/SPEC.md' | relative_url }}">Normative standard</a><br>
@@ -58,7 +62,7 @@
 
   <main id="book-text" class="book-page">
     <article class="book-manuscript">
-      {% assign book_content = content | replace: 'README.md', 'index.html' | replace: '00-preface.md', '00-preface.html' | replace: '01-a-tutorial-introduction.md', '01-a-tutorial-introduction.html' | replace: '02-canonicalization.md', '02-canonicalization.html' | replace: '03-content-addressing.md', '03-content-addressing.html' | replace: '04-identity.md', '04-identity.html' | replace: '05-the-frame.md', '05-the-frame.html' | replace: '06-the-wire.md', '06-the-wire.html' | replace: '07-the-egg.md', '07-the-egg.html' | replace: '08-trust-and-signatures.md', '08-trust-and-signatures.html' | replace: '09-registry-evolution-and-security.md', '09-registry-evolution-and-security.html' | replace: '10-conformance-and-drift.md', '10-conformance-and-drift.html' | replace: 'A-reference-manual.md', 'A-reference-manual.html' | replace: 'B-glossary-and-failure-atlas.md', 'B-glossary-and-failure-atlas.html' %}
+      {% assign book_content = content | replace: 'README.md', 'index.html' | replace: '00-preface.md', '00-preface.html' | replace: '01-a-tutorial-introduction.md', '01-a-tutorial-introduction.html' | replace: '02-canonicalization.md', '02-canonicalization.html' | replace: '03-content-addressing.md', '03-content-addressing.html' | replace: '04-identity.md', '04-identity.html' | replace: '05-the-frame.md', '05-the-frame.html' | replace: '06-the-wire.md', '06-the-wire.html' | replace: '07-the-egg.md', '07-the-egg.html' | replace: '08-trust-and-signatures.md', '08-trust-and-signatures.html' | replace: '09-registry-evolution-and-security.md', '09-registry-evolution-and-security.html' | replace: '10-conformance-and-drift.md', '10-conformance-and-drift.html' | replace: '11-implementing-rapp.md', '11-implementing-rapp.html' | replace: 'A-reference-manual.md', 'A-reference-manual.html' | replace: 'B-glossary-and-failure-atlas.md', 'B-glossary-and-failure-atlas.html' | replace: 'C-selected-exercise-solutions.md', 'C-selected-exercise-solutions.html' %}
       {{ book_content }}
     </article>
     <footer class="book-colophon">

@@ -1,6 +1,6 @@
 # The RAPP Programming Language
 
-## A tutorial and field reference for verifiable agents
+## A tutorial, programming workbook, and field reference for verifiable agents
 
 **RAPP rev-5 · Book edition**
 
@@ -10,8 +10,9 @@ without privately agreeing on what the bytes mean.
 
 **[Read the styled GitHub Pages edition →](https://kody-w.github.io/rapp-1/book/)**
 
-This book teaches that promise from the first frame to the estate root of trust. It is written to
-be read in order, but each chapter is also a reference you can return to while implementing.
+This book teaches that promise from the first frame to the estate root of trust, then builds a
+conforming implementation in dependency order. It is written to be read in order, but each chapter
+is also a reference and workbook you can return to while implementing.
 
 > **The short version:** values become canonical bytes; canonical bytes become domain-separated
 > addresses; a minted identity owns a stream; frames make the stream tamper-evident; signatures
@@ -33,7 +34,9 @@ By the end of the book, you will be able to:
 - distinguish chain integrity, authorship, authority, and freshness;
 - package and verify each of the six egg variants;
 - read a conformance failure as a precise migration instruction; and
-- decide where trust enters a system that otherwise names everything by content.
+- decide where trust enters a system that otherwise names everything by content;
+- structure a new implementation from safe parsing through transactional append; and
+- test both acceptance and refusal behavior against an independent implementation.
 
 The examples use Python because the reference implementation is deliberately small and
 stdlib-only. The protocol is language-independent.
@@ -63,23 +66,31 @@ stdlib-only. The protocol is language-independent.
 9. **[The Registry, Evolution, and Security](09-registry-evolution-and-security.md)** — the root
    of trust and the lawful path through change
 10. **[Conformance, and Meeting a Real World](10-conformance-and-drift.md)** — executable proof
-    against a live, drifted estate
+    from a drifted baseline to a conformant live estate
+
+### Part IV — Implementing the language
+
+11. **[Implementing the Language](11-implementing-rapp.md)** — build a conforming core in
+    dependency order
 
 ### Back matter
 
 - **[Appendix A — Reference Manual](A-reference-manual.md)** — the terse build-time companion
 - **[Appendix B — Glossary and Failure Atlas](B-glossary-and-failure-atlas.md)** — terms,
   address spaces, and verification steps at a glance
+- **[Appendix C — Selected Exercise Solutions](C-selected-exercise-solutions.md)** — worked
+  solutions for one exercise from each chapter
 
 ## Choose a reading path
 
 | If you are… | Read… | Then run… |
 |---|---|---|
-| building your first RAPP tool | 1 → 7 | `examples/01_hello_frame.py`, `02_build_a_chain.py` |
-| porting RAPP to another language | 2 → 5 → 7 → 8 → Appendix A | `conformance.py` |
+| building your first RAPP tool | 1 → 7 → 11 | `examples/01_hello_frame.py`, `05_failure_atlas.py` |
+| porting RAPP to another language | 2 → 5 → 7 → 8 → 11 → Appendix A | `conformance.py` |
 | operating an estate or mirror | 5 → 8 → 9 → 10 | `realcheck.py`, then `rapp_check.py` |
 | reviewing the trust model | 3 → 4 → 8 → 9 | the §7.5 and §10 checklists in `SPEC.md` |
-| looking up one rule | Appendix A | the normative section cited beside it |
+| working through exercises | each chapter → Appendix C | `examples/04` through `06` |
+| looking up one rule | Appendix A or B | the normative section cited beside it |
 
 Chapter 1 remains the best entrance even for experienced distributed-systems engineers. It gives
 the later vocabulary something concrete to name.
@@ -94,6 +105,8 @@ cd rapp-1
 
 python3 examples/01_hello_frame.py
 python3 examples/02_build_a_chain.py
+python3 examples/05_failure_atlas.py
+python3 examples/06_pack_an_egg.py
 python3 conformance.py
 ```
 
@@ -116,7 +129,7 @@ all four aligned.
 | [`rapp.py`](../rapp.py) | small, stdlib-only reference profile |
 | [`conformance.py`](../conformance.py) | producer/consumer interoperability vectors |
 | [`realcheck.py`](../realcheck.py) | evidence from committed estate artifacts |
-| [`examples/`](../examples/) | tutorial programs used in Part I and Part II |
+| [`examples/`](../examples/) | six runnable programs used throughout the tutorial and workbook |
 | [`guide/`](../guide/) | the visual, one-idea-per-spread companion book |
 | [`book-sdk/`](../book-sdk/) | the conversational SDK Builder textbook |
 

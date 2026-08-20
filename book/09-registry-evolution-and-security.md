@@ -207,7 +207,24 @@ Before calling an estate clean, collect evidence for each boundary:
 This is the operational meaning of “fail closed.” Unknown does not become pass, and stale does not
 become clean.
 
-## 9.10 Chapter Summary
+## 9.10 Exercises
+
+**Exercise 9-1.** Draw the complete bootstrap path from an out-of-band estate-owner rappid to an
+accepted frame signature. Mark every hash, signature, and freshness decision.
+
+**Exercise 9-2.** Implement persisted `registry_seq` rollback protection. Treat equal sequence
+with different bytes as equivocation. *A selected solution appears in Appendix C.*
+
+**Exercise 9-3.** Write a re-genesis plan for a three-frame legacy stream, including exact sealed
+octets, new payload, registry append, and retired path.
+
+**Exercise 9-4.** Define `fresh`, `stale`, `rollback`, and `unavailable` as four distinct API
+states. Do not collapse any of them to a boolean.
+
+**Exercise 9-5.** Threat-model a mirror that serves authentic objects and an authentic but old
+registry. List what verifies and what remains unsafe.
+
+## 9.11 Chapter Summary
 
 - The registry is the one signed root for keys, kinds, genesis, succession, and revocation.
 - Its bootstrap anchor is the out-of-band estate-owner keyed rappid.

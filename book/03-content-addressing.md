@@ -136,7 +136,23 @@ Run it twice: each line is stable across runs, and all three lines differ from o
 change `"x"` to `"y"` and observe that every address changes. Stability comes from canonical
 bytes; role separation comes from the tag.
 
-## 3.7 Chapter Summary
+## 3.7 Exercises
+
+**Exercise 3-1.** Extend the checkpoint to print all value-address spaces for one value and all
+byte-address spaces for one byte string. State why calling `H` and `Hb` with the same tag is
+forbidden.
+
+**Exercise 3-2.** Implement an immutable `Address(space, digest)` and a store that accepts only
+that type. Prove a particle digest cannot be fetched as a wave. *A selected solution appears in
+Appendix C and `examples/04_typed_addresses.py`.*
+
+**Exercise 3-3.** Design a migration for a table currently keyed by bare digest. How will you
+identify the original space without guessing?
+
+**Exercise 3-4.** Write a negative test that rejects uppercase, truncated, and 65-character
+digests before any store lookup occurs.
+
+## 3.8 Chapter Summary
 
 - RAPP uses SHA-256 with a newline-delimited domain tag.
 - `H` addresses canonical values; `Hb` addresses raw octets.

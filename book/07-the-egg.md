@@ -207,7 +207,24 @@ files and this canonical manifest are this portable unit.” Both close their sc
 hash spaces, exclude signatures from stable identity, and require consumers to recompute rather
 than trust stored digests.
 
-## 7.9 Chapter Summary
+## 7.9 Exercises
+
+**Exercise 7-1.** Run `examples/06_pack_an_egg.py`. Add a third file and predict which file hash,
+manifest field, egg address, and container bytes will change.
+
+**Exercise 7-2.** Implement the complete relative POSIX path predicate and exact archive-entry-set
+check without extracting. *A selected solution appears in Appendix C.*
+
+**Exercise 7-3.** Change one stored file byte inside an otherwise unchanged ZIP. Show that
+`verify_egg` refuses the file hash before variant viability is considered.
+
+**Exercise 7-4.** Build a canonical JSON `session` egg by hand. Compare its bytes with `pack_egg`
+and explain why pretty printing is non-conformant.
+
+**Exercise 7-5.** Pack the same manifest and files with another language or ZIP library. Continue
+until the complete byte strings match, not only the extracted files.
+
+## 7.10 Chapter Summary
 
 - RAPP defines one seven-member egg manifest and six registered variants.
 - `session` and `invite` are canonical JSON; the four tree variants are deterministic stored ZIP.
