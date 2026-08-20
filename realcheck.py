@@ -42,20 +42,27 @@ def check_frame_chain(name, frame_dir):
     canon_ok = 0
     chain_ok = 0
     rapp_conformant = 0
+    head = None
     for f in files:
         fr = json.load(open(f))
         seq = fr.get("seq")
-        sha = fr.get("sha256") or fr.get("hash")
+        exact = set(fr) == R.FRAME_KEYS and fr.get("spec") == R.SPEC
+        sha = fr.get("payload_hash") if exact else (
+            fr.get("sha256") or fr.get("hash"))
         payload = fr.get("payload")
         # (1) does RAPP's canonicalizer reproduce the REAL stored payload hash?
         if payload is not None and sha is not None:
-            if untagged(payload) == sha:
+            computed = (
+                R.H("rapp/1:particle", payload)
+                if exact else untagged(payload))
+            if computed == sha:
                 canon_ok += 1
             else:
                 drift.append((f"{name}/{os.path.basename(f)}", "canon-mismatch",
-                              f"sha256(canonical(payload))={untagged(payload)[:12]} != stored {sha[:12]}"))
+                              f"computed payload address {computed[:12]} != stored {sha[:12]}"))
         # (2) does the real chain link the way RAPP §7.4 requires (prev == parent payload hash)?
-        parent = fr.get("parent_sha") if "parent_sha" in fr else fr.get("prev_hash")
+        parent = fr.get("prev") if exact else (
+            fr.get("parent_sha") if "parent_sha" in fr else fr.get("prev_hash"))
         if seq == 0:
             if parent in (None, "", "null"):
                 chain_ok += 1
@@ -65,24 +72,36 @@ def check_frame_chain(name, frame_dir):
             drift.append((f"{name}/{os.path.basename(f)}", "chain-break",
                           f"parent_sha={str(parent)[:12]} != prev.sha256={str(prev_sha)[:12]}"))
         # (3) is the REAL frame conformant to the RAPP §7 envelope as-is?
-        ok, step, why = R.verify_frame(fr)
+        ok, step, why = R.verify_frame(
+            fr,
+            head=head if exact else None,
+            stream_id_of_record=fr.get("stream_id") if exact else None,
+        )
         if ok:
             rapp_conformant += 1
+            if exact:
+                head = fr
         prev_sha = sha
     keys = sorted(json.load(open(files[0])).keys())
-    print(f"   canonicalization reproduces real stored hash : {canon_ok}/{len(files)} frames")
+    print(f"   canonicalization reproduces real stored particle : {canon_ok}/{len(files)} frames")
     print(f"   real chain links per RAPP §7.4 (prev=parent): {chain_ok}/{len(files)} frames")
     print(f"   frames conformant to RAPP §7 envelope as-is : {rapp_conformant}/{len(files)}")
     print(f"   real envelope keys: {keys}")
-    if canon_ok == len(files):
-        conform.append((name, f"canonicalization + chain integrity reproduce all {len(files)} real payload hashes"))
-    if rapp_conformant == 0:
+    if canon_ok == len(files) and chain_ok == len(files):
+        conform.append((name, f"canonicalization + chain integrity reproduce all {len(files)} real payload addresses"))
+    if rapp_conformant == len(files):
+        conform.append((name, f"all {len(files)} committed frames pass the RAPP/1 consumer checklist"))
+    if rapp_conformant != len(files):
         # identify the envelope drift precisely
         fr = json.load(open(files[0]))
         missing = R.FRAME_KEYS - set(fr.keys())
         extra = set(fr.keys()) - R.FRAME_KEYS
-        drift.append((f"{name}/frames", "envelope-drift/C1",
-                      f"legacy envelope: missing {sorted(missing)}, aliases {sorted(extra)}"))
+        detail = (
+            f"{len(files) - rapp_conformant}/{len(files)} frame(s) fail the "
+            f"consumer checklist; first envelope missing {sorted(missing)}, "
+            f"aliases {sorted(extra)}"
+        )
+        drift.append((f"{name}/frames", "frame-conformance", detail))
 
 
 def check_rappid(path):
@@ -159,10 +178,9 @@ for cat in sorted(by_cat):
 
 print(f"""
 ── what this proves ──
-  RAPP's canonicalizer (§4) reproduces the real, committed payload hashes
-  byte-for-byte — the spec MATCHES reality where reality already content-addresses.
-  RAPP then REFUSES every real frame's envelope and every short-tail rappid —
-  those refusals ARE the {len(drift)} drifts the standard exists to end (C1 envelope,
-  C2/C3 identity, schema label). Reality is one owner-authorized re-genesis (§12.1)
-  away from full conformance; nothing here is a spec bug, it's the drift ledger, live.
+  RAPP's canonicalizer (§4) reproduces the real committed payload addresses
+  byte-for-byte. Current RAPP/1 frames pass the complete consumer checklist;
+  any legacy artifact is classified and refused rather than silently repaired.
+  The ledger reports {len(drift)} live drift finding(s) instead of assuming the
+  estate is forever frozen in either its migrated or pre-migration state.
 """)

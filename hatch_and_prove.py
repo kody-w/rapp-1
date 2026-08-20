@@ -74,7 +74,7 @@ def main():
     drift = []
     for d in repos:
         verdict, findings, _ = rc.check_repo(d)
-        if verdict == "DRIFT":
+        if verdict in ("DRIFT", "UNVERIFIED"):
             drift.append((os.path.basename(d), findings[:2]))
     results[f"ecosystem: {len(repos)} repos §6/§7/§9/§12"] = (len(drift) == 0)
 

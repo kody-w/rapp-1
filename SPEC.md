@@ -187,7 +187,7 @@ Each mints one fresh tail. The **estate_owner's own** re-anchor record **MUST** 
 |---|---|---|---|
 | `memory` | `memory.chat-turn`, `memory.tool-call`, `memory.save`, `memory.reconstructed` | memory-stream | one organism's life |
 | `swarm`  | `swarm.guidance`, `swarm.echo`, `swarm.telemetry`, `swarm.reconstructed` | swarm-stream | the planetary wire |
-| `body`   | `body.pulse`, `body.twin-pulse`, `body.reconstructed`, `body.re-genesis` | body-stream | an organism's biography |
+| `body`   | `body.pulse`, `body.twin-pulse`, `body.dimension`, `body.reconstructed`, `body.re-genesis` | body-stream | an organism's biography |
 Each family also has a `*.re-genesis` kind (`memory.re-genesis`, `swarm.re-genesis`, `body.re-genesis`)
 used only by §12.1. The family is **not** the kind's prefix — it is the §13 registry binding (so
 `body.twin-pulse` is family `body`). Adding a family or event is a new registered `kind` on the **same** envelope (Art. IV), never a
@@ -252,6 +252,304 @@ legitimate §12.1 re-genesis presents a new genesis at `seq`=0. When (and only w
 `stream_id` to a new genesis `frame_hash` (§12.1 step 3), a consumer **MUST** verify that registered
 genesis (§7.5) and then **reset** its persisted head for that `stream_id` to it. Only a registry-published
 genesis authorizes a reset; any other lower-`seq` head remains a refused rollback.
+
+### 7.7 Dimensional growth (body-family payload profiles)
+An organism is not shipped whole. It is minted small and **grows by appending frames** — a memory
+dimension, then a skill, a sonic, a device, a visual, a capability dimension — until it runs a large
+body. §7.7 profiles the two `body`-family `kind`s that carry that growth. It adds **no** envelope key,
+no wire tag, no canonicalization rule, no hash space, and no identity grammar: it is two §13.3 `kind`
+entries and the exact `payload` shape each one carries.
+
+#### 7.7.1 The law of identity through growth
+- An organism's `rappid` is minted **exactly once** (§6.2) and is the **same string** at every later
+  stage. Growth **MUST NOT** re-mint, re-anchor, or re-point it; the §6.3 re-anchor cases are closed and
+  growth is not among them.
+- A **lifecycle stage is state**, carried in a `payload`, never in an identifier. A stage **MUST NOT**
+  appear in a `rappid`, a `stream_id`, a `kind`, or any hash-bearing identity field, and a stage change
+  **MUST NOT** change any of them. In every §7.7 payload `rappid` **MUST** byte-equal the frame's
+  `stream_id`; a consumer **MUST** refuse a frame that fails this (it is a re-identification wearing
+  growth's clothes — §14 identity forgery), not repair it.
+- A stage carries an `ordinal`; along one body-stream the ordinal **MUST** be monotonically
+  non-decreasing. A stage **ladder** (which names exist, in what order) is **not** protocol: it is the
+  organism's own, and only the token grammar and the monotonicity are normative here.
+- **Offspring is not a stage.** A true offspring or fork is a *different organism*: it **MUST** mint a
+  new `rappid` (§6.2), begin its own body-stream, and record a **parent pointer** (§7.7.5). An organism
+  **MUST NOT** be its own parent, and a parent pointer is lawful **only** in a stream's genesis frame —
+  no organism acquires ancestry mid-life. At rest, the offspring's `rappid.json` **SHOULD** also carry
+  `parent_rappid` (§6.3), which **MUST** itself be a §6.1 rappid.
+
+#### 7.7.2 Media references (content-addressed, always external)
+A frame **MUST NOT** carry media octets. It carries the §5 address of media held outside it:
+```json
+{ "space": "rapp/1:egg", "hash": "<64hex>", "media_type": "<type/subtype>", "bytes": <uint53> }
+```
+- **Exactly** those four members; any additional member (a `data`, `data_b64`, `uri`, …) is refused.
+  This is the rule that keeps a frame small, a payload under §4's 1 MiB ceiling, and a chain cheap to
+  verify regardless of how much sound, image, or firmware an organism owns.
+- `space` **MUST** be exactly `"rapp/1:egg"` — the existing §5/§9.1 **octet** space; `hash` **MUST** be
+  `Hb("rapp/1:egg", octets)` and `bytes` the octet count. **No new domain tag is introduced.** Because
+  §9.1 addresses egg `contents[]` in the same space, a media reference and the egg entry that stores
+  those octets are the *same address*, so media resolves out of any store keyed by
+  `("rapp/1:egg", hash)` (§5) — an egg, a mirror, or a cache.
+- `media_type` is a lowercase [RFC 6838] `type/subtype` with no parameters — a hint for playback,
+  never identity (§5: only a hash names an object):
+  ```abnf
+  media-type      = restricted-name "/" restricted-name
+  restricted-name = ( LCALPHA / DIGIT ) *126( LCALPHA / DIGIT / "!" / "#" / "$" / "&" /
+                                              "^" / "_" / "." / "+" / "-" )
+  ```
+- A consumer **MUST NOT** dereference a media `hash` in any other space (§5, §14 address-space confusion),
+  and **MUST** refuse the reference rather than guess when `space` is anything else.
+
+#### 7.7.3 The trait snapshot
+`traits` is a §4 object — the dimension's declared, machine-comparable properties (no media octets).
+`traits_hash` **MUST** equal `H("rapp/1:particle", traits)`. This reuses the existing particle space
+deliberately: a traits object has the same address whether it is snapshotted inside a dimension or
+carried as a frame `payload`, so two organisms' dimensions are comparable by one 64-hex string without
+re-canonicalizing either payload. A consumer **MUST** recompute it and refuse a mismatch.
+
+#### 7.7.4 `body.dimension` — one appended dimension
+`payload` has **exactly** these members:
+```json
+{ "rappid": "<§6.1 rappid>", "dimension": "<lclabel>", "version": <uint53 ≥ 1>,
+  "stage": {"name": "<lclabel>", "ordinal": <uint53>}, "traits": { }, "traits_hash": "<64hex>",
+  "media": { "<lclabel role>": <§7.7.2 media reference>, … },
+  "sources": [ {"stream_id": "<§6.1.1 stream_id>", "particle": "<64hex>"}, … ] }
+```
+- `stream_id` **MUST** be a **body-stream** (§6.1.1); `body.dimension` on a memory- or swarm-stream is
+  refused (§7.2 family↔stream compatibility). `rappid` **MUST** byte-equal it (§7.7.1).
+- `dimension` is the dimension's name. The estate's baseline names are `memory`, `skill`, `sonic`,
+  `device`, `visual`, `capability`; a producer **SHOULD** use them where they fit and **MUST** emit any
+  other name as an `lclabel`.
+- `version` **MUST** be ≥ 1 and, for a given (`stream_id`, `dimension`), **MUST** be **strictly greater**
+  than that dimension's version of record in the fold so far — including one seeded by inheritance
+  (§7.7.5), so an offspring revises an inherited dimension by appending a higher version. A dimension is
+  revised by appending, never by editing a frame (§7.4 immutability).
+- `media` maps a role `lclabel` to a §7.7.2 reference; `{}` when the dimension owns no media. Object
+  members are ordered by §4 at hash time, so no sort rule is needed.
+- `sources` are the engram/frame pointers this dimension was reconstructed **from** — typically
+  memory-stream particles. It **MUST** be sorted ascending by the UTF-8 bytes of (`stream_id`,
+  `particle`) with no duplicate pointer, so two producers folding the same sources emit the same bytes.
+  It is a provenance record: a consumer **MUST** check its shape and order, and **MAY** resolve the
+  pointers when it holds those streams.
+
+#### 7.7.5 `body.reconstructed` — the growth / reconstruct event
+`payload` has **exactly** these members:
+```json
+{ "rappid": "<§6.1 rappid>", "species": null | "<lclabel>",
+  "stage": {"name": "<lclabel>", "ordinal": <uint53>},
+  "dimensions": { "<lclabel>": {"version": <uint53 ≥ 1>, "particle": "<64hex>"}, … },
+  "traits_hash": "<64hex>",
+  "weight": <§7.8.2 attested weight>,
+  "sources": [ {"stream_id": "<stream_id>", "particle": "<64hex>"}, … ],
+  "parent": null | {"rappid": "<§6.1 rappid>", "particle": "<64hex>"} }
+```
+It declares the stage the organism has reached and the dimension set it is reconstructed from; each
+`dimensions` entry names the `body.dimension` frame of record by its **particle** (§7.3). `species` is
+the §7.9.2 classification. It is `null` until declared; after the first non-null declaration, every
+later `body.reconstructed` frame **MUST** repeat that same value.
+- **`parent` = null** (growth of oneself): `dimensions`, `traits_hash`, and `weight` **MUST** equal the
+  fold §7.7.6 computes over the frames preceding this one on this same stream. `stage` is what this
+  frame *declares* and is bound only by §7.7.1 monotonicity.
+- **`parent` ≠ null** (an offspring's birth): the frame **MUST** be that stream's genesis (`seq` = 0),
+  `parent.rappid` **MUST** be a §6.1 rappid different from `rappid`, and `parent.particle` **MUST** be
+  the particle of a verified frame on the parent's body-stream. Every `dimensions` entry **MUST**
+  byte-equal an entry in the parent's fold at that particle, and `traits_hash` **MUST** equal the trait
+  snapshot of exactly that inherited subset: an offspring may inherit **less** than its parent, never
+  something its parent never had. `weight` **MUST** be the §7.8.2 weight of exactly the inherited
+  assets with `frame_weight_bytes` = 0 — a newborn owns what it inherited and not one frame of its own.
+- A consumer that cannot resolve the parent stream **MUST** report the lineage **unverified** — never
+  verified, and never silently clean (the §13.1 staleness discipline). Unresolved fails closed.
+
+#### 7.7.6 Reconstruction (the deterministic fold)
+Given a body-stream whose every frame passed §7.5, a consumer reconstructs the organism's current state
+by one pass in ascending `seq`, and **MUST** compute it rather than believe any frame that asserts it:
+1. state starts empty: no stage, no dimensions, `traits_hash` = `H("rapp/1:particle", {})`.
+2. on a `body.dimension` frame: check §7.7.4, refuse a non-advancing `version` for that dimension name,
+   refuse a stage regression, then set `dimensions[name]` = `{version, particle:` the frame's
+   `payload_hash}`, `traits[name]` = the frame's `traits`, and the stage.
+3. on a `body.reconstructed` frame: check §7.7.5, refuse a stage regression, and **recompute** — for
+   `parent` = null the asserted `dimensions`/`traits_hash` **MUST** equal the state built so far; for an
+   offspring genesis they **MUST** equal the lawfully inherited subset of the resolved parent's fold,
+   which then seeds this organism's own state (its dimensions, its traits, its media, and therefore its
+   §7.8 weight). The frame's `weight` is recomputed the same way and refused on mismatch (§7.8.2).
+   A `species` (§7.9.2) is adopted when first declared. Afterward every reconstructed frame **MUST**
+   repeat it; both `null` and a different token are refused.
+4. any other registered `body` kind (`body.pulse`, …) does not change dimensional state.
+5. `traits_hash` of a fold is `H("rapp/1:particle", {dimension: traits, …})` over the folded traits.
+
+Reconstruction reads **frames only**: media octets are never needed to rebuild state, only to *play* it,
+so an organism's whole biography verifies without fetching a byte of media. The fold is a pure function
+of a verified stream, so two independent implementations reconstruct the same state — and the same
+`traits_hash` — from the same frames.
+
+#### 7.7.7 Registry entries
+§7.7 requires exactly two §13.3 `kind` entries, appended like any other (Art. IV, `spec` token unchanged):
+```json
+{"type":"kind","kind":"body.dimension","family":"body","deprecated":false}
+{"type":"kind","kind":"body.reconstructed","family":"body","deprecated":false}
+```
+`body.reconstructed` is the already-listed §7.2 body-family kind; §7.7.5 is its payload profile. A
+`kind` carries no intrinsic family (§6.1.1) — both are bound to `body` by the registry entry, and a
+consumer tests membership by exact match, never by prefix.
+
+### 7.8 Weight — a RAPPID's data size
+**A RAPPID's data size is its weight.** Weight is the count, in **bytes**, of the data an identity has
+verifiably accumulated: `frame_weight_bytes` for the frames it has appended, `asset_weight_bytes` for
+the external blobs those frames reference. It is measured, never estimated; it is de-duplicated by §5
+content address, so no frame and no asset can ever be weighed twice however many times it is
+referenced; and it is **state**, like a stage — it never touches the mint-once identity (§7.8.5).
+
+#### 7.8.1 What weighs, and how much
+- **A frame weighs the length in octets of its §4 canonical form**, and only once it has been
+  **accepted** (it passed §7.5). Bytes that failed verification are not weight. A frame is identified
+  for de-duplication by its `frame_hash` (§7.3), so one frame delivered through five mirrors weighs once.
+- **An asset weighs the `bytes` member of its §7.7.2 media reference**, de-duplicated by its content
+  address `(space, hash)` (§5): one wake-call referenced by six dimensions weighs once. Assets are the
+  §7.7.2 references carried by `body.dimension` frames — an implementation **MUST NOT** scan payloads
+  for hash-shaped strings and count them, because guessing is not weighing.
+- An implementation **MUST NOT** weigh a stored file's on-disk size, a compressed size, an indented
+  serialization, or any other non-canonical encoding: those vary by writer, and weight must not.
+
+#### 7.8.2 The attested weight (habitat-independent)
+A `body.reconstructed` frame carries **exactly** these four members as its `weight` (§7.7.5):
+```json
+{ "frame_weight_bytes": <uint53>, "asset_weight_bytes": <uint53>,
+  "total_weight_bytes": <uint53>, "complete": <bool> }
+```
+- `total_weight_bytes` **MUST** equal `frame_weight_bytes` + `asset_weight_bytes`; a consumer **MUST**
+  refuse a ledger that fails this arithmetic without looking at anything else.
+- All three counts are **exact integers**. A weight **MUST NOT** be a float, a rounded value, an
+  approximation, or a human-readable string (§7.8.4).
+- The attestation is computed **with no habitat store** — it is a pure function of the accepted frames,
+  so every reader anywhere computes the same integers, and one habitat's missing or corrupt copy can
+  never change what an organism weighs.
+- A frame **cannot weigh itself** (its canonical size depends on the number it would contain), so a
+  `body.reconstructed` frame attests the weight of every frame **preceding** it on its stream. A
+  consumer **MUST** recompute that weight per §7.7.6 and **MUST** refuse a frame that asserts any other
+  value: an organism does not get to declare itself heavier than its bytes.
+- `complete` is `true` **iff** every accounted asset's size was established. It is `false` when any
+  content address is attested with two different `bytes` values: that asset's size is then **unknown**,
+  it contributes **zero** to every count, and it is listed (§7.8.3). A missing or contradictory size is
+  **MUST**-surfaced as incomplete weight and **MUST NOT** be estimated, averaged, inferred, or dropped.
+
+#### 7.8.3 The habitat ledger (a reader's view)
+A reader additionally computes, and **MUST NOT** attest in any frame:
+```json
+{ "resident_weight_bytes": <uint53>, "linked_weight_bytes": <uint53>, "verified": <bool>,
+  "incomplete": [ {"object","space","hash","reason","bytes"}, … ], "unverified": [ … ] }
+```
+- `resident_weight_bytes` is what is **actually hydrated on this habitat**: every accepted frame (it is
+  in hand by definition) plus every asset whose octets this habitat holds and which **verified** —
+  `Hb(space, octets)` equals the address **and** the octet count equals the attested `bytes`.
+- `linked_weight_bytes` is **known but not resident**. `resident_weight_bytes + linked_weight_bytes`
+  **MUST** equal `total_weight_bytes`.
+- `incomplete` lists objects whose size could not be **established** (`size-conflict`), with
+  `bytes: null`; they weigh nothing and set `complete` false.
+- `unverified` lists objects whose size is attested but whose local copy could not be **confirmed**
+  (`store-mismatch`); they remain **linked**, never resident, and set `verified` false. A habitat
+  **MUST NOT** count an unconfirmed local copy as resident weight, and **MUST NOT** report a ledger
+  carrying either list as clean.
+- Residency is a property of a reader, never of the organism: the same identity is heavy-and-resident
+  on the machine that holds its media and heavy-and-linked on the one that does not, at the **same**
+  attested weight.
+
+#### 7.8.4 Readable weight is presentation only
+An implementation **MAY** render a weight as `2.4 KiB`. That string is **presentation over the exact
+integer**: it **MUST NOT** appear in a `payload`, be canonicalized, be hashed, be parsed back into a
+count, or be used for any comparison. The integer is the weight; the rendering is a courtesy.
+
+#### 7.8.5 Weight is state, and what it does not mean
+- A weight change is recorded the only way an append-only chain records anything: by **appending** a
+  §7.7 frame. Appending a `body.dimension` frame adds weight; the next `body.reconstructed` frame
+  attests it. Weight **MUST NOT** appear in a `rappid`, a `stream_id`, or any identity field, and a
+  change in weight **MUST NOT** re-mint, re-anchor, or otherwise disturb the canonical identity (§7.7.1,
+  §6.2). Weight is what an identity *carries*, never what it *is*.
+- Because frames are immutable and retained, weight along one stream is **monotonically
+  non-decreasing**; a consumer **MUST** refuse a `body.reconstructed` frame attesting a lower
+  `total_weight_bytes` than an earlier one on the same stream. The §7.7.6 fold tracks the last
+  accepted reconstruction and performs this check explicitly. A later size conflict still makes that
+  asset unknown and zero-weight per §7.8.2; if the recomputed total falls below the prior attestation,
+  the producer cannot append a reconstruction until retained verified bytes restore the floor.
+- A lifecycle stage **MAY** use weight as one growth axis. An implementation **MUST NOT** infer
+  capability, maturity, correctness, or authority from weight, and **MUST NOT** derive a stage from
+  weight alone: bytes are mass, not skill. A large organism is a large organism; what it can *do* is
+  established by its dimensions and its §10 signatures, never by its size.
+
+### 7.9 Stats — the card an organism can prove
+An organism's **stat block** is a card: species, stage, height, weight, dimensions, traits,
+capabilities, completeness. Every number on it is either **derived from verified frames** or marked
+**presentation**, and the two are never mixed. A stat block is a **view**: it is never a frame, never
+hashed, never an identifier, and never authoritative on its own — the chain is.
+
+#### 7.9.1 Frame height (exact)
+`frame_height` is the **verified depth of the append-only body-chain**: the number of frames accepted
+under §7.5 for that `stream_id`. Because §7.5 step 4 admits a genesis at `seq` 0 and then only
+contiguous successors, the accepted-frame count **MUST** equal the head's `seq` + 1, and an
+implementation **MUST** refuse a fold where the two disagree. It follows that:
+- a frame re-presented (a duplicate delivery, a replayed segment) is **refused** by §7.5 step 4, so it
+  cannot raise the height; and a `body.reconstructed` frame's attested §7.8 weight covers exactly the
+  `seq` frames before it. Height, like weight, cannot be padded by repetition.
+- `frame_height` is **not** carried in a payload: it is `seq` + 1 and would be a second, disagreeable
+  copy of a number the envelope already fixes.
+
+#### 7.9.2 Species and display height (presentation)
+`species` is a classification token (`lclabel`) declared in a `body.reconstructed` payload (§7.7.5),
+`null` until declared. Once non-null on a stream it is **immutable**: every later
+`body.reconstructed` frame **MUST** repeat that token, and a consumer **MUST** refuse either `null` or
+a different species. A species is not a stage and not an identity — an organism that would be a
+different species is a different organism, and mints its own rappid (§7.7.1).
+
+`display_height_mm` is an **optional presentation** rendering: millimetres produced by a **versioned
+species growth curve** applied to `frame_height`. The curve is identified by an opaque versioned id
+(e.g. `"rapp-height/1"`) and **MUST** be evaluated in exact integer arithmetic, so two implementations
+of the same curve version render the same millimetres. A stat block carrying a display height **MUST**
+also name the curve version that produced it.
+
+- Display height **MUST NOT** appear in any `payload`, be canonicalized, be hashed, be part of any
+  identifier, or be used in any verification decision. It is **not protocol identity and not a
+  physical fact** — no organism has a size in millimetres; a card does.
+- When the species is `null` or unknown to the curve, `display_height_mm` **MUST** be `null` and the
+  stat block **MUST** report the height as unresolved. It is never approximated from another species,
+  another curve version, or from weight.
+- Curve definitions are presentation data and live **outside** this standard. Changing a curve changes
+  a picture; it **MUST NOT** change any exact stat, and a new curve is a new version, never a
+  redefinition of an existing one.
+
+#### 7.9.3 The stat block
+A stat block is a §4 value with **exactly** these members:
+```json
+{ "rappid": "<§6.1 rappid>", "species": null|"<lclabel>",
+  "lifecycle_stage": null|{"name","ordinal"}, "frame_height": <uint53>,
+  "display_height_mm": null|<uint53>, "height_curve": null|"<curve id>",
+  "dimension_count": <uint53>, "capabilities": ["<lclabel>", …], "traits": { }, "traits_hash": "<64hex>",
+  "total_weight_bytes": <uint53>, "resident_weight_bytes": <uint53>, "linked_weight_bytes": <uint53>,
+  "completeness": {"weight_sizes_established": <bool>, "local_copies_verified": <bool>,
+                   "display_height_resolved": <bool>}, "complete": <bool> }
+```
+- Every member except `display_height_mm`/`height_curve` is **exact and derived** from a §7.7.6 fold:
+  `capabilities` is the sorted set of folded dimension names, `dimension_count` its size, `traits` and
+  `traits_hash` the folded snapshot, the three weight counts the §7.8 ledger.
+- `complete` **MUST** be the conjunction of `completeness`; a card with any unresolved stat **MUST**
+  say so rather than present a plausible number (§7.8.2's discipline, applied to the whole card).
+- Because the weight members carry the reader's residency split, a stat block is **habitat-scoped**:
+  the same organism cards identically everywhere except in `resident`/`linked`.
+
+#### 7.9.4 Proposals — autocomplete that is not authority
+An implementation **MAY** autocomplete an organism's next dimension or next stat block from its traits
+and its lineage, the way a continuation is proposed for a melody. Such a **proposal**:
+- **MUST** be marked as a proposal and as **not authoritative**, and **MUST** carry the basis it was
+  computed from (the rappid, the head particle, the frame height at that head) so a reader can tell a
+  stale proposal from a fresh one;
+- **MUST NOT** be appended, hashed, canonicalized into a payload, counted in any stat, or treated as
+  canonical state in any way. Computing one **MUST NOT** mutate anything;
+- **MUST NOT** project a weight. A frame that does not exist has no bytes, so a projection reports its
+  weight as unknown and **MUST NOT** estimate one (§7.8);
+- becomes real **only** by the ordinary path: a producer appends a §7.7 frame and a consumer verifies
+  it under §7.5 and §7.7. Until then the organism is exactly what its chain says it is.
+
+A proposal is deliberately not a conformant `payload` shape (§7.7.4/§7.7.5 close their key sets), so a
+proposal cannot be mistaken for a frame's content by any conformant implementation.
 
 ## 8. The Wire (L3)
 All interaction rides one of exactly two forms:
@@ -487,11 +785,28 @@ tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.
 [FIPS 180-4] SHA-256 · [RFC 3986] URI · [RFC 5234] ABNF · [RFC 7405] case-sensitive ABNF · [RFC 9562] UUID
 (obsoletes RFC 4122) · [RFC 5280] X.509 SPKI · [RFC 7515] JWS · [RFC 7797] unencoded JWS payload ·
 [RFC 7518] JWA/ES256 · [RFC 8037] EdDSA in JOSE · [RFC 6979] deterministic ECDSA · [RFC 3339] timestamps ·
-[ECMA-262] ECMAScript.
+[RFC 6838] media type grammar · [ECMA-262] ECMAScript.
 
 ---
 
 ### Revision log
+- **rev-5 · §7.7–§7.9 addendum (dimensional growth, weight, stats)** — profiles how one mint-once organism
+  grows: the
+  registered `body.dimension` kind and a payload profile for the already-registered `body.reconstructed`
+  kind, plus content-addressed external media references (in the existing `rapp/1:egg` octet space), the
+  particle-space trait snapshot, the deterministic fold, and the offspring/parent rule. **Additive only:**
+  the eleven-key envelope, the `rapp/1` token, §4 canonicalization, §5 hashing and its tag set, and the
+  §6 identity grammar are untouched — this is two §13.3 `kind` entries on the same envelope (§7.1,
+  Fed. Const. Art. IV), so `spec` does not move. §7.8 adds **weight** — a RAPPID's data size, in
+  verified bytes de-duplicated by content address, attested in the growth frame, split into
+  frame/asset/total and the reader's resident/linked view, with missing or unconfirmable sizes surfaced
+  as incomplete rather than estimated. Weight is state: it never touches identity, and capability is
+  never inferred from it. §7.9 adds the **stat block** — exact `frame_height` (verified chain depth,
+  unpaddable by repetition), the declared-once `species`, an optional `display_height_mm` rendered by a
+  versioned species growth curve in exact integers and marked presentation (never identity, never a
+  physical fact), the weight split, dimensions/traits/capabilities, and explicit completeness — plus
+  **proposals**: trait- and lineage-autocompleted next steps that read without writing, project no
+  weight, and are worth nothing until appended and verified.
 - **rev-5 (war-game round 3 fold)** — folded 5 blockers + 7 majors + 7 minors, all clustered on the trust
   model that rev-4's fixes made load-bearing: the **registry is now a signed root of trust** (§13.1) —
   owner-signed, anchored to the out-of-band `estate_owner` rappid fingerprint, `registry_seq`-monotonic,

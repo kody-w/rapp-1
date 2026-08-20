@@ -118,6 +118,132 @@ is immutable": you do not mutate the old chain, you seal it and are reborn clean
 form. Each such rebirth is owner-authorized — it is not something an automated sweep may do,
 because it is a statement about identity continuity, and only the estate owner speaks that.
 
+## 5.6 Growth: One Identity, Many Dimensions
+
+An organism is not shipped finished. It is minted small — a little memory, a name, a pulse — and
+then it *grows*, by the only means an append-only chain allows: it appends. Each new faculty is a
+**dimension** frame on the body-stream: a memory dimension, a skill, a sonic dimension carrying the
+organism's musical DNA and the wake-call it answers to, a device dimension, a visual one, a
+capability. Fold them in `seq` order and you have reconstructed what the organism currently is.
+
+The whole of §7.7 is two `kind`s on the *same* eleven-field envelope — `body.dimension` and
+`body.reconstructed` — plus the exact shape of their payloads. No new key, no new hash space, no new
+wire tag. That restraint is the point: growth is a payload concern, and the envelope stays closed.
+
+Three rules make growth lawful rather than merely possible.
+
+**Identity is minted once and does not move.** The rappid a thing is hatched with is the rappid it
+dies with. What changes is its **stage** — a `{name, ordinal}` pair carried *in a payload*, never in
+an identifier. This is the distinction the protocol exists to keep straight: a stage is state, and
+state has no business inside a name. So every §7.7 payload repeats the organism's `rappid` and a
+verifier refuses the frame if it does not byte-equal the `stream_id`. An "upgrade" that quietly
+points the biography at a different identity is not growth; it is a substitution, and the checklist
+says so at §7.7.1. Stage ordinals may only go up, because a thing that has grown has grown.
+
+**Offspring is not a stage.** Sooner or later an organism produces another organism — a fork, a
+child, a variant handed to someone else. That is a *different* thing, and it mints its own rappid
+and records a parent pointer in its genesis frame: `{rappid, particle}`, naming the exact frame of
+the parent it was taken from. It may inherit fewer dimensions than its parent, never more — a
+verifier recomputes the inherited subset against the parent's fold and refuses anything fabricated.
+And a parent pointer is legal only at `seq` 0: nothing acquires ancestry in middle age. If you do
+not hold the parent stream, the lineage is **unverified** — never quietly clean.
+
+**Media lives outside the frame.** A wake-call is audio; a visual dimension is images; a device
+dimension may point at firmware. None of it goes in the JSON. A dimension carries a reference —
+domain, hash, media type, byte count — and nothing else:
+
+```json
+"media": { "wake-call": { "space": "rapp/1:egg", "hash": "73ee26d2…",
+                          "media_type": "audio/wav", "bytes": 2444 } }
+```
+
+The `space` is the *same* one chapter 7's egg uses for the octets it packs, so a dimension's media
+reference and the egg entry that stores those bytes are literally the same address: pack the wav
+into an organism egg and `contents[].hash` matches the frame, byte for byte. A mebibyte of sound
+grows the frame by five bytes — the extra digits in `bytes` — which is why a biography full of
+music still verifies in milliseconds and still fits under chapter 2's 1 MiB ceiling. Rebuilding an
+organism's state never fetches media at all; you need the media only to *play* it.
+
+What ties it together is that the reconstruction is **computed, not asserted**. A
+`body.reconstructed` frame says "here is my stage and here are my dimensions," and a conformant
+reader ignores that claim, folds the stream itself, and refuses the frame if the two disagree. The
+organism does not get to narrate its own history; the chain does. `examples/04_grow_a_dimension.py`
+runs the whole arc — hatch, grow a sonic dimension out of real engrams, reach a later stage, pack
+the media into an egg, and hatch offspring — in one file you can read in a sitting.
+
+## 5.7 Weight: What an Identity Masses
+
+If an organism grows, the obvious question is *how big is it now*, and RAPP answers it with a word
+borrowed from the physical world: **a RAPPID's data size is its weight**. Not a gauge, not a score —
+a byte count you can recompute. `frame_weight_bytes` is the canonical length of every frame the
+identity has accepted; `asset_weight_bytes` is every external blob those frames reference;
+`total_weight_bytes` is the sum, and it must be exactly the sum.
+
+Two rules keep it honest. Weight counts **verified** bytes only — bytes that failed §7.5 were never
+part of anything. And weight is **de-duplicated by content address**, so the same frame arriving
+through five mirrors weighs once, and one wake-call referenced by six dimensions weighs once. That
+is content addressing paying a second dividend: because the hash is the name, "count each thing
+once" is a set operation rather than an accounting policy.
+
+Then there is the honest half, which most systems skip. A habitat that holds the octets reports them
+as `resident_weight_bytes`; one that only knows the address reports `linked_weight_bytes`, and the
+two always sum to the total. If a byte count cannot be established — the same address attested with
+two different sizes — that asset weighs **nothing** and is listed as **incomplete**. If a local copy
+cannot be confirmed against its hash, it goes back to linked and is listed as **unverified**. Neither
+is ever estimated, averaged, or quietly rounded into the total, because a number you guessed at is
+not a measurement and pretending otherwise is how ledgers start lying.
+
+What a frame attests is only the habitat-independent part, computed with no store at all, so every
+reader on earth gets the same four integers no matter what their disk holds. And a frame cannot weigh
+itself — its size would depend on the number it contains — so a growth frame attests the weight of
+everything *before* it, which the reader recomputes and refuses on mismatch. An organism cannot
+declare itself heavier than its bytes.
+
+Two last cautions. Weight is state: it changes by appending, and it never touches the mint-once name
+— a heavier RAPPID is the same RAPPID. And weight is *mass, not skill*. A stage may use it as one
+growth axis, but nothing in RAPP infers capability, maturity, or authority from a byte count. What an
+organism can do is written in its dimensions and its signatures. `2.4 KiB`, finally, is presentation:
+the exact integer is the weight, and the pretty string never enters a payload, a hash, or a comparison.
+
+## 5.8 The Card: Stats You Can Prove, and Guesses Labelled as Guesses
+
+Put the growth and the weight on one card and you have a **stat block**: species, lifecycle stage,
+frame height, display height, weight, dimensions, capabilities, traits, completeness. It reads like a
+creature card, and that is the point — but a card is only worth as much as the discipline behind each
+number, so RAPP sorts them into two piles and never lets them mix.
+
+**Frame height** is the exact pile. It is the verified depth of the append-only chain: how many frames
+this identity has actually accepted. Because verify insists on a genesis at `seq` 0 and contiguous
+successors after it, the count and `head.seq + 1` are the same number, and a fold that finds them
+different refuses. Notice what that buys: a duplicate frame — replayed, re-delivered, mirrored twice —
+is rejected at step 4 rather than counted, so height cannot be inflated by repetition any more than
+weight can. Neither number is in a payload; both are recomputed from what was accepted.
+
+**Display height** is the presentation pile. A card wants to say a creature is 110 mm tall, so a
+**versioned species growth curve** renders millimetres from frame height — in exact integer arithmetic,
+so every renderer of `quill-atlas/1` draws the same creature. And the card names the curve version it
+used, because a number without its provenance is a rumour. What display height is *not* is worth
+stating plainly: it is not identity, it is not protocol, and it is not a physical fact. No organism has
+a size in millimetres; a card does. Publish `quill-atlas/2` and the picture changes while every exact
+stat stands exactly where it was. And if the species is unknown to the curve, the height is `null` and
+the card reports itself incomplete — the same refusal to invent that governs weight.
+
+Species itself sits between the piles. It is declared once in a growth frame and immutable after, for
+the same reason stage is mutable: a creature that grows up is the same creature, and a creature of a
+different species is a different creature — which means a new rappid, not an edit.
+
+Finally, the card can be **autocompleted**. Given the traits and the lineage, an implementation can
+propose the next dimension the way a continuation is proposed for a melody: the parent had a sonic
+dimension and this one does not, so here is the obvious next move. RAPP is happy to let you predict —
+and ruthless about what a prediction is worth. A proposal is marked `authoritative: false`, carries the
+head particle it was computed from so a stale guess is detectable, mutates nothing, and is not even a
+valid payload shape, so it cannot be mistaken for content. It projects a frame height and a display
+height, both of which follow deterministically — and it refuses to project a **weight**, because a
+frame that does not exist has no bytes, and guessing one would be exactly the lie the whole chapter is
+built to prevent. The proposal becomes true the only way anything becomes true here: someone appends a
+frame, and a verifier accepts it.
+
 The frame, then, is a small object with a large discipline: eleven closed fields, two recomputed
-addresses, a six-step verify, and a lawful path to converge even the immutable. Next, how frames
-travel: the wire.
+addresses, a six-step verify, a lawful path to converge even the immutable, and room for a thing to
+grow up, put on weight, and be dealt as a card you can check — all inside one unchanging name. Next,
+how frames travel: the wire.

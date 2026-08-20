@@ -6,13 +6,14 @@ implementation. It classifies a repo as:
 
   CLEAN     — no RAPP artifacts; nothing to migrate
   COMPLIANT — has artifacts, all pass RAPP
+  UNVERIFIED — an external lineage required for verification is unavailable
   DRIFT     — has artifacts that violate RAPP (lists each, by §)
 
 This is the tool that makes the estate-wide migration tractable: run it per repo,
 fix on a branch until it reads COMPLIANT, and the owner authorizes the rebirth by merge.
 
 Usage:  python3 rapp_check.py <repo_path> [--json]
-Exit:   0 CLEAN/COMPLIANT · 1 DRIFT · 2 error
+Exit:   0 CLEAN/COMPLIANT · 1 UNVERIFIED/DRIFT · 2 error
 """
 import glob
 import hashlib
@@ -96,8 +97,10 @@ def check_repo(root):
         rel = os.path.relpath(fdir, root)
         canon_ok = conformant = 0
         head = None  # thread the head so chain linkage (seq/prev/utc) is actually checked
+        chain = []
         for f in files:
             fr = json.load(open(f))
+            chain.append(fr)
             p, s = fr.get("payload"), (fr.get("sha256") or fr.get("hash"))
             if p is not None and s is not None and _untagged(p) == s:
                 canon_ok += 1
@@ -113,6 +116,34 @@ def check_repo(root):
             findings.append({"artifact": rel, "rule": "§7 frame envelope (C1)",
                              "detail": f"{len(files)-conformant}/{len(files)} non-conformant; "
                                        f"missing {missing}"})
+        # §7.7: a body-stream that grows by dimension frames must fold the way any
+        # conformant reader rebuilds it — one identity, no stage regression, no fabricated
+        # inheritance. A parent stream we do not hold is UNVERIFIED, never clean.
+        if any(fr.get("kind") in (R.BODY_DIMENSION, R.BODY_RECONSTRUCTED) for fr in chain):
+            ok, step, why, state = R.fold_body_stream(
+                chain, stream_id_of_record=chain[0].get("stream_id"))
+            if ok:
+                w = state["weight"]
+                evidence.append({"artifact": rel, "ok": (
+                    f"§7.7 growth folds: stage {state['stage']['name']} · dimensions "
+                    f"{', '.join(sorted(state['dimensions']))} · frame_height "
+                    f"{state['frame_height']} · one rappid {state['rappid']}")})
+                evidence.append({"artifact": rel, "ok": (
+                    f"§7.8 weight: {R.format_weight(w['total_weight_bytes'])} "
+                    f"({w['total_weight_bytes']} bytes exactly = {w['frame_weight_bytes']} in frames "
+                    f"+ {w['asset_weight_bytes']} in assets)")})
+                if not w["complete"]:
+                    findings.append({"artifact": rel, "rule": "§7.8 incomplete weight",
+                                     "detail": "an asset's size is attested two ways, so it could "
+                                               "not be established — weight is never estimated"})
+            elif R.UNRESOLVED_PARENT in why:
+                findings.append({"artifact": rel, "rule": "§7.7 lineage",
+                                 "status": "unverified",
+                                 "detail": "parent stream is not in this checkout; "
+                                           "resolve it and re-verify (fail closed)"})
+            else:
+                findings.append({"artifact": rel, "rule": f"§7.7 dimensional growth ({step})",
+                                 "detail": why})
         # positive evidence: does RAPP canonicalization already reproduce the real hashes?
         if canon_ok:
             evidence.append({"artifact": rel,
@@ -143,7 +174,11 @@ def check_repo(root):
 
     if not has_artifact:
         return "CLEAN", [], []
-    return ("DRIFT" if findings else "COMPLIANT"), findings, evidence
+    if not findings:
+        return "COMPLIANT", findings, evidence
+    if all(finding.get("status") == "unverified" for finding in findings):
+        return "UNVERIFIED", findings, evidence
+    return "DRIFT", findings, evidence
 
 
 def main():
@@ -158,13 +193,13 @@ def main():
                           "findings": findings, "evidence": evidence}, indent=2))
     else:
         name = os.path.basename(os.path.abspath(root))
-        dot = {"CLEAN": "○", "COMPLIANT": "✅", "DRIFT": "🔧"}[verdict]
+        dot = {"CLEAN": "○", "COMPLIANT": "✅", "UNVERIFIED": "⚠", "DRIFT": "🔧"}[verdict]
         print(f"{dot} {name}: {verdict}")
         for e in evidence:
             print(f"    ✓ {e['artifact']}: {e['ok']}")
         for f in findings:
             print(f"    ✗ {f['artifact']}  [{f['rule']}]  {f['detail']}")
-    sys.exit(1 if verdict == "DRIFT" else 0)
+    sys.exit(0 if verdict in ("CLEAN", "COMPLIANT") else 1)
 
 
 if __name__ == "__main__":

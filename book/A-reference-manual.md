@@ -66,6 +66,58 @@ prev_wave, sig`.
 Re-genesis: terminal `*.re-genesis` frame with `H("rapp/1:seal",…)` over old head → new genesis in
 current form citing the sealed head → old frames retained under `legacy/` (sealed, never served).
 
+**Dimensional growth (§7.7)** — two body-family kinds on the same envelope; nothing else changes.
+
+| rule | requirement |
+|------|-------------|
+| identity | one mint-once rappid for life; every §7.7 `payload.rappid` MUST byte-equal `stream_id` |
+| stage | `{name: lclabel, ordinal: uint53}` in the payload, never in an identifier; ordinal MUST NOT decrease |
+| `body.dimension` | payload = `rappid, dimension, version, stage, traits, traits_hash, media, sources` |
+| `version` | uint53 ≥ 1, strictly increasing per (stream, dimension); revise by appending |
+| media ref | exactly `{space:"rapp/1:egg", hash, media_type, bytes}` — octets NEVER in frame JSON |
+| `traits_hash` | `H("rapp/1:particle", traits)`, recomputed by the consumer |
+| `sources` | `[{stream_id, particle}]`, sorted by UTF-8 bytes, de-duplicated (engram provenance) |
+| `body.reconstructed` | payload = `rappid, species, stage, dimensions, traits_hash, weight, sources, parent` |
+| fold (§7.7.6) | consumer **recomputes** `dimensions`/`traits_hash` from the stream and refuses a frame that asserts otherwise |
+| offspring | new rappid + `parent {rappid, particle}` at `seq` 0 only; parent ≠ self; inherit a subset of the parent's fold, never more |
+| unresolved parent | report **unverified**, never verified (fail closed) |
+
+Baseline dimension names: `memory`, `skill`, `sonic`, `device`, `visual`, `capability`. Registry
+(§13.3): `{"type":"kind","kind":"body.dimension","family":"body","deprecated":false}` and the same
+for `body.reconstructed`.
+
+**Weight (§7.8)** — a RAPPID's data size is its weight: verified bytes, de-duplicated by content
+address.
+
+| member | meaning |
+|--------|---------|
+| `frame_weight_bytes` | Σ `len(canonical(frame))` over **accepted** frames, de-duplicated by `frame_hash` |
+| `asset_weight_bytes` | Σ attested `bytes` over unique `(space, hash)` media references |
+| `total_weight_bytes` | MUST equal frames + assets |
+| `complete` | false iff some address is attested with two sizes → that asset weighs **0** and is listed |
+| `resident_weight_bytes` | hydrated **on this habitat**: accepted frames + assets whose octets verify per §5 |
+| `linked_weight_bytes` | known but not resident; `resident + linked == total` |
+| `incomplete[]` / `unverified[]` | sizes that could not be **established** / **confirmed**; never estimated |
+
+The first four are attested in `body.reconstructed.payload.weight`, computed **with no habitat store**
+(so every reader gets the same integers) over the frames **preceding** that frame; the consumer
+recomputes and refuses a mismatch. Residency is a reader's view and MUST NOT be attested. Weight only
+grows, is recorded by appending a §7.7 frame, MUST NOT appear in any identifier, and MUST NOT be read
+as capability. `format_weight(n)` → `"2.4 KiB"` is presentation over the exact integer only.
+
+**Stats — the creature card (§7.9)** — exact facts and presentation, never mixed.
+
+| stat | rule |
+|------|------|
+| `frame_height` | **exact**: accepted frames on the body-chain, MUST equal head `seq` + 1; a re-presented frame is refused (§7.5 step 4), so height cannot be padded |
+| `species` | `null` until declared in a `body.reconstructed` payload, **immutable** once declared; a different species is a different organism |
+| `display_height_mm` | **presentation**: millimetres from a *versioned* species growth curve over `frame_height`, exact-integer arithmetic; `null` when the species is unknown to the curve |
+| `height_curve` | the curve version that produced the millimetres; MUST accompany a non-null height |
+| card members | `rappid, species, lifecycle_stage, frame_height, display_height_mm, height_curve, dimension_count, capabilities, traits, traits_hash, total/resident/linked_weight_bytes, completeness, complete` |
+| `completeness` | `{weight_sizes_established, local_copies_verified, display_height_resolved}`; `complete` is their conjunction |
+| MUST NOT | a display height in any payload/hash/identifier; a stat block treated as a frame or as identity; a stat inferred when it is unresolved |
+| proposals | `propose_next()` autocompletes the next dimension from traits/lineage; marked `authoritative: false`, carries its basis particle, projects **no** weight, mutates nothing, and counts only once appended and verified |
+
 ## A.5 The Wire (§8)
 
 - `POST /chat` with `{user_input, session_id?, conversation_history?}` →
@@ -99,7 +151,8 @@ current form citing the sealed head → old frames retained under `legacy/` (sea
 ## A.8 Conformance & Versioning (§11–§13)
 
 - **Conformance classes (§11):** an implementation conforms when it produces and rejects exactly
-  the `conformance.py` vectors (V1–V9) and honors the §7.5 checklist.
+  the `conformance.py` vectors (V1–V9 primitives, V10–V14 dimensional growth, V15–V20 weight,
+  V21–V24 stats and proposals) and honors the §7.5 checklist.
 - **Versioning (§12):** one **living standard**; `rapp/1` never denotes two shapes. Change the one
   spec and migrate (no second `rapp/1`). Published content-addressed artifacts are immutable.
 - **No legacy (§12 / Fed. Const. Art. III):** converge and delete; a legacy form encountered is a
@@ -112,8 +165,10 @@ current form citing the sealed head → old frames retained under `legacy/` (sea
 ## A.9 The Reference Implementation
 
 `rapp.py` (stdlib only) implements A.1–A.4: `canonical`, `H`/`Hb`, `mint_rappid`/`rappid_valid`,
-`build_frame`/`verify_frame`. `conformance.py` runs V1–V9. `realcheck.py` runs the whole thing
-against the live estate. Read `rapp.py` — it is ~140 lines and it is the spec made executable.
+`build_frame`/`verify_frame`, and §7.7's `media_ref`/`traits_snapshot`/`build_dimension_frame`/
+`build_growth_frame`/`fold_body_stream`/`inherit`, plus §7.8's `weigh` and §7.9's
+`stat_block`/`propose_next`. `conformance.py` runs V1–V24. `realcheck.py` runs the whole thing
+against the live estate. Read `rapp.py` — it is the spec made executable.
 
 ## A.10 Normative References
 
