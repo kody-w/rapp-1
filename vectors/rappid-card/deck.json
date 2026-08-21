@@ -1,0 +1,1614 @@
+{
+  "parts_b64": {
+    "engram": "eyJlbnRyaWVzIjpbeyJzZXEiOjAsInN1bW1hcnkiOiJmaXh0dXJlIn1dLCJyb290Ijoic3ludGhldGljLWVuZ3JhbS1yb290In0=",
+    "reflex-capability": "eyJjYXBhYmlsaXRpZXMiOlsibWVtb3J5LXJlYWQiLCJyZWZsZXgtcnVuIl0sInJlZmxleGVzIjpbImFuc3dlciJdfQ==",
+    "soul": "IyBTeW50aGV0aWMgQ2FyZCBTb3VsCkZpeHR1cmUgb25seS4gTm8gcHJpdmF0ZSBtZW1vcnkuCg=="
+  },
+  "production_profile": "rappid-card/1",
+  "schema": "rappid-card-vectors/1",
+  "subject_rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+  "test_profile": "rappid-card-test/1",
+  "trust": [
+    {
+      "kid": "rappid:@synthetic/rappid-card-test:ba71c721cbd5605b7e155f20d25efb77fecf935449bfc5bf7849da6d577773c4",
+      "spki_der_b64": "MCowBQYDK2VwAyEA11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=",
+      "synthetic": true
+    }
+  ],
+  "vectors": [
+    {
+      "connection_id": "fixture-connection",
+      "continuity": {
+        "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+        "nonce": "valid-card-nonce-0001",
+        "parent": null,
+        "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+        "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819"
+      },
+      "environment": {
+        "features": [
+          "content-hydration/1",
+          "rappid-card-test/1"
+        ],
+        "granted_scope": [
+          "memory-read",
+          "reflex-run"
+        ],
+        "max_classification": "internal",
+        "protocol": "rapp/1",
+        "runtime": "rapp-ref/1"
+      },
+      "expected": {
+        "ok": true,
+        "step": null
+      },
+      "frame": {
+        "frame_hash": "228501702890999343f34990631c69caaa8848c1da05a6752d6b79d7cae02dc0",
+        "kind": "body.debug-card",
+        "payload": {
+          "classification": "public",
+          "compatibility": {
+            "features": [
+              "content-hydration/1",
+              "rappid-card-test/1"
+            ],
+            "protocol": "rapp/1",
+            "runtime": "rapp-ref/1"
+          },
+          "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+          "expires_utc": "2026-09-21T12:00:00.000Z",
+          "inventory": [
+            {
+              "bytes": 74,
+              "hash": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+              "part": "engram",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 67,
+              "hash": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+              "part": "reflex-capability",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 55,
+              "hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+              "part": "soul",
+              "required": true,
+              "space": "rapp/1:egg"
+            }
+          ],
+          "key_id": "rappid:@synthetic/rappid-card-test:ba71c721cbd5605b7e155f20d25efb77fecf935449bfc5bf7849da6d577773c4",
+          "parent": null,
+          "profile": "rappid-card-test/1",
+          "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+          "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+          "requested_scope": [
+            "memory-read"
+          ],
+          "revocation_url": "https://fixtures.invalid/rappid-card-revocations.json",
+          "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+          "wake_challenge": "a817f965adfa6c77e83ad7cd606eb0cdf7cb4af7f43aebdc3a1a55aaed60ca93"
+        },
+        "payload_hash": "efe1e5dcf60e5f24018c309d9ddc01bf4193767e36c2c0352366fb6f72b6b685",
+        "prev": null,
+        "prev_wave": null,
+        "seq": 0,
+        "sig": "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il0sImtpZCI6InJhcHBpZDpAc3ludGhldGljL3JhcHBpZC1jYXJkLXRlc3Q6YmE3MWM3MjFjYmQ1NjA1YjdlMTU1ZjIwZDI1ZWZiNzdmZWNmOTM1NDQ5YmZjNWJmNzg0OWRhNmQ1Nzc3NzNjNCJ9..KkHhu5fLQlDZ5DRjgh1lt-ncPSrU5GRmTCZiEipqiBGs1xc_pEZ0mNlBPms7yZRkFEnYEXuw2t0SYi7B2ISnBQ",
+        "spec": "rapp/1",
+        "stream_id": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "utc": "2026-08-21T12:00:00.000Z"
+      },
+      "hydrated_parts": [
+        "engram",
+        "reflex-capability",
+        "soul"
+      ],
+      "link": "rappid://link/rappid%3A%40synthetic%2Fcard-subject%3A3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7?m=efe1e5dcf60e5f24018c309d9ddc01bf4193767e36c2c0352366fb6f72b6b685&e=https%3A%2F%2Ffixtures.invalid%2Fphysical.rappid-card.json&n=valid-card-nonce-0001",
+      "mode": "test",
+      "name": "valid",
+      "now_utc": "2026-08-21T12:30:00.000Z",
+      "physical": false,
+      "replay_seed": null,
+      "revoked": []
+    },
+    {
+      "connection_id": "fixture-connection",
+      "continuity": {
+        "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+        "nonce": "expired-card-nonce-01",
+        "parent": null,
+        "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+        "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819"
+      },
+      "environment": {
+        "features": [
+          "content-hydration/1",
+          "rappid-card-test/1"
+        ],
+        "granted_scope": [
+          "memory-read",
+          "reflex-run"
+        ],
+        "max_classification": "internal",
+        "protocol": "rapp/1",
+        "runtime": "rapp-ref/1"
+      },
+      "expected": {
+        "ok": false,
+        "step": "expiry"
+      },
+      "frame": {
+        "frame_hash": "4473e304de2d1a3179c2ccd95244c0f5ec24bcb7a468212aa1f13cd00a2ad8a3",
+        "kind": "body.debug-card",
+        "payload": {
+          "classification": "public",
+          "compatibility": {
+            "features": [
+              "content-hydration/1",
+              "rappid-card-test/1"
+            ],
+            "protocol": "rapp/1",
+            "runtime": "rapp-ref/1"
+          },
+          "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+          "expires_utc": "2026-08-21T12:00:00.000Z",
+          "inventory": [
+            {
+              "bytes": 74,
+              "hash": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+              "part": "engram",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 67,
+              "hash": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+              "part": "reflex-capability",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 55,
+              "hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+              "part": "soul",
+              "required": true,
+              "space": "rapp/1:egg"
+            }
+          ],
+          "key_id": "rappid:@synthetic/rappid-card-test:ba71c721cbd5605b7e155f20d25efb77fecf935449bfc5bf7849da6d577773c4",
+          "parent": null,
+          "profile": "rappid-card-test/1",
+          "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+          "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+          "requested_scope": [
+            "memory-read"
+          ],
+          "revocation_url": "https://fixtures.invalid/rappid-card-revocations.json",
+          "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+          "wake_challenge": "0515bd404369c5244925eb9e1c373b7cec56c049136073d9c53f9442adf85f43"
+        },
+        "payload_hash": "7a89290a29169475d539b02dd3e3c235eb608699b2a6c329360bcc3d8c4ef35c",
+        "prev": null,
+        "prev_wave": null,
+        "seq": 0,
+        "sig": "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il0sImtpZCI6InJhcHBpZDpAc3ludGhldGljL3JhcHBpZC1jYXJkLXRlc3Q6YmE3MWM3MjFjYmQ1NjA1YjdlMTU1ZjIwZDI1ZWZiNzdmZWNmOTM1NDQ5YmZjNWJmNzg0OWRhNmQ1Nzc3NzNjNCJ9..Xzx48IG0c0Pv_S5EFJVXJc9ViA4DRuXyrdrpeL9pZH84-ndSXi5J4Yq54g-gDIB_RrGwGiPsmUtZbeAyOOlOAQ",
+        "spec": "rapp/1",
+        "stream_id": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "utc": "2026-08-20T12:00:00.000Z"
+      },
+      "hydrated_parts": [
+        "engram",
+        "reflex-capability",
+        "soul"
+      ],
+      "link": "rappid://link/rappid%3A%40synthetic%2Fcard-subject%3A3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7?m=7a89290a29169475d539b02dd3e3c235eb608699b2a6c329360bcc3d8c4ef35c&e=https%3A%2F%2Ffixtures.invalid%2Fphysical.rappid-card.json&n=expired-card-nonce-01",
+      "mode": "test",
+      "name": "expired",
+      "now_utc": "2026-08-21T12:30:00.000Z",
+      "physical": false,
+      "replay_seed": null,
+      "revoked": []
+    },
+    {
+      "connection_id": "fixture-connection",
+      "continuity": {
+        "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+        "nonce": "revoked-card-nonce-01",
+        "parent": null,
+        "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+        "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819"
+      },
+      "environment": {
+        "features": [
+          "content-hydration/1",
+          "rappid-card-test/1"
+        ],
+        "granted_scope": [
+          "memory-read",
+          "reflex-run"
+        ],
+        "max_classification": "internal",
+        "protocol": "rapp/1",
+        "runtime": "rapp-ref/1"
+      },
+      "expected": {
+        "ok": false,
+        "step": "revocation"
+      },
+      "frame": {
+        "frame_hash": "d78236fbb312ac6ad8b42608043c6695428e8222e2d0de89be3171b3968b2d0d",
+        "kind": "body.debug-card",
+        "payload": {
+          "classification": "public",
+          "compatibility": {
+            "features": [
+              "content-hydration/1",
+              "rappid-card-test/1"
+            ],
+            "protocol": "rapp/1",
+            "runtime": "rapp-ref/1"
+          },
+          "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+          "expires_utc": "2026-09-21T12:00:00.000Z",
+          "inventory": [
+            {
+              "bytes": 74,
+              "hash": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+              "part": "engram",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 67,
+              "hash": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+              "part": "reflex-capability",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 55,
+              "hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+              "part": "soul",
+              "required": true,
+              "space": "rapp/1:egg"
+            }
+          ],
+          "key_id": "rappid:@synthetic/rappid-card-test:ba71c721cbd5605b7e155f20d25efb77fecf935449bfc5bf7849da6d577773c4",
+          "parent": null,
+          "profile": "rappid-card-test/1",
+          "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+          "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+          "requested_scope": [
+            "memory-read"
+          ],
+          "revocation_url": "https://fixtures.invalid/rappid-card-revocations.json",
+          "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+          "wake_challenge": "2e893c1e956c3f1ee5581627f5a07e6bc33c22cafb8670b27fceefa37c2199ac"
+        },
+        "payload_hash": "c97e6f272c61f5b84600d9c642deb30c33a2a9ea47c50944b1aa548567dc161f",
+        "prev": null,
+        "prev_wave": null,
+        "seq": 0,
+        "sig": "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il0sImtpZCI6InJhcHBpZDpAc3ludGhldGljL3JhcHBpZC1jYXJkLXRlc3Q6YmE3MWM3MjFjYmQ1NjA1YjdlMTU1ZjIwZDI1ZWZiNzdmZWNmOTM1NDQ5YmZjNWJmNzg0OWRhNmQ1Nzc3NzNjNCJ9..euUbaNgkGmeQfNBK5bd3fym5On8IMXscgnARYjYyHQXscNEDsM3BmLuCbUlZXzvJ1PgYnXtyIcK1uZJK5iFDBw",
+        "spec": "rapp/1",
+        "stream_id": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "utc": "2026-08-21T12:00:00.000Z"
+      },
+      "hydrated_parts": [
+        "engram",
+        "reflex-capability",
+        "soul"
+      ],
+      "link": "rappid://link/rappid%3A%40synthetic%2Fcard-subject%3A3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7?m=c97e6f272c61f5b84600d9c642deb30c33a2a9ea47c50944b1aa548567dc161f&e=https%3A%2F%2Ffixtures.invalid%2Fphysical.rappid-card.json&n=revoked-card-nonce-01",
+      "mode": "test",
+      "name": "revoked",
+      "now_utc": "2026-08-21T12:30:00.000Z",
+      "physical": false,
+      "replay_seed": null,
+      "revoked": [
+        "c97e6f272c61f5b84600d9c642deb30c33a2a9ea47c50944b1aa548567dc161f"
+      ]
+    },
+    {
+      "connection_id": "fixture-connection",
+      "continuity": {
+        "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+        "nonce": "wrong-hash-nonce-0001",
+        "parent": null,
+        "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+        "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819"
+      },
+      "environment": {
+        "features": [
+          "content-hydration/1",
+          "rappid-card-test/1"
+        ],
+        "granted_scope": [
+          "memory-read",
+          "reflex-run"
+        ],
+        "max_classification": "internal",
+        "protocol": "rapp/1",
+        "runtime": "rapp-ref/1"
+      },
+      "expected": {
+        "ok": false,
+        "step": "content-address"
+      },
+      "frame": {
+        "frame_hash": "cc5d2e5dd6efd0908d8dd6382fe5879a4f41395d77f71514e56508f8ab4f9540",
+        "kind": "body.debug-card",
+        "payload": {
+          "classification": "public",
+          "compatibility": {
+            "features": [
+              "content-hydration/1",
+              "rappid-card-test/1"
+            ],
+            "protocol": "rapp/1",
+            "runtime": "rapp-ref/1"
+          },
+          "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+          "expires_utc": "2026-09-21T12:00:00.000Z",
+          "inventory": [
+            {
+              "bytes": 74,
+              "hash": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+              "part": "engram",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 67,
+              "hash": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+              "part": "reflex-capability",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 55,
+              "hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+              "part": "soul",
+              "required": true,
+              "space": "rapp/1:egg"
+            }
+          ],
+          "key_id": "rappid:@synthetic/rappid-card-test:ba71c721cbd5605b7e155f20d25efb77fecf935449bfc5bf7849da6d577773c4",
+          "parent": null,
+          "profile": "rappid-card-test/1",
+          "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+          "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+          "requested_scope": [
+            "memory-read"
+          ],
+          "revocation_url": "https://fixtures.invalid/rappid-card-revocations.json",
+          "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+          "wake_challenge": "9d70e6f099ee039ea70e35611f330d0f57ba079f51c2eba6ace5dae9e3fd94dc"
+        },
+        "payload_hash": "61f79577d9efa647775a86d9124901247796d92ee3be8b44ff55626389450c8d",
+        "prev": null,
+        "prev_wave": null,
+        "seq": 0,
+        "sig": "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il0sImtpZCI6InJhcHBpZDpAc3ludGhldGljL3JhcHBpZC1jYXJkLXRlc3Q6YmE3MWM3MjFjYmQ1NjA1YjdlMTU1ZjIwZDI1ZWZiNzdmZWNmOTM1NDQ5YmZjNWJmNzg0OWRhNmQ1Nzc3NzNjNCJ9..C8rQHGx8YJQ4yoiau_RY7_higMCAeMDwCdusep51UN_O1RvlxQ4TKn3V2hY15MFOHPRO_gMuKPGaXnZOsXO8Dw",
+        "spec": "rapp/1",
+        "stream_id": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "utc": "2026-08-21T12:00:00.000Z"
+      },
+      "hydrated_parts": [
+        "engram",
+        "reflex-capability",
+        "soul"
+      ],
+      "link": "rappid://link/rappid%3A%40synthetic%2Fcard-subject%3A3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7?m=ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff&e=https%3A%2F%2Ffixtures.invalid%2Fphysical.rappid-card.json&n=wrong-hash-nonce-0001",
+      "mode": "test",
+      "name": "wrong-manifest-hash",
+      "now_utc": "2026-08-21T12:30:00.000Z",
+      "physical": false,
+      "replay_seed": null,
+      "revoked": []
+    },
+    {
+      "connection_id": "fixture-connection",
+      "continuity": {
+        "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+        "nonce": "unknown-key-nonce-001",
+        "parent": null,
+        "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+        "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819"
+      },
+      "environment": {
+        "features": [
+          "content-hydration/1",
+          "rappid-card-test/1"
+        ],
+        "granted_scope": [
+          "memory-read",
+          "reflex-run"
+        ],
+        "max_classification": "internal",
+        "protocol": "rapp/1",
+        "runtime": "rapp-ref/1"
+      },
+      "expected": {
+        "ok": false,
+        "step": "signature"
+      },
+      "frame": {
+        "frame_hash": "d79e45f3c8a8bcc29a3c0ac64e54c914218ee28e55928e0a138c0f65d8bd0a30",
+        "kind": "body.debug-card",
+        "payload": {
+          "classification": "public",
+          "compatibility": {
+            "features": [
+              "content-hydration/1",
+              "rappid-card-test/1"
+            ],
+            "protocol": "rapp/1",
+            "runtime": "rapp-ref/1"
+          },
+          "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+          "expires_utc": "2026-09-21T12:00:00.000Z",
+          "inventory": [
+            {
+              "bytes": 74,
+              "hash": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+              "part": "engram",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 67,
+              "hash": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+              "part": "reflex-capability",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 55,
+              "hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+              "part": "soul",
+              "required": true,
+              "space": "rapp/1:egg"
+            }
+          ],
+          "key_id": "rappid:@synthetic/unknown-card-test:bdf2c8d258f93d70ba53c1e3da368a2d10d304a508c80fc263038936dc52b617",
+          "parent": null,
+          "profile": "rappid-card-test/1",
+          "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+          "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+          "requested_scope": [
+            "memory-read"
+          ],
+          "revocation_url": "https://fixtures.invalid/rappid-card-revocations.json",
+          "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+          "wake_challenge": "8173190c1c4ae5a411ecc39fa5c22f05c83f44e1aca358a217d8a13770f72bce"
+        },
+        "payload_hash": "b7edb83dde02cb1bc3fcdd25fb3b2e0835593d7f72b48f648e78aa548e6d98d2",
+        "prev": null,
+        "prev_wave": null,
+        "seq": 0,
+        "sig": "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il0sImtpZCI6InJhcHBpZDpAc3ludGhldGljL3Vua25vd24tY2FyZC10ZXN0OmJkZjJjOGQyNThmOTNkNzBiYTUzYzFlM2RhMzY4YTJkMTBkMzA0YTUwOGM4MGZjMjYzMDM4OTM2ZGM1MmI2MTcifQ..kajgJnDLwyWhc-A3F7kOoTzQ4W-tr34PYHf3yG8by-gFtIL0qiH0X2RVob0c3xptFi6oip5JMNrFnzGjMxXtBA",
+        "spec": "rapp/1",
+        "stream_id": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "utc": "2026-08-21T12:00:00.000Z"
+      },
+      "hydrated_parts": [
+        "engram",
+        "reflex-capability",
+        "soul"
+      ],
+      "link": "rappid://link/rappid%3A%40synthetic%2Fcard-subject%3A3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7?m=b7edb83dde02cb1bc3fcdd25fb3b2e0835593d7f72b48f648e78aa548e6d98d2&e=https%3A%2F%2Ffixtures.invalid%2Fphysical.rappid-card.json&n=unknown-key-nonce-001",
+      "mode": "test",
+      "name": "unknown-signing-key",
+      "now_utc": "2026-08-21T12:30:00.000Z",
+      "physical": false,
+      "replay_seed": null,
+      "revoked": []
+    },
+    {
+      "connection_id": "fixture-connection",
+      "continuity": {
+        "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+        "nonce": "incompatible-nonce-01",
+        "parent": null,
+        "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+        "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819"
+      },
+      "environment": {
+        "features": [
+          "content-hydration/1",
+          "rappid-card-test/1"
+        ],
+        "granted_scope": [
+          "memory-read",
+          "reflex-run"
+        ],
+        "max_classification": "internal",
+        "protocol": "rapp/1",
+        "runtime": "rapp-ref/1"
+      },
+      "expected": {
+        "ok": false,
+        "step": "compatibility"
+      },
+      "frame": {
+        "frame_hash": "d2045400a302a8ad3267f0057bf18f6a0ca63ae3c59b77df82f4efba946b7b9e",
+        "kind": "body.debug-card",
+        "payload": {
+          "classification": "public",
+          "compatibility": {
+            "features": [
+              "content-hydration/1",
+              "rappid-card-test/1"
+            ],
+            "protocol": "rapp/2",
+            "runtime": "rapp-ref/9"
+          },
+          "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+          "expires_utc": "2026-09-21T12:00:00.000Z",
+          "inventory": [
+            {
+              "bytes": 74,
+              "hash": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+              "part": "engram",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 67,
+              "hash": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+              "part": "reflex-capability",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 55,
+              "hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+              "part": "soul",
+              "required": true,
+              "space": "rapp/1:egg"
+            }
+          ],
+          "key_id": "rappid:@synthetic/rappid-card-test:ba71c721cbd5605b7e155f20d25efb77fecf935449bfc5bf7849da6d577773c4",
+          "parent": null,
+          "profile": "rappid-card-test/1",
+          "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+          "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+          "requested_scope": [
+            "memory-read"
+          ],
+          "revocation_url": "https://fixtures.invalid/rappid-card-revocations.json",
+          "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+          "wake_challenge": "25d4b4bb009f35f7de90c678cb03c5e9b97bbdc12637abadbe8a41e325d4261a"
+        },
+        "payload_hash": "dd30fb20e4c157dbf89a7866676bdf1c48aae21df1c6c8f84230dfde9afd59fa",
+        "prev": null,
+        "prev_wave": null,
+        "seq": 0,
+        "sig": "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il0sImtpZCI6InJhcHBpZDpAc3ludGhldGljL3JhcHBpZC1jYXJkLXRlc3Q6YmE3MWM3MjFjYmQ1NjA1YjdlMTU1ZjIwZDI1ZWZiNzdmZWNmOTM1NDQ5YmZjNWJmNzg0OWRhNmQ1Nzc3NzNjNCJ9..tpmCv4XCF1CBu5Ko0E53ALgRQF8JDQQbmxy9uTfuykHiiH26CBvsYZldpXR92Yu_W-ahdqdHDyLeV26-m4IUDw",
+        "spec": "rapp/1",
+        "stream_id": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "utc": "2026-08-21T12:00:00.000Z"
+      },
+      "hydrated_parts": [
+        "engram",
+        "reflex-capability",
+        "soul"
+      ],
+      "link": "rappid://link/rappid%3A%40synthetic%2Fcard-subject%3A3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7?m=dd30fb20e4c157dbf89a7866676bdf1c48aae21df1c6c8f84230dfde9afd59fa&e=https%3A%2F%2Ffixtures.invalid%2Fphysical.rappid-card.json&n=incompatible-nonce-01",
+      "mode": "test",
+      "name": "incompatible-runtime-protocol",
+      "now_utc": "2026-08-21T12:30:00.000Z",
+      "physical": false,
+      "replay_seed": null,
+      "revoked": []
+    },
+    {
+      "connection_id": "fixture-connection",
+      "continuity": {
+        "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+        "nonce": "classify-card-nonce-01",
+        "parent": null,
+        "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+        "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819"
+      },
+      "environment": {
+        "features": [
+          "content-hydration/1",
+          "rappid-card-test/1"
+        ],
+        "granted_scope": [
+          "memory-read",
+          "reflex-run"
+        ],
+        "max_classification": "public",
+        "protocol": "rapp/1",
+        "runtime": "rapp-ref/1"
+      },
+      "expected": {
+        "ok": false,
+        "step": "classification-scope"
+      },
+      "frame": {
+        "frame_hash": "ed1f0bb016e71cb6de283db1e35945c4cb0413667a798d559e3d994a81be3caa",
+        "kind": "body.debug-card",
+        "payload": {
+          "classification": "restricted",
+          "compatibility": {
+            "features": [
+              "content-hydration/1",
+              "rappid-card-test/1"
+            ],
+            "protocol": "rapp/1",
+            "runtime": "rapp-ref/1"
+          },
+          "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+          "expires_utc": "2026-09-21T12:00:00.000Z",
+          "inventory": [
+            {
+              "bytes": 74,
+              "hash": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+              "part": "engram",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 67,
+              "hash": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+              "part": "reflex-capability",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 55,
+              "hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+              "part": "soul",
+              "required": true,
+              "space": "rapp/1:egg"
+            }
+          ],
+          "key_id": "rappid:@synthetic/rappid-card-test:ba71c721cbd5605b7e155f20d25efb77fecf935449bfc5bf7849da6d577773c4",
+          "parent": null,
+          "profile": "rappid-card-test/1",
+          "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+          "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+          "requested_scope": [
+            "memory-read"
+          ],
+          "revocation_url": "https://fixtures.invalid/rappid-card-revocations.json",
+          "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+          "wake_challenge": "92f7dee458eba0b447e217eb802a73c397a2529322cfaa1f7a75991666ec5483"
+        },
+        "payload_hash": "ee8c64aba8983fd802871b8fd3fbcf4956c9edce775c6e8a98441859f847e0ae",
+        "prev": null,
+        "prev_wave": null,
+        "seq": 0,
+        "sig": "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il0sImtpZCI6InJhcHBpZDpAc3ludGhldGljL3JhcHBpZC1jYXJkLXRlc3Q6YmE3MWM3MjFjYmQ1NjA1YjdlMTU1ZjIwZDI1ZWZiNzdmZWNmOTM1NDQ5YmZjNWJmNzg0OWRhNmQ1Nzc3NzNjNCJ9..gyGX0Vb4H119gyd1wffBeAzsEsuVS6bykQbeaDrmaFNdDkS2PNHaQsKcQaPfqIamvDwiaF58XCdqaZEKxKfPAQ",
+        "spec": "rapp/1",
+        "stream_id": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "utc": "2026-08-21T12:00:00.000Z"
+      },
+      "hydrated_parts": [
+        "engram",
+        "reflex-capability",
+        "soul"
+      ],
+      "link": "rappid://link/rappid%3A%40synthetic%2Fcard-subject%3A3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7?m=ee8c64aba8983fd802871b8fd3fbcf4956c9edce775c6e8a98441859f847e0ae&e=https%3A%2F%2Ffixtures.invalid%2Fphysical.rappid-card.json&n=classify-card-nonce-01",
+      "mode": "test",
+      "name": "classification-violation",
+      "now_utc": "2026-08-21T12:30:00.000Z",
+      "physical": false,
+      "replay_seed": null,
+      "revoked": []
+    },
+    {
+      "connection_id": "fixture-connection",
+      "continuity": {
+        "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+        "nonce": "scope-card-nonce-0001",
+        "parent": null,
+        "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+        "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819"
+      },
+      "environment": {
+        "features": [
+          "content-hydration/1",
+          "rappid-card-test/1"
+        ],
+        "granted_scope": [
+          "memory-read"
+        ],
+        "max_classification": "internal",
+        "protocol": "rapp/1",
+        "runtime": "rapp-ref/1"
+      },
+      "expected": {
+        "ok": false,
+        "step": "classification-scope"
+      },
+      "frame": {
+        "frame_hash": "5eb86041bf103deab44b90cd67b191db2adb34825c595a6221781cfe616acc0d",
+        "kind": "body.debug-card",
+        "payload": {
+          "classification": "public",
+          "compatibility": {
+            "features": [
+              "content-hydration/1",
+              "rappid-card-test/1"
+            ],
+            "protocol": "rapp/1",
+            "runtime": "rapp-ref/1"
+          },
+          "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+          "expires_utc": "2026-09-21T12:00:00.000Z",
+          "inventory": [
+            {
+              "bytes": 74,
+              "hash": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+              "part": "engram",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 67,
+              "hash": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+              "part": "reflex-capability",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 55,
+              "hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+              "part": "soul",
+              "required": true,
+              "space": "rapp/1:egg"
+            }
+          ],
+          "key_id": "rappid:@synthetic/rappid-card-test:ba71c721cbd5605b7e155f20d25efb77fecf935449bfc5bf7849da6d577773c4",
+          "parent": null,
+          "profile": "rappid-card-test/1",
+          "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+          "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+          "requested_scope": [
+            "admin-wake",
+            "memory-read"
+          ],
+          "revocation_url": "https://fixtures.invalid/rappid-card-revocations.json",
+          "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+          "wake_challenge": "359004757699ab9006e286fbcc3a2e17b250d63538ec84899056143de4adc45c"
+        },
+        "payload_hash": "6e17e8cdbc6bdd7f18a728faef2a33a7cb132cb32d4d66d296434d0e96275374",
+        "prev": null,
+        "prev_wave": null,
+        "seq": 0,
+        "sig": "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il0sImtpZCI6InJhcHBpZDpAc3ludGhldGljL3JhcHBpZC1jYXJkLXRlc3Q6YmE3MWM3MjFjYmQ1NjA1YjdlMTU1ZjIwZDI1ZWZiNzdmZWNmOTM1NDQ5YmZjNWJmNzg0OWRhNmQ1Nzc3NzNjNCJ9..ZlgSN3zhjTeaRo2BEy4LZ9v8ux7HLUbo2nNSFwS_6WHV0pydp0b_rMbr9hLz8nNXF9q_Dmey0IfPqxdzPfWbAQ",
+        "spec": "rapp/1",
+        "stream_id": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "utc": "2026-08-21T12:00:00.000Z"
+      },
+      "hydrated_parts": [
+        "engram",
+        "reflex-capability",
+        "soul"
+      ],
+      "link": "rappid://link/rappid%3A%40synthetic%2Fcard-subject%3A3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7?m=6e17e8cdbc6bdd7f18a728faef2a33a7cb132cb32d4d66d296434d0e96275374&e=https%3A%2F%2Ffixtures.invalid%2Fphysical.rappid-card.json&n=scope-card-nonce-0001",
+      "mode": "test",
+      "name": "insufficient-scope",
+      "now_utc": "2026-08-21T12:30:00.000Z",
+      "physical": false,
+      "replay_seed": null,
+      "revoked": []
+    },
+    {
+      "connection_id": "fixture-connection",
+      "continuity": {
+        "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+        "nonce": "missing-engram-nonce-1",
+        "parent": null,
+        "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+        "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819"
+      },
+      "environment": {
+        "features": [
+          "content-hydration/1",
+          "rappid-card-test/1"
+        ],
+        "granted_scope": [
+          "memory-read",
+          "reflex-run"
+        ],
+        "max_classification": "internal",
+        "protocol": "rapp/1",
+        "runtime": "rapp-ref/1"
+      },
+      "expected": {
+        "ok": false,
+        "step": "hydration"
+      },
+      "frame": {
+        "frame_hash": "a3ad067114464348c3180150e1750770032c8769f0152f525a66a8a3f5d585df",
+        "kind": "body.debug-card",
+        "payload": {
+          "classification": "public",
+          "compatibility": {
+            "features": [
+              "content-hydration/1",
+              "rappid-card-test/1"
+            ],
+            "protocol": "rapp/1",
+            "runtime": "rapp-ref/1"
+          },
+          "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+          "expires_utc": "2026-09-21T12:00:00.000Z",
+          "inventory": [
+            {
+              "bytes": 74,
+              "hash": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+              "part": "engram",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 67,
+              "hash": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+              "part": "reflex-capability",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 55,
+              "hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+              "part": "soul",
+              "required": true,
+              "space": "rapp/1:egg"
+            }
+          ],
+          "key_id": "rappid:@synthetic/rappid-card-test:ba71c721cbd5605b7e155f20d25efb77fecf935449bfc5bf7849da6d577773c4",
+          "parent": null,
+          "profile": "rappid-card-test/1",
+          "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+          "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+          "requested_scope": [
+            "memory-read"
+          ],
+          "revocation_url": "https://fixtures.invalid/rappid-card-revocations.json",
+          "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+          "wake_challenge": "7a376f1e522c046bffb9a5fc752f3f670a5ab3f6722880a1073f9c8eb3dbb27b"
+        },
+        "payload_hash": "347f57528c4a7e422148322f38b0cf292261682f28f8f35b16b9a94fc4936234",
+        "prev": null,
+        "prev_wave": null,
+        "seq": 0,
+        "sig": "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il0sImtpZCI6InJhcHBpZDpAc3ludGhldGljL3JhcHBpZC1jYXJkLXRlc3Q6YmE3MWM3MjFjYmQ1NjA1YjdlMTU1ZjIwZDI1ZWZiNzdmZWNmOTM1NDQ5YmZjNWJmNzg0OWRhNmQ1Nzc3NzNjNCJ9..vbIo_3z0gJ_kFxCv56inNSL8H3O3kvRp6rec9qtzSJPdRqAP9FYvIJeZJ_jVdWgaE7ajV-Fd14MBfZ-361BlDw",
+        "spec": "rapp/1",
+        "stream_id": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "utc": "2026-08-21T12:00:00.000Z"
+      },
+      "hydrated_parts": [
+        "reflex-capability",
+        "soul"
+      ],
+      "link": "rappid://link/rappid%3A%40synthetic%2Fcard-subject%3A3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7?m=347f57528c4a7e422148322f38b0cf292261682f28f8f35b16b9a94fc4936234&e=https%3A%2F%2Ffixtures.invalid%2Fphysical.rappid-card.json&n=missing-engram-nonce-1",
+      "mode": "test",
+      "name": "missing-engram-part",
+      "now_utc": "2026-08-21T12:30:00.000Z",
+      "physical": false,
+      "replay_seed": null,
+      "revoked": []
+    },
+    {
+      "connection_id": "fixture-connection",
+      "continuity": {
+        "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+        "nonce": "continuity-nonce-0001",
+        "parent": null,
+        "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+        "soul_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "environment": {
+        "features": [
+          "content-hydration/1",
+          "rappid-card-test/1"
+        ],
+        "granted_scope": [
+          "memory-read",
+          "reflex-run"
+        ],
+        "max_classification": "internal",
+        "protocol": "rapp/1",
+        "runtime": "rapp-ref/1"
+      },
+      "expected": {
+        "ok": false,
+        "step": "continuity"
+      },
+      "frame": {
+        "frame_hash": "d17d0babc40ba85d3d73a017bc36f452a6d52606b7f5f93c91dddd9228886b43",
+        "kind": "body.debug-card",
+        "payload": {
+          "classification": "public",
+          "compatibility": {
+            "features": [
+              "content-hydration/1",
+              "rappid-card-test/1"
+            ],
+            "protocol": "rapp/1",
+            "runtime": "rapp-ref/1"
+          },
+          "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+          "expires_utc": "2026-09-21T12:00:00.000Z",
+          "inventory": [
+            {
+              "bytes": 74,
+              "hash": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+              "part": "engram",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 67,
+              "hash": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+              "part": "reflex-capability",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 55,
+              "hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+              "part": "soul",
+              "required": true,
+              "space": "rapp/1:egg"
+            }
+          ],
+          "key_id": "rappid:@synthetic/rappid-card-test:ba71c721cbd5605b7e155f20d25efb77fecf935449bfc5bf7849da6d577773c4",
+          "parent": null,
+          "profile": "rappid-card-test/1",
+          "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+          "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+          "requested_scope": [
+            "memory-read"
+          ],
+          "revocation_url": "https://fixtures.invalid/rappid-card-revocations.json",
+          "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+          "wake_challenge": "015d6e8a7e834e0a03f10d1997d2fe8288e6a90ef1a10a54ec96370fa48eea52"
+        },
+        "payload_hash": "7ee07642a8908cded0fd40fef4de6712420273153cc30df039586845bce3ab3b",
+        "prev": null,
+        "prev_wave": null,
+        "seq": 0,
+        "sig": "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il0sImtpZCI6InJhcHBpZDpAc3ludGhldGljL3JhcHBpZC1jYXJkLXRlc3Q6YmE3MWM3MjFjYmQ1NjA1YjdlMTU1ZjIwZDI1ZWZiNzdmZWNmOTM1NDQ5YmZjNWJmNzg0OWRhNmQ1Nzc3NzNjNCJ9..272Ffedtpa4r9AxNfE5Lz6_UBZPSyljCB7rrVfDzc8c8dlZnNLSRVrvKwXmF9j_46VboiM9d3Nlwq1G-oIP_DA",
+        "spec": "rapp/1",
+        "stream_id": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "utc": "2026-08-21T12:00:00.000Z"
+      },
+      "hydrated_parts": [
+        "engram",
+        "reflex-capability",
+        "soul"
+      ],
+      "link": "rappid://link/rappid%3A%40synthetic%2Fcard-subject%3A3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7?m=7ee07642a8908cded0fd40fef4de6712420273153cc30df039586845bce3ab3b&e=https%3A%2F%2Ffixtures.invalid%2Fphysical.rappid-card.json&n=continuity-nonce-0001",
+      "mode": "test",
+      "name": "continuity-challenge-failure",
+      "now_utc": "2026-08-21T12:30:00.000Z",
+      "physical": false,
+      "replay_seed": null,
+      "revoked": []
+    },
+    {
+      "connection_id": "fixture-connection",
+      "continuity": {
+        "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+        "nonce": "reconnect-card-nonce-1",
+        "parent": null,
+        "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+        "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819"
+      },
+      "environment": {
+        "features": [
+          "content-hydration/1",
+          "rappid-card-test/1"
+        ],
+        "granted_scope": [
+          "memory-read",
+          "reflex-run"
+        ],
+        "max_classification": "internal",
+        "protocol": "rapp/1",
+        "runtime": "rapp-ref/1"
+      },
+      "expected": {
+        "ok": false,
+        "step": "replay-nonce"
+      },
+      "frame": {
+        "frame_hash": "8938c74b2cb2916e5c4178275b6d17ae8c1b667033aa8a9aeab6275334a5e98c",
+        "kind": "body.debug-card",
+        "payload": {
+          "classification": "public",
+          "compatibility": {
+            "features": [
+              "content-hydration/1",
+              "rappid-card-test/1"
+            ],
+            "protocol": "rapp/1",
+            "runtime": "rapp-ref/1"
+          },
+          "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+          "expires_utc": "2026-09-21T12:00:00.000Z",
+          "inventory": [
+            {
+              "bytes": 74,
+              "hash": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+              "part": "engram",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 67,
+              "hash": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+              "part": "reflex-capability",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 55,
+              "hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+              "part": "soul",
+              "required": true,
+              "space": "rapp/1:egg"
+            }
+          ],
+          "key_id": "rappid:@synthetic/rappid-card-test:ba71c721cbd5605b7e155f20d25efb77fecf935449bfc5bf7849da6d577773c4",
+          "parent": null,
+          "profile": "rappid-card-test/1",
+          "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+          "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+          "requested_scope": [
+            "memory-read"
+          ],
+          "revocation_url": "https://fixtures.invalid/rappid-card-revocations.json",
+          "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+          "wake_challenge": "86319642290396f4a457393a13a6b80aa07b50752f5d936b7422d6fe44aad437"
+        },
+        "payload_hash": "219d9902d11016464744c5f26ee2f1da2c3c721b91aea8c9af79b127b69142c1",
+        "prev": null,
+        "prev_wave": null,
+        "seq": 0,
+        "sig": "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il0sImtpZCI6InJhcHBpZDpAc3ludGhldGljL3JhcHBpZC1jYXJkLXRlc3Q6YmE3MWM3MjFjYmQ1NjA1YjdlMTU1ZjIwZDI1ZWZiNzdmZWNmOTM1NDQ5YmZjNWJmNzg0OWRhNmQ1Nzc3NzNjNCJ9..QJuoaNUYDJAQnXnikk3hrzDA787gbG_9G5RvBXZBOBrgwqnvgfNP4YqRTPdSc07Vymu7jsU-_uBSOHRQsZg6Aw",
+        "spec": "rapp/1",
+        "stream_id": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "utc": "2026-08-21T12:00:00.000Z"
+      },
+      "hydrated_parts": [
+        "engram",
+        "reflex-capability",
+        "soul"
+      ],
+      "link": "rappid://link/rappid%3A%40synthetic%2Fcard-subject%3A3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7?m=219d9902d11016464744c5f26ee2f1da2c3c721b91aea8c9af79b127b69142c1&e=https%3A%2F%2Ffixtures.invalid%2Fphysical.rappid-card.json&n=reconnect-card-nonce-1",
+      "mode": "test",
+      "name": "reconnect-during-hydration",
+      "now_utc": "2026-08-21T12:30:00.000Z",
+      "physical": false,
+      "replay_seed": {
+        "connection_id": "fixture-original-connection",
+        "nonce": "reconnect-card-nonce-1",
+        "state": "hydrating"
+      },
+      "revoked": []
+    },
+    {
+      "connection_id": "fixture-connection",
+      "continuity": {
+        "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+        "nonce": "duplicate-card-nonce-01",
+        "parent": null,
+        "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+        "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819"
+      },
+      "environment": {
+        "features": [
+          "content-hydration/1",
+          "rappid-card-test/1"
+        ],
+        "granted_scope": [
+          "memory-read",
+          "reflex-run"
+        ],
+        "max_classification": "internal",
+        "protocol": "rapp/1",
+        "runtime": "rapp-ref/1"
+      },
+      "expected": {
+        "ok": false,
+        "step": "replay-nonce"
+      },
+      "frame": {
+        "frame_hash": "16cc065030d0169c4295f4dd0faa1da6c0917f22137698a027498d6ca629334d",
+        "kind": "body.debug-card",
+        "payload": {
+          "classification": "public",
+          "compatibility": {
+            "features": [
+              "content-hydration/1",
+              "rappid-card-test/1"
+            ],
+            "protocol": "rapp/1",
+            "runtime": "rapp-ref/1"
+          },
+          "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+          "expires_utc": "2026-09-21T12:00:00.000Z",
+          "inventory": [
+            {
+              "bytes": 74,
+              "hash": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+              "part": "engram",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 67,
+              "hash": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+              "part": "reflex-capability",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 55,
+              "hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+              "part": "soul",
+              "required": true,
+              "space": "rapp/1:egg"
+            }
+          ],
+          "key_id": "rappid:@synthetic/rappid-card-test:ba71c721cbd5605b7e155f20d25efb77fecf935449bfc5bf7849da6d577773c4",
+          "parent": null,
+          "profile": "rappid-card-test/1",
+          "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+          "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+          "requested_scope": [
+            "memory-read"
+          ],
+          "revocation_url": "https://fixtures.invalid/rappid-card-revocations.json",
+          "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+          "wake_challenge": "48b39618460a54bef54709d96c6712eedf8f952e784e914c07ac426a33af5114"
+        },
+        "payload_hash": "dc844cff0b2beb201fedcdd6f264511b03374bf7f75268f77c35bf09c3a08295",
+        "prev": null,
+        "prev_wave": null,
+        "seq": 0,
+        "sig": "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il0sImtpZCI6InJhcHBpZDpAc3ludGhldGljL3JhcHBpZC1jYXJkLXRlc3Q6YmE3MWM3MjFjYmQ1NjA1YjdlMTU1ZjIwZDI1ZWZiNzdmZWNmOTM1NDQ5YmZjNWJmNzg0OWRhNmQ1Nzc3NzNjNCJ9..yoVu7LyHPRe-QrvSQOSYcfSYM9PGqWZiPmpJ7ulMnZpnJRKF8oiAb6aC3KwsnEqX778udQsF0crRcEA6avDoAA",
+        "spec": "rapp/1",
+        "stream_id": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "utc": "2026-08-21T12:00:00.000Z"
+      },
+      "hydrated_parts": [
+        "engram",
+        "reflex-capability",
+        "soul"
+      ],
+      "link": "rappid://link/rappid%3A%40synthetic%2Fcard-subject%3A3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7?m=dc844cff0b2beb201fedcdd6f264511b03374bf7f75268f77c35bf09c3a08295&e=https%3A%2F%2Ffixtures.invalid%2Fphysical.rappid-card.json&n=duplicate-card-nonce-01",
+      "mode": "test",
+      "name": "duplicate-replayed-nonce",
+      "now_utc": "2026-08-21T12:30:00.000Z",
+      "physical": false,
+      "replay_seed": {
+        "connection_id": "fixture-connection",
+        "nonce": "duplicate-card-nonce-01",
+        "state": "awake"
+      },
+      "revoked": []
+    },
+    {
+      "connection_id": "fixture-connection",
+      "continuity": {
+        "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+        "nonce": "physical-card-nonce-01",
+        "parent": null,
+        "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+        "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819"
+      },
+      "environment": {
+        "features": [
+          "content-hydration/1",
+          "rappid-card-test/1"
+        ],
+        "granted_scope": [
+          "memory-read",
+          "reflex-run"
+        ],
+        "max_classification": "internal",
+        "protocol": "rapp/1",
+        "runtime": "rapp-ref/1"
+      },
+      "expected": {
+        "ok": true,
+        "step": null
+      },
+      "frame": {
+        "frame_hash": "168254f29a4d568ef774e72b464a483dd3f584779b9f298dc4ea23aefa33af34",
+        "kind": "body.debug-card",
+        "payload": {
+          "classification": "public",
+          "compatibility": {
+            "features": [
+              "content-hydration/1",
+              "rappid-card-test/1"
+            ],
+            "protocol": "rapp/1",
+            "runtime": "rapp-ref/1"
+          },
+          "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+          "expires_utc": "2026-09-21T12:00:00.000Z",
+          "inventory": [
+            {
+              "bytes": 74,
+              "hash": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+              "part": "engram",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 67,
+              "hash": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+              "part": "reflex-capability",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 55,
+              "hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+              "part": "soul",
+              "required": true,
+              "space": "rapp/1:egg"
+            }
+          ],
+          "key_id": "rappid:@synthetic/rappid-card-test:ba71c721cbd5605b7e155f20d25efb77fecf935449bfc5bf7849da6d577773c4",
+          "parent": null,
+          "profile": "rappid-card-test/1",
+          "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+          "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+          "requested_scope": [
+            "memory-read"
+          ],
+          "revocation_url": "https://fixtures.invalid/rappid-card-revocations.json",
+          "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+          "wake_challenge": "c1c13968eab0983803d172a85b044f33bd9f84c367e4a027e9fa5c0df09d81d2"
+        },
+        "payload_hash": "f18f6518fbeeee7109245857804ad6cc36cddd7f52ff57ed396fd73f4d3bcb27",
+        "prev": null,
+        "prev_wave": null,
+        "seq": 0,
+        "sig": "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il0sImtpZCI6InJhcHBpZDpAc3ludGhldGljL3JhcHBpZC1jYXJkLXRlc3Q6YmE3MWM3MjFjYmQ1NjA1YjdlMTU1ZjIwZDI1ZWZiNzdmZWNmOTM1NDQ5YmZjNWJmNzg0OWRhNmQ1Nzc3NzNjNCJ9..6Y8ZRblGs4mHFjRNslDoxgbpYrfzU80sRJuDhTMfy9wk_Age7-ASvYuD7fcyovDZ0dpIUdAabprgj6y9n6yCDA",
+        "spec": "rapp/1",
+        "stream_id": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "utc": "2026-08-21T12:00:00.000Z"
+      },
+      "hydrated_parts": [
+        "engram",
+        "reflex-capability",
+        "soul"
+      ],
+      "link": "rappid://link/rappid%3A%40synthetic%2Fcard-subject%3A3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7?m=f18f6518fbeeee7109245857804ad6cc36cddd7f52ff57ed396fd73f4d3bcb27&e=https%3A%2F%2Ffixtures.invalid%2Fphysical.rappid-card.json&n=physical-card-nonce-01",
+      "mode": "test",
+      "name": "physical-payload-reproduction",
+      "now_utc": "2026-08-21T12:30:00.000Z",
+      "physical": true,
+      "replay_seed": null,
+      "revoked": []
+    },
+    {
+      "connection_id": "fixture-connection",
+      "continuity": {
+        "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+        "nonce": "test-profile-prod-0001",
+        "parent": null,
+        "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+        "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819"
+      },
+      "environment": {
+        "features": [
+          "content-hydration/1",
+          "rappid-card-test/1"
+        ],
+        "granted_scope": [
+          "memory-read",
+          "reflex-run"
+        ],
+        "max_classification": "internal",
+        "protocol": "rapp/1",
+        "runtime": "rapp-ref/1"
+      },
+      "expected": {
+        "ok": false,
+        "step": "schema"
+      },
+      "frame": {
+        "frame_hash": "d86f98336dc933532c47c92160d8f40da583b44d3f85d3e18fb8f84f214937f7",
+        "kind": "body.debug-card",
+        "payload": {
+          "classification": "public",
+          "compatibility": {
+            "features": [
+              "content-hydration/1",
+              "rappid-card-test/1"
+            ],
+            "protocol": "rapp/1",
+            "runtime": "rapp-ref/1"
+          },
+          "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+          "expires_utc": "2026-09-21T12:00:00.000Z",
+          "inventory": [
+            {
+              "bytes": 74,
+              "hash": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+              "part": "engram",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 67,
+              "hash": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+              "part": "reflex-capability",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 55,
+              "hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+              "part": "soul",
+              "required": true,
+              "space": "rapp/1:egg"
+            }
+          ],
+          "key_id": "rappid:@synthetic/rappid-card-test:ba71c721cbd5605b7e155f20d25efb77fecf935449bfc5bf7849da6d577773c4",
+          "parent": null,
+          "profile": "rappid-card-test/1",
+          "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+          "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+          "requested_scope": [
+            "memory-read"
+          ],
+          "revocation_url": "https://fixtures.invalid/rappid-card-revocations.json",
+          "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+          "wake_challenge": "e6c64a7360f1551019540913c686859c2f57a36dbbba99f303f3b92ecb4910ef"
+        },
+        "payload_hash": "9b3d9f5c6cc75548cbe51f1e665e1d3a5bc9c92d992c01ff247e43f4f2b4e8f7",
+        "prev": null,
+        "prev_wave": null,
+        "seq": 0,
+        "sig": "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il0sImtpZCI6InJhcHBpZDpAc3ludGhldGljL3JhcHBpZC1jYXJkLXRlc3Q6YmE3MWM3MjFjYmQ1NjA1YjdlMTU1ZjIwZDI1ZWZiNzdmZWNmOTM1NDQ5YmZjNWJmNzg0OWRhNmQ1Nzc3NzNjNCJ9..XckUAiHGGPxl78EKKSicEtHL_GOCbkldCQWyio_VTUA4RTZPbJo1-umnlo69zOOyLeoUGP22wP28kMPQoKGuBQ",
+        "spec": "rapp/1",
+        "stream_id": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "utc": "2026-08-21T12:00:00.000Z"
+      },
+      "hydrated_parts": [
+        "engram",
+        "reflex-capability",
+        "soul"
+      ],
+      "link": "rappid://link/rappid%3A%40synthetic%2Fcard-subject%3A3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7?m=9b3d9f5c6cc75548cbe51f1e665e1d3a5bc9c92d992c01ff247e43f4f2b4e8f7&e=https%3A%2F%2Ffixtures.invalid%2Fphysical.rappid-card.json&n=test-profile-prod-0001",
+      "mode": "production",
+      "name": "test-profile-refused-production",
+      "now_utc": "2026-08-21T12:30:00.000Z",
+      "physical": false,
+      "replay_seed": null,
+      "revoked": []
+    },
+    {
+      "connection_id": "fixture-connection",
+      "continuity": {
+        "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+        "nonce": "synthetic-prod-nonce-01",
+        "parent": null,
+        "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+        "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819"
+      },
+      "environment": {
+        "features": [
+          "content-hydration/1",
+          "rappid-card/1"
+        ],
+        "granted_scope": [
+          "memory-read",
+          "reflex-run"
+        ],
+        "max_classification": "internal",
+        "protocol": "rapp/1",
+        "runtime": "rapp-ref/1"
+      },
+      "expected": {
+        "ok": false,
+        "step": "signature"
+      },
+      "frame": {
+        "frame_hash": "b1ff6fa1617c4dd77cf79e568d1654e57d43a7aa9e0569a6cb60c03dba585ba4",
+        "kind": "body.calling-card",
+        "payload": {
+          "classification": "public",
+          "compatibility": {
+            "features": [
+              "content-hydration/1",
+              "rappid-card/1"
+            ],
+            "protocol": "rapp/1",
+            "runtime": "rapp-ref/1"
+          },
+          "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+          "expires_utc": "2026-09-21T12:00:00.000Z",
+          "inventory": [
+            {
+              "bytes": 74,
+              "hash": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+              "part": "engram",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 67,
+              "hash": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+              "part": "reflex-capability",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 55,
+              "hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+              "part": "soul",
+              "required": true,
+              "space": "rapp/1:egg"
+            }
+          ],
+          "key_id": "rappid:@synthetic/rappid-card-test:ba71c721cbd5605b7e155f20d25efb77fecf935449bfc5bf7849da6d577773c4",
+          "parent": null,
+          "profile": "rappid-card/1",
+          "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+          "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+          "requested_scope": [
+            "memory-read"
+          ],
+          "revocation_url": "https://fixtures.invalid/rappid-card-revocations.json",
+          "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+          "wake_challenge": "bcce017ef77e2d364e8849512cce6495e66584e309bc373e8bf8f393b3b741ab"
+        },
+        "payload_hash": "9a39103e4b846d2c340b916988b4d282da8b9bca9720293a8ee396244ef21d16",
+        "prev": null,
+        "prev_wave": null,
+        "seq": 0,
+        "sig": "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il0sImtpZCI6InJhcHBpZDpAc3ludGhldGljL3JhcHBpZC1jYXJkLXRlc3Q6YmE3MWM3MjFjYmQ1NjA1YjdlMTU1ZjIwZDI1ZWZiNzdmZWNmOTM1NDQ5YmZjNWJmNzg0OWRhNmQ1Nzc3NzNjNCJ9..XWmotU7RbrwSp9E5ZIeb0t2AzfnPcN5Wbz0fmCGStoNy4IyNTgCkvYyr69c4oEZmWlKrvqeOSxRB8K52bKy3Dw",
+        "spec": "rapp/1",
+        "stream_id": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "utc": "2026-08-21T12:00:00.000Z"
+      },
+      "hydrated_parts": [
+        "engram",
+        "reflex-capability",
+        "soul"
+      ],
+      "link": "rappid://link/rappid%3A%40synthetic%2Fcard-subject%3A3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7?m=9a39103e4b846d2c340b916988b4d282da8b9bca9720293a8ee396244ef21d16&e=https%3A%2F%2Ffixtures.invalid%2Fphysical.rappid-card.json&n=synthetic-prod-nonce-01",
+      "mode": "production",
+      "name": "synthetic-key-refused-production",
+      "now_utc": "2026-08-21T12:30:00.000Z",
+      "physical": false,
+      "replay_seed": null,
+      "revoked": []
+    },
+    {
+      "connection_id": "fixture-connection",
+      "continuity": {
+        "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+        "nonce": "forbidden-card-nonce-1",
+        "parent": null,
+        "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+        "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819"
+      },
+      "environment": {
+        "features": [
+          "content-hydration/1",
+          "rappid-card-test/1"
+        ],
+        "granted_scope": [
+          "memory-read",
+          "reflex-run"
+        ],
+        "max_classification": "internal",
+        "protocol": "rapp/1",
+        "runtime": "rapp-ref/1"
+      },
+      "expected": {
+        "ok": false,
+        "step": "schema"
+      },
+      "frame": {
+        "frame_hash": "906a6db08d14fe831013462df8c8277f38cc5e4733f7287213c310362b988c75",
+        "kind": "body.debug-card",
+        "payload": {
+          "classification": "public",
+          "compatibility": {
+            "features": [
+              "content-hydration/1",
+              "rappid-card-test/1"
+            ],
+            "protocol": "rapp/1",
+            "runtime": "rapp-ref/1"
+          },
+          "engram_root": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+          "expires_utc": "2026-09-21T12:00:00.000Z",
+          "inventory": [
+            {
+              "bytes": 74,
+              "hash": "d1243d92e8b739e5861d2fa41425ce8dbcfd9bfaa726b4f682a22c5b874b76b9",
+              "part": "engram",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 67,
+              "hash": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+              "part": "reflex-capability",
+              "required": true,
+              "space": "rapp/1:egg"
+            },
+            {
+              "bytes": 55,
+              "hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+              "part": "soul",
+              "required": true,
+              "space": "rapp/1:egg"
+            }
+          ],
+          "key_id": "rappid:@synthetic/rappid-card-test:ba71c721cbd5605b7e155f20d25efb77fecf935449bfc5bf7849da6d577773c4",
+          "parent": null,
+          "profile": "rappid-card-test/1",
+          "rappid": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+          "reflex_capability_root": "55b21a79294664c55dd78afb4700f21466c315a7cf9f6047b3a76b3c00490424",
+          "requested_scope": [
+            "auto-execute"
+          ],
+          "revocation_url": "https://fixtures.invalid/rappid-card-revocations.json",
+          "soul_hash": "5fb61e61bd4886c763d2ae358b7cbc0a11e27c5a2756572665bc33c94224d819",
+          "wake_challenge": "ad1dcfce181b613a5f6507cc2eb0346895069bf5c4ab33334908de17b35d68b4"
+        },
+        "payload_hash": "cb41afc9ed22bbbc454a47c54c93bb41ef2f85d076fd4a0d88c2a6fcbd735457",
+        "prev": null,
+        "prev_wave": null,
+        "seq": 0,
+        "sig": "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il0sImtpZCI6InJhcHBpZDpAc3ludGhldGljL3JhcHBpZC1jYXJkLXRlc3Q6YmE3MWM3MjFjYmQ1NjA1YjdlMTU1ZjIwZDI1ZWZiNzdmZWNmOTM1NDQ5YmZjNWJmNzg0OWRhNmQ1Nzc3NzNjNCJ9..ZtTKyU08z0UPlCq__WNXZfGwhqP1Eyn4a37FFFjj61fp6Wj7XWk0kdv1ZbcNKZDZzGzjZjEBV1A9AowCpLh3AQ",
+        "spec": "rapp/1",
+        "stream_id": "rappid:@synthetic/card-subject:3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7",
+        "utc": "2026-08-21T12:00:00.000Z"
+      },
+      "hydrated_parts": [
+        "engram",
+        "reflex-capability",
+        "soul"
+      ],
+      "link": "rappid://link/rappid%3A%40synthetic%2Fcard-subject%3A3edc8783b43579d59a123b50a00c7faf78963a415eac9f05f80ecc826fc756f7?m=cb41afc9ed22bbbc454a47c54c93bb41ef2f85d076fd4a0d88c2a6fcbd735457&e=https%3A%2F%2Ffixtures.invalid%2Fphysical.rappid-card.json&n=forbidden-card-nonce-1",
+      "mode": "test",
+      "name": "auto-execute-instruction-refused",
+      "now_utc": "2026-08-21T12:30:00.000Z",
+      "physical": false,
+      "replay_seed": null,
+      "revoked": []
+    }
+  ],
+  "virtual_suffix": ".rappid-card.json"
+}

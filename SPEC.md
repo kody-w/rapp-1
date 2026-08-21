@@ -187,7 +187,7 @@ Each mints one fresh tail. The **estate_owner's own** re-anchor record **MUST** 
 |---|---|---|---|
 | `memory` | `memory.chat-turn`, `memory.tool-call`, `memory.save`, `memory.reconstructed` | memory-stream | one organism's life |
 | `swarm`  | `swarm.guidance`, `swarm.echo`, `swarm.telemetry`, `swarm.reconstructed` | swarm-stream | the planetary wire |
-| `body`   | `body.pulse`, `body.twin-pulse`, `body.dimension`, `body.reconstructed`, `body.re-genesis` | body-stream | an organism's biography |
+| `body`   | `body.pulse`, `body.twin-pulse`, `body.dimension`, `body.reconstructed`, `body.calling-card`, `body.debug-card`, `body.re-genesis` | body-stream | an organism's biography |
 Each family also has a `*.re-genesis` kind (`memory.re-genesis`, `swarm.re-genesis`, `body.re-genesis`)
 used only by §12.1. The family is **not** the kind's prefix — it is the §13 registry binding (so
 `body.twin-pulse` is family `body`). Adding a family or event is a new registered `kind` on the **same** envelope (Art. IV), never a
@@ -551,6 +551,209 @@ and its lineage, the way a continuation is proposed for a melody. Such a **propo
 A proposal is deliberately not a conformant `payload` shape (§7.7.4/§7.7.5 close their key sets), so a
 proposal cannot be mistaken for a frame's content by any conformant implementation.
 
+### 7.10 RAPPID Calling Card and Debug Card profile
+A **RAPPID Calling Card** is a signed, content-addressed wake manifest for one canonical RAPPID. A
+**Debug Card** is the same shape under a visibly synthetic test profile. Neither is a new envelope:
+the manifest is the `payload` of an ordinary §7.1 frame, `m` in the compact link is that payload's
+existing §7.3 particle, and the signature is the frame's existing §10 `sig` member. A producer
+**MUST NOT** wrap those eleven fields in a card-specific object, add a twelfth frame key, mint a
+card-specific identity, or introduce another hash space.
+
+The two additive profile bindings are:
+
+| use | frame `kind` | payload `profile` | mode |
+|---|---|---|---|
+| production calling card | `body.calling-card` | **`rappid-card/1`** | production |
+| conformance/debug card | `body.debug-card` | **`rappid-card-test/1`** | test only |
+
+The production and test tokens are intentionally explicit and distinct. Both frames ride the
+subject's body-stream, so `payload.rappid` **MUST** byte-equal `frame.stream_id`, and the complete
+§7.5 frame/chain rules still apply. An endpoint serving a non-genesis card therefore also requires
+the predecessor needed to verify its body-chain; a card never creates a parallel unchained history.
+The registry additions are exactly:
+
+```json
+{"type":"kind","kind":"body.calling-card","family":"body","deprecated":false}
+{"type":"kind","kind":"body.debug-card","family":"body","deprecated":false}
+```
+
+#### 7.10.1 Virtual resource and compact non-secret link
+The virtual resource extension is the literal **`.rappid-card.json`**. Resolving one yields the
+canonical JSON serialization of the eleven-key card frame, not a private manifest envelope. A
+compact card carried by QR, NFC, paper, or another physical medium has exactly this form:
+
+```text
+rappid://link/<percent-encoded-rappid>?m=<manifest-hash>&e=<endpoint>&n=<nonce>
+```
+
+- The authority is the exact string `link`. The path is one §6.1 RAPPID percent-encoded using the
+  canonical [RFC 3986] UTF-8 form (uppercase percent hex; reserved characters encoded).
+- Query members occur exactly once and in canonical order `m`, `e`, `n`; no other member or URI
+  fragment is permitted.
+- `m` is exactly 64 lowercase hex and **MUST** equal both `frame.payload_hash` and
+  `H("rapp/1:particle", frame.payload)`. It is the existing particle space, not a new
+  `rappid-card:*` address.
+- `e` is a percent-encoded HTTPS URL whose path ends `.rappid-card.json`, with a host and no
+  user-info, non-default port, query, or fragment. It locates immutable frame bytes; it is not a
+  second RAPP command endpoint and content addressing means the location is not trusted.
+- `n` is 16–64 unpadded base64url characters. It is a one-time, **non-secret** nonce. It carries no
+  authority by itself and **MUST NOT** be treated as a password or bearer credential.
+
+The URI is deliberately safe to photograph or copy. It **MUST NOT** contain a password, API key,
+cookie, bearer token, private-memory plaintext, or executable instruction; credentials in `e`
+(including user-info or a secret query) are refused.
+
+#### 7.10.2 Exact manifest payload
+The frame `payload` has **exactly** these members; nullable `parent` is how the optional parent is
+represented (the key is never absent):
+
+```json
+{
+  "profile": "rappid-card/1",
+  "rappid": "<§6.1 rappid>",
+  "soul_hash": "<64hex>",
+  "parent": null | {"rappid":"<§6.1 rappid>","particle":"<64hex>"},
+  "engram_root": "<64hex>",
+  "reflex_capability_root": "<64hex>",
+  "compatibility": {
+    "protocol": "rapp/1",
+    "runtime": "<versioned-token>",
+    "features": ["<versioned-token>", "…"]
+  },
+  "classification": "public|internal|confidential|restricted",
+  "requested_scope": ["<lclabel>", "…"],
+  "expires_utc": "<§7.4 utc>",
+  "revocation_url": "<https-url>",
+  "wake_challenge": "<64hex>",
+  "inventory": [
+    {"part":"<lclabel>","space":"rapp/1:egg","hash":"<64hex>",
+     "bytes":<uint53>,"required":<bool>}
+  ],
+  "key_id": "<§6.1 keyed rappid>"
+}
+```
+
+`compatibility.protocol`, `compatibility.runtime`, and every `features[]` value use the versioned
+token grammar `lclabel "/" 1*DIGIT` with a non-zero first digit. `features` and `requested_scope`
+**MUST** each be sorted, duplicate-free arrays. `classification` is ordered from least to most
+restrictive exactly as shown above. `expires_utc` **MUST** be calendar-valid and later than the
+frame's `utc`. `revocation_url` **MUST** be HTTPS with no user-info, query, or fragment and identifies
+the authenticated §13 revocation view checked by §7.10.6.
+
+The payload has no free-form command, credential, cookie, memory, or authorization slot. A producer
+**MUST NOT** put a password, API key, cookie, bearer token, plaintext private memory, `auto-execute`
+instruction, or equivalent material anywhere in the manifest; a consumer **MUST** refuse one even
+if its frame hash and signature verify. Hydrated parts are inert, content-addressed data. Reaching
+`awake` authorizes no automatic execution: capability use remains an explicit local policy decision.
+
+#### 7.10.3 Identity roots and permitted hydration inventory
+`soul_hash`, `engram_root`, and `reflex_capability_root` are addresses of the corresponding octets:
+
+```text
+root = Hb("rapp/1:egg", part_octets)
+```
+
+This reuses §7.7.2/§9's existing octet space. The `inventory` is the complete allow-list of parts a
+card may hydrate. Entries have exactly `{part,space,hash,bytes,required}`, are sorted ascending by
+the UTF-8 bytes of `part`, and contain no duplicate part. `space` is always `"rapp/1:egg"`.
+The three core entries named `soul`, `engram`, and `reflex-capability` **MUST** be present,
+`required:true`, and their hashes **MUST** equal the corresponding signed root. Other entries
+**MAY** be listed and are permitted only at their signed address.
+
+During hydration a consumer **MUST** refuse an unlisted part, a missing required part, a byte-count
+mismatch, or octets whose `Hb(space, octets)` differs from the inventory hash. Private engrams may
+therefore be fetched only after classification/scope policy passes and are never plaintext in the
+link or manifest.
+
+`parent` is `null` or the exact §7.7.5 `{rappid,particle}` pointer and **MUST NOT** name the card's
+own RAPPID. It binds lineage for continuity; it does not create or change identity.
+
+#### 7.10.4 One-time continuity challenge
+Let `continuity` be the exact §4 object:
+
+```json
+{
+  "rappid": "<payload.rappid>",
+  "soul_hash": "<payload.soul_hash>",
+  "parent": "<payload.parent>",
+  "engram_root": "<payload.engram_root>",
+  "reflex_capability_root": "<payload.reflex_capability_root>",
+  "nonce": "<URI n>"
+}
+```
+
+Then:
+
+```text
+payload.wake_challenge = H("rapp/1:particle", continuity)
+```
+
+This again introduces no address space. After hydrating, the runtime constructs the same exact
+object from the state it actually hydrated and the parsed URI nonce. Both the manifest's challenge
+and the hydrated response **MUST** reproduce the same particle; a mismatch is refused. The
+challenge proves continuity of the addressed identity state, not possession of a shared secret.
+
+#### 7.10.5 Signature and test-key separation
+The card frame's `sig` is REQUIRED and follows §10 detached, unencoded JWS, selecting §10's
+`alg:"EdDSA"` alternative (Ed25519) for this profile. `key_id` **MUST** be a
+keyed §6.2 RAPPID, **MUST** equal the JWS protected header's `kid`, and the discovered SPKI **MUST**
+hash back to that RAPPID tail. The signature covers `canonical(frame \ {sig})`, which includes the
+complete manifest payload, its particle, frame metadata, and `key_id`; no nested `signature` member
+is added to the payload.
+
+A test key **MUST** be visibly synthetic: its RAPPID owner is the literal `synthetic` (for example
+`rappid:@synthetic/rappid-card-test:<64hex>`) and local trust metadata marks it synthetic. Test mode
+accepts only `body.debug-card` + `rappid-card-test/1` + a visibly synthetic key. Production mode
+**MUST** refuse the test kind, test profile token, any key marked synthetic, and any key whose RAPPID
+is visibly synthetic — even when the JWS is cryptographically valid. A production calling card
+uses `body.calling-card` + `rappid-card/1` + a non-synthetic key trusted through §10/§13.
+
+#### 7.10.6 Verification and wake order
+A consumer treats the URI, endpoint, frame, manifest, registry result, and hydrated octets as
+untrusted. It **MUST** perform these checks in the exact order below, stop at the first failure, and
+reach `awake` only after all eleven succeed:
+
+1. **Parse untrusted URI:** enforce §7.10.1's exact scheme/authority/path/query grammar, canonical
+   percent encoding, HTTPS virtual endpoint, hash, and nonce forms.
+2. **Content-address match:** recompute the payload particle and require it and
+   `frame.payload_hash` to equal URI `m`. A hostile location cannot substitute another manifest.
+3. **Exact schema:** require the eleven-key §7.1 frame; run §7.5 steps 1–5 including stream and
+   predecessor binding; enforce the exact §7.10.2 payload, profile/kind/mode binding, root/inventory
+   relationships, and prohibited-material rule.
+4. **Signature/key trust:** enforce §7.10.5, including SPKI→RAPPID binding and production refusal of
+   synthetic material.
+5. **Expiry:** require verifier time before `expires_utc`.
+6. **Revocation:** resolve `revocation_url`, authenticate the returned registry/view per §13, and
+   refuse a tombstoned manifest hash, `key_id`, or subject `rappid`. An unavailable or unauthenticated
+   revocation result is failure, never an empty success result.
+7. **Compatibility:** require exact protocol/runtime equality and require every signed feature to
+   be locally supported.
+8. **Classification/scope:** require classification no higher than local policy and every
+   `requested_scope` member explicitly granted.
+9. **Replay nonce:** atomically claim URI `n` in persistent state, bound to the current connection.
+   An already-awake nonce is refused. An interrupted hydration may resume on the same connection;
+   a different connection presenting a nonce already hydrating is a refused reconnect/replay.
+10. **Permitted hydration inventory:** hydrate only §7.10.3's allow-list and verify every required
+    part's count and address. A failed attempt keeps its nonce claim so another connection cannot
+    race the retry.
+11. **Continuity challenge:** reconstruct §7.10.4 from the hydrated state and require the signed
+    challenge to match. Only then mark the nonce `awake` and wake the organism.
+
+Implementations **MUST NOT** move replay, policy, hydration, or continuity earlier to improve
+convenience: the order is the security boundary. In particular, hydration before
+classification/scope can disclose private state, and marking a nonce awake before continuity can
+wake a partial or substituted organism.
+
+#### 7.10.7 Deterministic conformance deck
+The required deterministic deck is `vectors/rappid-card/deck.json`, generated and diff-checked by
+`vectors/rappid-card/generate.py`. It includes: valid, expired, revoked, wrong manifest hash,
+unknown signing key, incompatible runtime/protocol, classification violation, insufficient scope,
+missing engram part, continuity challenge failure, reconnect during hydration, duplicate/replayed
+nonce, test-profile-in-production, synthetic-key-in-production, prohibited auto-execute material,
+and a physical-payload reproduction. `physical.rappid-card.json` is the canonical frame resource;
+`physical-payload.txt` is the exact compact URI. A conformant implementation **MUST** accept the
+positive vectors and refuse each negative vector at its declared ordered step.
+
 ## 8. The Wire (L3)
 All interaction rides one of exactly two forms:
 1. **Synchronous — `POST /chat`, `application/json` both ways.** Request: `user_input` (string, REQUIRED);
@@ -660,10 +863,12 @@ not authorship).
 
 ## 11. Conformance classes
 - **Producer:** emits only §4 JCS/I-JSON bytes, §5 domain-separated full-SHA-256 addresses, §6 rappids
-  minted per §6.2, §7.1 eleven-key frames, §9 `rapp/1-egg` variants — and **no legacy form**.
+  minted per §6.2, §7.1 eleven-key frames, §7.10 cards when emitting wake links, §9 `rapp/1-egg`
+  variants — and **no legacy form**.
 - **Consumer:** runs the full §7.5 checklist (incl. 1a binding), §9.3 egg verification, §10 signature +
-  key-discovery + tombstone checks, canonicalizes legacy ids on read (§6.3), refuses on any failure, never
-  repairs/reparents/rolls back (§7.6).
+  key-discovery + tombstone checks, the ordered §7.10 card gate when resolving a card,
+  canonicalizes legacy ids on read (§6.3), refuses on any failure, never repairs/reparents/rolls back
+  (§7.6).
 - **Router/Mirror:** invents no endpoints (§8), declares subordination to `kody-w/RAPP` (Fed. Const.
   Art. VII), serves only provenance-stamped hash-matching mirrors (Art. VIII).
 
@@ -779,6 +984,10 @@ tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.
   as earlier) and bias UTC-first merges. A consumer **SHOULD** refuse a frame whose `utc` exceeds receipt
   time by >300 s, and adversarial-scope merges **SHOULD** rank by `min(utc, first-seen)`; a bricked stream
   converges by re-genesis (§12.1).
+- **Card disclosure/replay:** a §7.10 URI is public, non-secret data. Its endpoint is untrusted and
+  authenticated by particle+JWS, while classification/scope runs before hydration. Persistent atomic
+  nonce claims prevent duplicate wake and cross-connection hydration races; content-addressed inventory
+  plus the final continuity challenge prevents a partial or substituted body from reaching `awake`.
 
 ## 15. References
 [RFC 2119] [RFC 8174] requirement terms · [RFC 8259] JSON · [RFC 7493] I-JSON · [RFC 8785] JCS ·
@@ -790,6 +999,16 @@ tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.
 ---
 
 ### Revision log
+- **rev-5 · §7.10 addendum (RAPPID Calling Card and Debug Card)** — adds
+  `body.calling-card` and `body.debug-card` as registered body-family payload profiles on the existing
+  eleven-key `rapp/1` frame. Defines the `.rappid-card.json` virtual resource, explicit and distinct
+  `rappid-card/1` / `rappid-card-test/1` tokens, compact non-secret `rappid://link/…` URI, exact signed
+  identity/root/compatibility/classification/scope/expiry/revocation/challenge/inventory/key manifest,
+  production refusal of visibly synthetic test keys, atomic replay and same-connection hydration resume,
+  final continuity-before-awake rule, and deterministic physical/mutation fixtures. **Additive only:**
+  `m` is the existing payload particle, inventory octets use `rapp/1:egg`, the signature is the existing
+  §10 `sig`, and neither the frame key set, `rapp/1` token, RAPPID grammar, canonicalization, nor hash
+  spaces change.
 - **rev-5 · §7.7–§7.9 addendum (dimensional growth, weight, stats)** — profiles how one mint-once organism
   grows: the
   registered `body.dimension` kind and a payload profile for the already-registered `body.reconstructed`

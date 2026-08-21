@@ -243,7 +243,73 @@ frame that does not exist has no bytes, and guessing one would be exactly the li
 built to prevent. The proposal becomes true the only way anything becomes true here: someone appends a
 frame, and a verifier accepts it.
 
+## 5.9 The Calling Card: A Non-Secret Link That Can Wake a Verified Identity
+
+The creature card in §5.8 is a derived view for people. A **RAPPID Calling Card** is a different
+kind of card: a compact link that lets a runtime find, verify, hydrate, and wake one identity. The
+distinction matters. The stat card makes no authority claim; the calling card is signed and its
+one-time wake path is a security boundary.
+
+The physical payload is small enough for QR, NFC, or paper:
+
+```text
+rappid://link/<percent-encoded-rappid>?m=<manifest-hash>&e=<endpoint>&n=<nonce>
+```
+
+Nothing there is a credential. The RAPPID is public identity, `m` is a content address, `e` is an
+untrusted HTTPS location ending `.rappid-card.json`, and `n` is a public one-time nonce. Photograph
+the card and you have learned no password, API key, cookie, bearer token, or private memory.
+
+Following `e` does not reveal a new card protocol. It returns the same eleven-key frame this chapter
+has used all along. A production frame has `kind: "body.calling-card"` and its payload says
+`profile: "rappid-card/1"`. The payload is the signed manifest; `m` equals its ordinary
+`H("rapp/1:particle", payload)` address; the signature is the frame's ordinary `sig`. The frame's
+`stream_id` and the manifest's `rappid` are the same mint-once identity. No wrapper, twelfth key,
+new hash tag, or card-specific RAPPID appears.
+
+The manifest binds the facts a wake must not guess: soul hash, optional parent pointer, engram root,
+reflex/capability root, protocol/runtime/feature requirements, classification, requested scope,
+expiry, revocation location, one-time continuity challenge, hydration inventory, and signing key
+id. Its inventory is an allow-list of content-addressed parts. `soul`, `engram`, and
+`reflex-capability` are required, and each is addressed in the existing `rapp/1:egg` octet space.
+The manifest can name private engrams by hash; it cannot carry their plaintext.
+
+Verification is intentionally sequential:
+
+1. parse the untrusted URI;
+2. match `m` to the manifest particle;
+3. enforce the exact frame and payload schemas;
+4. verify the detached JWS and its SPKI-to-RAPPID binding;
+5. check expiry;
+6. check the authenticated revocation location;
+7. satisfy protocol/runtime/features;
+8. satisfy classification and requested scope;
+9. atomically claim the one-time nonce;
+10. hydrate only the signed inventory and verify every byte count and hash;
+11. answer the continuity challenge from what was actually hydrated.
+
+Only then is the result `awake`. That order keeps policy before disclosure and continuity before
+wake. A missing engram fails rather than producing a plausible partial organism. A nonce that
+already woke fails as replay. If hydration is interrupted, the original connection may resume its
+atomic nonce claim; another connection may not take it over.
+
+The final challenge is not a shared secret. It is the particle of the exact object containing the
+RAPPID, soul hash, parent, both state roots, and URI nonce. The runtime reconstructs that object from
+the body it hydrated. Matching it proves that the addressed identity and the hydrated identity are
+continuous. It does not grant permission to execute anything: `awake` means verification completed,
+not "run instructions found in data."
+
+Debug cards use the same mechanics under `kind: "body.debug-card"` and the explicit
+`rappid-card-test/1` token. Their key IDs visibly begin `rappid:@synthetic/`, and trust metadata marks
+them synthetic. Test mode requires that combination; production refuses the debug kind, test token,
+and synthetic key even if the signature is mathematically perfect. That refusal is what keeps a
+green fixture from becoming a production root of trust.
+
+Run `examples/05_rappid_card.py` to reproduce the committed physical URI, verify its canonical
+frame and Ed25519 signature, hydrate its three parts, reach `awake`, and watch the second
+presentation of the same nonce fail.
+
 The frame, then, is a small object with a large discipline: eleven closed fields, two recomputed
 addresses, a six-step verify, a lawful path to converge even the immutable, and room for a thing to
-grow up, put on weight, and be dealt as a card you can check — all inside one unchanging name. Next,
-how frames travel: the wire.
+grow up, put on weight, be dealt as a stat card, and wake from a signed calling card — all inside one
+unchanging name. Next, how frames travel: the wire.

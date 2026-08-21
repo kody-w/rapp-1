@@ -7,6 +7,7 @@ Exit 0 = all vectors pass.
 import json
 import urllib.request
 import hashlib
+import base64
 import os
 import tempfile
 import rapp as R
@@ -528,6 +529,231 @@ check("V24 …and only now is there a weight, measured rather than predicted",
       GROWN["total_weight_bytes"] == CARD["total_weight_bytes"] + R.frame_weight(realized))
 check("V24 growing the card changed no identity",
       GROWN["rappid"] == CARD["rappid"] == ORG and GROWN["species"] == CARD["species"])
+
+print()
+print("=" * 70)
+print("§7.10 — RAPPID Calling Card and Debug Card profile")
+print("=" * 70)
+
+VECTOR_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vectors", "rappid-card")
+with open(os.path.join(VECTOR_DIR, "deck.json"), encoding="utf-8") as handle:
+    CARD_DECK = json.load(handle)
+CARD_PARTS = {
+    name: base64.b64decode(octets)
+    for name, octets in CARD_DECK["parts_b64"].items()
+}
+CARD_TRUST = {
+    entry["kid"]: {
+        "spki_der": base64.b64decode(entry["spki_der_b64"]),
+        "synthetic": entry["synthetic"],
+    }
+    for entry in CARD_DECK["trust"]
+}
+
+# V25 proves the stdlib crypto path against RFC 8032 rather than trusting fixtures
+# produced by this same implementation.
+RFC8032_SEED = bytes.fromhex(
+    "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60")
+RFC8032_PUBLIC = bytes.fromhex(
+    "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a")
+RFC8032_SIGNATURE = bytes.fromhex(
+    "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e06522490155"
+    "5fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b")
+check("V25 stdlib Ed25519 public-key derivation matches RFC 8032",
+      R.ed25519_public_key(RFC8032_SEED) == RFC8032_PUBLIC)
+check("V25 stdlib Ed25519 signing matches RFC 8032 byte-for-byte",
+      R.ed25519_sign(RFC8032_SEED, b"") == RFC8032_SIGNATURE)
+check("V25 stdlib Ed25519 verification accepts the RFC 8032 vector",
+      R.ed25519_verify(RFC8032_PUBLIC, b"", RFC8032_SIGNATURE))
+mutated_signature = bytes([RFC8032_SIGNATURE[0] ^ 1]) + RFC8032_SIGNATURE[1:]
+check("V25 a one-bit Ed25519 signature mutation is refused",
+      not R.ed25519_verify(RFC8032_PUBLIC, b"", mutated_signature))
+
+check("V25 production and test card tokens are explicit and distinct",
+      R.CARD_PROFILE == "rappid-card/1"
+      and R.CARD_TEST_PROFILE == "rappid-card-test/1"
+      and R.CARD_PROFILE != R.CARD_TEST_PROFILE)
+check("V25 the virtual resource suffix is .rappid-card.json",
+      R.CARD_VIRTUAL_SUFFIX == ".rappid-card.json")
+check("V25 card kinds are additive body-family registry entries",
+      all(set(entry) == {"type", "kind", "family", "deprecated"}
+          and entry["family"] == "body" and entry["deprecated"] is False
+          for entry in R.CARD_REGISTRY_KIND_ENTRIES))
+
+
+def run_card_vector(vector):
+    frame = vector["frame"]
+    cache = R.CardReplayCache()
+    replay_seed = vector["replay_seed"]
+    if replay_seed is not None:
+        cache.seed(replay_seed["nonce"], replay_seed["connection_id"], replay_seed["state"])
+    hydrated = {part: CARD_PARTS[part] for part in vector["hydrated_parts"]}
+    revocations = {frame["payload"]["revocation_url"]: vector["revoked"]}
+    return R.verify_card_link(
+        vector["link"],
+        frame,
+        CARD_TRUST,
+        vector["now_utc"],
+        revocations,
+        vector["environment"],
+        cache,
+        vector["connection_id"],
+        hydrated,
+        vector["continuity"],
+        mode=vector["mode"],
+    )
+
+
+# V26 is the required deterministic fixture deck. Every negative vector is a fully
+# content-addressed and (where applicable) re-signed mutation, so it reaches the named
+# check instead of being caught accidentally by an earlier broken hash.
+CARD_RESULTS = {}
+for vector in CARD_DECK["vectors"]:
+    verdict = run_card_vector(vector)
+    CARD_RESULTS[vector["name"]] = verdict
+    expected = vector["expected"]
+    matches = verdict[0] is expected["ok"] and verdict[1] == expected["step"]
+    check(f"V26 card fixture: {vector['name']}", matches,
+          f"expected {expected}, got ok={verdict[0]} step={verdict[1]} reason={verdict[2]}")
+
+required_card_vectors = {
+    "valid", "expired", "revoked", "wrong-manifest-hash", "unknown-signing-key",
+    "incompatible-runtime-protocol", "classification-violation", "insufficient-scope",
+    "missing-engram-part", "continuity-challenge-failure", "reconnect-during-hydration",
+    "duplicate-replayed-nonce", "physical-payload-reproduction",
+}
+check("V26 the fixture deck contains every required named scenario",
+      required_card_vectors <= set(CARD_RESULTS))
+check("V26 every refusal occurs at its normative ordered step",
+      all(result[1] == vector["expected"]["step"]
+          for vector in CARD_DECK["vectors"]
+          for result in [CARD_RESULTS[vector["name"]]]))
+
+# V27 reproduces the physical payload from committed bytes. The endpoint resource is
+# canonical JSON for one ordinary frame; m is its existing particle, not a card-private hash.
+with open(os.path.join(VECTOR_DIR, "physical.rappid-card.json"), "rb") as handle:
+    PHYSICAL_FRAME_OCTETS = handle.read()
+with open(os.path.join(VECTOR_DIR, "physical-payload.txt"), "rb") as handle:
+    PHYSICAL_LINK_OCTETS = handle.read()
+PHYSICAL_VECTOR = next(vector for vector in CARD_DECK["vectors"] if vector["physical"])
+PHYSICAL_FRAME = R.read_card_resource(PHYSICAL_FRAME_OCTETS)
+PHYSICAL_LINK = PHYSICAL_LINK_OCTETS.decode("utf-8").rstrip("\n")
+PHYSICAL_PARSED = R.parse_card_link(PHYSICAL_LINK)
+check("V27 physical manifest fixture is the canonical eleven-key frame bytes",
+      PHYSICAL_FRAME_OCTETS == R.canonical(PHYSICAL_FRAME).encode("utf-8")
+      and set(PHYSICAL_FRAME) == R.FRAME_KEYS)
+check("V27 physical payload fixture reproduces the canonical compact URI",
+      PHYSICAL_LINK == PHYSICAL_VECTOR["link"]
+      == R.build_card_link(
+          PHYSICAL_FRAME, PHYSICAL_PARSED["endpoint"], PHYSICAL_PARSED["nonce"]))
+check("V27 URI m is exactly the manifest payload's rapp/1 particle",
+      PHYSICAL_PARSED["manifest_hash"] == PHYSICAL_FRAME["payload_hash"]
+      == R.H("rapp/1:particle", PHYSICAL_FRAME["payload"]))
+check("V27 URI carries no secret material",
+      all(word not in PHYSICAL_LINK.lower() for word in
+          ("password", "api_key", "apikey", "cookie", "bearer", "private-memory",
+           "auto-execute")))
+check("V27 manifest has only the normative signed fields and no secret slot",
+      set(PHYSICAL_FRAME["payload"]) == R.CARD_PAYLOAD_KEYS
+      and not R._forbidden_card_material(PHYSICAL_FRAME["payload"]))
+
+# V28 mutations are made independently of deck generation and re-sealed where needed.
+# If schema/signature gates are weakened, these checks turn red.
+def reseal_card_payload(payload):
+    frame = R.build_frame(
+        PHYSICAL_FRAME["kind"], PHYSICAL_FRAME["stream_id"], PHYSICAL_FRAME["seq"],
+        PHYSICAL_FRAME["utc"], payload, prev=PHYSICAL_FRAME["prev"])
+    frame = R.sign_frame_eddsa(frame, payload["key_id"], RFC8032_SEED)
+    return frame, R.build_card_link(
+        frame, PHYSICAL_PARSED["endpoint"], PHYSICAL_PARSED["nonce"])
+
+
+def verify_physical_mutation(frame, link):
+    return R.verify_card_link(
+        link,
+        frame,
+        CARD_TRUST,
+        PHYSICAL_VECTOR["now_utc"],
+        {frame["payload"]["revocation_url"]: []},
+        PHYSICAL_VECTOR["environment"],
+        R.CardReplayCache(),
+        "mutation-connection",
+        CARD_PARTS,
+        R.card_continuity(frame["payload"], PHYSICAL_PARSED["nonce"]),
+        mode="test",
+    )
+
+
+tampered_content = dict(PHYSICAL_FRAME)
+tampered_content["payload"] = dict(PHYSICAL_FRAME["payload"], classification="internal")
+ok, step, _, _ = verify_physical_mutation(tampered_content, PHYSICAL_LINK)
+check("V28 an unsealed manifest mutation fails at content-address",
+      (not ok) and step == "content-address")
+
+tampered_jws = dict(PHYSICAL_FRAME)
+protected, detached, signature = tampered_jws["sig"].split(".")
+signature = ("A" if signature[0] != "A" else "B") + signature[1:]
+tampered_jws["sig"] = ".".join((protected, detached, signature))
+ok, step, _, _ = verify_physical_mutation(tampered_jws, PHYSICAL_LINK)
+check("V28 a signature mutation fails at signature",
+      (not ok) and step == "signature")
+
+for forbidden_name, mutate in (
+        ("password", lambda p: dict(p, password="fixture-secret")),
+        ("API key", lambda p: dict(p, api_key="fixture-secret")),
+        ("cookie", lambda p: dict(p, cookie="session=fixture")),
+        ("bearer token", lambda p: dict(p, authorization="Bearer fixture")),
+        ("plaintext private memory", lambda p: dict(p, **{"private-memory": "fixture"})),
+        ("auto-execute instruction",
+         lambda p: dict(p, requested_scope=["auto-execute"]))):
+    forbidden_frame, forbidden_link = reseal_card_payload(mutate(dict(PHYSICAL_FRAME["payload"])))
+    ok, step, _, _ = verify_physical_mutation(forbidden_frame, forbidden_link)
+    check(f"V28 manifest {forbidden_name} mutation is refused",
+          (not ok) and step == "schema")
+
+optional_core = dict(PHYSICAL_FRAME["payload"])
+optional_core["inventory"] = [
+    dict(entry, required=False) if entry["part"] == "engram" else dict(entry)
+    for entry in optional_core["inventory"]
+]
+optional_frame, optional_link = reseal_card_payload(optional_core)
+ok, step, _, _ = verify_physical_mutation(optional_frame, optional_link)
+check("V28 a core engram marked optional is refused",
+      (not ok) and step == "schema")
+
+valid_once = next(vector for vector in CARD_DECK["vectors"] if vector["name"] == "valid")
+valid_cache = R.CardReplayCache()
+valid_hydration = {part: CARD_PARTS[part] for part in valid_once["hydrated_parts"]}
+valid_revocations = {valid_once["frame"]["payload"]["revocation_url"]: []}
+first = R.verify_card_link(
+    valid_once["link"], valid_once["frame"], CARD_TRUST, valid_once["now_utc"],
+    valid_revocations, valid_once["environment"], valid_cache,
+    valid_once["connection_id"], valid_hydration, valid_once["continuity"], mode="test")
+second = R.verify_card_link(
+    valid_once["link"], valid_once["frame"], CARD_TRUST, valid_once["now_utc"],
+    valid_revocations, valid_once["environment"], valid_cache,
+    valid_once["connection_id"], valid_hydration, valid_once["continuity"], mode="test")
+check("V28 a nonce awakens exactly once under real persisted replay state",
+      first[0] and not second[0] and second[1] == "replay-nonce")
+
+resume_vector = next(
+    vector for vector in CARD_DECK["vectors"] if vector["name"] == "missing-engram-part")
+resume_cache = R.CardReplayCache()
+resume_revocations = {resume_vector["frame"]["payload"]["revocation_url"]: []}
+interrupted = R.verify_card_link(
+    resume_vector["link"], resume_vector["frame"], CARD_TRUST, resume_vector["now_utc"],
+    resume_revocations, resume_vector["environment"], resume_cache,
+    resume_vector["connection_id"],
+    {part: CARD_PARTS[part] for part in resume_vector["hydrated_parts"]},
+    resume_vector["continuity"], mode="test")
+resume_cache = R.CardReplayCache(resume_cache.snapshot())
+resumed = R.verify_card_link(
+    resume_vector["link"], resume_vector["frame"], CARD_TRUST, resume_vector["now_utc"],
+    resume_revocations, resume_vector["environment"], resume_cache,
+    resume_vector["connection_id"], CARD_PARTS,
+    resume_vector["continuity"], mode="test")
+check("V28 interrupted hydration resumes only on the original connection",
+      (not interrupted[0]) and interrupted[1] == "hydration" and resumed[0])
 
 print()
 print("=" * 70)

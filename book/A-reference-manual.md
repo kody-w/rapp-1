@@ -118,6 +118,26 @@ as capability. `format_weight(n)` → `"2.4 KiB"` is presentation over the exact
 | MUST NOT | a display height in any payload/hash/identifier; a stat block treated as a frame or as identity; a stat inferred when it is unresolved |
 | proposals | `propose_next()` autocompletes the next dimension from traits/lineage; marked `authoritative: false`, carries its basis particle, projects **no** weight, mutates nothing, and counts only once appended and verified |
 
+**RAPPID Calling Card / Debug Card (§7.10)** — a signed wake manifest on the same frame.
+
+| item | rule |
+|------|------|
+| production | `kind:"body.calling-card"` + `payload.profile:"rappid-card/1"` + non-synthetic trusted key |
+| test | `kind:"body.debug-card"` + `payload.profile:"rappid-card-test/1"` + visibly synthetic `rappid:@synthetic/*` key; always refused in production mode |
+| virtual resource | path ends `.rappid-card.json`; resource is the ordinary eleven-key frame, not a wrapper |
+| compact link | `rappid://link/<percent-encoded-rappid>?m=<64hex>&e=<https-endpoint>&n=<nonce>`; query order exact; URI is non-secret |
+| `m` | frame `payload_hash` = `H("rapp/1:particle", payload)`; no card-specific hash space |
+| signature | required §10 detached JWS with the card profile's `alg:"EdDSA"` (Ed25519); payload `key_id` = protected-header `kid` |
+| payload | exactly `profile, rappid, soul_hash, parent, engram_root, reflex_capability_root, compatibility, classification, requested_scope, expires_utc, revocation_url, wake_challenge, inventory, key_id` |
+| inventory | sorted exact refs `{part,space:"rapp/1:egg",hash,bytes,required}`; required `soul`, `engram`, `reflex-capability`; unlisted/missing/mismatching parts refused |
+| challenge | `H("rapp/1:particle", {rappid,soul_hash,parent,engram_root,reflex_capability_root,nonce})`, recomputed from hydrated state |
+| forbidden | password, API key, cookie, bearer token, plaintext private memory, auto-execute instruction in URI/manifest; `awake` never authorizes execution |
+| verify order | parse → content address → exact schema → signature/key trust → expiry → revocation → compatibility → classification/scope → atomic replay claim → permitted hydration → continuity → `awake` |
+| reconnect/replay | interrupted hydration resumes only on the original connection; another connection or an already-awake nonce is refused |
+
+Registry (§13.3): additive body-family entries for `body.calling-card` and `body.debug-card`.
+Deterministic fixtures and a physical URI/frame reproduction live in `vectors/rappid-card/`.
+
 ## A.5 The Wire (§8)
 
 - `POST /chat` with `{user_input, session_id?, conversation_history?}` →
@@ -152,7 +172,7 @@ as capability. `format_weight(n)` → `"2.4 KiB"` is presentation over the exact
 
 - **Conformance classes (§11):** an implementation conforms when it produces and rejects exactly
   the `conformance.py` vectors (V1–V9 primitives, V10–V14 dimensional growth, V15–V20 weight,
-  V21–V24 stats and proposals) and honors the §7.5 checklist.
+  V21–V24 stats and proposals, V25–V28 RAPPID cards) and honors the §7.5/§7.10 checklists.
 - **Versioning (§12):** one **living standard**; `rapp/1` never denotes two shapes. Change the one
   spec and migrate (no second `rapp/1`). Published content-addressed artifacts are immutable.
 - **No legacy (§12 / Fed. Const. Art. III):** converge and delete; a legacy form encountered is a
@@ -167,8 +187,10 @@ as capability. `format_weight(n)` → `"2.4 KiB"` is presentation over the exact
 `rapp.py` (stdlib only) implements A.1–A.4: `canonical`, `H`/`Hb`, `mint_rappid`/`rappid_valid`,
 `build_frame`/`verify_frame`, and §7.7's `media_ref`/`traits_snapshot`/`build_dimension_frame`/
 `build_growth_frame`/`fold_body_stream`/`inherit`, plus §7.8's `weigh` and §7.9's
-`stat_block`/`propose_next`. `conformance.py` runs V1–V24. `realcheck.py` runs the whole thing
-against the live estate. Read `rapp.py` — it is the spec made executable.
+`stat_block`/`propose_next`, and §7.10's Ed25519/JWS, card URI/manifest builders,
+`read_card_resource`, `CardReplayCache`, and ordered `verify_card_link`. `conformance.py` runs
+V1–V28. `realcheck.py` runs the whole thing against the live estate. Read `rapp.py` — it is the
+spec made executable.
 
 ## A.10 Normative References
 

@@ -1,6 +1,6 @@
 """rapp.py — reference implementation of the RAPP protocol suite (rev-5).
 
-Stdlib only (json, hashlib, uuid, re, base64). Implements the primitives that the
+Stdlib only. Implements the primitives that the
 spec claims are byte-for-byte interoperable, so the conformance suite can PROVE the
 standard is implementable and self-consistent — and so it can be run against real
 estate artifacts to see where reality conforms and where reality is the drift RAPP fixes.
@@ -10,11 +10,14 @@ array/object domain (no floats) — exactly the profile RAPP §4 allows for payl
 Full IEEE-754 number serialization (RFC 8785) is the production requirement; the
 reference vectors use exact-integer payloads so the hashes are reproducible anywhere.
 """
+import base64
+import datetime
 import hashlib
+import io
 import json
 import re
+import urllib.parse
 import uuid
-import io
 import zipfile
 
 SPEC = "rapp/1"
@@ -66,7 +69,7 @@ def mint_rappid(owner, slug, spki_der=None):
     return f"rappid:@{owner}/{slug}:{tail}"
 
 def rappid_valid(s):
-    return bool(_RAPPID.match(s))
+    return isinstance(s, str) and bool(_RAPPID.match(s))
 
 
 # ---------- §7 the frame ----------
@@ -848,6 +851,798 @@ def build_growth_frame(rappid, seq, utc, stage, state, species=_CARRY, sources=N
                "sources": source_list(sources or []),
                "parent": None if parent is None else dict(parent)}
     return build_frame(BODY_RECONSTRUCTED, rappid, seq, utc, payload, prev=prev, sig=sig)
+
+
+# ---------- §7.10 RAPPID Calling Card and Debug Card profile ----------
+# A card is not a second envelope. Its signed manifest is the payload of an ordinary
+# eleven-key body frame, its address is that frame's particle, and its signature is the
+# existing §10 `sig` member. The URI is only a compact, non-secret fetch instruction.
+
+CARD_PROFILE = "rappid-card/1"
+CARD_TEST_PROFILE = "rappid-card-test/1"
+CARD_VIRTUAL_SUFFIX = ".rappid-card.json"
+CARD_CALLING = "body.calling-card"
+CARD_DEBUG = "body.debug-card"
+CARD_REGISTRY_KIND_ENTRIES = (
+    {"type": "kind", "kind": CARD_CALLING, "family": "body", "deprecated": False},
+    {"type": "kind", "kind": CARD_DEBUG, "family": "body", "deprecated": False},
+)
+
+CARD_PAYLOAD_KEYS = {
+    "profile", "rappid", "soul_hash", "parent", "engram_root",
+    "reflex_capability_root", "compatibility", "classification",
+    "requested_scope", "expires_utc", "revocation_url", "wake_challenge",
+    "inventory", "key_id",
+}
+CARD_COMPATIBILITY_KEYS = {"protocol", "runtime", "features"}
+CARD_INVENTORY_KEYS = {"part", "space", "hash", "bytes", "required"}
+CARD_CONTINUITY_KEYS = {
+    "rappid", "soul_hash", "parent", "engram_root",
+    "reflex_capability_root", "nonce",
+}
+CARD_ENVIRONMENT_KEYS = {
+    "protocol", "runtime", "features", "max_classification", "granted_scope",
+}
+CARD_CLASSIFICATIONS = ("public", "internal", "confidential", "restricted")
+CARD_REQUIRED_PARTS = ("engram", "reflex-capability", "soul")
+CARD_VERIFY_STEPS = (
+    "parse", "content-address", "schema", "signature", "expiry", "revocation",
+    "compatibility", "classification-scope", "replay-nonce", "hydration",
+    "continuity",
+)
+
+_CARD_PROFILE_TOKEN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*/[1-9][0-9]*$")
+_CARD_NONCE = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
+_CARD_CONNECTION = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
+_ED25519_SPKI_PREFIX = bytes.fromhex("302a300506032b6570032100")
+_JWS_HEADER_KEYS = {"alg", "b64", "crit", "kid"}
+
+
+# RFC 8032 Ed25519, expressed with Python integers so the reference remains stdlib-only.
+# It is interoperable and vector-tested, but production signers should use constant-time
+# platform crypto or an HSM rather than this clarity-first implementation.
+_ED_Q = 2**255 - 19
+_ED_L = 2**252 + 27742317777372353535851937790883648493
+_ED_D = (-121665 * pow(121666, _ED_Q - 2, _ED_Q)) % _ED_Q
+_ED_I = pow(2, (_ED_Q - 1) // 4, _ED_Q)
+_ED_IDENTITY = (0, 1, 1, 0)
+
+
+def _ed_xrecover(y):
+    xx = (y * y - 1) * pow(_ED_D * y * y + 1, _ED_Q - 2, _ED_Q) % _ED_Q
+    x = pow(xx, (_ED_Q + 3) // 8, _ED_Q)
+    if (x * x - xx) % _ED_Q:
+        x = x * _ED_I % _ED_Q
+    if x & 1:
+        x = _ED_Q - x
+    return x
+
+
+_ED_BY = 4 * pow(5, _ED_Q - 2, _ED_Q) % _ED_Q
+_ED_BX = _ed_xrecover(_ED_BY)
+_ED_BASE = (_ED_BX, _ED_BY, 1, _ED_BX * _ED_BY % _ED_Q)
+
+
+def _ed_add(p, q):
+    x1, y1, z1, t1 = p
+    x2, y2, z2, t2 = q
+    a = (y1 - x1) * (y2 - x2) % _ED_Q
+    b = (y1 + x1) * (y2 + x2) % _ED_Q
+    c = 2 * _ED_D * t1 * t2 % _ED_Q
+    d = 2 * z1 * z2 % _ED_Q
+    e, f, g, h = b - a, d - c, d + c, b + a
+    return (e * f % _ED_Q, h * g % _ED_Q, g * f % _ED_Q, e * h % _ED_Q)
+
+
+def _ed_scalar_mult(point, scalar):
+    result = _ED_IDENTITY
+    addend = point
+    while scalar:
+        if scalar & 1:
+            result = _ed_add(result, addend)
+        addend = _ed_add(addend, addend)
+        scalar >>= 1
+    return result
+
+
+def _ed_encode(point):
+    x, y, z, _ = point
+    inv = pow(z, _ED_Q - 2, _ED_Q)
+    x, y = x * inv % _ED_Q, y * inv % _ED_Q
+    encoded = bytearray(y.to_bytes(32, "little"))
+    encoded[31] |= (x & 1) << 7
+    return bytes(encoded)
+
+
+def _ed_decode(encoded):
+    if not isinstance(encoded, bytes) or len(encoded) != 32:
+        raise ValueError("Ed25519 point must be 32 octets")
+    y = int.from_bytes(encoded, "little") & ((1 << 255) - 1)
+    if y >= _ED_Q:
+        raise ValueError("non-canonical Ed25519 point")
+    x = _ed_xrecover(y)
+    if (x & 1) != (encoded[31] >> 7):
+        x = _ED_Q - x
+    if (-x * x + y * y - 1 - _ED_D * x * x * y * y) % _ED_Q:
+        raise ValueError("point is not on Ed25519")
+    point = (x, y, 1, x * y % _ED_Q)
+    if _ed_encode(point) != encoded:
+        raise ValueError("non-canonical Ed25519 encoding")
+    if _ed_encode(_ed_scalar_mult(point, 8)) == _ed_encode(_ED_IDENTITY):
+        raise ValueError("small-order Ed25519 point")
+    if _ed_encode(_ed_scalar_mult(point, _ED_L)) != _ed_encode(_ED_IDENTITY):
+        raise ValueError("Ed25519 point is outside the prime-order subgroup")
+    return point
+
+
+def _ed_equal(p, q):
+    return ((p[0] * q[2] - q[0] * p[2]) % _ED_Q == 0
+            and (p[1] * q[2] - q[1] * p[2]) % _ED_Q == 0)
+
+
+def ed25519_public_key(seed):
+    """Return the RFC 8032 Ed25519 public key for a 32-octet private seed."""
+    if not isinstance(seed, bytes) or len(seed) != 32:
+        raise ValueError("Ed25519 private seed must be exactly 32 octets")
+    digest = hashlib.sha512(seed).digest()
+    scalar = int.from_bytes(
+        bytes([digest[0] & 248]) + digest[1:31] + bytes([(digest[31] & 63) | 64]),
+        "little",
+    )
+    return _ed_encode(_ed_scalar_mult(_ED_BASE, scalar))
+
+
+def ed25519_sign(seed, message):
+    """RFC 8032 deterministic Ed25519 signature over `message`."""
+    if not isinstance(message, bytes):
+        raise ValueError("Ed25519 message must be bytes")
+    public_key = ed25519_public_key(seed)
+    digest = hashlib.sha512(seed).digest()
+    scalar = int.from_bytes(
+        bytes([digest[0] & 248]) + digest[1:31] + bytes([(digest[31] & 63) | 64]),
+        "little",
+    )
+    nonce = int.from_bytes(hashlib.sha512(digest[32:] + message).digest(), "little") % _ED_L
+    encoded_r = _ed_encode(_ed_scalar_mult(_ED_BASE, nonce))
+    challenge = int.from_bytes(
+        hashlib.sha512(encoded_r + public_key + message).digest(), "little") % _ED_L
+    return encoded_r + ((nonce + challenge * scalar) % _ED_L).to_bytes(32, "little")
+
+
+def ed25519_verify(public_key, message, signature):
+    """Verify an RFC 8032 Ed25519 signature. Invalid inputs return False."""
+    if not (isinstance(public_key, bytes) and isinstance(message, bytes)
+            and isinstance(signature, bytes)):
+        return False
+    if len(public_key) != 32 or len(signature) != 64:
+        return False
+    scalar = int.from_bytes(signature[32:], "little")
+    if scalar >= _ED_L:
+        return False
+    try:
+        public_point = _ed_decode(public_key)
+        r_point = _ed_decode(signature[:32])
+    except ValueError:
+        return False
+    challenge = int.from_bytes(
+        hashlib.sha512(signature[:32] + public_key + message).digest(), "little") % _ED_L
+    return _ed_equal(
+        _ed_scalar_mult(_ED_BASE, scalar),
+        _ed_add(r_point, _ed_scalar_mult(public_point, challenge)),
+    )
+
+
+def ed25519_spki(public_key):
+    """The exact RFC 8410 SubjectPublicKeyInfo DER for a raw Ed25519 public key."""
+    if not isinstance(public_key, bytes) or len(public_key) != 32:
+        raise ValueError("Ed25519 public key must be exactly 32 octets")
+    return _ED25519_SPKI_PREFIX + public_key
+
+
+def ed25519_rappid(owner, slug, public_key):
+    """Mint the §6.2 keyed RAPPID bound to an Ed25519 SPKI."""
+    return mint_rappid(owner, slug, spki_der=ed25519_spki(public_key))
+
+
+def _b64u_encode(octets):
+    return base64.urlsafe_b64encode(octets).rstrip(b"=").decode("ascii")
+
+
+def _b64u_decode(text):
+    if not isinstance(text, str) or not text or "=" in text:
+        raise ValueError("base64url segment must be non-empty and unpadded")
+    try:
+        raw = base64.b64decode(
+            text + "=" * ((4 - len(text) % 4) % 4), altchars=b"-_", validate=True)
+    except (ValueError, UnicodeEncodeError) as ex:
+        raise ValueError("invalid base64url segment") from ex
+    if _b64u_encode(raw) != text:
+        raise ValueError("non-canonical base64url segment")
+    return raw
+
+
+def _json_object_no_duplicates(octets):
+    def pairs(items):
+        obj = {}
+        for key, value in items:
+            if key in obj:
+                raise ValueError(f"duplicate JSON member {key!r}")
+            obj[key] = value
+        return obj
+
+    try:
+        return json.loads(octets.decode("utf-8"), object_pairs_hook=pairs)
+    except (UnicodeDecodeError, json.JSONDecodeError) as ex:
+        raise ValueError("invalid UTF-8 JSON") from ex
+
+
+def sign_frame_eddsa(frame, kid, seed):
+    """Attach a §10 detached, unencoded EdDSA JWS to an eleven-key frame."""
+    if not isinstance(frame, dict) or set(frame.keys()) != FRAME_KEYS:
+        raise ValueError("only an exact eleven-key frame can be signed")
+    public_key = ed25519_public_key(seed)
+    expected = ed25519_rappid(
+        _RAPPID.match(kid).group(1), _RAPPID.match(kid).group(2), public_key
+    ) if rappid_valid(kid) else None
+    if expected != kid:
+        raise ValueError("kid is not the keyed RAPPID of the signing seed")
+    header = {"alg": "EdDSA", "b64": False, "crit": ["b64"], "kid": kid}
+    protected = _b64u_encode(canonical(header).encode("utf-8"))
+    unsigned = {key: value for key, value in frame.items() if key != "sig"}
+    signing_input = protected.encode("ascii") + b"." + canonical(unsigned).encode("utf-8")
+    signed = dict(frame)
+    signed["sig"] = protected + ".." + _b64u_encode(ed25519_sign(seed, signing_input))
+    return signed
+
+
+def _verify_frame_eddsa(frame, trust, mode):
+    sig = frame.get("sig")
+    if not isinstance(sig, str):
+        return False, "card frame sig must be a detached JWS string"
+    parts = sig.split(".")
+    if len(parts) != 3 or parts[1] != "":
+        return False, "sig must use detached compact serialization"
+    try:
+        header_octets = _b64u_decode(parts[0])
+        signature = _b64u_decode(parts[2])
+        header = _json_object_no_duplicates(header_octets)
+    except ValueError as ex:
+        return False, str(ex)
+    if not isinstance(header, dict) or set(header.keys()) != _JWS_HEADER_KEYS:
+        return False, "JWS protected header key set is not §10"
+    if header != {"alg": "EdDSA", "b64": False, "crit": ["b64"],
+                  "kid": frame["payload"]["key_id"]}:
+        return False, "JWS protected header values do not match the card key_id"
+    if header_octets != canonical(header).encode("utf-8"):
+        return False, "JWS protected header is not canonical"
+    entry = trust.get(header["kid"]) if isinstance(trust, dict) else None
+    if not isinstance(entry, dict) or set(entry.keys()) != {"spki_der", "synthetic"}:
+        return False, "unknown signing key"
+    spki = entry["spki_der"]
+    if not isinstance(spki, bytes) or not spki.startswith(_ED25519_SPKI_PREFIX) or len(spki) != 44:
+        return False, "trusted key is not an Ed25519 SPKI"
+    if not isinstance(entry["synthetic"], bool):
+        return False, "trusted key synthetic marker is not boolean"
+    if Hb("rapp/1:rappid", spki) != header["kid"].rsplit(":", 1)[1]:
+        return False, "trusted SPKI does not bind the key_id"
+    visibly_synthetic = header["kid"].startswith("rappid:@synthetic/")
+    if mode == "production" and (entry["synthetic"] or visibly_synthetic):
+        return False, "synthetic test key refused in production mode"
+    if mode == "test" and (not entry["synthetic"] or not visibly_synthetic):
+        return False, "test profile requires a visibly synthetic key"
+    unsigned = {key: value for key, value in frame.items() if key != "sig"}
+    signing_input = parts[0].encode("ascii") + b"." + canonical(unsigned).encode("utf-8")
+    if not ed25519_verify(spki[len(_ED25519_SPKI_PREFIX):], signing_input, signature):
+        return False, "Ed25519 signature verification failed"
+    return True, "ok"
+
+
+def card_inventory(parts, required_parts=CARD_REQUIRED_PARTS):
+    """Build the signed, content-addressed hydration inventory from named octets."""
+    if not isinstance(parts, dict):
+        raise ValueError("card parts must be an object of part name to octets")
+    required = set(required_parts)
+    if not required <= set(parts):
+        raise ValueError(f"missing required card part(s): {sorted(required - set(parts))}")
+    inventory = []
+    for part in sorted(parts, key=lambda value: value.encode("utf-8")):
+        octets = parts[part]
+        if not _lclabel(part):
+            raise ValueError(f"card part is not an lclabel: {part!r}")
+        if not isinstance(octets, bytes):
+            raise ValueError(f"card part {part!r} must be bytes")
+        inventory.append({
+            "part": part, "space": MEDIA_SPACE, "hash": Hb(MEDIA_SPACE, octets),
+            "bytes": len(octets), "required": part in required,
+        })
+    return inventory
+
+
+def card_continuity(payload, nonce):
+    """The exact continuity value challenged after hydration."""
+    return {
+        "rappid": payload["rappid"],
+        "soul_hash": payload["soul_hash"],
+        "parent": payload["parent"],
+        "engram_root": payload["engram_root"],
+        "reflex_capability_root": payload["reflex_capability_root"],
+        "nonce": nonce,
+    }
+
+
+def card_wake_challenge(payload, nonce):
+    """Bind the one-time URI nonce to the identity and every hydrated root."""
+    if not isinstance(nonce, str) or not _CARD_NONCE.match(nonce):
+        raise ValueError("card nonce must be 16-64 base64url characters")
+    return H("rapp/1:particle", card_continuity(payload, nonce))
+
+
+def build_card_manifest(profile, rappid, key_id, nonce, parts, compatibility,
+                        classification, requested_scope, expires_utc, revocation_url,
+                        parent=None, required_parts=CARD_REQUIRED_PARTS):
+    """Build a §7.10 manifest payload; no secret or executable field exists."""
+    if not set(CARD_REQUIRED_PARTS) <= set(required_parts):
+        raise ValueError("soul, engram, and reflex-capability must all be required")
+    inventory = card_inventory(parts, required_parts=required_parts)
+    by_part = {entry["part"]: entry for entry in inventory}
+    payload = {
+        "profile": profile,
+        "rappid": rappid,
+        "soul_hash": by_part["soul"]["hash"],
+        "parent": None if parent is None else dict(parent),
+        "engram_root": by_part["engram"]["hash"],
+        "reflex_capability_root": by_part["reflex-capability"]["hash"],
+        "compatibility": {
+            "protocol": compatibility["protocol"],
+            "runtime": compatibility["runtime"],
+            "features": sorted(set(compatibility["features"])),
+        },
+        "classification": classification,
+        "requested_scope": sorted(set(requested_scope)),
+        "expires_utc": expires_utc,
+        "revocation_url": revocation_url,
+        "wake_challenge": None,
+        "inventory": inventory,
+        "key_id": key_id,
+    }
+    payload["wake_challenge"] = card_wake_challenge(payload, nonce)
+    return payload
+
+
+def build_card_frame(rappid, seq, utc, manifest, seed, prev=None):
+    """Build and sign a calling-card or synthetic debug-card body frame."""
+    profile = manifest.get("profile")
+    if profile == CARD_PROFILE:
+        kind = CARD_CALLING
+    elif profile == CARD_TEST_PROFILE:
+        kind = CARD_DEBUG
+    else:
+        raise ValueError(f"unknown card profile: {profile!r}")
+    frame = build_frame(kind, rappid, seq, utc, manifest, prev=prev)
+    return sign_frame_eddsa(frame, manifest["key_id"], seed)
+
+
+def _card_https_url(value, suffix=None):
+    if not isinstance(value, str):
+        return False
+    try:
+        parsed = urllib.parse.urlsplit(value)
+        port = parsed.port
+    except ValueError:
+        return False
+    return (
+        parsed.scheme == "https"
+        and bool(parsed.hostname)
+        and parsed.username is None
+        and parsed.password is None
+        and port in (None, 443)
+        and not parsed.query
+        and not parsed.fragment
+        and (suffix is None or parsed.path.endswith(suffix))
+    )
+
+
+def build_card_link(frame, endpoint, nonce):
+    """Emit the canonical compact, non-secret `rappid://link/…` URI."""
+    if not isinstance(frame, dict) or set(frame.keys()) != FRAME_KEYS:
+        raise ValueError("card link requires an exact eleven-key frame")
+    if not _card_https_url(endpoint, CARD_VIRTUAL_SUFFIX):
+        raise ValueError(f"card endpoint must be an HTTPS *{CARD_VIRTUAL_SUFFIX} URL")
+    if not isinstance(nonce, str) or not _CARD_NONCE.match(nonce):
+        raise ValueError("card nonce must be 16-64 base64url characters")
+    rappid = frame["payload"].get("rappid")
+    if not rappid_valid(rappid):
+        raise ValueError("card payload does not carry a canonical RAPPID")
+    return (
+        "rappid://link/" + urllib.parse.quote(rappid, safe="")
+        + "?m=" + frame["payload_hash"]
+        + "&e=" + urllib.parse.quote(endpoint, safe="")
+        + "&n=" + nonce
+    )
+
+
+def parse_card_link(uri):
+    """Parse an untrusted card URI and return its four non-secret values."""
+    if not isinstance(uri, str):
+        raise ValueError("card URI must be a string")
+    parsed = urllib.parse.urlsplit(uri)
+    if parsed.scheme != "rappid" or parsed.netloc != "link" or parsed.fragment:
+        raise ValueError("card URI must use rappid://link with no fragment")
+    if not parsed.path.startswith("/") or parsed.path.count("/") != 1:
+        raise ValueError("card URI path must contain one percent-encoded RAPPID")
+    encoded_rappid = parsed.path[1:]
+    try:
+        rappid = urllib.parse.unquote(encoded_rappid, errors="strict")
+        pairs = urllib.parse.parse_qsl(
+            parsed.query, keep_blank_values=True, strict_parsing=True)
+    except (UnicodeDecodeError, ValueError) as ex:
+        raise ValueError("malformed card URI encoding") from ex
+    if urllib.parse.quote(rappid, safe="") != encoded_rappid:
+        raise ValueError("RAPPID path is not canonically percent-encoded")
+    if not rappid_valid(rappid):
+        raise ValueError("card URI path is not a canonical RAPPID")
+    if [key for key, _ in pairs] != ["m", "e", "n"]:
+        raise ValueError("card URI query must be exactly m, e, n in canonical order")
+    manifest_hash, endpoint, nonce = (value for _, value in pairs)
+    if not _hex64(manifest_hash):
+        raise ValueError("card URI m is not lowercase 64hex")
+    if not _card_https_url(endpoint, CARD_VIRTUAL_SUFFIX):
+        raise ValueError(f"card URI e must be an HTTPS *{CARD_VIRTUAL_SUFFIX} URL")
+    if not _CARD_NONCE.match(nonce):
+        raise ValueError("card URI n must be 16-64 base64url characters")
+    canonical_uri = (
+        "rappid://link/" + urllib.parse.quote(rappid, safe="")
+        + "?m=" + manifest_hash
+        + "&e=" + urllib.parse.quote(endpoint, safe="")
+        + "&n=" + nonce
+    )
+    if uri != canonical_uri:
+        raise ValueError("card URI is not in canonical compact form")
+    return {
+        "rappid": rappid, "manifest_hash": manifest_hash,
+        "endpoint": endpoint, "nonce": nonce,
+    }
+
+
+def read_card_resource(blob):
+    """Parse canonical `.rappid-card.json` octets without duplicate-member ambiguity."""
+    if not isinstance(blob, bytes):
+        raise ValueError("card resource must be bytes")
+    resource = _json_object_no_duplicates(blob)
+    if not isinstance(resource, dict):
+        raise ValueError("card resource must be a JSON object")
+    if canonical(resource).encode("utf-8") != blob:
+        raise ValueError("card resource bytes are not canonical")
+    return resource
+
+
+def _valid_utc(value):
+    if not isinstance(value, str) or not _UTC.match(value):
+        return None
+    try:
+        return datetime.datetime.strptime(
+            value, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=datetime.timezone.utc)
+    except ValueError:
+        return None
+
+
+def _forbidden_card_material(value):
+    forbidden_keys = {
+        "password", "passwd", "api-key", "api_key", "apikey", "cookie",
+        "set-cookie", "authorization", "bearer", "private-memory",
+        "private_memory", "plaintext-memory", "auto-execute", "auto_execute",
+        "instruction", "command",
+    }
+    forbidden_text = re.compile(
+        r"(?i)(?:\bbearer\s+[A-Za-z0-9._~+/-]+=*|"
+        r"\bapi[_ -]?key\s*[:=]|\bpassword\s*[:=]|\bcookie\s*[:=]|"
+        r"\bauto[_ -]?execute\b)")
+    if isinstance(value, dict):
+        for key, child in value.items():
+            normalized = key.lower() if isinstance(key, str) else key
+            if normalized in forbidden_keys or _forbidden_card_material(child):
+                return True
+        return False
+    if isinstance(value, list):
+        return any(_forbidden_card_material(child) for child in value)
+    return isinstance(value, str) and bool(forbidden_text.search(value))
+
+
+def _card_payload_error(payload, frame, link_rappid, mode):
+    if not isinstance(payload, dict) or set(payload.keys()) != CARD_PAYLOAD_KEYS:
+        return f"manifest payload must have exactly {sorted(CARD_PAYLOAD_KEYS)}"
+    if _forbidden_card_material(payload):
+        return "manifest contains secret, private-memory, or auto-execute material"
+    profile = payload["profile"]
+    if mode == "production":
+        if profile != CARD_PROFILE or frame["kind"] != CARD_CALLING:
+            return "production mode requires body.calling-card with profile rappid-card/1"
+    elif mode == "test":
+        if profile != CARD_TEST_PROFILE or frame["kind"] != CARD_DEBUG:
+            return "test mode requires body.debug-card with profile rappid-card-test/1"
+    else:
+        return "mode must be production or test"
+    if payload["rappid"] != frame["stream_id"] or payload["rappid"] != link_rappid:
+        return "manifest rappid, frame stream_id, and URI RAPPID must byte-equal"
+    if not rappid_valid(payload["rappid"]):
+        return "manifest rappid is not canonical"
+    if not rappid_valid(payload["key_id"]):
+        return "manifest key_id is not a canonical keyed RAPPID"
+    parent = payload["parent"]
+    if parent is not None:
+        if not isinstance(parent, dict) or set(parent.keys()) != _PARENT_KEYS:
+            return "manifest parent must be null or exactly {rappid, particle}"
+        if not rappid_valid(parent["rappid"]) or not _hex64(parent["particle"]):
+            return "manifest parent is not a canonical RAPPID/particle pointer"
+        if parent["rappid"] == payload["rappid"]:
+            return "manifest rappid cannot be its own parent"
+    for key in ("soul_hash", "engram_root", "reflex_capability_root", "wake_challenge"):
+        if not _hex64(payload[key]):
+            return f"manifest {key} is not lowercase 64hex"
+    compatibility = payload["compatibility"]
+    if not isinstance(compatibility, dict) or set(compatibility.keys()) != CARD_COMPATIBILITY_KEYS:
+        return "compatibility must be exactly {protocol, runtime, features}"
+    if not all(isinstance(compatibility[key], str)
+               and _CARD_PROFILE_TOKEN.match(compatibility[key])
+               for key in ("protocol", "runtime")):
+        return "compatibility protocol/runtime is not a versioned token"
+    features = compatibility["features"]
+    if not isinstance(features, list) or not all(
+            isinstance(feature, str) and _CARD_PROFILE_TOKEN.match(feature)
+            for feature in features):
+        return "compatibility features must be versioned tokens"
+    if features != sorted(set(features)):
+        return "compatibility features must be sorted and unique"
+    if payload["classification"] not in CARD_CLASSIFICATIONS:
+        return "classification is not a registered card classification"
+    scopes = payload["requested_scope"]
+    if not isinstance(scopes, list) or not all(_lclabel(scope) for scope in scopes):
+        return "requested_scope must contain lclabels"
+    if scopes != sorted(set(scopes)):
+        return "requested_scope must be sorted and unique"
+    expires = _valid_utc(payload["expires_utc"])
+    issued = _valid_utc(frame["utc"])
+    if expires is None or issued is None or expires <= issued:
+        return "expires_utc must be calendar-valid and later than frame utc"
+    if not _card_https_url(payload["revocation_url"]):
+        return "revocation_url must be HTTPS with no credentials, query, or fragment"
+    inventory = payload["inventory"]
+    if not isinstance(inventory, list):
+        return "inventory must be an array"
+    seen = []
+    by_part = {}
+    for entry in inventory:
+        if not isinstance(entry, dict) or set(entry.keys()) != CARD_INVENTORY_KEYS:
+            return "inventory entries must be exactly {part, space, hash, bytes, required}"
+        if not _lclabel(entry["part"]):
+            return "inventory part is not an lclabel"
+        if entry["space"] != MEDIA_SPACE or not _hex64(entry["hash"]):
+            return "inventory address must be lowercase 64hex in rapp/1:egg"
+        if not _uint53(entry["bytes"]) or not isinstance(entry["required"], bool):
+            return "inventory bytes/required types are invalid"
+        seen.append(entry["part"])
+        by_part[entry["part"]] = entry
+    if seen != sorted(seen, key=lambda value: value.encode("utf-8")):
+        return "inventory must be sorted by part UTF-8 bytes"
+    if len(seen) != len(set(seen)):
+        return "inventory contains duplicate parts"
+    if not set(CARD_REQUIRED_PARTS) <= set(by_part):
+        return "inventory omits a required soul, engram, or reflex-capability root"
+    if not all(by_part[part]["required"] for part in CARD_REQUIRED_PARTS):
+        return "core card inventory parts must be required"
+    roots = {
+        "soul": payload["soul_hash"],
+        "engram": payload["engram_root"],
+        "reflex-capability": payload["reflex_capability_root"],
+    }
+    for part, root in roots.items():
+        if by_part[part]["hash"] != root:
+            return f"{part} inventory hash does not match its signed manifest root"
+    if not isinstance(frame["sig"], str):
+        return "card frame must carry a signature"
+    return None
+
+
+class CardReplayCache:
+    """Atomic nonce claims: only the original connection may resume hydration."""
+
+    def __init__(self, snapshot=None):
+        self._claims = {}
+        if snapshot is not None:
+            if not isinstance(snapshot, dict):
+                raise ValueError("card replay snapshot must be an object")
+            for nonce, claim in snapshot.items():
+                if not isinstance(claim, dict) or set(claim) != {"connection_id", "state"}:
+                    raise ValueError("card replay snapshot claim has the wrong schema")
+                self.seed(nonce, claim["connection_id"], claim["state"])
+
+    def snapshot(self):
+        """Return the canonicalizable state callers persist atomically between attempts."""
+        return {
+            nonce: dict(self._claims[nonce])
+            for nonce in sorted(self._claims)
+        }
+
+    def seed(self, nonce, connection_id, state):
+        """Seed deterministic persisted state (`hydrating` or `awake`) for recovery/tests."""
+        if not _CARD_NONCE.match(nonce):
+            raise ValueError("invalid card nonce")
+        if not _CARD_CONNECTION.match(connection_id):
+            raise ValueError("invalid card connection_id")
+        if state not in ("hydrating", "awake"):
+            raise ValueError("card replay state must be hydrating or awake")
+        self._claims[nonce] = {"connection_id": connection_id, "state": state}
+
+    def claim(self, nonce, connection_id):
+        existing = self._claims.get(nonce)
+        if existing is None:
+            self._claims[nonce] = {"connection_id": connection_id, "state": "hydrating"}
+            return True, "new"
+        if existing == {"connection_id": connection_id, "state": "hydrating"}:
+            return True, "resume"
+        if existing["state"] == "hydrating":
+            return False, "nonce is already hydrating on another connection"
+        return False, "nonce has already awakened"
+
+    def complete(self, nonce, connection_id):
+        if self._claims.get(nonce) != {
+                "connection_id": connection_id, "state": "hydrating"}:
+            raise ValueError("cannot complete an unclaimed card nonce")
+        self._claims[nonce] = {"connection_id": connection_id, "state": "awake"}
+
+
+def _card_environment_error(environment):
+    if not isinstance(environment, dict) or set(environment.keys()) != CARD_ENVIRONMENT_KEYS:
+        return f"environment must have exactly {sorted(CARD_ENVIRONMENT_KEYS)}"
+    if not all(isinstance(environment[key], str) for key in
+               ("protocol", "runtime", "max_classification")):
+        return "environment protocol/runtime/classification types are invalid"
+    if environment["max_classification"] not in CARD_CLASSIFICATIONS:
+        return "environment max_classification is not registered"
+    for key, grammar in (("features", _CARD_PROFILE_TOKEN), ("granted_scope", _LCLABEL)):
+        values = environment[key]
+        if not isinstance(values, list) or not all(
+                isinstance(value, str) and grammar.match(value) for value in values):
+            return f"environment {key} has invalid tokens"
+        if values != sorted(set(values)):
+            return f"environment {key} must be sorted and unique"
+    return None
+
+
+def _verify_card_hydration(inventory, hydrated):
+    if not isinstance(hydrated, dict):
+        return False, "hydrated parts must be an object of part name to octets"
+    if not all(_lclabel(part) for part in hydrated):
+        return False, "hydrated part names must be lclabels"
+    permitted = {entry["part"]: entry for entry in inventory}
+    extra = sorted(set(hydrated) - set(permitted))
+    if extra:
+        return False, f"hydration attempted unpermitted part {extra[0]!r}"
+    missing = sorted(
+        entry["part"] for entry in inventory
+        if entry["required"] and entry["part"] not in hydrated)
+    if missing:
+        return False, f"required hydration part missing: {missing[0]}"
+    for part in sorted(hydrated):
+        octets = hydrated[part]
+        entry = permitted[part]
+        if not isinstance(octets, bytes):
+            return False, f"hydrated part {part!r} is not bytes"
+        if len(octets) != entry["bytes"] or Hb(entry["space"], octets) != entry["hash"]:
+            return False, f"hydrated part {part!r} does not match its permitted address"
+    return True, "ok"
+
+
+def verify_card_link(uri, frame, trust, now_utc, revocations, environment,
+                     replay_cache, connection_id, hydrated, continuity,
+                     mode="production", head=None):
+    """Run the §7.10 verification order. Returns (ok, step, reason, result).
+
+    `revocations` maps the signed manifest's revocation URL to an already-authenticated
+    iterable of revoked manifest hashes, key ids, or RAPPIDs. Network retrieval and §13
+    registry authentication are caller responsibilities; an unavailable location fails.
+    The nonce is claimed atomically before hydration. A failed hydration may resume only
+    on the same connection; reconnecting cannot race or replay a one-time wake.
+    """
+    try:
+        link = parse_card_link(uri)
+    except ValueError as ex:
+        return False, "parse", str(ex), None
+
+    if not isinstance(frame, dict) or not isinstance(frame.get("payload"), dict):
+        return False, "content-address", "endpoint did not return a frame payload", None
+    try:
+        computed_manifest_hash = H("rapp/1:particle", frame["payload"])
+    except (TypeError, ValueError) as ex:
+        return False, "content-address", str(ex), None
+    if (computed_manifest_hash != link["manifest_hash"]
+            or frame.get("payload_hash") != link["manifest_hash"]):
+        return False, "content-address", "URI m does not match the manifest particle", None
+
+    if set(frame.keys()) != FRAME_KEYS:
+        return False, "schema", "card resource is not the eleven-key frame", None
+    ok, frame_step, reason = verify_frame(
+        frame, head=head, stream_id_of_record=link["rappid"])
+    if not ok:
+        return False, "schema", f"frame §7.5 step {frame_step}: {reason}", None
+    reason = _card_payload_error(frame["payload"], frame, link["rappid"], mode)
+    if reason:
+        return False, "schema", reason, None
+
+    ok, reason = _verify_frame_eddsa(frame, trust, mode)
+    if not ok:
+        return False, "signature", reason, None
+
+    now = _valid_utc(now_utc)
+    expires = _valid_utc(frame["payload"]["expires_utc"])
+    if now is None:
+        return False, "expiry", "verifier now_utc is not calendar-valid", None
+    if now >= expires:
+        return False, "expiry", "card manifest is expired", None
+
+    location = frame["payload"]["revocation_url"]
+    if not isinstance(revocations, dict) or location not in revocations:
+        return False, "revocation", "revocation location unavailable", None
+    revoked = revocations[location]
+    if not isinstance(revoked, (list, tuple, set, frozenset)):
+        return False, "revocation", "revocation result is not an authenticated set", None
+    if not all(isinstance(name, str) for name in revoked):
+        return False, "revocation", "revocation set members must be strings", None
+    revoked_names = {
+        link["manifest_hash"], frame["payload"]["key_id"], frame["payload"]["rappid"]}
+    if revoked_names & set(revoked):
+        return False, "revocation", "card manifest, identity, or signing key is revoked", None
+
+    reason = _card_environment_error(environment)
+    if reason:
+        return False, "compatibility", reason, None
+    compatibility = frame["payload"]["compatibility"]
+    if (compatibility["protocol"] != environment["protocol"]
+            or compatibility["runtime"] != environment["runtime"]
+            or not set(compatibility["features"]) <= set(environment["features"])):
+        return False, "compatibility", "runtime/protocol requirements are not satisfied", None
+
+    classification = CARD_CLASSIFICATIONS.index(frame["payload"]["classification"])
+    maximum = CARD_CLASSIFICATIONS.index(environment["max_classification"])
+    missing_scope = sorted(
+        set(frame["payload"]["requested_scope"]) - set(environment["granted_scope"]))
+    if classification > maximum:
+        return False, "classification-scope", "classification exceeds local policy", None
+    if missing_scope:
+        return False, "classification-scope", f"requested scope not granted: {missing_scope[0]}", None
+
+    if not isinstance(replay_cache, CardReplayCache):
+        return False, "replay-nonce", "a persistent CardReplayCache is required", None
+    if not isinstance(connection_id, str) or not _CARD_CONNECTION.match(connection_id):
+        return False, "replay-nonce", "connection_id is invalid", None
+    ok, reason = replay_cache.claim(link["nonce"], connection_id)
+    if not ok:
+        return False, "replay-nonce", reason, None
+
+    ok, reason = _verify_card_hydration(frame["payload"]["inventory"], hydrated)
+    if not ok:
+        return False, "hydration", reason, None
+
+    if not isinstance(continuity, dict) or set(continuity.keys()) != CARD_CONTINUITY_KEYS:
+        return False, "continuity", "continuity response has the wrong schema", None
+    expected_value = card_continuity(frame["payload"], link["nonce"])
+    try:
+        expected_challenge = H("rapp/1:particle", expected_value)
+        actual_challenge = H("rapp/1:particle", continuity)
+    except (TypeError, ValueError):
+        return False, "continuity", "continuity response is not a canonical value", None
+    if (frame["payload"]["wake_challenge"] != expected_challenge
+            or actual_challenge != frame["payload"]["wake_challenge"]):
+        return False, "continuity", "one-time continuity challenge failed", None
+
+    replay_cache.complete(link["nonce"], connection_id)
+    return True, None, "awake", {
+        "status": "awake",
+        "profile": frame["payload"]["profile"],
+        "rappid": frame["payload"]["rappid"],
+        "manifest_hash": link["manifest_hash"],
+        "nonce": link["nonce"],
+    }
 
 
 # ---------- §9 the egg (L5) — the one egg spec of record ----------
