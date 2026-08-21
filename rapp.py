@@ -13,9 +13,12 @@ reference vectors use exact-integer payloads so the hashes are reproducible anyw
 import base64
 import datetime
 import hashlib
+import ipaddress
 import io
 import json
+import os
 import re
+import sqlite3
 import urllib.parse
 import uuid
 import zipfile
@@ -872,7 +875,7 @@ CARD_PAYLOAD_KEYS = {
     "profile", "rappid", "soul_hash", "parent", "engram_root",
     "reflex_capability_root", "compatibility", "classification",
     "requested_scope", "expires_utc", "revocation_url", "wake_challenge",
-    "inventory", "key_id",
+    "inventory", "key_id", "endpoint_origin",
 }
 CARD_COMPATIBILITY_KEYS = {"protocol", "runtime", "features"}
 CARD_INVENTORY_KEYS = {"part", "space", "hash", "bytes", "required"}
@@ -880,9 +883,31 @@ CARD_CONTINUITY_KEYS = {
     "rappid", "soul_hash", "parent", "engram_root",
     "reflex_capability_root", "nonce",
 }
-CARD_ENVIRONMENT_KEYS = {
-    "protocol", "runtime", "features", "max_classification", "granted_scope",
+CARD_RUNTIME_POLICY_KEYS = {
+    "schema", "policy_seq", "generated_utc", "effective_utc", "expires_utc",
+    "authority_rappid", "signer_key_id", "provenance", "card_authority",
+    "protocol", "runtime", "features", "profiles", "max_classification",
+    "granted_scope", "max_registry_age_seconds", "sig",
 }
+CARD_AUTHORITY_VIEW_KEYS = {
+    "schema", "registry_seq", "generated_utc", "effective_utc", "expires_utc",
+    "authority_rappid", "signer_key_id", "provenance", "approved_origins",
+    "authorizations", "sig",
+}
+CARD_REVOCATION_VIEW_KEYS = {
+    "schema", "registry_seq", "generated_utc", "effective_utc", "expires_utc",
+    "authority_rappid", "signer_key_id", "provenance", "entries", "sig",
+}
+CARD_PROVENANCE_KEYS = {"source", "channel"}
+CARD_AUTHORIZATION_KEYS = {
+    "issuer_key_id", "subject_rappid", "role", "not_before_utc",
+    "not_after_utc", "revoked_utc",
+}
+CARD_REVOCATION_ENTRY_KEYS = {"target_type", "target", "effective_utc", "reason"}
+CARD_FETCH_HOP_KEYS = {"url", "resolved_ip"}
+CARD_RUNTIME_POLICY_SCHEMA = "rappid-card-runtime-policy/1"
+CARD_AUTHORITY_SCHEMA = "rappid-card-authority/1"
+CARD_REVOCATION_SCHEMA = "rappid-card-revocations/1"
 CARD_CLASSIFICATIONS = ("public", "internal", "confidential", "restricted")
 CARD_REQUIRED_PARTS = ("engram", "reflex-capability", "soul")
 CARD_VERIFY_STEPS = (
@@ -894,6 +919,10 @@ CARD_VERIFY_STEPS = (
 _CARD_PROFILE_TOKEN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*/[1-9][0-9]*$")
 _CARD_NONCE = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
 _CARD_CONNECTION = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
+_CARD_HOST_LABEL = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
+_CARD_PERCENT = re.compile(r"%[0-9A-Fa-f]{2}")
+_CARD_URL_MAX = 2048
+_CARD_MAX_REDIRECTS = 8
 _ED25519_SPKI_PREFIX = bytes.fromhex("302a300506032b6570032100")
 _JWS_HEADER_KEYS = {"alg", "b64", "crit", "kid"}
 
@@ -1076,29 +1105,74 @@ def _json_object_no_duplicates(octets):
         raise ValueError("invalid UTF-8 JSON") from ex
 
 
+class CardTrustStore:
+    """Out-of-band trust anchors and SPKIs; authorization remains registry-bound."""
+
+    def __init__(self, keys, runtime_policy_authority):
+        if not isinstance(keys, dict) or not keys:
+            raise ValueError("card trust keys must be a non-empty object")
+        self._keys = {}
+        for kid, spki in keys.items():
+            if not rappid_valid(kid):
+                raise ValueError(f"card trust key id is not a RAPPID: {kid!r}")
+            if not isinstance(spki, bytes) or len(spki) != 44 or not spki.startswith(
+                    _ED25519_SPKI_PREFIX):
+                raise ValueError(f"card trust key {kid!r} is not an Ed25519 SPKI")
+            if Hb("rapp/1:rappid", spki) != kid.rsplit(":", 1)[1]:
+                raise ValueError(f"card trust SPKI does not bind {kid!r}")
+            self._keys[kid] = spki
+        if runtime_policy_authority not in self._keys:
+            raise ValueError("runtime policy authority is not a trust anchor")
+        self.runtime_policy_authority = runtime_policy_authority
+
+    def spki(self, kid):
+        return self._keys.get(kid)
+
+
+def _signing_kid(seed, kid):
+    public_key = ed25519_public_key(seed)
+    match = _RAPPID.match(kid) if rappid_valid(kid) else None
+    expected = (
+        ed25519_rappid(match.group(1), match.group(2), public_key)
+        if match is not None else None
+    )
+    if expected != kid:
+        raise ValueError("kid is not the keyed RAPPID of the signing seed")
+
+
+def _sign_detached_eddsa(unsigned, kid, seed):
+    _signing_kid(seed, kid)
+    header = {"alg": "EdDSA", "b64": False, "crit": ["b64"], "kid": kid}
+    protected = _b64u_encode(canonical(header).encode("utf-8"))
+    signing_input = protected.encode("ascii") + b"." + canonical(unsigned).encode("utf-8")
+    return protected + ".." + _b64u_encode(ed25519_sign(seed, signing_input))
+
+
 def sign_frame_eddsa(frame, kid, seed):
     """Attach a §10 detached, unencoded EdDSA JWS to an eleven-key frame."""
     if not isinstance(frame, dict) or set(frame.keys()) != FRAME_KEYS:
         raise ValueError("only an exact eleven-key frame can be signed")
-    public_key = ed25519_public_key(seed)
-    expected = ed25519_rappid(
-        _RAPPID.match(kid).group(1), _RAPPID.match(kid).group(2), public_key
-    ) if rappid_valid(kid) else None
-    if expected != kid:
-        raise ValueError("kid is not the keyed RAPPID of the signing seed")
-    header = {"alg": "EdDSA", "b64": False, "crit": ["b64"], "kid": kid}
-    protected = _b64u_encode(canonical(header).encode("utf-8"))
-    unsigned = {key: value for key, value in frame.items() if key != "sig"}
-    signing_input = protected.encode("ascii") + b"." + canonical(unsigned).encode("utf-8")
     signed = dict(frame)
-    signed["sig"] = protected + ".." + _b64u_encode(ed25519_sign(seed, signing_input))
+    signed["sig"] = _sign_detached_eddsa(
+        {key: value for key, value in frame.items() if key != "sig"}, kid, seed)
     return signed
 
 
-def _verify_frame_eddsa(frame, trust, mode):
-    sig = frame.get("sig")
+def sign_card_document(document, kid, seed):
+    """Sign a closed §7.10 policy/registry document through its existing `sig` member."""
+    if not isinstance(document, dict) or "sig" not in document:
+        raise ValueError("signed card document must be an object with sig")
+    signed = dict(document)
+    signed["sig"] = _sign_detached_eddsa(
+        {key: value for key, value in document.items() if key != "sig"}, kid, seed)
+    return signed
+
+
+def _verify_detached_eddsa(value, sig, expected_kid, trust):
+    if not isinstance(trust, CardTrustStore):
+        return False, "a CardTrustStore is required"
     if not isinstance(sig, str):
-        return False, "card frame sig must be a detached JWS string"
+        return False, "signature must be a detached JWS string"
     parts = sig.split(".")
     if len(parts) != 3 or parts[1] != "":
         return False, "sig must use detached compact serialization"
@@ -1111,30 +1185,30 @@ def _verify_frame_eddsa(frame, trust, mode):
     if not isinstance(header, dict) or set(header.keys()) != _JWS_HEADER_KEYS:
         return False, "JWS protected header key set is not §10"
     if header != {"alg": "EdDSA", "b64": False, "crit": ["b64"],
-                  "kid": frame["payload"]["key_id"]}:
-        return False, "JWS protected header values do not match the card key_id"
+                  "kid": expected_kid}:
+        return False, "JWS protected header values do not match the expected key id"
     if header_octets != canonical(header).encode("utf-8"):
         return False, "JWS protected header is not canonical"
-    entry = trust.get(header["kid"]) if isinstance(trust, dict) else None
-    if not isinstance(entry, dict) or set(entry.keys()) != {"spki_der", "synthetic"}:
+    spki = trust.spki(header["kid"])
+    if spki is None:
         return False, "unknown signing key"
-    spki = entry["spki_der"]
-    if not isinstance(spki, bytes) or not spki.startswith(_ED25519_SPKI_PREFIX) or len(spki) != 44:
-        return False, "trusted key is not an Ed25519 SPKI"
-    if not isinstance(entry["synthetic"], bool):
-        return False, "trusted key synthetic marker is not boolean"
-    if Hb("rapp/1:rappid", spki) != header["kid"].rsplit(":", 1)[1]:
-        return False, "trusted SPKI does not bind the key_id"
-    visibly_synthetic = header["kid"].startswith("rappid:@synthetic/")
-    if mode == "production" and (entry["synthetic"] or visibly_synthetic):
-        return False, "synthetic test key refused in production mode"
-    if mode == "test" and (not entry["synthetic"] or not visibly_synthetic):
-        return False, "test profile requires a visibly synthetic key"
-    unsigned = {key: value for key, value in frame.items() if key != "sig"}
-    signing_input = parts[0].encode("ascii") + b"." + canonical(unsigned).encode("utf-8")
+    signing_input = parts[0].encode("ascii") + b"." + canonical(value).encode("utf-8")
     if not ed25519_verify(spki[len(_ED25519_SPKI_PREFIX):], signing_input, signature):
         return False, "Ed25519 signature verification failed"
     return True, "ok"
+
+
+def _verify_frame_eddsa(frame, trust):
+    profile = frame["payload"]["profile"]
+    kid = frame["payload"]["key_id"]
+    visibly_synthetic = kid.startswith("rappid:@synthetic/")
+    if profile == CARD_PROFILE and visibly_synthetic:
+        return False, "synthetic test key refused for production profile"
+    if profile == CARD_TEST_PROFILE and not visibly_synthetic:
+        return False, "test profile requires a visibly synthetic key"
+    return _verify_detached_eddsa(
+        {key: value for key, value in frame.items() if key != "sig"},
+        frame.get("sig"), kid, trust)
 
 
 def card_inventory(parts, required_parts=CARD_REQUIRED_PARTS):
@@ -1179,10 +1253,12 @@ def card_wake_challenge(payload, nonce):
 
 def build_card_manifest(profile, rappid, key_id, nonce, parts, compatibility,
                         classification, requested_scope, expires_utc, revocation_url,
-                        parent=None, required_parts=CARD_REQUIRED_PARTS):
+                        endpoint_origin, parent=None, required_parts=CARD_REQUIRED_PARTS):
     """Build a §7.10 manifest payload; no secret or executable field exists."""
     if not set(CARD_REQUIRED_PARTS) <= set(required_parts):
         raise ValueError("soul, engram, and reflex-capability must all be required")
+    endpoint_origin = _canonical_card_origin(endpoint_origin)
+    _card_url_info(revocation_url)
     inventory = card_inventory(parts, required_parts=required_parts)
     by_part = {entry["part"]: entry for entry in inventory}
     payload = {
@@ -1201,11 +1277,14 @@ def build_card_manifest(profile, rappid, key_id, nonce, parts, compatibility,
         "requested_scope": sorted(set(requested_scope)),
         "expires_utc": expires_utc,
         "revocation_url": revocation_url,
+        "endpoint_origin": endpoint_origin,
         "wake_challenge": None,
         "inventory": inventory,
         "key_id": key_id,
     }
     payload["wake_challenge"] = card_wake_challenge(payload, nonce)
+    if _forbidden_card_material(payload) or _forbidden_url_material(revocation_url):
+        raise ValueError("card manifest producer refuses prohibited material")
     return payload
 
 
@@ -1222,37 +1301,139 @@ def build_card_frame(rappid, seq, utc, manifest, seed, prev=None):
     return sign_frame_eddsa(frame, manifest["key_id"], seed)
 
 
-def _card_https_url(value, suffix=None):
-    if not isinstance(value, str):
-        return False
+def _well_formed_percent(value):
+    index = 0
+    while True:
+        index = value.find("%", index)
+        if index < 0:
+            return True
+        if index + 2 >= len(value) or not re.match(
+                r"^[0-9A-Fa-f]{2}$", value[index + 1:index + 3]):
+            return False
+        index += 3
+
+
+def _decoded_component_rounds(value):
+    """Decode at most two rounds for secret scanning; structural canon permits one."""
+    rounds = [value]
+    current = value
+    for _ in range(2):
+        if not _well_formed_percent(current):
+            raise ValueError("bad percent encoding")
+        try:
+            decoded = urllib.parse.unquote_to_bytes(current).decode("utf-8")
+        except UnicodeDecodeError as ex:
+            raise ValueError("URL component is not UTF-8") from ex
+        if decoded == current:
+            break
+        rounds.append(decoded)
+        current = decoded
+    return rounds
+
+
+def _card_url_info(value, suffix=None):
+    """Strict canonical HTTPS URL validation for endpoints and registry locations."""
+    if not isinstance(value, str) or not value or len(value) > _CARD_URL_MAX:
+        raise ValueError("HTTPS URL is absent or too long")
+    if not value.isascii():
+        raise ValueError("HTTPS URL host/path must use canonical ASCII/percent encoding")
+    if any(ord(char) <= 0x20 or ord(char) == 0x7f for char in value):
+        raise ValueError("HTTPS URL contains whitespace or control characters")
+    if "\\" in value:
+        raise ValueError("HTTPS URL contains a backslash")
+    if "?" in value:
+        raise ValueError("HTTPS URL query marker is forbidden, including an empty query")
+    if "#" in value:
+        raise ValueError("HTTPS URL fragment marker is forbidden, including an empty fragment")
+    if not _well_formed_percent(value):
+        raise ValueError("HTTPS URL contains bad percent encoding")
     try:
         parsed = urllib.parse.urlsplit(value)
         port = parsed.port
+    except ValueError as ex:
+        raise ValueError("HTTPS URL cannot be parsed") from ex
+    if parsed.scheme != "https" or not parsed.hostname:
+        raise ValueError("URL must use canonical HTTPS with a host")
+    if parsed.username is not None or parsed.password is not None or "@" in parsed.netloc:
+        raise ValueError("HTTPS URL user-info is forbidden")
+    if port is not None:
+        raise ValueError("HTTPS URL ports are forbidden; use the canonical default origin")
+    host = parsed.hostname
+    if host != host.lower():
+        raise ValueError("HTTPS host must be lowercase")
+    try:
+        literal = ipaddress.ip_address(host)
+    except ValueError:
+        labels = host.split(".")
+        if len(labels) < 2 or any(not _CARD_HOST_LABEL.match(label) for label in labels):
+            raise ValueError("HTTPS host is not a canonical DNS name")
+        expected_netloc = host
+        literal = None
+    else:
+        if not literal.is_global:
+            raise ValueError("loopback/private/link-local/reserved IP literals are forbidden")
+        expected_netloc = f"[{literal.compressed}]" if literal.version == 6 else literal.compressed
+    if parsed.netloc != expected_netloc:
+        raise ValueError("HTTPS authority is not canonical")
+    if not parsed.path.startswith("/"):
+        raise ValueError("HTTPS URL path must be absolute")
+    rounds = _decoded_component_rounds(parsed.path)
+    decoded_path = rounds[1] if len(rounds) > 1 else rounds[0]
+    if _CARD_PERCENT.search(decoded_path):
+        raise ValueError("double-encoded HTTPS path is forbidden")
+    if urllib.parse.quote(decoded_path, safe="/-._~") != parsed.path:
+        raise ValueError("HTTPS path is not canonically percent-encoded")
+    if any(char == "\\" or ord(char) < 0x20 or ord(char) == 0x7f for char in decoded_path):
+        raise ValueError("decoded HTTPS path is unsafe")
+    segments = decoded_path.split("/")[1:]
+    if any(segment in ("", ".", "..") for segment in segments):
+        raise ValueError("HTTPS path contains an empty or dot segment")
+    if suffix is not None and not decoded_path.endswith(suffix):
+        raise ValueError(f"HTTPS path must end {suffix}")
+    origin = "https://" + expected_netloc
+    return {
+        "url": value,
+        "origin": origin,
+        "host": host,
+        "literal_ip": None if literal is None else literal.compressed,
+        "decoded_path": decoded_path,
+        "decoded_rounds": rounds,
+    }
+
+
+def _card_https_url(value, suffix=None):
+    try:
+        _card_url_info(value, suffix=suffix)
+        return True
     except ValueError:
         return False
-    return (
-        parsed.scheme == "https"
-        and bool(parsed.hostname)
-        and parsed.username is None
-        and parsed.password is None
-        and port in (None, 443)
-        and not parsed.query
-        and not parsed.fragment
-        and (suffix is None or parsed.path.endswith(suffix))
-    )
+
+
+def _canonical_card_origin(value):
+    if not isinstance(value, str) or not value.startswith("https://"):
+        raise ValueError("card origin must be exactly https://host")
+    if "/" in value[len("https://"):]:
+        raise ValueError("card origin must be exactly https://host")
+    info = _card_url_info(value + "/origin")
+    if info["origin"] != value:
+        raise ValueError("card origin is not canonical")
+    return value
 
 
 def build_card_link(frame, endpoint, nonce):
     """Emit the canonical compact, non-secret `rappid://link/…` URI."""
     if not isinstance(frame, dict) or set(frame.keys()) != FRAME_KEYS:
         raise ValueError("card link requires an exact eleven-key frame")
-    if not _card_https_url(endpoint, CARD_VIRTUAL_SUFFIX):
-        raise ValueError(f"card endpoint must be an HTTPS *{CARD_VIRTUAL_SUFFIX} URL")
+    endpoint_info = _card_url_info(endpoint, CARD_VIRTUAL_SUFFIX)
+    if _forbidden_url_material(endpoint):
+        raise ValueError("card endpoint contains prohibited material")
     if not isinstance(nonce, str) or not _CARD_NONCE.match(nonce):
         raise ValueError("card nonce must be 16-64 base64url characters")
     rappid = frame["payload"].get("rappid")
     if not rappid_valid(rappid):
         raise ValueError("card payload does not carry a canonical RAPPID")
+    if frame["payload"].get("endpoint_origin") != endpoint_info["origin"]:
+        raise ValueError("card endpoint origin is not bound by the signed manifest")
     return (
         "rappid://link/" + urllib.parse.quote(rappid, safe="")
         + "?m=" + frame["payload_hash"]
@@ -1265,8 +1446,10 @@ def parse_card_link(uri):
     """Parse an untrusted card URI and return its four non-secret values."""
     if not isinstance(uri, str):
         raise ValueError("card URI must be a string")
+    if "#" in uri:
+        raise ValueError("card URI fragments are forbidden, including an empty fragment")
     parsed = urllib.parse.urlsplit(uri)
-    if parsed.scheme != "rappid" or parsed.netloc != "link" or parsed.fragment:
+    if parsed.scheme != "rappid" or parsed.netloc != "link":
         raise ValueError("card URI must use rappid://link with no fragment")
     if not parsed.path.startswith("/") or parsed.path.count("/") != 1:
         raise ValueError("card URI path must contain one percent-encoded RAPPID")
@@ -1286,8 +1469,9 @@ def parse_card_link(uri):
     manifest_hash, endpoint, nonce = (value for _, value in pairs)
     if not _hex64(manifest_hash):
         raise ValueError("card URI m is not lowercase 64hex")
-    if not _card_https_url(endpoint, CARD_VIRTUAL_SUFFIX):
-        raise ValueError(f"card URI e must be an HTTPS *{CARD_VIRTUAL_SUFFIX} URL")
+    endpoint_info = _card_url_info(endpoint, CARD_VIRTUAL_SUFFIX)
+    if _forbidden_url_material(endpoint):
+        raise ValueError("card URI endpoint contains prohibited material")
     if not _CARD_NONCE.match(nonce):
         raise ValueError("card URI n must be 16-64 base64url characters")
     canonical_uri = (
@@ -1300,7 +1484,7 @@ def parse_card_link(uri):
         raise ValueError("card URI is not in canonical compact form")
     return {
         "rappid": rappid, "manifest_hash": manifest_hash,
-        "endpoint": endpoint, "nonce": nonce,
+        "endpoint": endpoint, "endpoint_origin": endpoint_info["origin"], "nonce": nonce,
     }
 
 
@@ -1326,48 +1510,79 @@ def _valid_utc(value):
         return None
 
 
+_FORBIDDEN_CARD_TEXT = re.compile(
+    r"(?i)(?:\bpassword\b|\bpasswd\b|\bapi[-_ ]?key\b|\bcookie\b|"
+    r"\bauthorization\b|\bbearer(?:\s|[-_:])|\bprivate[-_ ]?memory\b|"
+    r"\bplaintext[-_ ]?memory\b|\bauto[-_ ]?execute\b)")
+_FORBIDDEN_CARD_KEYS = {
+    "password", "passwd", "api-key", "api_key", "apikey", "cookie",
+    "set-cookie", "authorization", "bearer", "private-memory",
+    "private_memory", "plaintext-memory", "auto-execute", "auto_execute",
+    "instruction", "command",
+}
+
+
+def _forbidden_url_material(value):
+    if not isinstance(value, str):
+        return False
+    try:
+        parsed = urllib.parse.urlsplit(value)
+        candidates = [value, parsed.netloc]
+        candidates.extend(_decoded_component_rounds(parsed.path))
+    except (TypeError, ValueError):
+        return False
+    return any(_FORBIDDEN_CARD_TEXT.search(candidate) for candidate in candidates)
+
+
 def _forbidden_card_material(value):
-    forbidden_keys = {
-        "password", "passwd", "api-key", "api_key", "apikey", "cookie",
-        "set-cookie", "authorization", "bearer", "private-memory",
-        "private_memory", "plaintext-memory", "auto-execute", "auto_execute",
-        "instruction", "command",
-    }
-    forbidden_text = re.compile(
-        r"(?i)(?:\bbearer\s+[A-Za-z0-9._~+/-]+=*|"
-        r"\bapi[_ -]?key\s*[:=]|\bpassword\s*[:=]|\bcookie\s*[:=]|"
-        r"\bauto[_ -]?execute\b)")
     if isinstance(value, dict):
         for key, child in value.items():
             normalized = key.lower() if isinstance(key, str) else key
-            if normalized in forbidden_keys or _forbidden_card_material(child):
+            if normalized in _FORBIDDEN_CARD_KEYS or _forbidden_card_material(child):
                 return True
         return False
     if isinstance(value, list):
         return any(_forbidden_card_material(child) for child in value)
-    return isinstance(value, str) and bool(forbidden_text.search(value))
+    return isinstance(value, str) and bool(_FORBIDDEN_CARD_TEXT.search(value))
 
 
-def _card_payload_error(payload, frame, link_rappid, mode):
+def _sorted_unique_strings(values, grammar):
+    return (
+        isinstance(values, list)
+        and all(isinstance(value, str) and grammar.match(value) for value in values)
+        and values == sorted(set(values))
+    )
+
+
+def _card_payload_error(payload, frame, link):
     if not isinstance(payload, dict) or set(payload.keys()) != CARD_PAYLOAD_KEYS:
         return f"manifest payload must have exactly {sorted(CARD_PAYLOAD_KEYS)}"
+    profile = payload["profile"]
+    if profile == CARD_PROFILE:
+        if frame["kind"] != CARD_CALLING:
+            return "rappid-card/1 requires body.calling-card"
+    elif profile == CARD_TEST_PROFILE:
+        if frame["kind"] != CARD_DEBUG:
+            return "rappid-card-test/1 requires body.debug-card"
+    else:
+        return "manifest profile is not a registered card profile"
     if _forbidden_card_material(payload):
         return "manifest contains secret, private-memory, or auto-execute material"
-    profile = payload["profile"]
-    if mode == "production":
-        if profile != CARD_PROFILE or frame["kind"] != CARD_CALLING:
-            return "production mode requires body.calling-card with profile rappid-card/1"
-    elif mode == "test":
-        if profile != CARD_TEST_PROFILE or frame["kind"] != CARD_DEBUG:
-            return "test mode requires body.debug-card with profile rappid-card-test/1"
-    else:
-        return "mode must be production or test"
-    if payload["rappid"] != frame["stream_id"] or payload["rappid"] != link_rappid:
+    if payload["rappid"] != frame["stream_id"] or payload["rappid"] != link["rappid"]:
         return "manifest rappid, frame stream_id, and URI RAPPID must byte-equal"
     if not rappid_valid(payload["rappid"]):
         return "manifest rappid is not canonical"
     if not rappid_valid(payload["key_id"]):
         return "manifest key_id is not a canonical keyed RAPPID"
+    try:
+        endpoint_origin = _canonical_card_origin(payload["endpoint_origin"])
+        _card_url_info(payload["revocation_url"])
+    except ValueError as ex:
+        return str(ex)
+    if endpoint_origin != link["endpoint_origin"]:
+        return "URI endpoint origin does not match the signed manifest endpoint_origin"
+    if _forbidden_url_material(payload["revocation_url"]):
+        return "revocation_url contains prohibited material"
     parent = payload["parent"]
     if parent is not None:
         if not isinstance(parent, dict) or set(parent.keys()) != _PARENT_KEYS:
@@ -1386,26 +1601,16 @@ def _card_payload_error(payload, frame, link_rappid, mode):
                and _CARD_PROFILE_TOKEN.match(compatibility[key])
                for key in ("protocol", "runtime")):
         return "compatibility protocol/runtime is not a versioned token"
-    features = compatibility["features"]
-    if not isinstance(features, list) or not all(
-            isinstance(feature, str) and _CARD_PROFILE_TOKEN.match(feature)
-            for feature in features):
-        return "compatibility features must be versioned tokens"
-    if features != sorted(set(features)):
-        return "compatibility features must be sorted and unique"
+    if not _sorted_unique_strings(compatibility["features"], _CARD_PROFILE_TOKEN):
+        return "compatibility features must be sorted unique versioned tokens"
     if payload["classification"] not in CARD_CLASSIFICATIONS:
         return "classification is not a registered card classification"
-    scopes = payload["requested_scope"]
-    if not isinstance(scopes, list) or not all(_lclabel(scope) for scope in scopes):
-        return "requested_scope must contain lclabels"
-    if scopes != sorted(set(scopes)):
-        return "requested_scope must be sorted and unique"
+    if not _sorted_unique_strings(payload["requested_scope"], _LCLABEL):
+        return "requested_scope must be sorted unique lclabels"
     expires = _valid_utc(payload["expires_utc"])
     issued = _valid_utc(frame["utc"])
     if expires is None or issued is None or expires <= issued:
         return "expires_utc must be calendar-valid and later than frame utc"
-    if not _card_https_url(payload["revocation_url"]):
-        return "revocation_url must be HTTPS with no credentials, query, or fragment"
     inventory = payload["inventory"]
     if not isinstance(inventory, list):
         return "inventory must be an array"
@@ -1443,70 +1648,473 @@ def _card_payload_error(payload, frame, link_rappid, mode):
     return None
 
 
-class CardReplayCache:
-    """Atomic nonce claims: only the original connection may resume hydration."""
+class CardStateBackend:
+    """Transactional state contract for replay and signed-view anti-rollback."""
 
-    def __init__(self, snapshot=None):
-        self._claims = {}
-        if snapshot is not None:
-            if not isinstance(snapshot, dict):
-                raise ValueError("card replay snapshot must be an object")
-            for nonce, claim in snapshot.items():
-                if not isinstance(claim, dict) or set(claim) != {"connection_id", "state"}:
-                    raise ValueError("card replay snapshot claim has the wrong schema")
-                self.seed(nonce, claim["connection_id"], claim["state"])
+    def claim_nonce(self, nonce, connection_id, utc):
+        raise NotImplementedError
 
-    def snapshot(self):
-        """Return the canonicalizable state callers persist atomically between attempts."""
-        return {
-            nonce: dict(self._claims[nonce])
-            for nonce in sorted(self._claims)
-        }
+    def mark_awake(self, nonce, connection_id, utc):
+        raise NotImplementedError
 
-    def seed(self, nonce, connection_id, state):
-        """Seed deterministic persisted state (`hydrating` or `awake`) for recovery/tests."""
-        if not _CARD_NONCE.match(nonce):
+    def accept_sequence(self, namespace, authority, seq, view_hash):
+        raise NotImplementedError
+
+
+class SQLiteCardState(CardStateBackend):
+    """Durable SQLite backend; BEGIN IMMEDIATE is the nonce/sequence linearization point."""
+
+    def __init__(self, path):
+        if not isinstance(path, (str, os.PathLike)) or os.fspath(path) == ":memory:":
+            raise ValueError("SQLiteCardState requires a durable filesystem path")
+        self.path = os.path.abspath(os.fspath(path))
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        connection = sqlite3.connect(self.path, timeout=30, isolation_level=None)
+        try:
+            connection.execute("PRAGMA journal_mode=WAL")
+            connection.execute("PRAGMA synchronous=FULL")
+            connection.execute("PRAGMA busy_timeout=30000")
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS card_nonce ("
+                "nonce TEXT PRIMARY KEY, connection_id TEXT NOT NULL, "
+                "state TEXT NOT NULL CHECK(state IN ('hydrating','awake')), "
+                "updated_utc TEXT NOT NULL)")
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS card_sequence ("
+                "namespace TEXT NOT NULL, authority TEXT NOT NULL, seq INTEGER NOT NULL, "
+                "view_hash TEXT NOT NULL, PRIMARY KEY(namespace, authority))")
+        finally:
+            connection.close()
+
+    def _connect(self):
+        connection = sqlite3.connect(self.path, timeout=30, isolation_level=None)
+        connection.execute("PRAGMA busy_timeout=30000")
+        connection.execute("PRAGMA synchronous=FULL")
+        return connection
+
+    def claim_nonce(self, nonce, connection_id, utc):
+        if not (isinstance(nonce, str) and _CARD_NONCE.match(nonce)):
             raise ValueError("invalid card nonce")
-        if not _CARD_CONNECTION.match(connection_id):
+        if not (isinstance(connection_id, str) and _CARD_CONNECTION.match(connection_id)):
+            raise ValueError("invalid card connection_id")
+        if _valid_utc(utc) is None:
+            raise ValueError("invalid card nonce timestamp")
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT connection_id, state FROM card_nonce WHERE nonce=?", (nonce,)
+            ).fetchone()
+            if row is None:
+                connection.execute(
+                    "INSERT INTO card_nonce(nonce,connection_id,state,updated_utc) "
+                    "VALUES(?,?,'hydrating',?)", (nonce, connection_id, utc))
+                connection.execute("COMMIT")
+                return True, "new"
+            if row == (connection_id, "hydrating"):
+                connection.execute(
+                    "UPDATE card_nonce SET updated_utc=? WHERE nonce=?", (utc, nonce))
+                connection.execute("COMMIT")
+                return True, "resume"
+            connection.execute("ROLLBACK")
+            if row[1] == "hydrating":
+                return False, "nonce is already hydrating on another connection"
+            return False, "nonce has already awakened"
+        except sqlite3.Error:
+            if connection.in_transaction:
+                connection.execute("ROLLBACK")
+            raise
+        finally:
+            connection.close()
+
+    def mark_awake(self, nonce, connection_id, utc):
+        if not (isinstance(nonce, str) and _CARD_NONCE.match(nonce)):
+            raise ValueError("invalid card nonce")
+        if not (isinstance(connection_id, str) and _CARD_CONNECTION.match(connection_id)):
+            raise ValueError("invalid card connection_id")
+        if _valid_utc(utc) is None:
+            raise ValueError("invalid card nonce timestamp")
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            changed = connection.execute(
+                "UPDATE card_nonce SET state='awake', updated_utc=? "
+                "WHERE nonce=? AND connection_id=? AND state='hydrating'",
+                (utc, nonce, connection_id),
+            ).rowcount
+            if changed != 1:
+                connection.execute("ROLLBACK")
+                return False, "nonce claim was lost before awake"
+            connection.execute("COMMIT")
+            return True, "awake"
+        except sqlite3.Error:
+            if connection.in_transaction:
+                connection.execute("ROLLBACK")
+            raise
+        finally:
+            connection.close()
+
+    def accept_sequence(self, namespace, authority, seq, view_hash):
+        if not _lclabel(namespace) or not rappid_valid(authority):
+            raise ValueError("invalid signed-view sequence key")
+        if not _uint53(seq) or not _hex64(view_hash):
+            raise ValueError("invalid signed-view sequence value")
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT seq, view_hash FROM card_sequence "
+                "WHERE namespace=? AND authority=?", (namespace, authority)
+            ).fetchone()
+            if row is None:
+                connection.execute(
+                    "INSERT INTO card_sequence(namespace,authority,seq,view_hash) "
+                    "VALUES(?,?,?,?)", (namespace, authority, seq, view_hash))
+                connection.execute("COMMIT")
+                return True, "new"
+            if seq < row[0]:
+                connection.execute("ROLLBACK")
+                return False, f"{namespace} sequence rollback"
+            if seq == row[0] and view_hash != row[1]:
+                connection.execute("ROLLBACK")
+                return False, f"{namespace} sequence fork"
+            if seq > row[0]:
+                connection.execute(
+                    "UPDATE card_sequence SET seq=?, view_hash=? "
+                    "WHERE namespace=? AND authority=?",
+                    (seq, view_hash, namespace, authority))
+            connection.execute("COMMIT")
+            return True, "current"
+        except sqlite3.Error:
+            if connection.in_transaction:
+                connection.execute("ROLLBACK")
+            raise
+        finally:
+            connection.close()
+
+    def seed_nonce(self, nonce, connection_id, state, utc):
+        if not (isinstance(nonce, str) and _CARD_NONCE.match(nonce)):
+            raise ValueError("invalid card nonce")
+        if not (isinstance(connection_id, str) and _CARD_CONNECTION.match(connection_id)):
             raise ValueError("invalid card connection_id")
         if state not in ("hydrating", "awake"):
-            raise ValueError("card replay state must be hydrating or awake")
-        self._claims[nonce] = {"connection_id": connection_id, "state": state}
+            raise ValueError("nonce seed state must be hydrating or awake")
+        if _valid_utc(utc) is None:
+            raise ValueError("invalid nonce seed timestamp")
+        connection = self._connect()
+        try:
+            connection.execute(
+                "INSERT OR REPLACE INTO card_nonce(nonce,connection_id,state,updated_utc) "
+                "VALUES(?,?,?,?)", (nonce, connection_id, state, utc))
+        finally:
+            connection.close()
 
-    def claim(self, nonce, connection_id):
-        existing = self._claims.get(nonce)
-        if existing is None:
-            self._claims[nonce] = {"connection_id": connection_id, "state": "hydrating"}
-            return True, "new"
-        if existing == {"connection_id": connection_id, "state": "hydrating"}:
-            return True, "resume"
-        if existing["state"] == "hydrating":
-            return False, "nonce is already hydrating on another connection"
-        return False, "nonce has already awakened"
+    def seed_sequence(self, namespace, authority, seq, view_hash):
+        if not _lclabel(namespace) or not rappid_valid(authority):
+            raise ValueError("invalid sequence seed key")
+        if not _uint53(seq) or not _hex64(view_hash):
+            raise ValueError("invalid sequence seed value")
+        connection = self._connect()
+        try:
+            connection.execute(
+                "INSERT OR REPLACE INTO card_sequence(namespace,authority,seq,view_hash) "
+                "VALUES(?,?,?,?)", (namespace, authority, seq, view_hash))
+        finally:
+            connection.close()
 
-    def complete(self, nonce, connection_id):
-        if self._claims.get(nonce) != {
-                "connection_id": connection_id, "state": "hydrating"}:
-            raise ValueError("cannot complete an unclaimed card nonce")
-        self._claims[nonce] = {"connection_id": connection_id, "state": "awake"}
+    def nonce_state(self, nonce):
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT connection_id,state,updated_utc FROM card_nonce WHERE nonce=?",
+                (nonce,),
+            ).fetchone()
+            return None if row is None else {
+                "connection_id": row[0], "state": row[1], "updated_utc": row[2]}
+        finally:
+            connection.close()
 
 
-def _card_environment_error(environment):
-    if not isinstance(environment, dict) or set(environment.keys()) != CARD_ENVIRONMENT_KEYS:
-        return f"environment must have exactly {sorted(CARD_ENVIRONMENT_KEYS)}"
-    if not all(isinstance(environment[key], str) for key in
-               ("protocol", "runtime", "max_classification")):
-        return "environment protocol/runtime/classification types are invalid"
-    if environment["max_classification"] not in CARD_CLASSIFICATIONS:
-        return "environment max_classification is not registered"
-    for key, grammar in (("features", _CARD_PROFILE_TOKEN), ("granted_scope", _LCLABEL)):
-        values = environment[key]
-        if not isinstance(values, list) or not all(
-                isinstance(value, str) and grammar.match(value) for value in values):
-            return f"environment {key} has invalid tokens"
-        if values != sorted(set(values)):
-            return f"environment {key} must be sorted and unique"
+def _provenance_error(provenance):
+    if not isinstance(provenance, dict) or set(provenance.keys()) != CARD_PROVENANCE_KEYS:
+        return "provenance must be exactly {source, channel}"
+    try:
+        _card_url_info(provenance["source"])
+    except ValueError as ex:
+        return f"provenance source: {ex}"
+    if _forbidden_url_material(provenance["source"]):
+        return "provenance source contains prohibited material"
+    if not _lclabel(provenance["channel"]):
+        return "provenance channel is not an lclabel"
     return None
+
+
+def _temporal_document_error(document, now, max_age_seconds=None):
+    generated = _valid_utc(document["generated_utc"])
+    effective = _valid_utc(document["effective_utc"])
+    expires = _valid_utc(document["expires_utc"])
+    if generated is None or effective is None or expires is None:
+        return "signed document time is not calendar-valid"
+    if not (effective <= generated <= now < expires):
+        return "signed document is not currently effective"
+    if max_age_seconds is not None:
+        age = (now - generated).total_seconds()
+        if age < 0 or age > max_age_seconds:
+            return "signed document is stale"
+    return None
+
+
+def _document_hash(document):
+    return H("rapp/1:particle", {
+        key: value for key, value in document.items() if key != "sig"})
+
+
+def _verify_runtime_policy(policy, trust, now, state):
+    if not isinstance(policy, dict) or set(policy.keys()) != CARD_RUNTIME_POLICY_KEYS:
+        return False, "runtime policy has the wrong closed schema"
+    if policy["schema"] != CARD_RUNTIME_POLICY_SCHEMA:
+        return False, "runtime policy schema token is wrong"
+    if (policy["authority_rappid"] != trust.runtime_policy_authority
+            or policy["signer_key_id"] != policy["authority_rappid"]):
+        return False, "runtime policy signer is not the out-of-band authority"
+    ok, reason = _verify_detached_eddsa(
+        {key: value for key, value in policy.items() if key != "sig"},
+        policy["sig"], policy["signer_key_id"], trust)
+    if not ok:
+        return False, reason
+    reason = _temporal_document_error(policy, now)
+    if reason:
+        return False, reason
+    reason = _provenance_error(policy["provenance"])
+    if reason:
+        return False, reason
+    if not _uint53(policy["policy_seq"]):
+        return False, "runtime policy_seq is not uint53"
+    if not rappid_valid(policy["card_authority"]) or trust.spki(policy["card_authority"]) is None:
+        return False, "runtime policy card_authority is not a trust anchor"
+    if not all(isinstance(policy[key], str) and _CARD_PROFILE_TOKEN.match(policy[key])
+               for key in ("protocol", "runtime")):
+        return False, "runtime policy protocol/runtime token is invalid"
+    if not _sorted_unique_strings(policy["features"], _CARD_PROFILE_TOKEN):
+        return False, "runtime policy features are invalid"
+    if not _sorted_unique_strings(policy["profiles"], _CARD_PROFILE_TOKEN):
+        return False, "runtime policy profiles are invalid"
+    if not set(policy["profiles"]) <= {CARD_PROFILE, CARD_TEST_PROFILE}:
+        return False, "runtime policy includes an unknown profile"
+    policy_synthetic = policy["authority_rappid"].startswith("rappid:@synthetic/")
+    if CARD_PROFILE in policy["profiles"] and policy_synthetic:
+        return False, "production runtime policy cannot use a synthetic authority"
+    if CARD_TEST_PROFILE in policy["profiles"] and not policy_synthetic:
+        return False, "test runtime policy must use a visibly synthetic authority"
+    if policy["card_authority"].startswith("rappid:@synthetic/") != policy_synthetic:
+        return False, "runtime policy and card-authority roots must share test/production class"
+    if len(policy["profiles"]) != 1:
+        return False, "runtime policy must select exactly one production or test profile"
+    if policy["max_classification"] not in CARD_CLASSIFICATIONS:
+        return False, "runtime policy max_classification is invalid"
+    if not _sorted_unique_strings(policy["granted_scope"], _LCLABEL):
+        return False, "runtime policy granted_scope is invalid"
+    if not (_uint53(policy["max_registry_age_seconds"])
+            and policy["max_registry_age_seconds"] > 0):
+        return False, "runtime policy max_registry_age_seconds is invalid"
+    ok, reason = state.accept_sequence(
+        "runtime-policy", policy["authority_rappid"], policy["policy_seq"],
+        _document_hash(policy))
+    return (True, "ok") if ok else (False, reason)
+
+
+def _verify_fetch_trace(trace, endpoint, approved_origins):
+    if not isinstance(trace, list) or not (1 <= len(trace) <= _CARD_MAX_REDIRECTS):
+        return False, "fetch trace must contain 1-8 observed hops"
+    if not isinstance(trace[0], dict) or trace[0].get("url") != endpoint:
+        return False, "fetch trace does not begin at URI endpoint"
+    for index, hop in enumerate(trace):
+        if not isinstance(hop, dict) or set(hop.keys()) != CARD_FETCH_HOP_KEYS:
+            return False, "fetch hop must be exactly {url, resolved_ip}"
+        try:
+            info = _card_url_info(
+                hop["url"], CARD_VIRTUAL_SUFFIX if index == len(trace) - 1 else None)
+            resolved = ipaddress.ip_address(hop["resolved_ip"])
+        except (TypeError, ValueError) as ex:
+            return False, f"fetch hop is invalid: {ex}"
+        if _forbidden_url_material(hop["url"]):
+            return False, "fetch hop URL contains prohibited material"
+        if info["origin"] not in approved_origins:
+            return False, "fetch redirect crossed to an unapproved origin"
+        if not resolved.is_global:
+            return False, "fetch DNS/IP result is loopback/private/link-local/reserved"
+    return True, "ok"
+
+
+def _authorization_key(entry):
+    return (
+        entry["issuer_key_id"], "" if entry["subject_rappid"] is None else entry["subject_rappid"],
+        entry["role"], entry["not_before_utc"], entry["not_after_utc"],
+        "" if entry["revoked_utc"] is None else entry["revoked_utc"],
+    )
+
+
+def _verify_authority_view(view, policy, trust, now, state, frame, link, fetch_trace):
+    if not isinstance(view, dict) or set(view.keys()) != CARD_AUTHORITY_VIEW_KEYS:
+        return False, "authority view has the wrong closed schema"
+    if view["schema"] != CARD_AUTHORITY_SCHEMA:
+        return False, "authority view schema token is wrong"
+    if (view["authority_rappid"] != policy["card_authority"]
+            or view["signer_key_id"] != view["authority_rappid"]):
+        return False, "authority view signer is not the runtime policy card_authority"
+    ok, reason = _verify_detached_eddsa(
+        {key: value for key, value in view.items() if key != "sig"},
+        view["sig"], view["signer_key_id"], trust)
+    if not ok:
+        return False, reason
+    reason = _temporal_document_error(view, now, policy["max_registry_age_seconds"])
+    if reason:
+        return False, reason
+    reason = _provenance_error(view["provenance"])
+    if reason:
+        return False, reason
+    if not _uint53(view["registry_seq"]):
+        return False, "authority registry_seq is not uint53"
+    origins = view["approved_origins"]
+    if not isinstance(origins, list):
+        return False, "approved_origins must be an array"
+    try:
+        canonical_origins = [_canonical_card_origin(origin) for origin in origins]
+    except ValueError as ex:
+        return False, str(ex)
+    if any(_forbidden_url_material(origin + "/origin") for origin in origins):
+        return False, "approved origin contains prohibited material"
+    if origins != sorted(set(canonical_origins)):
+        return False, "approved_origins must be canonical, sorted, and unique"
+    entries = view["authorizations"]
+    if not isinstance(entries, list):
+        return False, "authorizations must be an array"
+    for entry in entries:
+        if not isinstance(entry, dict) or set(entry.keys()) != CARD_AUTHORIZATION_KEYS:
+            return False, "authorization has the wrong closed schema"
+        if not rappid_valid(entry["issuer_key_id"]):
+            return False, "authorization issuer_key_id is invalid"
+        if entry["subject_rappid"] is not None and not rappid_valid(entry["subject_rappid"]):
+            return False, "authorization subject_rappid is invalid"
+        if entry["role"] not in ("subject", "card-issuer"):
+            return False, "authorization role is invalid"
+        if entry["role"] == "subject" and entry["subject_rappid"] is None:
+            return False, "subject authorization requires an explicit subject_rappid"
+        before = _valid_utc(entry["not_before_utc"])
+        after = _valid_utc(entry["not_after_utc"])
+        revoked = None if entry["revoked_utc"] is None else _valid_utc(entry["revoked_utc"])
+        if before is None or after is None or before >= after:
+            return False, "authorization tenure is invalid"
+        if entry["revoked_utc"] is not None and (revoked is None or revoked < before):
+            return False, "authorization revoked_utc is invalid"
+    if entries != sorted(entries, key=_authorization_key):
+        return False, "authorizations must be sorted"
+    if len({_authorization_key(entry) for entry in entries}) != len(entries):
+        return False, "authorizations contain a duplicate"
+    ok, reason = state.accept_sequence(
+        "card-authority", view["authority_rappid"], view["registry_seq"],
+        _document_hash(view))
+    if not ok:
+        return False, reason
+    if link["endpoint_origin"] != frame["payload"]["endpoint_origin"]:
+        return False, "endpoint origin does not match signed manifest"
+    if link["endpoint_origin"] not in origins:
+        return False, "endpoint origin is not approved by signed authority policy"
+    revocation_origin = _card_url_info(frame["payload"]["revocation_url"])["origin"]
+    if revocation_origin not in origins:
+        return False, "revocation origin is not approved by signed authority policy"
+    ok, reason = _verify_fetch_trace(fetch_trace, link["endpoint"], origins)
+    if not ok:
+        return False, reason
+    issued = _valid_utc(frame["utc"])
+    issuer = frame["payload"]["key_id"]
+    subject = frame["payload"]["rappid"]
+    authorized = False
+    for entry in entries:
+        if entry["issuer_key_id"] != issuer:
+            continue
+        before = _valid_utc(entry["not_before_utc"])
+        after = _valid_utc(entry["not_after_utc"])
+        revoked = None if entry["revoked_utc"] is None else _valid_utc(entry["revoked_utc"])
+        subject_ok = (
+            entry["subject_rappid"] == subject
+            if entry["role"] == "subject"
+            else entry["subject_rappid"] in (None, subject)
+        )
+        if (subject_ok and before <= issued < after and now < after
+                and (revoked is None or now < revoked)):
+            authorized = True
+            break
+    if not authorized:
+        return False, "issuer key has no current signed authorization for this subject"
+    return True, "ok"
+
+
+def _revocation_key(entry):
+    return (entry["target_type"], entry["target"], entry["effective_utc"], entry["reason"])
+
+
+def _verify_revocation_view(view, policy, trust, now, state, payload, manifest_hash):
+    if view is None:
+        return False, "revocation view unavailable"
+    if not isinstance(view, dict) or set(view.keys()) != CARD_REVOCATION_VIEW_KEYS:
+        return False, "revocation view has the wrong closed schema"
+    if view["schema"] != CARD_REVOCATION_SCHEMA:
+        return False, "revocation view schema token is wrong"
+    if (view["authority_rappid"] != policy["card_authority"]
+            or view["signer_key_id"] != view["authority_rappid"]):
+        return False, "revocation signer is not the runtime policy card_authority"
+    ok, reason = _verify_detached_eddsa(
+        {key: value for key, value in view.items() if key != "sig"},
+        view["sig"], view["signer_key_id"], trust)
+    if not ok:
+        return False, reason
+    reason = _temporal_document_error(view, now, policy["max_registry_age_seconds"])
+    if reason:
+        return False, reason
+    reason = _provenance_error(view["provenance"])
+    if reason:
+        return False, reason
+    if view["provenance"]["source"] != payload["revocation_url"]:
+        return False, "revocation provenance does not match signed manifest location"
+    if not _uint53(view["registry_seq"]):
+        return False, "revocation registry_seq is not uint53"
+    entries = view["entries"]
+    if not isinstance(entries, list):
+        return False, "revocation entries must be an array"
+    for entry in entries:
+        if not isinstance(entry, dict) or set(entry.keys()) != CARD_REVOCATION_ENTRY_KEYS:
+            return False, "revocation entry has the wrong closed schema"
+        target_type = entry["target_type"]
+        if target_type == "manifest-hash":
+            target_ok = _hex64(entry["target"])
+        elif target_type in ("key-id", "subject-rappid"):
+            target_ok = rappid_valid(entry["target"])
+        else:
+            return False, "revocation target_type is invalid"
+        if not target_ok or _valid_utc(entry["effective_utc"]) is None:
+            return False, "revocation target/effective_utc is invalid"
+        if not _lclabel(entry["reason"]):
+            return False, "revocation reason is not an lclabel"
+    if entries != sorted(entries, key=_revocation_key):
+        return False, "revocation entries must be sorted"
+    if len({_revocation_key(entry) for entry in entries}) != len(entries):
+        return False, "revocation entries contain a duplicate"
+    ok, reason = state.accept_sequence(
+        "card-revocation", view["authority_rappid"], view["registry_seq"],
+        _document_hash(view))
+    if not ok:
+        return False, reason
+    targets = {
+        "manifest-hash": manifest_hash,
+        "key-id": payload["key_id"],
+        "subject-rappid": payload["rappid"],
+    }
+    for entry in entries:
+        if (entry["target"] == targets[entry["target_type"]]
+                and _valid_utc(entry["effective_utc"]) <= now):
+            return False, f"{entry['target_type']} is revoked"
+    return True, "ok"
 
 
 def _verify_card_hydration(inventory, hydrated):
@@ -1533,16 +2141,16 @@ def _verify_card_hydration(inventory, hydrated):
     return True, "ok"
 
 
-def verify_card_link(uri, frame, trust, now_utc, revocations, environment,
-                     replay_cache, connection_id, hydrated, continuity,
-                     mode="production", head=None):
+def verify_card_link(uri, frame, trust, now_utc, runtime_policy, authority_view,
+                     revocation_view, state, connection_id, fetch_trace,
+                     hydrated, continuity, head=None):
     """Run the §7.10 verification order. Returns (ok, step, reason, result).
 
-    `revocations` maps the signed manifest's revocation URL to an already-authenticated
-    iterable of revoked manifest hashes, key ids, or RAPPIDs. Network retrieval and §13
-    registry authentication are caller responsibilities; an unavailable location fails.
-    The nonce is claimed atomically before hydration. A failed hydration may resume only
-    on the same connection; reconnecting cannot race or replay a one-time wake.
+    Runtime facts and local scope are authenticated by `runtime_policy`; issuer delegation
+    and endpoint origins by `authority_view`; revocation by `revocation_view`. `fetch_trace`
+    is the fetcher's observed URL/IP chain and is revalidated against signed origins.
+    `state` must be a transactional CardStateBackend. It linearizes hydrating before any
+    part is touched and awake before success is returned.
     """
     try:
         link = parse_card_link(uri)
@@ -1565,57 +2173,70 @@ def verify_card_link(uri, frame, trust, now_utc, revocations, environment,
         frame, head=head, stream_id_of_record=link["rappid"])
     if not ok:
         return False, "schema", f"frame §7.5 step {frame_step}: {reason}", None
-    reason = _card_payload_error(frame["payload"], frame, link["rappid"], mode)
+    reason = _card_payload_error(frame["payload"], frame, link)
     if reason:
         return False, "schema", reason, None
 
-    ok, reason = _verify_frame_eddsa(frame, trust, mode)
+    if not isinstance(trust, CardTrustStore):
+        return False, "signature", "a CardTrustStore is required", None
+    if not isinstance(state, CardStateBackend):
+        return False, "signature", "a transactional CardStateBackend is required", None
+    now = _valid_utc(now_utc)
+    if now is None:
+        return False, "signature", "trusted clock now_utc is not calendar-valid", None
+    ok, reason = _verify_frame_eddsa(frame, trust)
+    if not ok:
+        return False, "signature", reason, None
+    try:
+        ok, reason = _verify_runtime_policy(runtime_policy, trust, now, state)
+    except (sqlite3.Error, ValueError) as ex:
+        return False, "signature", f"runtime policy state failure: {ex}", None
+    if not ok:
+        return False, "signature", reason, None
+    if frame["payload"]["profile"] not in runtime_policy["profiles"]:
+        return False, "signature", "runtime policy does not authorize this profile", None
+    try:
+        ok, reason = _verify_authority_view(
+            authority_view, runtime_policy, trust, now, state, frame, link, fetch_trace)
+    except (sqlite3.Error, ValueError) as ex:
+        return False, "signature", f"authority state failure: {ex}", None
     if not ok:
         return False, "signature", reason, None
 
-    now = _valid_utc(now_utc)
     expires = _valid_utc(frame["payload"]["expires_utc"])
-    if now is None:
-        return False, "expiry", "verifier now_utc is not calendar-valid", None
     if now >= expires:
         return False, "expiry", "card manifest is expired", None
 
-    location = frame["payload"]["revocation_url"]
-    if not isinstance(revocations, dict) or location not in revocations:
-        return False, "revocation", "revocation location unavailable", None
-    revoked = revocations[location]
-    if not isinstance(revoked, (list, tuple, set, frozenset)):
-        return False, "revocation", "revocation result is not an authenticated set", None
-    if not all(isinstance(name, str) for name in revoked):
-        return False, "revocation", "revocation set members must be strings", None
-    revoked_names = {
-        link["manifest_hash"], frame["payload"]["key_id"], frame["payload"]["rappid"]}
-    if revoked_names & set(revoked):
-        return False, "revocation", "card manifest, identity, or signing key is revoked", None
+    try:
+        ok, reason = _verify_revocation_view(
+            revocation_view, runtime_policy, trust, now, state,
+            frame["payload"], link["manifest_hash"])
+    except (sqlite3.Error, ValueError) as ex:
+        return False, "revocation", f"revocation state failure: {ex}", None
+    if not ok:
+        return False, "revocation", reason, None
 
-    reason = _card_environment_error(environment)
-    if reason:
-        return False, "compatibility", reason, None
     compatibility = frame["payload"]["compatibility"]
-    if (compatibility["protocol"] != environment["protocol"]
-            or compatibility["runtime"] != environment["runtime"]
-            or not set(compatibility["features"]) <= set(environment["features"])):
+    if (compatibility["protocol"] != runtime_policy["protocol"]
+            or compatibility["runtime"] != runtime_policy["runtime"]
+            or not set(compatibility["features"]) <= set(runtime_policy["features"])):
         return False, "compatibility", "runtime/protocol requirements are not satisfied", None
 
     classification = CARD_CLASSIFICATIONS.index(frame["payload"]["classification"])
-    maximum = CARD_CLASSIFICATIONS.index(environment["max_classification"])
+    maximum = CARD_CLASSIFICATIONS.index(runtime_policy["max_classification"])
     missing_scope = sorted(
-        set(frame["payload"]["requested_scope"]) - set(environment["granted_scope"]))
+        set(frame["payload"]["requested_scope"]) - set(runtime_policy["granted_scope"]))
     if classification > maximum:
         return False, "classification-scope", "classification exceeds local policy", None
     if missing_scope:
         return False, "classification-scope", f"requested scope not granted: {missing_scope[0]}", None
 
-    if not isinstance(replay_cache, CardReplayCache):
-        return False, "replay-nonce", "a persistent CardReplayCache is required", None
     if not isinstance(connection_id, str) or not _CARD_CONNECTION.match(connection_id):
         return False, "replay-nonce", "connection_id is invalid", None
-    ok, reason = replay_cache.claim(link["nonce"], connection_id)
+    try:
+        ok, reason = state.claim_nonce(link["nonce"], connection_id, now_utc)
+    except sqlite3.Error as ex:
+        return False, "replay-nonce", f"transactional nonce claim failed: {ex}", None
     if not ok:
         return False, "replay-nonce", reason, None
 
@@ -1635,13 +2256,21 @@ def verify_card_link(uri, frame, trust, now_utc, revocations, environment,
             or actual_challenge != frame["payload"]["wake_challenge"]):
         return False, "continuity", "one-time continuity challenge failed", None
 
-    replay_cache.complete(link["nonce"], connection_id)
+    try:
+        ok, reason = state.mark_awake(link["nonce"], connection_id, now_utc)
+    except sqlite3.Error as ex:
+        return False, "replay-nonce", f"transactional awake commit failed: {ex}", None
+    if not ok:
+        return False, "replay-nonce", reason, None
     return True, None, "awake", {
         "status": "awake",
         "profile": frame["payload"]["profile"],
         "rappid": frame["payload"]["rappid"],
         "manifest_hash": link["manifest_hash"],
         "nonce": link["nonce"],
+        "runtime_policy_seq": runtime_policy["policy_seq"],
+        "authority_seq": authority_view["registry_seq"],
+        "revocation_seq": revocation_view["registry_seq"],
     }
 
 

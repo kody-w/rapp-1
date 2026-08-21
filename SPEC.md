@@ -561,7 +561,7 @@ card-specific identity, or introduce another hash space.
 
 The two additive profile bindings are:
 
-| use | frame `kind` | payload `profile` | mode |
+| use | frame `kind` | payload `profile` | signed policy class |
 |---|---|---|---|
 | production calling card | `body.calling-card` | **`rappid-card/1`** | production |
 | conformance/debug card | `body.debug-card` | **`rappid-card-test/1`** | test only |
@@ -593,15 +593,32 @@ rappid://link/<percent-encoded-rappid>?m=<manifest-hash>&e=<endpoint>&n=<nonce>
 - `m` is exactly 64 lowercase hex and **MUST** equal both `frame.payload_hash` and
   `H("rapp/1:particle", frame.payload)`. It is the existing particle space, not a new
   `rappid-card:*` address.
-- `e` is a percent-encoded HTTPS URL whose path ends `.rappid-card.json`, with a host and no
-  user-info, non-default port, query, or fragment. It locates immutable frame bytes; it is not a
-  second RAPP command endpoint and content addressing means the location is not trusted.
+- `e` is a percent-encoded, canonical HTTPS URL whose decoded path ends `.rappid-card.json`.
+  Before percent decoding it is ASCII and at most 2048 octets, with a lowercase canonical host,
+  no user-info, port, query marker (including a trailing empty `?`), fragment marker (including a
+  trailing empty `#`), space/control, backslash, malformed percent triplet, encoded unreserved
+  character, empty path segment, or `.`/`..` segment. Percent hex is uppercase. An IP-literal host
+  **MUST** be globally routable; loopback, private, link-local, unspecified, multicast,
+  documentation/reserved, and other non-global literals are refused.
+- The manifest's signed `endpoint_origin` is exactly `https://<canonical-host>`. URI `e` **MUST**
+  have that origin, and that origin **MUST** occur in the signed authority view's
+  `approved_origins` (§7.10.5); the signed `revocation_url` origin **MUST** also be approved there.
+  The fetcher **MUST** re-run the URL/origin checks and reject any
+  non-global DNS result before every request and after every redirect (maximum eight observed
+  hops). A redirect to another origin or a DNS rebinding to private/reserved space is refused.
+  `e` locates immutable frame bytes; it is not a second RAPP command endpoint.
+- Reference fetch evidence is a 1–8 element array of exact
+  `{"url":"<observed URL>","resolved_ip":"<observed IP>"}` objects. The first URL equals `e`;
+  every hop's origin is signed-approved and every observed IP is globally routable; the final URL
+  ends `.rappid-card.json`. Production fetchers enforce the same facts on live socket results.
 - `n` is 16–64 unpadded base64url characters. It is a one-time, **non-secret** nonce. It carries no
   authority by itself and **MUST NOT** be treated as a password or bearer credential.
 
 The URI is deliberately safe to photograph or copy. It **MUST NOT** contain a password, API key,
-cookie, bearer token, private-memory plaintext, or executable instruction; credentials in `e`
-(including user-info or a secret query) are refused.
+cookie, bearer token, private-memory plaintext, or executable instruction. Secret scanning is over
+the raw component and at most two bounded UTF-8 percent-decoding rounds; structural canonicalization
+still permits exactly one encoding round, so double-encoding never creates an alternate accepted
+URL.
 
 #### 7.10.2 Exact manifest payload
 The frame `payload` has **exactly** these members; nullable `parent` is how the optional parent is
@@ -624,6 +641,7 @@ represented (the key is never absent):
   "requested_scope": ["<lclabel>", "…"],
   "expires_utc": "<§7.4 utc>",
   "revocation_url": "<https-url>",
+  "endpoint_origin": "https://<canonical-host>",
   "wake_challenge": "<64hex>",
   "inventory": [
     {"part":"<lclabel>","space":"rapp/1:egg","hash":"<64hex>",
@@ -637,8 +655,9 @@ represented (the key is never absent):
 token grammar `lclabel "/" 1*DIGIT` with a non-zero first digit. `features` and `requested_scope`
 **MUST** each be sorted, duplicate-free arrays. `classification` is ordered from least to most
 restrictive exactly as shown above. `expires_utc` **MUST** be calendar-valid and later than the
-frame's `utc`. `revocation_url` **MUST** be HTTPS with no user-info, query, or fragment and identifies
-the authenticated §13 revocation view checked by §7.10.6.
+frame's `utc`. `revocation_url` obeys §7.10.1's same strict canonical HTTPS rules (without the
+`.rappid-card.json` suffix) and identifies the exact signed revocation-view provenance checked by
+§7.10.6. `endpoint_origin` binds URI/fetch selection as specified in §7.10.1.
 
 The payload has no free-form command, credential, cookie, memory, or authorization slot. A producer
 **MUST NOT** put a password, API key, cookie, bearer token, plaintext private memory, `auto-execute`
@@ -693,66 +712,171 @@ object from the state it actually hydrated and the parsed URI nonce. Both the ma
 and the hydrated response **MUST** reproduce the same particle; a mismatch is refused. The
 challenge proves continuity of the addressed identity state, not possession of a shared secret.
 
-#### 7.10.5 Signature and test-key separation
+#### 7.10.5 Signature, authenticated runtime policy, and issuer authorization
 The card frame's `sig` is REQUIRED and follows §10 detached, unencoded JWS, selecting §10's
-`alg:"EdDSA"` alternative (Ed25519) for this profile. `key_id` **MUST** be a
-keyed §6.2 RAPPID, **MUST** equal the JWS protected header's `kid`, and the discovered SPKI **MUST**
-hash back to that RAPPID tail. The signature covers `canonical(frame \ {sig})`, which includes the
-complete manifest payload, its particle, frame metadata, and `key_id`; no nested `signature` member
-is added to the payload.
+`alg:"EdDSA"` alternative (Ed25519) for this profile. `key_id` **MUST** be a keyed §6.2 RAPPID,
+**MUST** equal the JWS protected header's `kid`, and the discovered SPKI **MUST** hash back to that
+RAPPID tail. The signature covers `canonical(frame \ {sig})`, including the complete manifest,
+particle, metadata, and `key_id`; no nested signature is added.
 
-A test key **MUST** be visibly synthetic: its RAPPID owner is the literal `synthetic` (for example
-`rappid:@synthetic/rappid-card-test:<64hex>`) and local trust metadata marks it synthetic. Test mode
-accepts only `body.debug-card` + `rappid-card-test/1` + a visibly synthetic key. Production mode
-**MUST** refuse the test kind, test profile token, any key marked synthetic, and any key whose RAPPID
-is visibly synthetic — even when the JWS is cryptographically valid. A production calling card
-uses `body.calling-card` + `rappid-card/1` + a non-synthetic key trusted through §10/§13.
+Cryptographic trust is not issuing authority. A consumer **MUST NOT** infer authorization from a
+trusted key, common owner/slug, repository location, or successful JWS. Two additional signed
+documents are required.
+
+**Authenticated runtime policy.** The out-of-band runtime-policy trust anchor signs this exact
+closed document:
+
+```json
+{
+  "schema":"rappid-card-runtime-policy/1", "policy_seq":<uint53>,
+  "generated_utc":"<utc>", "effective_utc":"<utc>", "expires_utc":"<utc>",
+  "authority_rappid":"<policy root>", "signer_key_id":"<same policy root>",
+  "provenance":{"source":"<canonical https URL>","channel":"<lclabel>"},
+  "card_authority":"<trusted card-authority rappid>",
+  "protocol":"rapp/1", "runtime":"<versioned-token>",
+  "features":["<versioned-token>",…], "profiles":["rappid-card/1"],
+  "max_classification":"<classification>", "granted_scope":["<lclabel>",…],
+  "max_registry_age_seconds":<uint53 greater than zero>, "sig":"<JWS>"
+}
+```
+
+This signed value—not caller booleans/sets—owns the accepted profile, actual protocol/runtime,
+supported feature superset, maximum classification, granted scopes, card-authority root, and
+registry freshness bound. It is current only when
+`effective_utc <= generated_utc <= now < expires_utc`. `policy_seq` is persisted per policy
+authority; lower sequence or different bytes at an already-seen sequence are refused.
+
+**Signed card-authority view.** `card_authority` signs this exact closed §13 view:
+
+```json
+{
+  "schema":"rappid-card-authority/1", "registry_seq":<uint53>,
+  "generated_utc":"<utc>", "effective_utc":"<utc>", "expires_utc":"<utc>",
+  "authority_rappid":"<card authority>", "signer_key_id":"<same card authority>",
+  "provenance":{"source":"<canonical https URL>","channel":"<lclabel>"},
+  "approved_origins":["https://<canonical-host>",…],
+  "authorizations":[{
+    "issuer_key_id":"<keyed rappid>", "subject_rappid":null|"<subject rappid>",
+    "role":"subject"|"card-issuer", "not_before_utc":"<utc>",
+    "not_after_utc":"<utc>", "revoked_utc":null|"<utc>"
+  }], "sig":"<JWS>"
+}
+```
+
+Arrays are sorted and duplicate-free. The view must be effective, unexpired, generated no more than
+the signed runtime policy's `max_registry_age_seconds` ago, and non-rollback by `(authority,
+registry_seq, particle-of-view-without-sig)`.
+
+An authorization is valid only when its `issuer_key_id` equals manifest `key_id`, the frame's `utc`
+and verifier `now` are both inside `[not_before_utc, not_after_utc)`, and `revoked_utc` is null or
+later than `now`. Role `subject` requires byte-exact `subject_rappid == manifest.rappid`. Role
+`card-issuer` is an explicit delegation and may bind one subject or use `subject_rappid:null` for
+the authority's deliberate all-subject issuer role. No matching current record means refusal,
+even for an otherwise trusted key.
+
+A test issuer and test policy authority **MUST** be visibly synthetic: their RAPPID owner is the
+literal `synthetic`. Test policy selects only `rappid-card-test/1`; production policy selects only
+`rappid-card/1`. Production **MUST** refuse a visibly synthetic manifest key or policy authority,
+and test profile **MUST** require them. No unauthenticated `mode` or `synthetic` boolean exists.
 
 #### 7.10.6 Verification and wake order
-A consumer treats the URI, endpoint, frame, manifest, registry result, and hydrated octets as
-untrusted. It **MUST** perform these checks in the exact order below, stop at the first failure, and
-reach `awake` only after all eleven succeed:
+The revocation location yields exactly this signed §13 wire document:
+
+```json
+{
+  "schema":"rappid-card-revocations/1", "registry_seq":<uint53>,
+  "generated_utc":"<utc>", "effective_utc":"<utc>", "expires_utc":"<utc>",
+  "authority_rappid":"<card authority>", "signer_key_id":"<same card authority>",
+  "provenance":{"source":"<manifest.revocation_url>","channel":"<lclabel>"},
+  "entries":[{
+    "target_type":"manifest-hash"|"key-id"|"subject-rappid",
+    "target":"<64hex or rappid>", "effective_utc":"<utc>", "reason":"<lclabel>"
+  }], "sig":"<JWS>"
+}
+```
+
+The signer **MUST** equal the runtime policy's `card_authority`; provenance source **MUST**
+byte-equal the signed manifest `revocation_url`; entries are sorted and duplicate-free. The view
+must be effective, unexpired, fresh under signed `max_registry_age_seconds`, and anti-rollback by
+persisted `(authority, registry_seq, particle-of-view-without-sig)`. A lower sequence or different
+view at an already-seen sequence is refused. An entry applies when its target byte-equals the
+manifest particle, `key_id`, or subject `rappid` for its declared type and `effective_utc <= now`.
+Forged, stale, unavailable, rollback, or wrong-provenance views fail closed.
+
+Replay and sequence state **MUST** use an injected transactional durable backend; an in-memory
+set/check, snapshot, or caller promise is non-conformant. For the reference SQLite backend,
+`BEGIN IMMEDIATE` plus a unique nonce row is the linearization point:
+
+- step 9 commits `(nonce, connection_id, "hydrating")` **before** hydration;
+- a crash/restart preserves that row; only the same connection id may resume it;
+- another thread, process, connection, or already-`awake` presentation is refused;
+- after step 11, the backend commits `"awake"` **before** success is returned.
+
+The same backend persists the highest runtime-policy, authority-view, and revocation-view
+sequence+hash per authority, so independent processes share one rollback floor.
+
+A consumer treats the URI, fetch trace, frame, manifest, three signed policy/view documents, and
+hydrated octets as untrusted. It **MUST** perform these checks in the exact order below, stop at the
+first failure, and reach `awake` only after all eleven succeed:
 
 1. **Parse untrusted URI:** enforce §7.10.1's exact scheme/authority/path/query grammar, canonical
-   percent encoding, HTTPS virtual endpoint, hash, and nonce forms.
+   percent encoding, strict HTTPS virtual endpoint, prohibited material, hash, and nonce forms.
 2. **Content-address match:** recompute the payload particle and require it and
    `frame.payload_hash` to equal URI `m`. A hostile location cannot substitute another manifest.
 3. **Exact schema:** require the eleven-key §7.1 frame; run §7.5 steps 1–5 including stream and
-   predecessor binding; enforce the exact §7.10.2 payload, profile/kind/mode binding, root/inventory
-   relationships, and prohibited-material rule.
-4. **Signature/key trust:** enforce §7.10.5, including SPKI→RAPPID binding and production refusal of
-   synthetic material.
+   predecessor binding; enforce the exact §7.10.2 payload, profile/kind binding, signed endpoint
+   origin, root/inventory relationships, and prohibited-material rule.
+4. **Signature/key trust and authorization:** verify the card JWS and SPKI→RAPPID binding; verify
+   the signed runtime policy and its anti-rollback sequence; verify the signed authority view,
+   issuer delegation/tenure, and approved origins; then validate every observed fetch/redirect URL
+   and resolved IP against that signed origin policy. A trusted but unauthorized issuer is refused.
 5. **Expiry:** require verifier time before `expires_utc`.
-6. **Revocation:** resolve `revocation_url`, authenticate the returned registry/view per §13, and
-   refuse a tombstoned manifest hash, `key_id`, or subject `rappid`. An unavailable or unauthenticated
-   revocation result is failure, never an empty success result.
-7. **Compatibility:** require exact protocol/runtime equality and require every signed feature to
-   be locally supported.
-8. **Classification/scope:** require classification no higher than local policy and every
-   `requested_scope` member explicitly granted.
-9. **Replay nonce:** atomically claim URI `n` in persistent state, bound to the current connection.
-   An already-awake nonce is refused. An interrupted hydration may resume on the same connection;
-   a different connection presenting a nonce already hydrating is a refused reconnect/replay.
+6. **Revocation:** verify the exact signed view above, freshness, provenance, sequence, and
+   manifest/key/subject entries. Unavailable is failure, never an empty result.
+7. **Compatibility:** require exact manifest protocol/runtime equality with the authenticated
+   runtime policy and require every manifest feature to be in its signed feature superset.
+8. **Classification/scope:** require classification no higher than the authenticated policy and
+   every requested scope in its signed grant.
+9. **Replay nonce:** transactionally commit URI `n` as `hydrating`, bound to this connection,
+   before hydration. Same-connection crash recovery may resume; all contention/replay is refused.
 10. **Permitted hydration inventory:** hydrate only §7.10.3's allow-list and verify every required
     part's count and address. A failed attempt keeps its nonce claim so another connection cannot
     race the retry.
-11. **Continuity challenge:** reconstruct §7.10.4 from the hydrated state and require the signed
-    challenge to match. Only then mark the nonce `awake` and wake the organism.
+11. **Continuity challenge:** reconstruct §7.10.4 from hydrated state and require the signed
+    challenge to match. Transactionally commit `awake`; only after that commit may success return.
 
 Implementations **MUST NOT** move replay, policy, hydration, or continuity earlier to improve
 convenience: the order is the security boundary. In particular, hydration before
-classification/scope can disclose private state, and marking a nonce awake before continuity can
-wake a partial or substituted organism.
+classification/scope can disclose private state, trusting a caller list can silently un-revoke a
+card, and returning before the `awake` commit creates a replay window.
 
 #### 7.10.7 Deterministic conformance deck
 The required deterministic deck is `vectors/rappid-card/deck.json`, generated and diff-checked by
-`vectors/rappid-card/generate.py`. It includes: valid, expired, revoked, wrong manifest hash,
-unknown signing key, incompatible runtime/protocol, classification violation, insufficient scope,
-missing engram part, continuity challenge failure, reconnect during hydration, duplicate/replayed
-nonce, test-profile-in-production, synthetic-key-in-production, prohibited auto-execute material,
-and a physical-payload reproduction. `physical.rappid-card.json` is the canonical frame resource;
-`physical-payload.txt` is the exact compact URI. A conformant implementation **MUST** accept the
-positive vectors and refuse each negative vector at its declared ordered step.
+`vectors/rappid-card/generate.py`. Its mandatory scenario names are exactly, in this order:
+
+```text
+valid-test, valid-production, expired, manifest-revoked, key-revoked, subject-revoked,
+wrong-manifest-hash, unknown-signing-key, attacker-key-impersonation, delegation-expired,
+delegation-revoked, forged-revocation-view, stale-revocation-view,
+unavailable-revocation-view, rollback-revocation-view, protocol-incompatible,
+runtime-incompatible, unsupported-feature, feature-superset, classification-violation,
+insufficient-scope, missing-engram-part, continuity-challenge-failure,
+reconnect-during-hydration, duplicate-replayed-nonce, physical-payload-reproduction,
+test-profile-production, synthetic-key-production, auto-execute, endpoint-userinfo,
+endpoint-empty-query, endpoint-empty-fragment, endpoint-space, endpoint-backslash,
+endpoint-bad-percent, endpoint-double-encoding, endpoint-loopback-literal, endpoint-private-literal,
+endpoint-link-local-literal, endpoint-reserved-literal, endpoint-unapproved-origin,
+endpoint-redirect-origin, endpoint-private-dns, secret-endpoint-password, secret-password,
+secret-api-key, secret-cookie, secret-bearer, secret-private-memory
+```
+
+Conformance asserts exact list equality, not subset membership. `valid-production` uses a
+non-synthetic key with explicit signed issuer delegation. Protocol-only, runtime-only,
+unsupported-feature, and feature-superset are orthogonal. Prohibited-material fixtures mutate
+existing schema fields; the mutation control disables only the scanners and requires every one to
+turn green, proving schema rejection does not mask the policy. `physical.rappid-card.json` is the
+canonical frame resource and `physical-payload.txt` the exact compact URI. A conformant
+implementation accepts the positive vectors and refuses each negative vector at its declared step.
 
 ## 8. The Wire (L3)
 All interaction rides one of exactly two forms:
@@ -985,9 +1109,11 @@ tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.
   time by >300 s, and adversarial-scope merges **SHOULD** rank by `min(utc, first-seen)`; a bricked stream
   converges by re-genesis (§12.1).
 - **Card disclosure/replay:** a §7.10 URI is public, non-secret data. Its endpoint is untrusted and
-  authenticated by particle+JWS, while classification/scope runs before hydration. Persistent atomic
-  nonce claims prevent duplicate wake and cross-connection hydration races; content-addressed inventory
-  plus the final continuity challenge prevents a partial or substituted body from reaching `awake`.
+  authenticated by particle+JWS, signed origin policy, and per-hop URL/DNS revalidation. A trusted key
+  gains no issuer power without explicit signed subject/role delegation. Signed fresh anti-rollback
+  revocation and runtime policy replace caller lists/booleans. Transactional durable `hydrating`/`awake`
+  commits prevent crash, thread, process, and connection replay races; content-addressed inventory plus
+  final continuity prevents a partial/substituted body from reaching `awake`.
 
 ## 15. References
 [RFC 2119] [RFC 8174] requirement terms · [RFC 8259] JSON · [RFC 7493] I-JSON · [RFC 8785] JCS ·
@@ -1004,8 +1130,10 @@ tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.
   eleven-key `rapp/1` frame. Defines the `.rappid-card.json` virtual resource, explicit and distinct
   `rappid-card/1` / `rappid-card-test/1` tokens, compact non-secret `rappid://link/…` URI, exact signed
   identity/root/compatibility/classification/scope/expiry/revocation/challenge/inventory/key manifest,
-  production refusal of visibly synthetic test keys, atomic replay and same-connection hydration resume,
-  final continuity-before-awake rule, and deterministic physical/mutation fixtures. **Additive only:**
+  production refusal of visibly synthetic test keys, signed runtime policy and time-scoped issuer
+  authorization, strict signed-origin endpoint/redirect/DNS policy, closed signed sequenced revocation
+  views, transactional SQLite replay/rollback state across processes, final continuity-before-awake
+  commit, and deterministic physical/mutation/concurrency fixtures. **Additive only:**
   `m` is the existing payload particle, inventory octets use `rapp/1:egg`, the signature is the existing
   §10 `sig`, and neither the frame key set, `rapp/1` token, RAPPID grammar, canonicalization, nor hash
   spaces change.

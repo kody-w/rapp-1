@@ -8,7 +8,9 @@ import json
 import urllib.request
 import hashlib
 import base64
+import atexit
 import os
+import shutil
 import tempfile
 import rapp as R
 import rapp_check as RC
@@ -542,13 +544,37 @@ CARD_PARTS = {
     name: base64.b64decode(octets)
     for name, octets in CARD_DECK["parts_b64"].items()
 }
-CARD_TRUST = {
-    entry["kid"]: {
-        "spki_der": base64.b64decode(entry["spki_der_b64"]),
-        "synthetic": entry["synthetic"],
-    }
+CARD_TRUST_KEYS = {
+    entry["kid"]: base64.b64decode(entry["spki_der_b64"])
     for entry in CARD_DECK["trust"]
 }
+CARD_STATE_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), ".conformance-card-state")
+if os.path.exists(CARD_STATE_DIR):
+    shutil.rmtree(CARD_STATE_DIR)
+os.makedirs(CARD_STATE_DIR)
+atexit.register(lambda: shutil.rmtree(CARD_STATE_DIR, ignore_errors=True))
+
+MANDATORY_CARD_SCENARIOS = (
+    "valid-test", "valid-production", "expired", "manifest-revoked", "key-revoked",
+    "subject-revoked", "wrong-manifest-hash", "unknown-signing-key",
+    "attacker-key-impersonation", "delegation-expired", "delegation-revoked",
+    "forged-revocation-view", "stale-revocation-view", "unavailable-revocation-view",
+    "rollback-revocation-view", "protocol-incompatible", "runtime-incompatible",
+    "unsupported-feature", "feature-superset", "classification-violation",
+    "insufficient-scope", "missing-engram-part", "continuity-challenge-failure",
+    "reconnect-during-hydration", "duplicate-replayed-nonce",
+    "physical-payload-reproduction", "test-profile-production",
+    "synthetic-key-production", "auto-execute", "endpoint-userinfo",
+    "endpoint-empty-query", "endpoint-empty-fragment", "endpoint-space",
+    "endpoint-backslash", "endpoint-bad-percent", "endpoint-double-encoding",
+    "endpoint-loopback-literal",
+    "endpoint-private-literal", "endpoint-link-local-literal",
+    "endpoint-reserved-literal", "endpoint-unapproved-origin",
+    "endpoint-redirect-origin", "endpoint-private-dns", "secret-endpoint-password",
+    "secret-password", "secret-api-key", "secret-cookie", "secret-bearer",
+    "secret-private-memory",
+)
 
 # V25 proves the stdlib crypto path against RFC 8032 rather than trusting fixtures
 # produced by this same implementation.
@@ -579,55 +605,89 @@ check("V25 card kinds are additive body-family registry entries",
       all(set(entry) == {"type", "kind", "family", "deprecated"}
           and entry["family"] == "body" and entry["deprecated"] is False
           for entry in R.CARD_REGISTRY_KIND_ENTRIES))
+check("V25 runtime, authority, and revocation documents have distinct closed schemas",
+      len({R.CARD_RUNTIME_POLICY_SCHEMA, R.CARD_AUTHORITY_SCHEMA,
+           R.CARD_REVOCATION_SCHEMA}) == 3)
+check("V25 replay state is a transactional backend contract",
+      issubclass(R.SQLiteCardState, R.CardStateBackend))
 
 
-def run_card_vector(vector):
-    frame = vector["frame"]
-    cache = R.CardReplayCache()
-    replay_seed = vector["replay_seed"]
-    if replay_seed is not None:
-        cache.seed(replay_seed["nonce"], replay_seed["connection_id"], replay_seed["state"])
-    hydrated = {part: CARD_PARTS[part] for part in vector["hydrated_parts"]}
-    revocations = {frame["payload"]["revocation_url"]: vector["revoked"]}
-    return R.verify_card_link(
+def _state_for_vector(vector, suffix="base"):
+    path = os.path.join(CARD_STATE_DIR, f"{vector['name']}-{suffix}.sqlite")
+    state = R.SQLiteCardState(path)
+    for nonce in vector["state_seed"]["nonces"]:
+        state.seed_nonce(
+            nonce["nonce"], nonce["connection_id"], nonce["state"], nonce["utc"])
+    for sequence in vector["state_seed"]["sequences"]:
+        state.seed_sequence(
+            sequence["namespace"], sequence["authority"], sequence["seq"],
+            sequence["view_hash"])
+    return state
+
+
+def run_card_vector(vector, suffix="base", hydrated_parts=None):
+    state = _state_for_vector(vector, suffix=suffix)
+    parts = vector["hydrated_parts"] if hydrated_parts is None else hydrated_parts
+    trust = R.CardTrustStore(
+        CARD_TRUST_KEYS, vector["runtime_policy_authority"])
+    result = R.verify_card_link(
         vector["link"],
-        frame,
-        CARD_TRUST,
+        vector["frame"],
+        trust,
         vector["now_utc"],
-        revocations,
-        vector["environment"],
-        cache,
+        vector["runtime_policy"],
+        vector["authority_view"],
+        vector["revocation_view"],
+        state,
         vector["connection_id"],
-        hydrated,
+        vector["fetch_trace"],
+        {part: CARD_PARTS[part] for part in parts},
         vector["continuity"],
-        mode=vector["mode"],
     )
+    return result, state
 
 
 # V26 is the required deterministic fixture deck. Every negative vector is a fully
 # content-addressed and (where applicable) re-signed mutation, so it reaches the named
 # check instead of being caught accidentally by an earlier broken hash.
-CARD_RESULTS = {}
+CARD_RESULTS, CARD_STATES = {}, {}
 for vector in CARD_DECK["vectors"]:
-    verdict = run_card_vector(vector)
+    verdict, state = run_card_vector(vector)
     CARD_RESULTS[vector["name"]] = verdict
+    CARD_STATES[vector["name"]] = state
     expected = vector["expected"]
-    matches = verdict[0] is expected["ok"] and verdict[1] == expected["step"]
+    matches = (
+        verdict[0] is expected["ok"]
+        and verdict[1] == expected["step"]
+        and (expected["reason_contains"] is None
+             or expected["reason_contains"] in verdict[2])
+    )
     check(f"V26 card fixture: {vector['name']}", matches,
           f"expected {expected}, got ok={verdict[0]} step={verdict[1]} reason={verdict[2]}")
 
-required_card_vectors = {
-    "valid", "expired", "revoked", "wrong-manifest-hash", "unknown-signing-key",
-    "incompatible-runtime-protocol", "classification-violation", "insufficient-scope",
-    "missing-engram-part", "continuity-challenge-failure", "reconnect-during-hydration",
-    "duplicate-replayed-nonce", "physical-payload-reproduction",
-}
-check("V26 the fixture deck contains every required named scenario",
-      required_card_vectors <= set(CARD_RESULTS))
+deck_names = tuple(vector["name"] for vector in CARD_DECK["vectors"])
+check("V26 fixture names exactly equal the normative mandatory scenario list",
+      deck_names == tuple(CARD_DECK["mandatory_scenarios"])
+      == MANDATORY_CARD_SCENARIOS)
 check("V26 every refusal occurs at its normative ordered step",
       all(result[1] == vector["expected"]["step"]
           for vector in CARD_DECK["vectors"]
           for result in [CARD_RESULTS[vector["name"]]]))
+production = next(
+    vector for vector in CARD_DECK["vectors"] if vector["name"] == "valid-production")
+check("V26 production vector uses a non-synthetic explicitly authorized issuer",
+      CARD_RESULTS["valid-production"][0]
+      and not production["frame"]["payload"]["key_id"].startswith("rappid:@synthetic/")
+      and any(entry["issuer_key_id"] == production["frame"]["payload"]["key_id"]
+              and entry["role"] == "card-issuer"
+              for entry in production["authority_view"]["authorizations"]))
+check("V26 a trusted attacker key cannot impersonate an unauthorized subject",
+      not CARD_RESULTS["attacker-key-impersonation"][0]
+      and "no current signed authorization" in
+      CARD_RESULTS["attacker-key-impersonation"][2])
+check("V26 revocation covers manifest, key, and subject independently",
+      all(CARD_RESULTS[name][1] == "revocation" for name in
+          ("manifest-revoked", "key-revoked", "subject-revoked")))
 
 # V27 reproduces the physical payload from committed bytes. The endpoint resource is
 # canonical JSON for one ordinary frame; m is its existing particle, not a card-private hash.
@@ -657,103 +717,75 @@ check("V27 manifest has only the normative signed fields and no secret slot",
       set(PHYSICAL_FRAME["payload"]) == R.CARD_PAYLOAD_KEYS
       and not R._forbidden_card_material(PHYSICAL_FRAME["payload"]))
 
-# V28 mutations are made independently of deck generation and re-sealed where needed.
-# If schema/signature gates are weakened, these checks turn red.
-def reseal_card_payload(payload):
-    frame = R.build_frame(
-        PHYSICAL_FRAME["kind"], PHYSICAL_FRAME["stream_id"], PHYSICAL_FRAME["seq"],
-        PHYSICAL_FRAME["utc"], payload, prev=PHYSICAL_FRAME["prev"])
-    frame = R.sign_frame_eddsa(frame, payload["key_id"], RFC8032_SEED)
-    return frame, R.build_card_link(
-        frame, PHYSICAL_PARSED["endpoint"], PHYSICAL_PARSED["nonce"])
-
-
-def verify_physical_mutation(frame, link):
-    return R.verify_card_link(
-        link,
-        frame,
-        CARD_TRUST,
-        PHYSICAL_VECTOR["now_utc"],
-        {frame["payload"]["revocation_url"]: []},
-        PHYSICAL_VECTOR["environment"],
-        R.CardReplayCache(),
-        "mutation-connection",
+# V28's prohibited-material fixtures mutate only existing schema fields. Disable exactly
+# the two scanners: every one must turn green, proving no schema refusal masks the policy.
+scanner_vectors = [vector for vector in CARD_DECK["vectors"] if vector["scanner_control"]]
+check("V28 scanner controls are within-schema parse/schema refusals",
+      len(scanner_vectors) == 7
+      and all(CARD_RESULTS[vector["name"]][1] in ("parse", "schema")
+              for vector in scanner_vectors))
+try:
+    R.build_card_manifest(
+        PHYSICAL_FRAME["payload"]["profile"],
+        PHYSICAL_FRAME["payload"]["rappid"],
+        PHYSICAL_FRAME["payload"]["key_id"],
+        PHYSICAL_PARSED["nonce"],
         CARD_PARTS,
-        R.card_continuity(frame["payload"], PHYSICAL_PARSED["nonce"]),
-        mode="test",
+        PHYSICAL_FRAME["payload"]["compatibility"],
+        PHYSICAL_FRAME["payload"]["classification"],
+        ["auto-execute"],
+        PHYSICAL_FRAME["payload"]["expires_utc"],
+        PHYSICAL_FRAME["payload"]["revocation_url"],
+        PHYSICAL_FRAME["payload"]["endpoint_origin"],
     )
+    producer_refused_prohibited = False
+except ValueError:
+    producer_refused_prohibited = True
+check("V28 producer refuses prohibited material before signing",
+      producer_refused_prohibited)
+original_material_scanner = R._forbidden_card_material
+original_url_scanner = R._forbidden_url_material
+try:
+    R._forbidden_card_material = lambda value: False
+    R._forbidden_url_material = lambda value: False
+    scanner_disabled = {
+        vector["name"]: run_card_vector(vector, suffix="scanner-disabled")[0]
+        for vector in scanner_vectors
+    }
+finally:
+    R._forbidden_card_material = original_material_scanner
+    R._forbidden_url_material = original_url_scanner
+check("V28 disabling only prohibited-material scanners turns every control green",
+      all(result[0] for result in scanner_disabled.values()),
+      str({name: result[:3] for name, result in scanner_disabled.items()
+           if not result[0]}))
 
-
-tampered_content = dict(PHYSICAL_FRAME)
-tampered_content["payload"] = dict(PHYSICAL_FRAME["payload"], classification="internal")
-ok, step, _, _ = verify_physical_mutation(tampered_content, PHYSICAL_LINK)
-check("V28 an unsealed manifest mutation fails at content-address",
-      (not ok) and step == "content-address")
-
-tampered_jws = dict(PHYSICAL_FRAME)
-protected, detached, signature = tampered_jws["sig"].split(".")
-signature = ("A" if signature[0] != "A" else "B") + signature[1:]
-tampered_jws["sig"] = ".".join((protected, detached, signature))
-ok, step, _, _ = verify_physical_mutation(tampered_jws, PHYSICAL_LINK)
-check("V28 a signature mutation fails at signature",
-      (not ok) and step == "signature")
-
-for forbidden_name, mutate in (
-        ("password", lambda p: dict(p, password="fixture-secret")),
-        ("API key", lambda p: dict(p, api_key="fixture-secret")),
-        ("cookie", lambda p: dict(p, cookie="session=fixture")),
-        ("bearer token", lambda p: dict(p, authorization="Bearer fixture")),
-        ("plaintext private memory", lambda p: dict(p, **{"private-memory": "fixture"})),
-        ("auto-execute instruction",
-         lambda p: dict(p, requested_scope=["auto-execute"]))):
-    forbidden_frame, forbidden_link = reseal_card_payload(mutate(dict(PHYSICAL_FRAME["payload"])))
-    ok, step, _, _ = verify_physical_mutation(forbidden_frame, forbidden_link)
-    check(f"V28 manifest {forbidden_name} mutation is refused",
-          (not ok) and step == "schema")
-
-optional_core = dict(PHYSICAL_FRAME["payload"])
-optional_core["inventory"] = [
-    dict(entry, required=False) if entry["part"] == "engram" else dict(entry)
-    for entry in optional_core["inventory"]
-]
-optional_frame, optional_link = reseal_card_payload(optional_core)
-ok, step, _, _ = verify_physical_mutation(optional_frame, optional_link)
-check("V28 a core engram marked optional is refused",
-      (not ok) and step == "schema")
-
-valid_once = next(vector for vector in CARD_DECK["vectors"] if vector["name"] == "valid")
-valid_cache = R.CardReplayCache()
-valid_hydration = {part: CARD_PARTS[part] for part in valid_once["hydrated_parts"]}
-valid_revocations = {valid_once["frame"]["payload"]["revocation_url"]: []}
-first = R.verify_card_link(
-    valid_once["link"], valid_once["frame"], CARD_TRUST, valid_once["now_utc"],
-    valid_revocations, valid_once["environment"], valid_cache,
-    valid_once["connection_id"], valid_hydration, valid_once["continuity"], mode="test")
-second = R.verify_card_link(
-    valid_once["link"], valid_once["frame"], CARD_TRUST, valid_once["now_utc"],
-    valid_revocations, valid_once["environment"], valid_cache,
-    valid_once["connection_id"], valid_hydration, valid_once["continuity"], mode="test")
-check("V28 a nonce awakens exactly once under real persisted replay state",
-      first[0] and not second[0] and second[1] == "replay-nonce")
+# V29 proves durable state, not snapshot semantics: the first failed hydration committed
+# `hydrating`; a new SQLiteCardState resumes it, then commits `awake`.
+valid_vector = next(
+    vector for vector in CARD_DECK["vectors"] if vector["name"] == "valid-test")
+valid_nonce = R.parse_card_link(valid_vector["link"])["nonce"]
+check("V29 successful verification commits awake before returning",
+      CARD_RESULTS["valid-test"][0]
+      and CARD_STATES["valid-test"].nonce_state(valid_nonce)["state"] == "awake")
 
 resume_vector = next(
     vector for vector in CARD_DECK["vectors"] if vector["name"] == "missing-engram-part")
-resume_cache = R.CardReplayCache()
-resume_revocations = {resume_vector["frame"]["payload"]["revocation_url"]: []}
-interrupted = R.verify_card_link(
-    resume_vector["link"], resume_vector["frame"], CARD_TRUST, resume_vector["now_utc"],
-    resume_revocations, resume_vector["environment"], resume_cache,
-    resume_vector["connection_id"],
-    {part: CARD_PARTS[part] for part in resume_vector["hydrated_parts"]},
-    resume_vector["continuity"], mode="test")
-resume_cache = R.CardReplayCache(resume_cache.snapshot())
+resume_state = CARD_STATES["missing-engram-part"]
+resume_nonce = R.parse_card_link(resume_vector["link"])["nonce"]
+claimed = resume_state.nonce_state(resume_nonce)
+restarted_state = R.SQLiteCardState(resume_state.path)
+resume_trust = R.CardTrustStore(
+    CARD_TRUST_KEYS, resume_vector["runtime_policy_authority"])
 resumed = R.verify_card_link(
-    resume_vector["link"], resume_vector["frame"], CARD_TRUST, resume_vector["now_utc"],
-    resume_revocations, resume_vector["environment"], resume_cache,
-    resume_vector["connection_id"], CARD_PARTS,
-    resume_vector["continuity"], mode="test")
-check("V28 interrupted hydration resumes only on the original connection",
-      (not interrupted[0]) and interrupted[1] == "hydration" and resumed[0])
+    resume_vector["link"], resume_vector["frame"], resume_trust,
+    resume_vector["now_utc"], resume_vector["runtime_policy"],
+    resume_vector["authority_view"], resume_vector["revocation_view"],
+    restarted_state, resume_vector["connection_id"], resume_vector["fetch_trace"],
+    CARD_PARTS, resume_vector["continuity"])
+check("V29 crash-window hydration claim survives restart and resumes same connection",
+      claimed["state"] == "hydrating" and resumed[0]
+      and restarted_state.nonce_state(resume_nonce)["state"] == "awake")
 
 print()
 print("=" * 70)

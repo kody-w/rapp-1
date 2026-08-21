@@ -100,17 +100,19 @@ RAPP rev-5 — conformance vectors
 §7.10 — RAPPID Calling Card and Debug Card profile
   [PASS] V25 stdlib Ed25519 signing matches RFC 8032 byte-for-byte
   [PASS] V25 a one-bit Ed25519 signature mutation is refused
-  [PASS] V26 card fixture: valid
-  [PASS] V26 card fixture: expired
-  [PASS] V26 card fixture: revoked
-  [PASS] V26 card fixture: wrong-manifest-hash
+  [PASS] V26 card fixture: valid-test
+  [PASS] V26 card fixture: valid-production
+  [PASS] V26 card fixture: attacker-key-impersonation
+  [PASS] V26 card fixture: forged-revocation-view
+  [PASS] V26 card fixture: rollback-revocation-view
+  [PASS] V26 card fixture: endpoint-redirect-origin
   [PASS] V26 card fixture: reconnect-during-hydration
   [PASS] V26 card fixture: duplicate-replayed-nonce
-  [PASS] V26 card fixture: synthetic-key-refused-production
+  [PASS] V26 fixture names exactly equal the normative mandatory scenario list
   [PASS] V27 physical payload fixture reproduces the canonical compact URI
-  [PASS] V28 manifest bearer token mutation is refused
-  [PASS] V28 a nonce awakens exactly once under real persisted replay state
-  ── 147 protocol checks, including every required card fixture and mutation
+  [PASS] V28 disabling only prohibited-material scanners turns every control green
+  [PASS] V29 crash-window hydration claim survives restart and resumes same connection
+  ── 179 protocol checks, including all 50 mandatory card scenarios
 ```
 
 Each vector maps to a promise made earlier in the book: V1/V1b is canonicalization (ch. 2), V2 is
@@ -120,10 +122,12 @@ one mint-once name, its media held by reference, its offspring minting their own
 V15–V20 are §7.8 weight (ch. 5.7): verified bytes, de-duplicated by content address, resident against
 linked, and incompleteness surfaced rather than estimated. V21–V24 are §7.9 stats (ch. 5.8): exact
 chain depth that repetition cannot pad, a display height that is deterministic *and* labelled as
-presentation, and proposals that read without writing. V25–V28 are §7.10 calling/debug cards
-(ch. 5.9): RFC 8032 Ed25519, every ordered accept/refusal fixture, byte-for-byte reproduction of
-the physical URI and canonical frame, production rejection of synthetic test material, and
-independently re-sealed secret/auto-execute mutations that must stay red. Note how many of them are *refusals*: a
+presentation, and proposals that read without writing. V25–V29 are §7.10 calling/debug cards
+(ch. 5.9): RFC 8032 Ed25519, signed runtime/issuer/revocation policy, a valid non-synthetic
+production card, strict endpoint and redirect/DNS policy, all ordered accept/refusal fixtures,
+byte-for-byte physical reproduction, mutation controls proving secret scanners are load-bearing,
+and durable replay across restart. A separate concurrency gate races threads and independent
+processes against the same SQLite nonce. Note how many of them are *refusals*: a
 protocol is defined at least as much by what it will not accept as by what it will. This is what
 "conformance class" means concretely: an implementation is RAPP-conformant when it produces and
 rejects exactly these bytes. Green here is not a clean build; it is the spec exercised against its

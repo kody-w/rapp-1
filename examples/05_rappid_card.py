@@ -1,14 +1,9 @@
-"""05 — Verify a physical RAPPID Calling Card payload without a private envelope.
+"""05 — Verify a physical RAPPID Calling Card without a private envelope.
 
-The physical payload is only a compact, non-secret URI. Its `m` parameter addresses a
-signed manifest served through the virtual `.rappid-card.json` extension. That resource
-is an ordinary eleven-key `rapp/1` frame: the manifest is `payload`, its address is
-`payload_hash`, and the existing `sig` member is a detached Ed25519 JWS.
-
-This example reproduces the committed physical fixture, hydrates only its signed
-inventory, answers the one-time continuity challenge, and reaches `awake`. It then
-shows that the same nonce cannot be replayed and that the visibly synthetic debug
-profile is refused in production mode.
+The physical payload is a non-secret URI. Its `.rappid-card.json` resource is an
+ordinary eleven-key frame. The manifest particle, Ed25519 JWS, signed runtime policy,
+signed issuer authorization, signed revocation view, approved endpoint origin, observed
+fetch trace, and durable SQLite nonce state all verify before hydration can reach awake.
 
 Run: python3 examples/05_rappid_card.py
 """
@@ -46,66 +41,105 @@ parts = {
     name: base64.b64decode(octets)
     for name, octets in deck["parts_b64"].items()
 }
-trust = {
-    entry["kid"]: {
-        "spki_der": base64.b64decode(entry["spki_der_b64"]),
-        "synthetic": entry["synthetic"],
-    }
+keys = {
+    entry["kid"]: base64.b64decode(entry["spki_der_b64"])
     for entry in deck["trust"]
 }
-revocations = {frame["payload"]["revocation_url"]: fixture["revoked"]}
-replay = R.CardReplayCache()
+trust = R.CardTrustStore(keys, fixture["runtime_policy_authority"])
+state_path = os.path.join(ROOT, "examples", ".rappid-card-example.sqlite")
 
-ok, step, reason, result = R.verify_card_link(
-    physical_payload,
-    frame,
-    trust,
-    fixture["now_utc"],
-    revocations,
-    fixture["environment"],
-    replay,
-    fixture["connection_id"],
-    parts,
-    fixture["continuity"],
-    mode="test",
-)
-assert ok, f"physical card refused at {step}: {reason}"
 
-print("physical payload reproduced:", physical_payload)
-print("resource is one frame       :", len(frame), "keys ·", frame["kind"])
-print("manifest particle matches   :", link["manifest_hash"])
-print("signed hydration inventory  :", ", ".join(
-    entry["part"] for entry in frame["payload"]["inventory"]))
-print("verification result         :", result["status"], result["rappid"])
+def remove_state():
+    for suffix in ("", "-wal", "-shm"):
+        try:
+            os.remove(state_path + suffix)
+        except FileNotFoundError:
+            pass
 
-ok, step, reason, _ = R.verify_card_link(
-    physical_payload,
-    frame,
-    trust,
-    fixture["now_utc"],
-    revocations,
-    fixture["environment"],
-    replay,
-    fixture["connection_id"],
-    parts,
-    fixture["continuity"],
-    mode="test",
-)
-assert not ok and step == "replay-nonce"
-print("same nonce presented twice  :", f"refused at {step} ({reason})")
 
-ok, step, reason, _ = R.verify_card_link(
-    physical_payload,
-    frame,
-    trust,
-    fixture["now_utc"],
-    revocations,
-    fixture["environment"],
-    R.CardReplayCache(),
-    "production-connection",
-    parts,
-    fixture["continuity"],
-    mode="production",
-)
-assert not ok and step == "schema"
-print("debug card in production    :", f"refused at {step} ({reason})")
+remove_state()
+try:
+    state = R.SQLiteCardState(state_path)
+    ok, step, reason, result = R.verify_card_link(
+        physical_payload,
+        frame,
+        trust,
+        fixture["now_utc"],
+        fixture["runtime_policy"],
+        fixture["authority_view"],
+        fixture["revocation_view"],
+        state,
+        fixture["connection_id"],
+        fixture["fetch_trace"],
+        parts,
+        fixture["continuity"],
+    )
+    assert ok, f"physical card refused at {step}: {reason}"
+    assert state.nonce_state(link["nonce"])["state"] == "awake"
+
+    print("physical payload reproduced:", physical_payload)
+    print("resource is one frame       :", len(frame), "keys ·", frame["kind"])
+    print("manifest particle matches   :", link["manifest_hash"])
+    print("endpoint origin authorized  :", frame["payload"]["endpoint_origin"])
+    authorization = next(
+        entry for entry in fixture["authority_view"]["authorizations"]
+        if entry["issuer_key_id"] == frame["payload"]["key_id"])
+    print("issuer authorization        :", authorization["role"],
+          authorization["not_before_utc"], "→", authorization["not_after_utc"])
+    print("signed registry sequences   :", result["authority_seq"],
+          result["revocation_seq"])
+    print("hydration inventory         :", ", ".join(
+        entry["part"] for entry in frame["payload"]["inventory"]))
+    print("verification result         :", result["status"], result["rappid"])
+
+    replay = R.verify_card_link(
+        physical_payload,
+        frame,
+        trust,
+        fixture["now_utc"],
+        fixture["runtime_policy"],
+        fixture["authority_view"],
+        fixture["revocation_view"],
+        R.SQLiteCardState(state_path),
+        fixture["connection_id"],
+        fixture["fetch_trace"],
+        parts,
+        fixture["continuity"],
+    )
+    assert not replay[0] and replay[1] == "replay-nonce"
+    print("same nonce after restart    :", f"refused at {replay[1]} ({replay[2]})")
+
+    production_refusal = next(
+        vector for vector in deck["vectors"]
+        if vector["name"] == "test-profile-production")
+    production_trust = R.CardTrustStore(
+        keys, production_refusal["runtime_policy_authority"])
+    production_path = state_path + ".production"
+    for suffix in ("", "-wal", "-shm"):
+        try:
+            os.remove(production_path + suffix)
+        except FileNotFoundError:
+            pass
+    refused = R.verify_card_link(
+        production_refusal["link"],
+        production_refusal["frame"],
+        production_trust,
+        production_refusal["now_utc"],
+        production_refusal["runtime_policy"],
+        production_refusal["authority_view"],
+        production_refusal["revocation_view"],
+        R.SQLiteCardState(production_path),
+        production_refusal["connection_id"],
+        production_refusal["fetch_trace"],
+        parts,
+        production_refusal["continuity"],
+    )
+    assert not refused[0] and refused[1] == "signature"
+    print("debug card under prod policy:", f"refused at {refused[1]} ({refused[2]})")
+finally:
+    remove_state()
+    for suffix in (".production", ".production-wal", ".production-shm"):
+        try:
+            os.remove(state_path + suffix)
+        except FileNotFoundError:
+            pass
