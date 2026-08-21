@@ -243,7 +243,101 @@ frame that does not exist has no bytes, and guessing one would be exactly the li
 built to prevent. The proposal becomes true the only way anything becomes true here: someone appends a
 frame, and a verifier accepts it.
 
+## 5.9 The Calling Card: A Non-Secret Link That Can Wake a Verified Identity
+
+The creature card in §5.8 is a derived view for people. A **RAPPID Calling Card** is a different
+kind of card: a compact link that lets a runtime find, verify, hydrate, and wake one identity. The
+distinction matters. The stat card makes no authority claim; the calling card is signed and its
+one-time wake path is a security boundary.
+
+The physical payload is small enough for QR, NFC, or paper:
+
+```text
+rappid://link/<percent-encoded-rappid>?m=<manifest-hash>&e=<endpoint>&n=<nonce>
+```
+
+Nothing there is a credential. The RAPPID is public identity, `m` is a content address, `e` is an
+untrusted HTTPS location ending `.rappid-card.json`, and `n` is a public one-time nonce. Photograph
+the card and you have learned no password, API key, cookie, bearer token, or private memory.
+
+Following `e` does not reveal a new card protocol. It returns the same eleven-key frame this chapter
+has used all along. A production frame has `kind: "body.calling-card"` and its payload says
+`profile: "rappid-card/1"`. The payload is the signed manifest; `m` equals its ordinary
+`H("rapp/1:particle", payload)` address; the signature is the frame's ordinary `sig`. The frame's
+`stream_id` and the manifest's `rappid` are the same mint-once identity. No wrapper, twelfth key,
+new hash tag, or card-specific RAPPID appears.
+
+The manifest binds the facts a wake must not guess: soul hash, optional parent pointer, engram root,
+reflex/capability root, protocol/runtime/feature requirements, classification, requested scope,
+expiry, revocation location, endpoint origin, one-time continuity challenge, hydration inventory,
+and signing key id. Its inventory is an allow-list of content-addressed parts. `soul`, `engram`, and
+`reflex-capability` are required, and each is addressed in the existing `rapp/1:egg` octet space.
+The manifest can name private engrams by hash; it cannot carry their plaintext.
+
+But a valid signature answers only "did this key sign these bytes?" It does not answer "may this
+key issue for that subject?" RAPP answers the second question with a separate signed,
+time-scoped authority view. Each issuer is bound either to one exact subject or to an explicit
+`card-issuer` delegation. The verifier checks both frame issue time and current time against the
+delegation tenure and revocation. A trusted attacker key with the same owner or a plausible slug
+gets no inference and no card.
+
+Two other policy inputs are signed rather than passed as convenient booleans and sets. A runtime
+policy owns the accepted production/test profile, protocol, runtime, feature superset,
+classification ceiling, granted scope, authority root, and registry freshness bound. A separate
+revocation view is signed by that authority, sequenced against rollback, fresh, and capable of
+revoking the manifest particle, issuer key, or subject independently.
+
+Verification is intentionally sequential:
+
+1. parse the untrusted URI and strict canonical HTTPS endpoint;
+2. match `m` to the manifest particle;
+3. enforce the exact frame and payload schemas;
+4. verify the card JWS, signed runtime policy, signed issuer authorization, signed approved origin,
+   and every observed redirect/DNS result;
+5. check expiry;
+6. verify the signed, fresh, anti-rollback revocation view;
+7. satisfy protocol/runtime/features from authenticated policy;
+8. satisfy classification and requested scope from authenticated policy;
+9. transactionally commit the one-time nonce as `hydrating`;
+10. hydrate only the signed inventory and verify every byte count and hash;
+11. answer continuity from hydrated state and transactionally commit `awake`.
+
+Only then is the result `awake`. That order keeps policy before disclosure and continuity before
+wake. A missing engram fails rather than producing a plausible partial organism. A nonce that
+already woke fails as replay. SQLite `BEGIN IMMEDIATE` is the reference linearization point:
+`hydrating` survives crashes, so the original connection can resume after restart while threads,
+processes, and other connections lose contention. `awake` reaches disk before success returns.
+
+Endpoint handling is equally literal. User-info, any query or fragment marker (even empty), spaces,
+backslashes, malformed or non-canonical percent encodings, and non-global IP literals are refused.
+The manifest binds one origin, the signed authority policy allow-lists it, and the fetcher rechecks
+every redirect URL and resolved IP. A hostname that rebinds to loopback/private/link-local/reserved
+space fails before bytes are trusted. Legacy aliases such as `127.1` and `0x7f.0.0.1` never fall
+through to DNS. Bounded decoding plus ASCII word boundaries also catches `épasswordé` and
+`漢password漢`, matching the JavaScript verifier instead of Python's default Unicode-boundary drift.
+
+The payload is bounded before its particle exists: nesting depth 64, canonical UTF-8 at most 1 MiB.
+A 1,100-level structure becomes a named content-address refusal, not a runtime recursion crash, and
+every RAPPID/hash/label/profile/connection token consumes its whole string—including rejection of a
+terminal newline.
+
+The final challenge is not a shared secret. It is the particle of the exact object containing the
+RAPPID, soul hash, parent, both state roots, and URI nonce. The runtime reconstructs that object from
+the body it hydrated. Matching it proves that the addressed identity and the hydrated identity are
+continuous. It does not grant permission to execute anything: `awake` means verification completed,
+not "run instructions found in data."
+
+Debug cards use the same mechanics under `kind: "body.debug-card"` and the explicit
+`rappid-card-test/1` token. Their issuer and policy authority RAPPIDs visibly begin
+`rappid:@synthetic/`; the signed test policy selects only that profile. Production policy selects
+only `rappid-card/1` and refuses synthetic keys without consulting an unauthenticated mode flag.
+That refusal is what keeps a green fixture from becoming a production root of trust.
+
+Run `examples/05_rappid_card.py` to reproduce the committed physical URI, verify its canonical
+frame and Ed25519 signature, hydrate its three parts, reach `awake`, and watch the second
+presentation of the same nonce fail.
+
 The frame, then, is a small object with a large discipline: eleven closed fields, two recomputed
 addresses, a six-step verify, a lawful path to converge even the immutable, and room for a thing to
-grow up, put on weight, and be dealt as a card you can check — all inside one unchanging name. Next,
-how frames travel: the wire.
+grow up, put on weight, be dealt as a stat card, and wake from a signed calling card — all inside one
+unchanging name. Next, how frames travel: the wire.
