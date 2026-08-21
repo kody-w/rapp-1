@@ -3,6 +3,7 @@ layout: book
 title: RAPP Reference Manual
 book_label: Appendix A
 book_progress: 92
+book_order: 120
 description: Terse implementation reference for RAPP rev-5
 ---
 

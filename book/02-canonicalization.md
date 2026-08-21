@@ -3,6 +3,7 @@ layout: book
 title: Canonicalization
 book_label: Chapter 2
 book_progress: 20
+book_order: 20
 description: Turn one RAPP value into exactly one sequence of bytes
 ---
 

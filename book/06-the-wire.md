@@ -3,6 +3,7 @@ layout: book
 title: The Wire
 book_label: Chapter 6
 book_progress: 52
+book_order: 60
 description: Carry RAPP through one synchronous endpoint and append-only frames
 ---
 

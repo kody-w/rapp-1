@@ -3,6 +3,7 @@ layout: book
 title: Glossary and Failure Atlas
 book_label: Appendix B
 book_progress: 96
+book_order: 130
 description: RAPP terms, address spaces, and verification failures at a glance
 ---
 

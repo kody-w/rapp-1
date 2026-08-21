@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eee8da">
+  <meta name="description" content="{{ page.description | escape }}">
+  <title>{{ page.title }}</title>
+  <link rel="stylesheet" href="{{ '/book/assets/book-print.css' | relative_url }}">
+</head>
+<body>
+  <header class="print-tools">
+    <a href="{{ '/book/' | relative_url }}">← Reader edition</a>
+    <span>Complete single-volume edition</span>
+    <div>
+      <a class="download-pdf" href="{{ '/book/the-rapp-programming-language.pdf' | relative_url }}">Download PDF</a>
+      <button type="button" onclick="window.print()">Print or save PDF</button>
+    </div>
+  </header>
+
+  <main class="print-volume">
+    <section class="print-cover">
+      <p class="cover-edition">RAPP rev-5 · programming workbook edition</p>
+      <h1>The RAPP <span>Programming</span> Language</h1>
+      <div class="cover-glyph" aria-hidden="true">R/1</div>
+      <p class="cover-subtitle">A tutorial, programming workbook, and reference manual for
+        verifiable agents.</p>
+    </section>
+
+    <section class="print-title-page">
+      <p class="small-caps">The complete single-volume edition</p>
+      <h1>The RAPP Programming Language</h1>
+      <p class="title-subtitle">A tutorial, programming workbook, and reference manual for agents
+        that keep a verifiable memory and communicate over one exact wire.</p>
+      <p class="title-revision">RAPP rev-5 · generated from the canonical book sources</p>
+    </section>
+
+    <section class="print-copyright">
+      <h1>About this edition</h1>
+      <p>This volume is generated from the same chapter files as the online reader. The normative
+        authority is <a href="{{ '/SPEC.md' | relative_url }}">SPEC.md</a>; the book explains the
+        standard but does not replace it.</p>
+      <p>Source, examples, conformance vectors, and current estate evidence:
+        <a href="https://github.com/kody-w/rapp-1">github.com/kody-w/rapp-1</a>.</p>
+      <p>The protocol is meant to be implemented.</p>
+    </section>
+
+    {% assign chapters = site.pages | where_exp: "item", "item.book_order != nil" | sort: "book_order" %}
+
+    <section class="print-contents">
+      <p class="small-caps">Contents</p>
+      <h1>The complete volume</h1>
+      <ol>
+        {% for chapter in chapters %}
+        <li>
+          <a href="#{{ chapter.title | slugify }}">
+            <span>{{ chapter.book_label }}</span>
+            <b>{{ chapter.title }}</b>
+          </a>
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    {% for chapter in chapters %}
+    <section class="print-chapter" id="{{ chapter.title | slugify }}">
+      <p class="print-running-label">{{ chapter.book_label }} · The RAPP Programming Language</p>
+      {% capture print_chapter %}{{ chapter.content | markdownify }}{% endcapture %}
+      {% assign print_chapter = print_chapter | replace: 'README.md', 'index.html' | replace: '00-preface.md', '00-preface.html' | replace: '01-a-tutorial-introduction.md', '01-a-tutorial-introduction.html' | replace: '02-canonicalization.md', '02-canonicalization.html' | replace: '03-content-addressing.md', '03-content-addressing.html' | replace: '04-identity.md', '04-identity.html' | replace: '05-the-frame.md', '05-the-frame.html' | replace: '06-the-wire.md', '06-the-wire.html' | replace: '07-the-egg.md', '07-the-egg.html' | replace: '08-trust-and-signatures.md', '08-trust-and-signatures.html' | replace: '09-registry-evolution-and-security.md', '09-registry-evolution-and-security.html' | replace: '10-conformance-and-drift.md', '10-conformance-and-drift.html' | replace: '11-implementing-rapp.md', '11-implementing-rapp.html' | replace: 'A-reference-manual.md', 'A-reference-manual.html' | replace: 'B-glossary-and-failure-atlas.md', 'B-glossary-and-failure-atlas.html' | replace: 'C-selected-exercise-solutions.md', 'C-selected-exercise-solutions.html' %}
+      {{ print_chapter }}
+    </section>
+    {% endfor %}
+
+    <section class="print-colophon">
+      <p class="small-caps">Colophon</p>
+      <h1>One source, three editions</h1>
+      <p>The repository Markdown is the editable manuscript. Jekyll renders it as the chapter
+        reader and this complete print volume. A browser print engine produces the PDF from this
+        page, preserving one content source across every edition.</p>
+      <p>Typeset with system serif, sans-serif, and monospace faces on a 6 × 9 inch page.</p>
+    </section>
+  </main>
+</body>
+</html>

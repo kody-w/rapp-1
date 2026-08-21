@@ -24,7 +24,8 @@ packaging, signatures, authority, migration, real-world conformance, and a compl
 plan. Numbered exercises turn each chapter into a workbook. No API keys or third-party packages
 are needed for the core examples.
 
-**[Begin the book →](00-preface.md)**
+**[Begin the book →](00-preface.md)** · **[Complete print edition](print.html)** ·
+**[Download the 6×9 PDF](the-rapp-programming-language.pdf)**
 
 ## Contents
 

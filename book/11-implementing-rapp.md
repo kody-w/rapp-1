@@ -3,6 +3,7 @@ layout: book
 title: Implementing the Language
 book_label: Chapter 11
 book_progress: 88
+book_order: 110
 description: Build a conforming RAPP core in dependency order
 ---
 
