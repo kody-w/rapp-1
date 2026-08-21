@@ -96,6 +96,13 @@ MANDATORY_SCENARIOS = (
     "key-revoked",
     "subject-revoked",
     "wrong-manifest-hash",
+    "deep-payload",
+    "oversized-payload",
+    "newline-rappid",
+    "newline-manifest-hash",
+    "newline-lclabel",
+    "newline-profile-token",
+    "newline-connection-id",
     "unknown-signing-key",
     "attacker-key-impersonation",
     "delegation-expired",
@@ -125,6 +132,10 @@ MANDATORY_SCENARIOS = (
     "endpoint-backslash",
     "endpoint-bad-percent",
     "endpoint-double-encoding",
+    "endpoint-numeric-127-1",
+    "endpoint-numeric-octal",
+    "endpoint-numeric-hex",
+    "endpoint-numeric-short-private",
     "endpoint-loopback-literal",
     "endpoint-private-literal",
     "endpoint-link-local-literal",
@@ -132,12 +143,15 @@ MANDATORY_SCENARIOS = (
     "endpoint-unapproved-origin",
     "endpoint-redirect-origin",
     "endpoint-private-dns",
+    "fetch-numeric-alias",
     "secret-endpoint-password",
     "secret-password",
     "secret-api-key",
     "secret-cookie",
     "secret-bearer",
     "secret-private-memory",
+    "secret-unicode-latin-adjacency",
+    "secret-unicode-cjk-adjacency",
 )
 
 
@@ -285,10 +299,12 @@ def _revocation_view(profile, source, entries=None, *, seq=13,
         document, values["authority"], values["authority_seed"])
 
 
-def _raw_link(frame, endpoint, nonce):
+def _raw_link(frame, endpoint, nonce, *, rappid=None, manifest_hash=None):
     return (
-        "rappid://link/" + urllib.parse.quote(frame["payload"]["rappid"], safe="")
-        + "?m=" + frame["payload_hash"]
+        "rappid://link/" + urllib.parse.quote(
+            frame["payload"]["rappid"] if rappid is None else rappid, safe="")
+        + "?m=" + (
+            frame["payload_hash"] if manifest_hash is None else manifest_hash)
         + "&e=" + urllib.parse.quote(endpoint, safe="")
         + "&n=" + nonce
     )
@@ -340,7 +356,8 @@ def _bundle(name, nonce, *, frame=None, link=None, profile=R.CARD_TEST_PROFILE,
             runtime_policy=None, authority_view=None, revocation_view=None,
             fetch_trace=None, hydrated_parts=None, continuity=None,
             state_seed=None, expected_ok=False, expected_step=None,
-            reason_contains=None, physical=False, scanner_control=False):
+            reason_contains=None, physical=False, scanner_control=False,
+            connection_id="fixture-connection", runtime_mutation=None):
     if frame is None or link is None:
         frame, link = _card(nonce, profile=profile)
     runtime_policy = runtime_policy or _runtime_policy(profile)
@@ -359,13 +376,14 @@ def _bundle(name, nonce, *, frame=None, link=None, profile=R.CARD_TEST_PROFILE,
         "authority_view": authority_view,
         "revocation_view": revocation_view,
         "now_utc": NOW_UTC,
-        "connection_id": "fixture-connection",
+        "connection_id": connection_id,
         "fetch_trace": fetch_trace,
         "hydrated_parts": hydrated_parts or sorted(PARTS),
         "continuity": continuity or R.card_continuity(frame["payload"], nonce),
         "state_seed": state_seed or {"nonces": [], "sequences": []},
         "physical": physical,
         "scanner_control": scanner_control,
+        "runtime_mutation": runtime_mutation,
         "expected": {
             "ok": expected_ok,
             "step": expected_step,
@@ -417,6 +435,76 @@ def build_deck():
     vectors.append(_bundle(
         "wrong-manifest-hash", wrong_hash_nonce, frame=wrong_hash_frame,
         link=wrong_hash_link, expected_step="content-address"))
+
+    deep_nonce = "deep-payload-nonce-001"
+    deep_frame, deep_link = _card(deep_nonce)
+    vectors.append(_bundle(
+        "deep-payload", deep_nonce, frame=deep_frame, link=deep_link,
+        runtime_mutation={"type": "deep-payload", "depth": 1100},
+        expected_step="content-address", reason_contains="nesting depth"))
+
+    oversized_nonce = "oversized-payload-001"
+    oversized_frame, oversized_link = _card(oversized_nonce)
+    vectors.append(_bundle(
+        "oversized-payload", oversized_nonce,
+        frame=oversized_frame, link=oversized_link,
+        runtime_mutation={
+            "type": "oversized-payload",
+            "bytes": R.CANONICAL_MAX_BYTES + 1,
+        },
+        expected_step="content-address", reason_contains="exceeds 1048576"))
+
+    newline_rappid_nonce = "newline-rappid-nonce-1"
+    newline_rappid_frame, _ = _card(newline_rappid_nonce)
+    vectors.append(_bundle(
+        "newline-rappid", newline_rappid_nonce,
+        frame=newline_rappid_frame,
+        link=_raw_link(
+            newline_rappid_frame, ENDPOINT, newline_rappid_nonce,
+            rappid=newline_rappid_frame["payload"]["rappid"] + "\n"),
+        expected_step="parse"))
+
+    newline_hash_nonce = "newline-hash-nonce-001"
+    newline_hash_frame, _ = _card(newline_hash_nonce)
+    vectors.append(_bundle(
+        "newline-manifest-hash", newline_hash_nonce,
+        frame=newline_hash_frame,
+        link=_raw_link(
+            newline_hash_frame, ENDPOINT, newline_hash_nonce,
+            manifest_hash=newline_hash_frame["payload_hash"] + "%0A"),
+        expected_step="parse"))
+
+    newline_lclabel_nonce = "newline-lclabel-0001"
+    newline_lclabel_frame, newline_lclabel_link = _card(
+        newline_lclabel_nonce,
+        payload_mutator=lambda payload: dict(
+            payload, requested_scope=["memory-read\n"]))
+    vectors.append(_bundle(
+        "newline-lclabel", newline_lclabel_nonce,
+        frame=newline_lclabel_frame, link=newline_lclabel_link,
+        expected_step="schema"))
+
+    newline_profile_nonce = "newline-profile-0001"
+
+    def newline_profile(payload):
+        payload["compatibility"] = dict(
+            payload["compatibility"], protocol="rapp/1\n")
+        return payload
+
+    newline_profile_frame, newline_profile_link = _card(
+        newline_profile_nonce, payload_mutator=newline_profile)
+    vectors.append(_bundle(
+        "newline-profile-token", newline_profile_nonce,
+        frame=newline_profile_frame, link=newline_profile_link,
+        expected_step="schema"))
+
+    newline_connection_nonce = "newline-connection-01"
+    newline_connection_frame, newline_connection_link = _card(
+        newline_connection_nonce)
+    vectors.append(_bundle(
+        "newline-connection-id", newline_connection_nonce,
+        frame=newline_connection_frame, link=newline_connection_link,
+        connection_id="fixture-connection\n", expected_step="replay-nonce"))
 
     unknown_nonce = "unknown-key-nonce-001"
     unknown_frame, unknown_link = _card(
@@ -625,6 +713,10 @@ def build_deck():
         ("endpoint-bad-percent", "https://cards.example/%ZZ.rappid-card.json"),
         ("endpoint-double-encoding",
          "https://cards.example/password%2520fixture/x.rappid-card.json"),
+        ("endpoint-numeric-127-1", "https://127.1/x.rappid-card.json"),
+        ("endpoint-numeric-octal", "https://0177.0.0.1/x.rappid-card.json"),
+        ("endpoint-numeric-hex", "https://0x7f.0.0.1/x.rappid-card.json"),
+        ("endpoint-numeric-short-private", "https://192.168.1/x.rappid-card.json"),
         ("endpoint-loopback-literal", "https://127.0.0.1/x.rappid-card.json"),
         ("endpoint-private-literal", "https://10.0.0.1/x.rappid-card.json"),
         ("endpoint-link-local-literal", "https://169.254.1.1/x.rappid-card.json"),
@@ -667,6 +759,18 @@ def build_deck():
         fetch_trace=[{"url": ENDPOINT, "resolved_ip": "10.0.0.1"}],
         expected_step="signature"))
 
+    fetch_alias_nonce = "fetch-numeric-alias-01"
+    fetch_alias_frame, fetch_alias_link = _card(fetch_alias_nonce)
+    vectors.append(_bundle(
+        "fetch-numeric-alias", fetch_alias_nonce,
+        frame=fetch_alias_frame, link=fetch_alias_link,
+        fetch_trace=[
+            {"url": ENDPOINT, "resolved_ip": PUBLIC_IP},
+            {"url": "https://127.1/redirected.rappid-card.json",
+             "resolved_ip": "127.0.0.1"},
+        ],
+        expected_step="signature", reason_contains="numeric-looking"))
+
     endpoint_secret_nonce = "secret-endpoint-0001"
     secret_endpoint = GOOD_ORIGIN + "/password%3Dfixture/physical.rappid-card.json"
     endpoint_secret_frame, endpoint_secret_link = _card(
@@ -684,6 +788,10 @@ def build_deck():
         ("secret-cookie", "cookie%3Dfixture"),
         ("secret-bearer", "bearer%20fixture"),
         ("secret-private-memory", "private-memory%3Dfixture"),
+        ("secret-unicode-latin-adjacency",
+         "%C3%A9password%C3%A9"),
+        ("secret-unicode-cjk-adjacency",
+         "%E6%BC%A2password%E6%BC%A2"),
     )
     for name, segment in secret_urls:
         nonce = name + "-0001"
@@ -697,12 +805,16 @@ def build_deck():
             revocation_view=_revocation_view(
                 R.CARD_TEST_PROFILE, revocation_url),
             expected_step="schema",
-            reason_contains="prohibited" if name == "secret-bearer" else "secret",
+            reason_contains=(
+                "prohibited"
+                if name == "secret-bearer" or name.startswith("secret-unicode-")
+                else "secret"
+            ),
             scanner_control=True))
 
     assert tuple(vector["name"] for vector in vectors) == MANDATORY_SCENARIOS
     return {
-        "schema": "rappid-card-vectors/2",
+        "schema": "rappid-card-vectors/3",
         "production_profile": R.CARD_PROFILE,
         "test_profile": R.CARD_TEST_PROFILE,
         "virtual_suffix": R.CARD_VIRTUAL_SUFFIX,

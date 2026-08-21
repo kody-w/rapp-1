@@ -123,6 +123,11 @@ commits before success returns, across restarts, threads, and processes. The tes
 explicitly `rappid-card-test/1`; visibly synthetic material is refused by production policy. See
 [`examples/05_rappid_card.py`](examples/05_rappid_card.py).
 
+Canonical hashing refuses depth above 64 and canonical bytes above 1 MiB before hashing. Token
+validators consume the whole string, numeric-looking legacy IP aliases never reach DNS, and secret
+matching uses ASCII boundaries after bounded percent decoding so Unicode adjacency cannot hide a
+credential term.
+
 ## Status
 
 RAPP rev-5, plus the additive §7.7 dimensional-growth, §7.8 weight, §7.9 stat, and §7.10 RAPPID

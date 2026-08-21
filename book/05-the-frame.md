@@ -312,7 +312,14 @@ Endpoint handling is equally literal. User-info, any query or fragment marker (e
 backslashes, malformed or non-canonical percent encodings, and non-global IP literals are refused.
 The manifest binds one origin, the signed authority policy allow-lists it, and the fetcher rechecks
 every redirect URL and resolved IP. A hostname that rebinds to loopback/private/link-local/reserved
-space fails before bytes are trusted.
+space fails before bytes are trusted. Legacy aliases such as `127.1` and `0x7f.0.0.1` never fall
+through to DNS. Bounded decoding plus ASCII word boundaries also catches `épasswordé` and
+`漢password漢`, matching the JavaScript verifier instead of Python's default Unicode-boundary drift.
+
+The payload is bounded before its particle exists: nesting depth 64, canonical UTF-8 at most 1 MiB.
+A 1,100-level structure becomes a named content-address refusal, not a runtime recursion crash, and
+every RAPPID/hash/label/profile/connection token consumes its whole string—including rejection of a
+terminal newline.
 
 The final challenge is not a shared secret. It is the particle of the exact object containing the
 RAPPID, soul hash, parent, both state roots, and URI nonce. The runtime reconstructs that object from

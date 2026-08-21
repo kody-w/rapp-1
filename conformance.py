@@ -557,7 +557,10 @@ atexit.register(lambda: shutil.rmtree(CARD_STATE_DIR, ignore_errors=True))
 
 MANDATORY_CARD_SCENARIOS = (
     "valid-test", "valid-production", "expired", "manifest-revoked", "key-revoked",
-    "subject-revoked", "wrong-manifest-hash", "unknown-signing-key",
+    "subject-revoked", "wrong-manifest-hash", "deep-payload",
+    "oversized-payload", "newline-rappid", "newline-manifest-hash",
+    "newline-lclabel", "newline-profile-token", "newline-connection-id",
+    "unknown-signing-key",
     "attacker-key-impersonation", "delegation-expired", "delegation-revoked",
     "forged-revocation-view", "stale-revocation-view", "unavailable-revocation-view",
     "rollback-revocation-view", "protocol-incompatible", "runtime-incompatible",
@@ -568,12 +571,16 @@ MANDATORY_CARD_SCENARIOS = (
     "synthetic-key-production", "auto-execute", "endpoint-userinfo",
     "endpoint-empty-query", "endpoint-empty-fragment", "endpoint-space",
     "endpoint-backslash", "endpoint-bad-percent", "endpoint-double-encoding",
+    "endpoint-numeric-127-1", "endpoint-numeric-octal", "endpoint-numeric-hex",
+    "endpoint-numeric-short-private",
     "endpoint-loopback-literal",
     "endpoint-private-literal", "endpoint-link-local-literal",
     "endpoint-reserved-literal", "endpoint-unapproved-origin",
-    "endpoint-redirect-origin", "endpoint-private-dns", "secret-endpoint-password",
+    "endpoint-redirect-origin", "endpoint-private-dns", "fetch-numeric-alias",
+    "secret-endpoint-password",
     "secret-password", "secret-api-key", "secret-cookie", "secret-bearer",
-    "secret-private-memory",
+    "secret-private-memory", "secret-unicode-latin-adjacency",
+    "secret-unicode-cjk-adjacency",
 )
 
 # V25 proves the stdlib crypto path against RFC 8032 rather than trusting fixtures
@@ -611,6 +618,64 @@ check("V25 runtime, authority, and revocation documents have distinct closed sch
 check("V25 replay state is a transactional backend contract",
       issubclass(R.SQLiteCardState, R.CardStateBackend))
 
+deep_value = None
+for _ in range(1100):
+    deep_value = [deep_value]
+try:
+    R.H("rapp/1:particle", deep_value)
+    deep_hash_refused = False
+except ValueError as ex:
+    deep_hash_refused = "nesting depth" in str(ex)
+check("V25 1100-level canonical hashing refuses deterministically",
+      deep_hash_refused)
+
+try:
+    R.H("rapp/1:particle", {"oversized": "x" * R.CANONICAL_MAX_BYTES})
+    oversized_hash_refused = False
+except ValueError as ex:
+    oversized_hash_refused = "exceeds 1048576" in str(ex)
+check("V25 canonical hashing enforces the 1 MiB byte ceiling",
+      oversized_hash_refused)
+
+for blob in (
+        b"[" * 1100 + b"null" + b"]" * 1100,
+        b'{"oversized":"' + b"x" * R.CANONICAL_MAX_BYTES + b'"}'):
+    try:
+        R.read_card_resource(blob)
+        resource_bound_refused = False
+    except ValueError:
+        resource_bound_refused = True
+    if not resource_bound_refused:
+        break
+check("V25 card resource reads fail closed on depth and size bounds",
+      resource_bound_refused)
+
+newline_values_refused = (
+    not R.rappid_valid(TEST_RAPPID := "rappid:@a/b:" + "a" * 64 + "\n")
+    and not R._hex64("a" * 64 + "\n")
+    and not R._lclabel("label\n")
+    and not R._CARD_PROFILE_TOKEN.fullmatch("rapp/1\n")
+    and not R._CARD_CONNECTION.fullmatch("connection\n")
+)
+check("V25 strict token validators reject terminal newlines",
+      newline_values_refused, TEST_RAPPID)
+
+numeric_aliases = ("127.1", "0177.0.0.1", "0x7f.0.0.1", "192.168.1")
+numeric_aliases_refused = True
+for alias in numeric_aliases:
+    try:
+        R._card_url_info(
+            f"https://{alias}/x.rappid-card.json", R.CARD_VIRTUAL_SUFFIX)
+        numeric_aliases_refused = False
+    except ValueError:
+        pass
+check("V25 legacy numeric host aliases are never treated as DNS",
+      numeric_aliases_refused)
+
+check("V25 secret scanner uses ASCII boundaries around Unicode adjacency",
+      R._forbidden_card_material("épasswordé")
+      and R._forbidden_card_material("漢password漢"))
+
 
 def _state_for_vector(vector, suffix="base"):
     path = os.path.join(CARD_STATE_DIR, f"{vector['name']}-{suffix}.sqlite")
@@ -630,9 +695,23 @@ def run_card_vector(vector, suffix="base", hydrated_parts=None):
     parts = vector["hydrated_parts"] if hydrated_parts is None else hydrated_parts
     trust = R.CardTrustStore(
         CARD_TRUST_KEYS, vector["runtime_policy_authority"])
+    frame = vector["frame"]
+    mutation = vector.get("runtime_mutation")
+    if mutation is not None:
+        frame = dict(frame)
+        frame["payload"] = dict(frame["payload"])
+        if mutation["type"] == "deep-payload":
+            nested = None
+            for _ in range(mutation["depth"]):
+                nested = [nested]
+            frame["payload"]["runtime-mutation"] = nested
+        elif mutation["type"] == "oversized-payload":
+            frame["payload"]["runtime-mutation"] = "x" * mutation["bytes"]
+        else:
+            raise AssertionError(f"unknown runtime mutation: {mutation}")
     result = R.verify_card_link(
         vector["link"],
-        vector["frame"],
+        frame,
         trust,
         vector["now_utc"],
         vector["runtime_policy"],
@@ -721,7 +800,7 @@ check("V27 manifest has only the normative signed fields and no secret slot",
 # the two scanners: every one must turn green, proving no schema refusal masks the policy.
 scanner_vectors = [vector for vector in CARD_DECK["vectors"] if vector["scanner_control"]]
 check("V28 scanner controls are within-schema parse/schema refusals",
-      len(scanner_vectors) == 7
+      len(scanner_vectors) == 9
       and all(CARD_RESULTS[vector["name"]][1] in ("parse", "schema")
               for vector in scanner_vectors))
 try:

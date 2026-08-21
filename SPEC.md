@@ -62,6 +62,11 @@ the token (so `0.1` is accepted — it round-trips — while `9007199254740993` 
 exceeding 64 (the root value is depth 1; each nested object/array adds 1). Refusal is whole (§7.5-style),
 never partial.
 
+The depth and 1 MiB limits are checked **before any §5 hash is computed**. A parser or canonicalizer
+recursion limit is not a protocol result: an implementation **MUST** convert recursion/depth exhaustion
+into the same deterministic whole-value refusal. Read paths **SHOULD** reject raw resources larger than
+1 MiB before JSON parsing, then re-check the canonical byte count after parsing.
+
 **No normalization.** RAPP applies **no** Unicode normalization when hashing, storing, or re-emitting an
 existing value; strings are code-point sequences preserved verbatim and equality everywhere is code-point
 equality (no canonical-equivalence matching). A producer creating a **new** human-or-identifier string
@@ -103,6 +108,11 @@ presentation, never identity). Lengths are normative: `owner` 1–39, `slug` 1�
 **MUST** refuse longer. This self-locating form is the **only** conformant rappid; `rappid:<slug>:<hash>`,
 `rappid:v2:…`, bare UUIDs, `moment:`/name-hash derivations are legacy and **MUST** be migrated out
 (Art. III), not read forever.
+
+Every ABNF/token/hex validator consumes the **entire** string. A terminal CR/LF or any other trailing
+character is data, not an end anchor, and is refused. Implementations using regular expressions
+**MUST** use whole-string matching (`fullmatch` / `\Z`-equivalent), never a `$` behavior that can match
+immediately before a final newline.
 
 ### 6.1.1 stream_id and kind grammar
 ```abnf
@@ -600,6 +610,10 @@ rappid://link/<percent-encoded-rappid>?m=<manifest-hash>&e=<endpoint>&n=<nonce>
   character, empty path segment, or `.`/`..` segment. Percent hex is uppercase. An IP-literal host
   **MUST** be globally routable; loopback, private, link-local, unspecified, multicast,
   documentation/reserved, and other non-global literals are refused.
+- A host that fails canonical IP parsing but whose labels are all decimal or `0x`-hex numeric forms
+  **MUST NOT** fall through to DNS. Legacy aliases such as `127.1`, `0177.0.0.1`,
+  `0x7f.0.0.1`, and `192.168.1` are refused before resolution; URL libraries and resolvers have
+  historically interpreted them as private IPv4 addresses.
 - The manifest's signed `endpoint_origin` is exactly `https://<canonical-host>`. URI `e` **MUST**
   have that origin, and that origin **MUST** occur in the signed authority view's
   `approved_origins` (§7.10.5); the signed `revocation_url` origin **MUST** also be approved there.
@@ -618,7 +632,8 @@ The URI is deliberately safe to photograph or copy. It **MUST NOT** contain a pa
 cookie, bearer token, private-memory plaintext, or executable instruction. Secret scanning is over
 the raw component and at most two bounded UTF-8 percent-decoding rounds; structural canonicalization
 still permits exactly one encoding round, so double-encoding never creates an alternate accepted
-URL.
+URL. Word boundaries for prohibited ASCII terms are themselves ASCII boundaries: decoded
+`épasswordé` and `漢password漢` contain the forbidden token and are refused identically to JavaScript.
 
 #### 7.10.2 Exact manifest payload
 The frame `payload` has **exactly** these members; nullable `parent` is how the optional parent is
@@ -856,18 +871,24 @@ The required deterministic deck is `vectors/rappid-card/deck.json`, generated an
 
 ```text
 valid-test, valid-production, expired, manifest-revoked, key-revoked, subject-revoked,
-wrong-manifest-hash, unknown-signing-key, attacker-key-impersonation, delegation-expired,
-delegation-revoked, forged-revocation-view, stale-revocation-view,
+wrong-manifest-hash, deep-payload, oversized-payload, newline-rappid,
+newline-manifest-hash, newline-lclabel, newline-profile-token, newline-connection-id,
+unknown-signing-key, attacker-key-impersonation, delegation-expired, delegation-revoked,
+forged-revocation-view, stale-revocation-view,
 unavailable-revocation-view, rollback-revocation-view, protocol-incompatible,
 runtime-incompatible, unsupported-feature, feature-superset, classification-violation,
 insufficient-scope, missing-engram-part, continuity-challenge-failure,
 reconnect-during-hydration, duplicate-replayed-nonce, physical-payload-reproduction,
 test-profile-production, synthetic-key-production, auto-execute, endpoint-userinfo,
 endpoint-empty-query, endpoint-empty-fragment, endpoint-space, endpoint-backslash,
-endpoint-bad-percent, endpoint-double-encoding, endpoint-loopback-literal, endpoint-private-literal,
+endpoint-bad-percent, endpoint-double-encoding, endpoint-numeric-127-1,
+endpoint-numeric-octal, endpoint-numeric-hex, endpoint-numeric-short-private,
+endpoint-loopback-literal, endpoint-private-literal,
 endpoint-link-local-literal, endpoint-reserved-literal, endpoint-unapproved-origin,
-endpoint-redirect-origin, endpoint-private-dns, secret-endpoint-password, secret-password,
-secret-api-key, secret-cookie, secret-bearer, secret-private-memory
+endpoint-redirect-origin, endpoint-private-dns, fetch-numeric-alias,
+secret-endpoint-password, secret-password,
+secret-api-key, secret-cookie, secret-bearer, secret-private-memory,
+secret-unicode-latin-adjacency, secret-unicode-cjk-adjacency
 ```
 
 Conformance asserts exact list equality, not subset membership. `valid-production` uses a
@@ -1133,7 +1154,9 @@ tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.
   production refusal of visibly synthetic test keys, signed runtime policy and time-scoped issuer
   authorization, strict signed-origin endpoint/redirect/DNS policy, closed signed sequenced revocation
   views, transactional SQLite replay/rollback state across processes, final continuity-before-awake
-  commit, and deterministic physical/mutation/concurrency fixtures. **Additive only:**
+  commit, bounded depth/size canonicalization before hashing, whole-string token validation,
+  pre-DNS rejection of legacy numeric host aliases, ASCII-consistent secret boundaries, and
+  deterministic physical/mutation/concurrency fixtures. **Additive only:**
   `m` is the existing payload particle, inventory octets use `rapp/1:egg`, the signature is the existing
   §10 `sig`, and neither the frame key set, `rapp/1` token, RAPPID grammar, canonicalization, nor hash
   spaces change.

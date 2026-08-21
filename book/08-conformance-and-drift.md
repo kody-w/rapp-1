@@ -100,6 +100,9 @@ RAPP rev-5 — conformance vectors
 §7.10 — RAPPID Calling Card and Debug Card profile
   [PASS] V25 stdlib Ed25519 signing matches RFC 8032 byte-for-byte
   [PASS] V25 a one-bit Ed25519 signature mutation is refused
+  [PASS] V25 1100-level canonical hashing refuses deterministically
+  [PASS] V25 legacy numeric host aliases are never treated as DNS
+  [PASS] V25 secret scanner uses ASCII boundaries around Unicode adjacency
   [PASS] V26 card fixture: valid-test
   [PASS] V26 card fixture: valid-production
   [PASS] V26 card fixture: attacker-key-impersonation
@@ -112,7 +115,7 @@ RAPP rev-5 — conformance vectors
   [PASS] V27 physical payload fixture reproduces the canonical compact URI
   [PASS] V28 disabling only prohibited-material scanners turns every control green
   [PASS] V29 crash-window hydration claim survives restart and resumes same connection
-  ── 179 protocol checks, including all 50 mandatory card scenarios
+  ── 199 protocol checks, including all 63 mandatory card scenarios
 ```
 
 Each vector maps to a promise made earlier in the book: V1/V1b is canonicalization (ch. 2), V2 is
@@ -126,7 +129,8 @@ presentation, and proposals that read without writing. V25–V29 are §7.10 call
 (ch. 5.9): RFC 8032 Ed25519, signed runtime/issuer/revocation policy, a valid non-synthetic
 production card, strict endpoint and redirect/DNS policy, all ordered accept/refusal fixtures,
 byte-for-byte physical reproduction, mutation controls proving secret scanners are load-bearing,
-and durable replay across restart. A separate concurrency gate races threads and independent
+depth/size guards, whole-string token validation, numeric-alias and Unicode-adjacency parity, and
+durable replay across restart. A separate concurrency gate races threads and independent
 processes against the same SQLite nonce. Note how many of them are *refusals*: a
 protocol is defined at least as much by what it will not accept as by what it will. This is what
 "conformance class" means concretely: an implementation is RAPP-conformant when it produces and
