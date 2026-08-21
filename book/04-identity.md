@@ -3,6 +3,7 @@ layout: book
 title: Identity — the rappid
 book_label: Chapter 4
 book_progress: 36
+book_order: 40
 description: Mint durable RAPP identities without hashing human names
 ---
 

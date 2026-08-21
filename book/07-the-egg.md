@@ -3,6 +3,7 @@ layout: book
 title: The Egg
 book_label: Chapter 7
 book_progress: 60
+book_order: 70
 description: Package RAPP organisms and applications into deterministic eggs
 ---
 

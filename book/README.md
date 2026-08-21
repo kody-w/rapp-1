@@ -8,7 +8,9 @@ RAPP is a small programming language, expressed as a wire protocol, with a large
 what an agent did, give that record an address, join it to a verifiable history, and exchange it
 without privately agreeing on what the bytes mean.
 
-**[Read the styled GitHub Pages edition →](https://kody-w.github.io/rapp-1/book/)**
+**[Read the styled GitHub Pages edition →](https://kody-w.github.io/rapp-1/book/)** ·
+**[Open the complete print edition](https://kody-w.github.io/rapp-1/book/print.html)** ·
+**[Download the 6×9 PDF](https://kody-w.github.io/rapp-1/book/the-rapp-programming-language.pdf)**
 
 This book teaches that promise from the first frame to the estate root of trust, then builds a
 conforming implementation in dependency order. It is written to be read in order, but each chapter
@@ -130,6 +132,9 @@ all four aligned.
 | [`conformance.py`](../conformance.py) | producer/consumer interoperability vectors |
 | [`realcheck.py`](../realcheck.py) | evidence from committed estate artifacts |
 | [`examples/`](../examples/) | six runnable programs used throughout the tutorial and workbook |
+| [`print.html`](print.html) | all chapters and appendices assembled as one printable volume |
+| [`the-rapp-programming-language.pdf`](the-rapp-programming-language.pdf) | generated 6×9 single-volume PDF |
+| [`build-pdf.sh`](build-pdf.sh) | regenerates the PDF from the Jekyll manuscript with Chrome |
 | [`guide/`](../guide/) | the visual, one-idea-per-spread companion book |
 | [`book-sdk/`](../book-sdk/) | the conversational SDK Builder textbook |
 

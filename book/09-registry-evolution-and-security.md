@@ -3,6 +3,7 @@ layout: book
 title: The Registry, Evolution, and Security
 book_label: Chapter 9
 book_progress: 76
+book_order: 90
 description: Operate the RAPP root of trust and evolve immutable histories
 ---
 

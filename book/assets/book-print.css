@@ -1,0 +1,454 @@
+:root {
+  --paper: #f7f2e7;
+  --ink: #211f1a;
+  --muted: #6c665b;
+  --rule: #c9bfaa;
+  --accent: #963b2e;
+  --green: #3f574d;
+  --desk: #d6cfc0;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--desk);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1.55;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: var(--accent);
+  text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  text-underline-offset: 0.14em;
+}
+
+.print-tools {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  min-height: 3.25rem;
+  padding: 0.65rem max(1rem, calc((100vw - 7.5in) / 2));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: rgb(33 31 26 / 94%);
+  color: var(--paper);
+  font: 600 0.72rem/1.2 var(--sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+}
+
+.print-tools a {
+  color: var(--paper);
+  text-decoration: none;
+}
+
+.print-tools button {
+  padding: 0.55rem 0.8rem;
+  border: 1px solid #d8cfbd;
+  background: var(--paper);
+  color: var(--ink);
+  font: 700 0.68rem/1 var(--sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.print-tools > div {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.print-tools .download-pdf {
+  padding: 0.55rem 0.1rem;
+}
+
+.print-volume {
+  width: min(100%, 7.5in);
+  margin: 2rem auto;
+  background: var(--paper);
+  box-shadow: 0 0 2.5rem rgb(61 51 37 / 20%);
+}
+
+.print-volume > section {
+  padding: 0.75in;
+  border-bottom: 1px solid var(--rule);
+}
+
+.print-cover {
+  min-height: 9in;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1.25in;
+  grid-template-rows: auto 1fr auto;
+  gap: 0.4in;
+  align-items: center;
+  border-top: 0.15in solid var(--accent);
+}
+
+.cover-edition,
+.small-caps {
+  grid-column: 1 / -1;
+  margin: 0;
+  font: 700 0.7rem/1 var(--sans);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.print-cover h1 {
+  margin: 0;
+  font: 700 4.9rem/0.84 var(--sans);
+  letter-spacing: -0.075em;
+}
+
+.print-cover h1 span {
+  display: block;
+  color: var(--accent);
+}
+
+.cover-glyph {
+  width: 1.2in;
+  height: 1.2in;
+  display: grid;
+  place-items: center;
+  border: 0.08in solid var(--ink);
+  font: 700 1.5rem/1 var(--mono);
+  transform: rotate(-2deg);
+}
+
+.cover-subtitle {
+  grid-column: 1 / -1;
+  max-width: 4.5in;
+  margin: 0;
+  color: var(--muted);
+  font: 500 1rem/1.45 var(--sans);
+}
+
+.print-title-page,
+.print-copyright,
+.print-contents,
+.print-colophon {
+  min-height: 7.5in;
+}
+
+.print-title-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.print-title-page h1,
+.print-copyright h1,
+.print-contents h1,
+.print-colophon h1 {
+  margin: 0.25in 0;
+  font: 700 2.5rem/1 var(--sans);
+  letter-spacing: -0.045em;
+}
+
+.title-subtitle {
+  max-width: 4.8in;
+  font-size: 1.15rem;
+}
+
+.title-revision {
+  margin-top: 1in;
+  color: var(--muted);
+  font: 600 0.72rem/1.5 var(--sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.print-contents ol {
+  list-style: none;
+  margin: 0.35in 0 0;
+  padding: 0;
+  columns: 2;
+  column-gap: 0.4in;
+}
+
+.print-contents li {
+  break-inside: avoid;
+  border-top: 1px solid var(--rule);
+}
+
+.print-contents a {
+  padding: 0.12in 0;
+  display: grid;
+  grid-template-columns: 0.65in 1fr;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.print-contents span {
+  color: var(--accent);
+  font: 700 0.62rem/1.4 var(--sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.print-contents b {
+  font: 600 0.8rem/1.25 var(--sans);
+}
+
+.print-chapter {
+  min-height: 9in;
+}
+
+.print-running-label {
+  margin: 0 0 0.45in;
+  padding-bottom: 0.08in;
+  border-bottom: 1px solid var(--rule);
+  color: var(--muted);
+  font: 700 0.62rem/1 var(--sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.print-chapter > p:nth-of-type(2) {
+  display: none;
+}
+
+.print-chapter > hr:last-of-type,
+.print-chapter > hr:last-of-type + p {
+  display: none;
+}
+
+.print-chapter h1 {
+  margin: 0 0 0.35in;
+  font: 700 2.35rem/0.98 var(--sans);
+  letter-spacing: -0.05em;
+}
+
+.print-chapter h1::after {
+  content: "";
+  display: block;
+  width: 0.75in;
+  margin-top: 0.2in;
+  border-bottom: 0.06in solid var(--accent);
+}
+
+.print-chapter h2 {
+  margin: 0.42in 0 0.12in;
+  padding-top: 0.08in;
+  border-top: 1px solid var(--rule);
+  font: 700 1.25rem/1.15 var(--sans);
+  letter-spacing: -0.02em;
+}
+
+.print-chapter h3 {
+  margin: 0.28in 0 0.08in;
+  color: var(--green);
+  font: 700 0.95rem/1.2 var(--sans);
+}
+
+.print-chapter p {
+  margin: 0 0 0.13in;
+}
+
+.print-chapter blockquote {
+  margin: 0.25in 0;
+  padding: 0.02in 0 0.02in 0.18in;
+  border-left: 0.04in solid var(--accent);
+  color: var(--green);
+  font-style: italic;
+}
+
+.print-chapter code {
+  padding: 0.01in 0.035in;
+  border: 1px solid #d4cab7;
+  background: #eee7d8;
+  font: 0.82em/1.35 var(--mono);
+}
+
+.print-chapter pre {
+  margin: 0.22in -0.05in;
+  padding: 0.14in 0.16in;
+  overflow-x: auto;
+  border: 1px solid var(--rule);
+  border-left: 0.04in solid var(--green);
+  background: #ede6d8;
+  font: 0.68rem/1.5 var(--mono);
+  white-space: pre-wrap;
+}
+
+.print-chapter pre code {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+}
+
+.print-chapter table {
+  width: 100%;
+  margin: 0.2in 0 0.28in;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.print-chapter th,
+.print-chapter td {
+  padding: 0.07in 0.06in;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+.print-chapter th {
+  color: var(--accent);
+  font: 700 0.62rem/1.2 var(--sans);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.print-chapter ul,
+.print-chapter ol {
+  margin: 0 0 0.16in;
+  padding-left: 0.22in;
+}
+
+.print-chapter li {
+  margin: 0.035in 0;
+  padding-left: 0.03in;
+}
+
+.print-colophon {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+@media (max-width: 760px) {
+  .print-tools span {
+    display: none;
+  }
+
+  .print-tools .download-pdf {
+    display: none;
+  }
+
+  .print-volume {
+    width: 100%;
+    margin: 0;
+    box-shadow: none;
+  }
+
+  .print-volume > section {
+    padding: 1.2rem;
+  }
+
+  .print-cover {
+    min-height: calc(100vh - 3.25rem);
+    grid-template-columns: 1fr;
+  }
+
+  .print-cover h1 {
+    font-size: clamp(3.3rem, 18vw, 5rem);
+  }
+
+  .cover-glyph {
+    display: none;
+  }
+
+  .print-contents ol {
+    columns: 1;
+  }
+}
+
+@media print {
+  @page {
+    size: 6in 9in;
+    margin: 0.62in 0.58in 0.68in;
+
+    @bottom-center {
+      content: counter(page);
+      color: #6c665b;
+      font: 600 7pt/1 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+  }
+
+  @page :first {
+    @bottom-center {
+      content: "";
+    }
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+    font-size: 9.6pt;
+    line-height: 1.42;
+  }
+
+  .print-tools {
+    display: none;
+  }
+
+  .print-volume {
+    width: auto;
+    margin: 0;
+    background: #fff;
+    box-shadow: none;
+  }
+
+  .print-volume > section {
+    padding: 0;
+    border: 0;
+    break-before: page;
+  }
+
+  .print-cover {
+    min-height: 7.55in;
+    break-before: auto;
+  }
+
+  .print-title-page,
+  .print-copyright,
+  .print-contents,
+  .print-colophon,
+  .print-chapter {
+    min-height: 7.55in;
+  }
+
+  .print-chapter h1 {
+    font-size: 26pt;
+  }
+
+  .print-chapter h2,
+  .print-chapter h3 {
+    break-after: avoid;
+  }
+
+  .print-chapter p,
+  .print-chapter li {
+    orphans: 3;
+    widows: 3;
+  }
+
+  .print-chapter pre,
+  .print-chapter table,
+  .print-chapter blockquote {
+    break-inside: avoid;
+  }
+
+  .print-chapter a {
+    color: inherit;
+    text-decoration: none;
+  }
+}

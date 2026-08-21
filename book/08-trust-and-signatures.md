@@ -3,6 +3,7 @@ layout: book
 title: Trust and Signatures
 book_label: Chapter 8
 book_progress: 68
+book_order: 80
 description: Add authorship and authority to RAPP integrity
 ---
 

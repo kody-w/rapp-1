@@ -3,6 +3,7 @@ layout: book
 title: Selected Exercise Solutions
 book_label: Appendix C
 book_progress: 100
+book_order: 140
 description: Selected worked solutions for The RAPP Programming Language
 ---
 

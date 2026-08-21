@@ -3,6 +3,7 @@ layout: book
 title: Content Addressing
 book_label: Chapter 3
 book_progress: 28
+book_order: 30
 description: Name RAPP values with domain-separated content addresses
 ---
 

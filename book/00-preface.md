@@ -3,6 +3,7 @@ layout: book
 title: Preface
 book_label: Preface
 book_progress: 4
+book_order: 0
 description: What RAPP is and how to read The RAPP Programming Language
 ---
 

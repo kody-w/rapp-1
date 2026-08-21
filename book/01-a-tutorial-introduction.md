@@ -3,6 +3,7 @@ layout: book
 title: A Tutorial Introduction
 book_label: Chapter 1
 book_progress: 12
+book_order: 10
 description: Build and verify a complete RAPP frame chain
 ---
 
