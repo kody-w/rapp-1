@@ -17,6 +17,7 @@
   });
 
   const LINE_NUMBER_SELECTOR = '.lineno, .line-number, [data-line-number], .rouge-gutter';
+  const manualRecoveries = new WeakMap();
 
   function boundedInteger(value, fallback, minimum, maximum) {
     return Number.isSafeInteger(value) && value >= minimum && value <= maximum
@@ -34,7 +35,7 @@
 
   function normalizeOptions(options) {
     const source = options && typeof options === 'object' ? options : {};
-    return {
+    const normalized = {
       selector: stringOption(source.selector, DEFAULTS.selector),
       codeIdPrefix: idPrefix(source.codeIdPrefix || source.idPrefix, DEFAULTS.codeIdPrefix),
       promptIdPrefix: idPrefix(source.promptIdPrefix, DEFAULTS.promptIdPrefix),
@@ -58,6 +59,10 @@
       manualCopyLabel: stringOption(source.manualCopyLabel, DEFAULTS.manualCopyLabel),
       promptHint: stringOption(source.promptHint, DEFAULTS.promptHint),
     };
+    if (normalized.codeIdPrefix === normalized.promptIdPrefix) {
+      throw new RangeError('Code and prompt ID prefixes must be distinct');
+    }
+    return normalized;
   }
 
   function sourceText(element) {
@@ -152,31 +157,102 @@
     }
   }
 
-  function selectSource(source) {
-    const selection = global.getSelection?.();
-    if (!selection || !global.document?.createRange) return;
-    try {
-      focusWithoutScrolling(source);
-      const range = global.document.createRange();
-      range.selectNodeContents(source);
-      selection.removeAllRanges();
-      selection.addRange(range);
-    } catch {
-      // The readable source remains in place if selection is sandboxed.
+  function selectSanitizedSource(source) {
+    const documentObject = source?.ownerDocument || global.document;
+    const windowObject = documentObject?.defaultView || global;
+    if (!documentObject?.body) return () => {};
+    const selection = windowObject?.getSelection?.() || null;
+    const ranges = [];
+    const activeElement = documentObject.activeElement;
+    if (selection) {
+      for (let index = 0; index < selection.rangeCount; index += 1) {
+        ranges.push(selection.getRangeAt(index).cloneRange());
+      }
     }
+
+    const textarea = documentObject.createElement('textarea');
+    textarea.value = sourceText(source);
+    textarea.readOnly = true;
+    textarea.dataset.copyManualTarget = '';
+    textarea.setAttribute('aria-hidden', 'true');
+    textarea.style.position = 'fixed';
+    textarea.style.top = '0';
+    textarea.style.left = '-9999px';
+    textarea.style.opacity = '0';
+    documentObject.body.appendChild(textarea);
+    focusWithoutScrolling(textarea);
+    textarea.select?.();
+    textarea.setSelectionRange?.(0, textarea.value.length);
+
+    let restored = false;
+    return () => {
+      if (restored) return;
+      restored = true;
+      textarea.remove();
+      restoreSelection(selection, ranges);
+      focusWithoutScrolling(activeElement);
+    };
+  }
+
+  function kindDeclaration(element, source) {
+    const value = element?.getAttribute?.('data-copy-kind');
+    if (value === null || value === undefined) {
+      return { present: false, valid: true, kind: null };
+    }
+    if (value !== 'code' && value !== 'prompt') {
+      return { present: true, valid: false, kind: null, diagnostic: `invalid-${source}-kind` };
+    }
+    return { present: true, valid: true, kind: value };
+  }
+
+  function inspectExampleKind(code) {
+    const preDeclaration = kindDeclaration(code?.parentElement, 'pre');
+    const codeDeclaration = kindDeclaration(code, 'code');
+    if (!preDeclaration.valid) return preDeclaration;
+    if (!codeDeclaration.valid) return codeDeclaration;
+    if (preDeclaration.present && codeDeclaration.present
+        && preDeclaration.kind !== codeDeclaration.kind) {
+      return { present: true, valid: false, kind: null, diagnostic: 'conflicting-kinds' };
+    }
+    return {
+      present: preDeclaration.present || codeDeclaration.present,
+      valid: true,
+      kind: codeDeclaration.kind || preDeclaration.kind || 'code',
+    };
   }
 
   function exampleKind(code) {
-    const codeKind = code.getAttribute?.('data-copy-kind');
-    const preKind = code.parentElement?.getAttribute?.('data-copy-kind');
-    if (codeKind && preKind && codeKind !== preKind) {
-      return null;
-    }
-    const declared = codeKind || preKind;
-    if (declared === null || declared === undefined || declared === '') {
-      return 'code';
-    }
-    return declared === 'code' || declared === 'prompt' ? declared : null;
+    const inspected = inspectExampleKind(code);
+    return inspected.valid ? inspected.kind : null;
+  }
+
+  function markDiagnostic(code, diagnostic) {
+    const pre = code?.parentElement;
+    if (!pre) return;
+    pre.dataset.copyExampleState = 'metadata-error';
+    pre.dataset.copyDiagnostic = diagnostic;
+  }
+
+  function idAllocator(root) {
+    const documentScope = root?.nodeType === 9
+      ? root
+      : root?.ownerDocument || global.document || root;
+    const reserved = new Set();
+    documentScope?.querySelectorAll?.('[id]').forEach((element) => {
+      if (element.id) reserved.add(element.id);
+    });
+    return {
+      reserve(base) {
+        let candidate = base;
+        let suffix = 2;
+        while (reserved.has(candidate)) {
+          candidate = `${base}-${suffix}`;
+          suffix += 1;
+        }
+        reserved.add(candidate);
+        return candidate;
+      },
+    };
   }
 
   function slug(value) {
@@ -193,6 +269,7 @@
     const selected = new Set(elements);
     const sectionCounts = new Map();
     const metadata = new Map();
+    const ids = idAllocator(root);
     let section = slug(global.location?.pathname?.split('/').pop()?.replace(/\.[^.]+$/, ''));
     const ordered = root.querySelectorAll(
       `h1[id], h2[id], h3[id], h4[id], h5[id], h6[id], ${options.selector}`,
@@ -206,15 +283,26 @@
       if (!selected.has(element)) {
         continue;
       }
-      const kind = exampleKind(element);
-      if (!kind) {
+      const inspected = inspectExampleKind(element);
+      if (!inspected.valid) {
+        markDiagnostic(element, inspected.diagnostic);
         continue;
       }
+      const kind = inspected.kind;
       const countKey = `${kind}:${section}`;
       const ordinal = (sectionCounts.get(countKey) || 0) + 1;
       sectionCounts.set(countKey, ordinal);
       const prefix = kind === 'prompt' ? options.promptIdPrefix : options.codeIdPrefix;
-      metadata.set(element, { kind, ordinal, id: `${prefix}-${section}-${ordinal}` });
+      const existingWrapper = element.parentElement?.parentElement;
+      const existingId = existingWrapper?.matches?.('[data-copy-example]')
+        ? existingWrapper.id
+        : '';
+      metadata.set(element, {
+        kind,
+        ordinal,
+        id: existingId || ids.reserve(`${prefix}-${section}-${ordinal}`),
+        ids,
+      });
     }
     return metadata;
   }
@@ -238,19 +326,23 @@
     const copied = state === 'copied';
     const stateLabel = copied ? options.copiedLabel : options.manualCopyLabel;
     global.clearTimeout?.(Number(button.dataset.copyTimer || 0));
+    manualRecoveries.get(button)?.();
+    manualRecoveries.delete(button);
     button.dataset.state = state;
     button.classList.toggle('is-copied', copied);
     if (label) label.textContent = stateLabel;
     if (copied) {
       status.textContent = `${kindLabels.title} copied to clipboard.`;
     } else {
-      selectSource(source);
+      manualRecoveries.set(button, selectSanitizedSource(source));
       status.textContent = `Automatic copy is unavailable. The complete ${kindLabels.noun} is selected; press Control or Command plus C to copy.`;
     }
 
     const resetAfterMs = copied ? options.copiedResetAfterMs : options.errorResetAfterMs;
     if (resetAfterMs > 0) {
       const timer = global.setTimeout(() => {
+        manualRecoveries.get(button)?.();
+        manualRecoveries.delete(button);
         button.classList.remove('is-copied');
         button.dataset.state = 'idle';
         if (label) label.textContent = kindLabels.idle;
@@ -284,7 +376,7 @@
     }
     wrapper.setAttribute('tabindex', '-1');
     if (!code.id) {
-      code.id = `${wrapper.id}-text`;
+      code.id = metadata.ids.reserve(`${wrapper.id}-text`);
     }
 
     let toolbar = wrapper.querySelector(':scope > .copy-example-toolbar');
@@ -310,14 +402,16 @@
       status.setAttribute('aria-atomic', 'true');
       toolbar.appendChild(status);
     }
-    status.id = `${wrapper.id}-status`;
+    if (!status.id) {
+      status.id = metadata.ids.reserve(`${wrapper.id}-status`);
+    }
 
     let hint = toolbar.querySelector('[data-copy-example-hint]');
     if (metadata.kind === 'prompt' && !hint) {
       hint = createElement(root, 'p');
       hint.className = 'copy-example-hint';
       hint.dataset.copyExampleHint = '';
-      hint.id = `${wrapper.id}-hint`;
+      hint.id = metadata.ids.reserve(`${wrapper.id}-hint`);
       hint.textContent = options.promptHint;
       toolbar.appendChild(hint);
     }
@@ -353,6 +447,8 @@
       button.appendChild(label);
       toolbar.appendChild(button);
       button.addEventListener('click', async () => {
+        manualRecoveries.get(button)?.();
+        manualRecoveries.delete(button);
         status.textContent = '';
         const text = sourceText(code);
         if (byteLength(text) > options.maxBytes) {

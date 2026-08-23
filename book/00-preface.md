@@ -103,7 +103,9 @@ as importantly, what it does not prove.
 
 ### The contract with the standard
 
-This book is explanatory. [`SPEC.md`](../SPEC.md) is normative. The distinction matters:
+This book is explanatory.
+[`SPEC.md`](https://github.com/kody-w/rapp-1/blob/afc913ca3fe7dbc9da97871e67240f34416e5929/SPEC.md)
+is normative. The distinction matters:
 
 - the standard says what every implementation **must** do;
 - the reference profile makes the byte and package core executable;

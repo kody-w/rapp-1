@@ -33,7 +33,9 @@ cases = [
 ]
 ```
 
-The runnable solution is [`examples/05_failure_atlas.py`](../examples/05_failure_atlas.py). The
+The runnable solution is
+[`examples/05_failure_atlas.py`](https://github.com/kody-w/rapp-1/blob/afc913ca3fe7dbc9da97871e67240f34416e5929/examples/05_failure_atlas.py).
+The
 important result is not seven error strings. It is proof that verification order is stable and
 that each layer can be diagnosed independently.
 
@@ -80,7 +82,7 @@ class Store:
 
 Do not add `get_by_digest`. That convenience method would erase the property the type was created
 to preserve. The complete runnable solution is
-[`examples/04_typed_addresses.py`](../examples/04_typed_addresses.py).
+[`examples/04_typed_addresses.py`](https://github.com/kody-w/rapp-1/blob/afc913ca3fe7dbc9da97871e67240f34416e5929/examples/04_typed_addresses.py).
 
 ## C.4 Exercise 4-2 — Name-Hash Audit
 

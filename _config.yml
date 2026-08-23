@@ -10,5 +10,7 @@ kramdown:
 exclude:
   - .gitignore
   - book/build-pdf.sh
+  - book/test-docs.sh
   - book/test-interactive.py
+  - book/test-pdf.py
   - estate
