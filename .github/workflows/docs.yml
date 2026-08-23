@@ -1,0 +1,41 @@
+name: Documentation
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned documentation tools
+        run: |
+          gem install jekyll -v 4.4.1 --no-document
+          sudo apt-get update --quiet
+          sudo apt-get install --yes --no-install-recommends poppler-utils
+      - name: Validate generated HTML, DOM, print render, and PDF
+        run: ./book/test-docs.sh
+      - name: Run protocol conformance
+        run: python3 conformance.py
+      - name: Upload print regression evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation-evidence
+          path: |
+            .book-build/tests/print-a.png
+            .book-build/tests/generated.pdf
+            book/the-rapp-programming-language.pdf
+          if-no-files-found: error

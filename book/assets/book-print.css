@@ -213,11 +213,20 @@ a {
 .print-running-label {
   margin: 0 0 0.45in;
   padding-bottom: 0.08in;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.15in;
   border-bottom: 1px solid var(--rule);
   color: var(--muted);
   font: 700 0.62rem/1 var(--sans);
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.print-running-label a {
+  color: var(--accent);
+  font-size: 0.55rem;
+  white-space: nowrap;
 }
 
 .print-chapter > p:nth-of-type(2) {

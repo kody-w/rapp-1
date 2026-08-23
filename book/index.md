@@ -24,8 +24,22 @@ packaging, signatures, authority, migration, real-world conformance, and a compl
 plan. Numbered exercises turn each chapter into a workbook. No API keys or third-party packages
 are needed for the core examples.
 
-**[Begin the book →](00-preface.md)** · **[Complete print edition](print.html)** ·
+**[Begin the interactive edition →](00-preface.md)** · **[Complete print edition](print.html)** ·
 **[Download the 6×9 PDF](the-rapp-programming-language.pdf)**
+
+The interactive edition adds keyboard-accessible **Copy code** and **Copy prompt** actions plus a
+stable deep link for every example. Prompts are explicitly marked, provider-neutral inert text:
+nothing in the book submits them or chooses an AI for you. The PDF remains the print and download
+edition.
+
+## Ask any AI to help you explore RAPP
+
+Copy this prompt and paste it into any AI you choose:
+
+<pre data-copy-kind="prompt"><code>You are helping me learn the RAPP programming language.
+Explain the difference between canonicalization, content addressing, and identity.
+Use one short example for each, identify which bytes are hashed, and flag any assumption you make.
+</code></pre>
 
 ## Contents
 

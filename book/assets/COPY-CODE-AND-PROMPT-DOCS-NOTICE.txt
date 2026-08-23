@@ -1,0 +1,28 @@
+Copy Code & Prompt Docs runtime
+===============================
+
+Source provenance:
+  repository https://github.com/kody-w/rapp-Clevergirl
+  commit 5a01e1ec549cfa13efb8953eb2b386469c3bdbe2
+  files patterns/copy-code-and-prompt-docs/copy-code-and-prompt-docs.js
+        patterns/copy-code-and-prompt-docs/copy-code-and-prompt-docs.css
+  SHA-256
+    js  81246bcec676ff235dda93ed5b9e6079c59af6ad27f6340627b35db388a703ff
+    css 1fa5aa5a2197a89913b6316d75e6d9d68a773ba222a2ead4b9045b9f81fbc297
+
+The vendored files were modified only by being copied into this public asset
+directory. The complete applicable Apache License 2.0 text is distributed next
+to this notice as COPY-CODE-AND-PROMPT-DOCS-LICENSE.txt.
+
+The source distribution's NOTICE text follows verbatim:
+
+Rapp Clevergirl
+Copyright 2026 Wildhaven Homes LLC
+
+This project contains work derived from OpenRappter:
+https://github.com/kody-w/openrappter
+Upstream source revision: 9913ca2e5237c44620f5422644cbe6060f2c8c18
+
+The Observe Mode v2 engine, context adapters, closed contract, tests, fixtures,
+skill guidance, and documentation were extracted from OpenRappter origin/main
+and adapted into this standalone package under the Apache License 2.0.

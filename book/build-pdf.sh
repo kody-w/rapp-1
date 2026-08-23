@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUTPUT="$ROOT/book/the-rapp-programming-language.pdf"
-BUILD_DIR="$(mktemp -d "${TMPDIR:-/tmp}/rapp-book.XXXXXX")"
+OUTPUT="${PDF_OUTPUT:-$ROOT/book/the-rapp-programming-language.pdf}"
+BUILD_DIR="$ROOT/.book-build/pdf"
 SERVER_PID=""
 
 cleanup() {
@@ -14,6 +14,9 @@ cleanup() {
   rm -rf "$BUILD_DIR"
 }
 trap cleanup EXIT
+
+rm -rf "$BUILD_DIR"
+mkdir -p "$BUILD_DIR"
 
 if ! command -v jekyll >/dev/null 2>&1; then
   echo "jekyll is required to build the print edition" >&2

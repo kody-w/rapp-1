@@ -135,11 +135,16 @@ all four aligned.
 | [`print.html`](print.html) | all chapters and appendices assembled as one printable volume |
 | [`the-rapp-programming-language.pdf`](the-rapp-programming-language.pdf) | generated 6×9 single-volume PDF |
 | [`build-pdf.sh`](build-pdf.sh) | regenerates the PDF from the Jekyll manuscript with Chrome |
+| [`test-docs.sh`](test-docs.sh) | deterministic Jekyll, generated DOM, render, and PDF regression gate |
+| [`test-pdf.py`](test-pdf.py) | verifies 108-page geometry and HTTPS allowlisted PDF annotations |
 | [`guide/`](../guide/) | the visual, one-idea-per-spread companion book |
 | [`book-sdk/`](../book-sdk/) | the conversational SDK Builder textbook |
 
 The book does not replace the standard and the standard does not replace the book. The standard
 must be exact enough to implement; the book must make the exactness understandable.
+
+With Jekyll, Chrome, Python, and Poppler installed, run `./book/test-docs.sh` to execute the same
+documentation gate used by the public pull-request workflow.
 
 ---
 

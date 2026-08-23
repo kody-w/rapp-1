@@ -1,0 +1,96 @@
+.copy-example {
+  position: relative;
+  margin: 1.7rem -0.4rem;
+  scroll-margin-top: 4.5rem;
+}
+
+.copy-example > pre {
+  margin: 0;
+}
+
+.copy-example-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-family: system-ui, sans-serif;
+  font-size: 0.75rem;
+}
+
+.copy-example-button,
+.copy-example-link {
+  min-height: 2rem;
+  border: 1px solid currentColor;
+  border-radius: 0.25rem;
+  background: Canvas;
+  color: CanvasText;
+  font: 700 0.75rem/1 system-ui, sans-serif;
+}
+
+.copy-example-button {
+  min-width: 6.5rem;
+  padding: 0.45rem 0.7rem;
+  cursor: pointer;
+}
+
+.copy-example-link {
+  width: 2rem;
+  display: inline-grid;
+  place-items: center;
+  text-decoration: none;
+}
+
+.copy-example-button:focus-visible,
+.copy-example-link:focus-visible {
+  outline: 3px solid Highlight;
+  outline-offset: 2px;
+}
+
+.copy-example-button[data-state="copied"] {
+  color: #166534;
+}
+
+.copy-example-button[data-state="error"] {
+  color: #991b1b;
+}
+
+.copy-example-icon {
+  margin-right: 0.35rem;
+  line-height: 1;
+}
+
+.copy-example-hint {
+  order: 3;
+  flex: 1 1 15rem;
+  margin: 0;
+  color: #565656;
+  font: 0.75rem/1.4 system-ui, sans-serif;
+}
+
+.copy-example-status {
+  order: 4;
+  flex: 1 1 100%;
+  min-height: 1em;
+  overflow: hidden;
+  color: inherit;
+  text-align: right;
+}
+
+@media (max-width: 620px) {
+  .copy-example {
+    margin-right: -0.5rem;
+    margin-left: -0.5rem;
+  }
+}
+
+@media print {
+  .copy-example-toolbar {
+    display: none;
+  }
+}
+
+.copy-prompt-example > pre {
+  border-left-color: #6d28d9;
+}
