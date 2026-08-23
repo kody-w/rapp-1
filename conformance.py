@@ -7,7 +7,10 @@ Exit 0 = all vectors pass.
 import json
 import urllib.request
 import hashlib
+import base64
+import atexit
 import os
+import shutil
 import tempfile
 import rapp as R
 import rapp_check as RC
@@ -540,6 +543,370 @@ check("V24 …and only now is there a weight, measured rather than predicted",
       GROWN["total_weight_bytes"] == CARD["total_weight_bytes"] + R.frame_weight(realized))
 check("V24 growing the card changed no identity",
       GROWN["rappid"] == CARD["rappid"] == ORG and GROWN["species"] == CARD["species"])
+
+print()
+print("=" * 70)
+print("§7.10 — RAPPID Calling Card and Debug Card profile")
+print("=" * 70)
+
+VECTOR_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vectors", "rappid-card")
+with open(os.path.join(VECTOR_DIR, "deck.json"), encoding="utf-8") as handle:
+    CARD_DECK = json.load(handle)
+CARD_PARTS = {
+    name: base64.b64decode(octets)
+    for name, octets in CARD_DECK["parts_b64"].items()
+}
+CARD_TRUST_KEYS = {
+    entry["kid"]: base64.b64decode(entry["spki_der_b64"])
+    for entry in CARD_DECK["trust"]
+}
+CARD_STATE_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), ".conformance-card-state")
+if os.path.exists(CARD_STATE_DIR):
+    shutil.rmtree(CARD_STATE_DIR)
+os.makedirs(CARD_STATE_DIR)
+atexit.register(lambda: shutil.rmtree(CARD_STATE_DIR, ignore_errors=True))
+
+MANDATORY_CARD_SCENARIOS = (
+    "valid-test", "valid-production", "expired", "manifest-revoked", "key-revoked",
+    "subject-revoked", "wrong-manifest-hash", "deep-payload",
+    "oversized-payload", "newline-rappid", "newline-manifest-hash",
+    "newline-lclabel", "newline-profile-token", "newline-connection-id",
+    "unknown-signing-key",
+    "attacker-key-impersonation", "subject-not-yet-effective",
+    "delegation-not-yet-effective", "delegation-expired", "delegation-revoked",
+    "forged-revocation-view", "stale-revocation-view", "unavailable-revocation-view",
+    "rollback-revocation-view", "protocol-incompatible", "runtime-incompatible",
+    "unsupported-feature", "feature-superset", "classification-violation",
+    "insufficient-scope", "missing-engram-part", "continuity-challenge-failure",
+    "reconnect-during-hydration", "duplicate-replayed-nonce",
+    "physical-payload-reproduction", "test-profile-production",
+    "synthetic-key-production", "auto-execute", "endpoint-userinfo",
+    "endpoint-empty-query", "endpoint-empty-fragment", "endpoint-space",
+    "endpoint-backslash", "endpoint-bad-percent", "endpoint-double-encoding",
+    "endpoint-numeric-127-1", "endpoint-numeric-octal", "endpoint-numeric-hex",
+    "endpoint-numeric-short-private",
+    "endpoint-loopback-literal",
+    "endpoint-private-literal", "endpoint-link-local-literal",
+    "endpoint-reserved-literal", "endpoint-ipv4-multicast-literal",
+    "endpoint-ipv6-multicast-literal", "endpoint-unapproved-origin",
+    "endpoint-redirect-origin", "endpoint-private-dns",
+    "fetch-ipv4-multicast", "fetch-ipv6-multicast", "fetch-numeric-alias",
+    "secret-endpoint-password",
+    "secret-password", "secret-api-key", "secret-cookie", "secret-bearer",
+    "secret-private-memory", "secret-unicode-latin-adjacency",
+    "secret-unicode-cjk-adjacency",
+)
+
+# V25 proves the stdlib crypto path against RFC 8032 rather than trusting fixtures
+# produced by this same implementation.
+RFC8032_SEED = bytes.fromhex(
+    "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60")
+RFC8032_PUBLIC = bytes.fromhex(
+    "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a")
+RFC8032_SIGNATURE = bytes.fromhex(
+    "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e06522490155"
+    "5fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b")
+check("V25 stdlib Ed25519 public-key derivation matches RFC 8032",
+      R.ed25519_public_key(RFC8032_SEED) == RFC8032_PUBLIC)
+check("V25 stdlib Ed25519 signing matches RFC 8032 byte-for-byte",
+      R.ed25519_sign(RFC8032_SEED, b"") == RFC8032_SIGNATURE)
+check("V25 stdlib Ed25519 verification accepts the RFC 8032 vector",
+      R.ed25519_verify(RFC8032_PUBLIC, b"", RFC8032_SIGNATURE))
+mutated_signature = bytes([RFC8032_SIGNATURE[0] ^ 1]) + RFC8032_SIGNATURE[1:]
+check("V25 a one-bit Ed25519 signature mutation is refused",
+      not R.ed25519_verify(RFC8032_PUBLIC, b"", mutated_signature))
+
+check("V25 production and test card tokens are explicit and distinct",
+      R.CARD_PROFILE == "rappid-card/1"
+      and R.CARD_TEST_PROFILE == "rappid-card-test/1"
+      and R.CARD_PROFILE != R.CARD_TEST_PROFILE)
+check("V25 the virtual resource suffix is .rappid-card.json",
+      R.CARD_VIRTUAL_SUFFIX == ".rappid-card.json")
+check("V25 card kinds are additive body-family registry entries",
+      all(set(entry) == {"type", "kind", "family", "deprecated"}
+          and entry["family"] == "body" and entry["deprecated"] is False
+          for entry in R.CARD_REGISTRY_KIND_ENTRIES))
+check("V25 runtime, authority, and revocation documents have distinct closed schemas",
+      len({R.CARD_RUNTIME_POLICY_SCHEMA, R.CARD_AUTHORITY_SCHEMA,
+           R.CARD_REVOCATION_SCHEMA}) == 3)
+check("V25 replay state is a transactional backend contract",
+      issubclass(R.SQLiteCardState, R.CardStateBackend))
+
+deep_value = None
+for _ in range(1100):
+    deep_value = [deep_value]
+try:
+    R.H("rapp/1:particle", deep_value)
+    deep_hash_refused = False
+except ValueError as ex:
+    deep_hash_refused = "nesting depth" in str(ex)
+check("V25 1100-level canonical hashing refuses deterministically",
+      deep_hash_refused)
+
+try:
+    R.H("rapp/1:particle", {"oversized": "x" * R.CANONICAL_MAX_BYTES})
+    oversized_hash_refused = False
+except ValueError as ex:
+    oversized_hash_refused = "exceeds 1048576" in str(ex)
+check("V25 canonical hashing enforces the 1 MiB byte ceiling",
+      oversized_hash_refused)
+
+for blob in (
+        b"[" * 1100 + b"null" + b"]" * 1100,
+        b'{"oversized":"' + b"x" * R.CANONICAL_MAX_BYTES + b'"}'):
+    try:
+        R.read_card_resource(blob)
+        resource_bound_refused = False
+    except ValueError:
+        resource_bound_refused = True
+    if not resource_bound_refused:
+        break
+check("V25 card resource reads fail closed on depth and size bounds",
+      resource_bound_refused)
+
+newline_values_refused = (
+    not R.rappid_valid(TEST_RAPPID := "rappid:@a/b:" + "a" * 64 + "\n")
+    and not R._hex64("a" * 64 + "\n")
+    and not R._lclabel("label\n")
+    and not R._CARD_PROFILE_TOKEN.fullmatch("rapp/1\n")
+    and not R._CARD_CONNECTION.fullmatch("connection\n")
+)
+check("V25 strict token validators reject terminal newlines",
+      newline_values_refused, TEST_RAPPID)
+
+numeric_aliases = ("127.1", "0177.0.0.1", "0x7f.0.0.1", "192.168.1")
+numeric_aliases_refused = True
+for alias in numeric_aliases:
+    try:
+        R._card_url_info(
+            f"https://{alias}/x.rappid-card.json", R.CARD_VIRTUAL_SUFFIX)
+        numeric_aliases_refused = False
+    except ValueError:
+        pass
+check("V25 legacy numeric host aliases are never treated as DNS",
+      numeric_aliases_refused)
+
+check("V25 secret scanner uses ASCII boundaries around Unicode adjacency",
+      R._forbidden_card_material("épasswordé")
+      and R._forbidden_card_material("漢password漢"))
+
+
+def _state_for_vector(vector, suffix="base"):
+    path = os.path.join(CARD_STATE_DIR, f"{vector['name']}-{suffix}.sqlite")
+    state = R.SQLiteCardState(path)
+    for nonce in vector["state_seed"]["nonces"]:
+        state.seed_nonce(
+            nonce["nonce"], nonce["connection_id"], nonce["state"], nonce["utc"])
+    for sequence in vector["state_seed"]["sequences"]:
+        state.seed_sequence(
+            sequence["namespace"], sequence["authority"], sequence["seq"],
+            sequence["view_hash"])
+    return state
+
+
+def run_card_vector(vector, suffix="base", hydrated_parts=None, hydration_calls=None):
+    state = _state_for_vector(vector, suffix=suffix)
+    parts = vector["hydrated_parts"] if hydrated_parts is None else hydrated_parts
+    selected = set(parts)
+    calls = [] if hydration_calls is None else hydration_calls
+
+    def hydrate_part(entry):
+        calls.append(entry["part"])
+        return CARD_PARTS[entry["part"]] if entry["part"] in selected else None
+
+    trust = R.CardTrustStore(
+        CARD_TRUST_KEYS, vector["runtime_policy_authority"])
+    frame = vector["frame"]
+    mutation = vector.get("runtime_mutation")
+    if mutation is not None:
+        frame = dict(frame)
+        frame["payload"] = dict(frame["payload"])
+        if mutation["type"] == "deep-payload":
+            nested = None
+            for _ in range(mutation["depth"]):
+                nested = [nested]
+            frame["payload"]["runtime-mutation"] = nested
+        elif mutation["type"] == "oversized-payload":
+            frame["payload"]["runtime-mutation"] = "x" * mutation["bytes"]
+        else:
+            raise AssertionError(f"unknown runtime mutation: {mutation}")
+    result = R.verify_card_link(
+        vector["link"],
+        frame,
+        trust,
+        vector["now_utc"],
+        vector["runtime_policy"],
+        vector["authority_view"],
+        vector["revocation_view"],
+        state,
+        vector["connection_id"],
+        vector["fetch_trace"],
+        hydrate_part,
+        vector["continuity"],
+    )
+    return result, state
+
+
+# V26 is the required deterministic fixture deck. Every negative vector is a fully
+# content-addressed and (where applicable) re-signed mutation, so it reaches the named
+# check instead of being caught accidentally by an earlier broken hash.
+CARD_RESULTS, CARD_STATES, CARD_HYDRATION_CALLS = {}, {}, {}
+for vector in CARD_DECK["vectors"]:
+    calls = []
+    verdict, state = run_card_vector(vector, hydration_calls=calls)
+    CARD_RESULTS[vector["name"]] = verdict
+    CARD_STATES[vector["name"]] = state
+    CARD_HYDRATION_CALLS[vector["name"]] = calls
+    expected = vector["expected"]
+    matches = (
+        verdict[0] is expected["ok"]
+        and verdict[1] == expected["step"]
+        and (expected["reason_contains"] is None
+             or expected["reason_contains"] in verdict[2])
+    )
+    check(f"V26 card fixture: {vector['name']}", matches,
+          f"expected {expected}, got ok={verdict[0]} step={verdict[1]} reason={verdict[2]}")
+
+deck_names = tuple(vector["name"] for vector in CARD_DECK["vectors"])
+check("V26 fixture names exactly equal the normative mandatory scenario list",
+      deck_names == tuple(CARD_DECK["mandatory_scenarios"])
+      == MANDATORY_CARD_SCENARIOS)
+check("V26 every refusal occurs at its normative ordered step",
+      all(result[1] == vector["expected"]["step"]
+          for vector in CARD_DECK["vectors"]
+          for result in [CARD_RESULTS[vector["name"]]]))
+production = next(
+    vector for vector in CARD_DECK["vectors"] if vector["name"] == "valid-production")
+check("V26 production vector uses a non-synthetic explicitly authorized issuer",
+      CARD_RESULTS["valid-production"][0]
+      and not production["frame"]["payload"]["key_id"].startswith("rappid:@synthetic/")
+      and any(entry["issuer_key_id"] == production["frame"]["payload"]["key_id"]
+              and entry["role"] == "card-issuer"
+              for entry in production["authority_view"]["authorizations"]))
+check("V26 a trusted attacker key cannot impersonate an unauthorized subject",
+      not CARD_RESULTS["attacker-key-impersonation"][0]
+      and "no current signed authorization" in
+      CARD_RESULTS["attacker-key-impersonation"][2])
+check("V26 future subject and delegation tenures are not effective at verifier now",
+      all(CARD_RESULTS[name][1] == "signature"
+          and not CARD_HYDRATION_CALLS[name]
+          for name in ("subject-not-yet-effective",
+                       "delegation-not-yet-effective")))
+pre_hydration_refusals = (
+    "classification-violation", "insufficient-scope",
+    "reconnect-during-hydration", "duplicate-replayed-nonce",
+    "fetch-ipv4-multicast", "fetch-ipv6-multicast",
+)
+check("V26 policy, scope, network, and nonce refusals touch no confidential bytes",
+      all(not CARD_HYDRATION_CALLS[name] for name in pre_hydration_refusals))
+check("V26 policy and scope refusal occurs before a durable nonce claim",
+      all(CARD_STATES[name].nonce_state(
+          R.parse_card_link(next(
+              vector for vector in CARD_DECK["vectors"]
+              if vector["name"] == name)["link"])["nonce"]) is None
+          for name in ("classification-violation", "insufficient-scope")))
+check("V26 revocation covers manifest, key, and subject independently",
+      all(CARD_RESULTS[name][1] == "revocation" for name in
+          ("manifest-revoked", "key-revoked", "subject-revoked")))
+
+# V27 reproduces the physical payload from committed bytes. The endpoint resource is
+# canonical JSON for one ordinary frame; m is its existing particle, not a card-private hash.
+with open(os.path.join(VECTOR_DIR, "physical.rappid-card.json"), "rb") as handle:
+    PHYSICAL_FRAME_OCTETS = handle.read()
+with open(os.path.join(VECTOR_DIR, "physical-payload.txt"), "rb") as handle:
+    PHYSICAL_LINK_OCTETS = handle.read()
+PHYSICAL_VECTOR = next(vector for vector in CARD_DECK["vectors"] if vector["physical"])
+PHYSICAL_FRAME = R.read_card_resource(PHYSICAL_FRAME_OCTETS)
+PHYSICAL_LINK = PHYSICAL_LINK_OCTETS.decode("utf-8").rstrip("\n")
+PHYSICAL_PARSED = R.parse_card_link(PHYSICAL_LINK)
+check("V27 physical manifest fixture is the canonical eleven-key frame bytes",
+      PHYSICAL_FRAME_OCTETS == R.canonical(PHYSICAL_FRAME).encode("utf-8")
+      and set(PHYSICAL_FRAME) == R.FRAME_KEYS)
+check("V27 physical payload fixture reproduces the canonical compact URI",
+      PHYSICAL_LINK == PHYSICAL_VECTOR["link"]
+      == R.build_card_link(
+          PHYSICAL_FRAME, PHYSICAL_PARSED["endpoint"], PHYSICAL_PARSED["nonce"]))
+check("V27 URI m is exactly the manifest payload's rapp/1 particle",
+      PHYSICAL_PARSED["manifest_hash"] == PHYSICAL_FRAME["payload_hash"]
+      == R.H("rapp/1:particle", PHYSICAL_FRAME["payload"]))
+check("V27 URI carries no secret material",
+      all(word not in PHYSICAL_LINK.lower() for word in
+          ("password", "api_key", "apikey", "cookie", "bearer", "private-memory",
+           "auto-execute")))
+check("V27 manifest has only the normative signed fields and no secret slot",
+      set(PHYSICAL_FRAME["payload"]) == R.CARD_PAYLOAD_KEYS
+      and not R._forbidden_card_material(PHYSICAL_FRAME["payload"]))
+
+# V28's prohibited-material fixtures mutate only existing schema fields. Disable exactly
+# the two scanners: every one must turn green, proving no schema refusal masks the policy.
+scanner_vectors = [vector for vector in CARD_DECK["vectors"] if vector["scanner_control"]]
+check("V28 scanner controls are within-schema parse/schema refusals",
+      len(scanner_vectors) == 9
+      and all(CARD_RESULTS[vector["name"]][1] in ("parse", "schema")
+              for vector in scanner_vectors))
+try:
+    R.build_card_manifest(
+        PHYSICAL_FRAME["payload"]["profile"],
+        PHYSICAL_FRAME["payload"]["rappid"],
+        PHYSICAL_FRAME["payload"]["key_id"],
+        PHYSICAL_PARSED["nonce"],
+        CARD_PARTS,
+        PHYSICAL_FRAME["payload"]["compatibility"],
+        PHYSICAL_FRAME["payload"]["classification"],
+        ["auto-execute"],
+        PHYSICAL_FRAME["payload"]["expires_utc"],
+        PHYSICAL_FRAME["payload"]["revocation_url"],
+        PHYSICAL_FRAME["payload"]["endpoint_origin"],
+    )
+    producer_refused_prohibited = False
+except ValueError:
+    producer_refused_prohibited = True
+check("V28 producer refuses prohibited material before signing",
+      producer_refused_prohibited)
+original_material_scanner = R._forbidden_card_material
+original_url_scanner = R._forbidden_url_material
+try:
+    R._forbidden_card_material = lambda value: False
+    R._forbidden_url_material = lambda value: False
+    scanner_disabled = {
+        vector["name"]: run_card_vector(vector, suffix="scanner-disabled")[0]
+        for vector in scanner_vectors
+    }
+finally:
+    R._forbidden_card_material = original_material_scanner
+    R._forbidden_url_material = original_url_scanner
+check("V28 disabling only prohibited-material scanners turns every control green",
+      all(result[0] for result in scanner_disabled.values()),
+      str({name: result[:3] for name, result in scanner_disabled.items()
+           if not result[0]}))
+
+# V29 proves durable state, not snapshot semantics: the first failed hydration committed
+# `hydrating`; a new SQLiteCardState resumes it, then commits `awake`.
+valid_vector = next(
+    vector for vector in CARD_DECK["vectors"] if vector["name"] == "valid-test")
+valid_nonce = R.parse_card_link(valid_vector["link"])["nonce"]
+check("V29 successful verification commits awake before returning",
+      CARD_RESULTS["valid-test"][0]
+      and CARD_STATES["valid-test"].nonce_state(valid_nonce)["state"] == "awake")
+
+resume_vector = next(
+    vector for vector in CARD_DECK["vectors"] if vector["name"] == "missing-engram-part")
+resume_state = CARD_STATES["missing-engram-part"]
+resume_nonce = R.parse_card_link(resume_vector["link"])["nonce"]
+claimed = resume_state.nonce_state(resume_nonce)
+restarted_state = R.SQLiteCardState(resume_state.path)
+resume_trust = R.CardTrustStore(
+    CARD_TRUST_KEYS, resume_vector["runtime_policy_authority"])
+resumed = R.verify_card_link(
+    resume_vector["link"], resume_vector["frame"], resume_trust,
+    resume_vector["now_utc"], resume_vector["runtime_policy"],
+    resume_vector["authority_view"], resume_vector["revocation_view"],
+    restarted_state, resume_vector["connection_id"], resume_vector["fetch_trace"],
+    lambda entry: CARD_PARTS[entry["part"]], resume_vector["continuity"])
+check("V29 crash-window hydration claim survives restart and resumes same connection",
+      claimed["state"] == "hydrating" and resumed[0]
+      and restarted_state.nonce_state(resume_nonce)["state"] == "awake")
 
 print()
 print("=" * 70)
