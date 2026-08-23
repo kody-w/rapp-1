@@ -105,6 +105,8 @@ MANDATORY_SCENARIOS = (
     "newline-connection-id",
     "unknown-signing-key",
     "attacker-key-impersonation",
+    "subject-not-yet-effective",
+    "delegation-not-yet-effective",
     "delegation-expired",
     "delegation-revoked",
     "forged-revocation-view",
@@ -140,9 +142,13 @@ MANDATORY_SCENARIOS = (
     "endpoint-private-literal",
     "endpoint-link-local-literal",
     "endpoint-reserved-literal",
+    "endpoint-ipv4-multicast-literal",
+    "endpoint-ipv6-multicast-literal",
     "endpoint-unapproved-origin",
     "endpoint-redirect-origin",
     "endpoint-private-dns",
+    "fetch-ipv4-multicast",
+    "fetch-ipv6-multicast",
     "fetch-numeric-alias",
     "secret-endpoint-password",
     "secret-password",
@@ -522,6 +528,37 @@ def build_deck():
         authority_view=_authority_view(R.CARD_TEST_PROFILE),
         expected_step="signature", reason_contains="no current signed authorization"))
 
+    future_before = "2026-08-21T13:00:00.000Z"
+    future_after = "2026-09-21T13:00:00.000Z"
+    future_issued = "2026-08-21T13:05:00.000Z"
+    future_subject = _authorization(
+        TEST_ISSUER, TEST_SUBJECT, role="subject",
+        not_before=future_before, not_after=future_after)
+    future_subject_nonce = "subject-future-tenure-1"
+    future_subject_frame, future_subject_link = _card(
+        future_subject_nonce, issued=future_issued)
+    vectors.append(_bundle(
+        "subject-not-yet-effective", future_subject_nonce,
+        frame=future_subject_frame, link=future_subject_link,
+        authority_view=_authority_view(
+            R.CARD_TEST_PROFILE, [future_subject]),
+        expected_step="signature",
+        reason_contains="no current signed authorization"))
+
+    future_delegation = _authorization(
+        TEST_ISSUER, None, role="card-issuer",
+        not_before=future_before, not_after=future_after)
+    future_delegation_nonce = "delegation-future-001"
+    future_delegation_frame, future_delegation_link = _card(
+        future_delegation_nonce, issued=future_issued)
+    vectors.append(_bundle(
+        "delegation-not-yet-effective", future_delegation_nonce,
+        frame=future_delegation_frame, link=future_delegation_link,
+        authority_view=_authority_view(
+            R.CARD_TEST_PROFILE, [future_delegation]),
+        expected_step="signature",
+        reason_contains="no current signed authorization"))
+
     expired_delegation = _authorization(
         TEST_ISSUER, None, role="card-issuer",
         not_after="2026-08-21T12:15:00.000Z")
@@ -721,6 +758,8 @@ def build_deck():
         ("endpoint-private-literal", "https://10.0.0.1/x.rappid-card.json"),
         ("endpoint-link-local-literal", "https://169.254.1.1/x.rappid-card.json"),
         ("endpoint-reserved-literal", "https://192.0.2.1/x.rappid-card.json"),
+        ("endpoint-ipv4-multicast-literal", "https://224.0.0.1/x.rappid-card.json"),
+        ("endpoint-ipv6-multicast-literal", "https://[ff02::1]/x.rappid-card.json"),
     )
     for name, endpoint in endpoint_mutations:
         nonce = name + "-01"
@@ -758,6 +797,16 @@ def build_deck():
         frame=private_dns_frame, link=private_dns_link,
         fetch_trace=[{"url": ENDPOINT, "resolved_ip": "10.0.0.1"}],
         expected_step="signature"))
+
+    for name, address in (
+            ("fetch-ipv4-multicast", "239.1.2.3"),
+            ("fetch-ipv6-multicast", "ff02::1")):
+        nonce = name + "-0001"
+        frame, link = _card(nonce)
+        vectors.append(_bundle(
+            name, nonce, frame=frame, link=link,
+            fetch_trace=[{"url": ENDPOINT, "resolved_ip": address}],
+            expected_step="signature", reason_contains="multicast"))
 
     fetch_alias_nonce = "fetch-numeric-alias-01"
     fetch_alias_frame, fetch_alias_link = _card(fetch_alias_nonce)
@@ -814,7 +863,7 @@ def build_deck():
 
     assert tuple(vector["name"] for vector in vectors) == MANDATORY_SCENARIOS
     return {
-        "schema": "rappid-card-vectors/3",
+        "schema": "rappid-card-vectors/4",
         "production_profile": R.CARD_PROFILE,
         "test_profile": R.CARD_TEST_PROFILE,
         "virtual_suffix": R.CARD_VIRTUAL_SUFFIX,

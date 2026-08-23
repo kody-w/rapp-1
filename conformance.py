@@ -573,7 +573,8 @@ MANDATORY_CARD_SCENARIOS = (
     "oversized-payload", "newline-rappid", "newline-manifest-hash",
     "newline-lclabel", "newline-profile-token", "newline-connection-id",
     "unknown-signing-key",
-    "attacker-key-impersonation", "delegation-expired", "delegation-revoked",
+    "attacker-key-impersonation", "subject-not-yet-effective",
+    "delegation-not-yet-effective", "delegation-expired", "delegation-revoked",
     "forged-revocation-view", "stale-revocation-view", "unavailable-revocation-view",
     "rollback-revocation-view", "protocol-incompatible", "runtime-incompatible",
     "unsupported-feature", "feature-superset", "classification-violation",
@@ -587,8 +588,10 @@ MANDATORY_CARD_SCENARIOS = (
     "endpoint-numeric-short-private",
     "endpoint-loopback-literal",
     "endpoint-private-literal", "endpoint-link-local-literal",
-    "endpoint-reserved-literal", "endpoint-unapproved-origin",
-    "endpoint-redirect-origin", "endpoint-private-dns", "fetch-numeric-alias",
+    "endpoint-reserved-literal", "endpoint-ipv4-multicast-literal",
+    "endpoint-ipv6-multicast-literal", "endpoint-unapproved-origin",
+    "endpoint-redirect-origin", "endpoint-private-dns",
+    "fetch-ipv4-multicast", "fetch-ipv6-multicast", "fetch-numeric-alias",
     "secret-endpoint-password",
     "secret-password", "secret-api-key", "secret-cookie", "secret-bearer",
     "secret-private-memory", "secret-unicode-latin-adjacency",
@@ -702,9 +705,16 @@ def _state_for_vector(vector, suffix="base"):
     return state
 
 
-def run_card_vector(vector, suffix="base", hydrated_parts=None):
+def run_card_vector(vector, suffix="base", hydrated_parts=None, hydration_calls=None):
     state = _state_for_vector(vector, suffix=suffix)
     parts = vector["hydrated_parts"] if hydrated_parts is None else hydrated_parts
+    selected = set(parts)
+    calls = [] if hydration_calls is None else hydration_calls
+
+    def hydrate_part(entry):
+        calls.append(entry["part"])
+        return CARD_PARTS[entry["part"]] if entry["part"] in selected else None
+
     trust = R.CardTrustStore(
         CARD_TRUST_KEYS, vector["runtime_policy_authority"])
     frame = vector["frame"]
@@ -732,7 +742,7 @@ def run_card_vector(vector, suffix="base", hydrated_parts=None):
         state,
         vector["connection_id"],
         vector["fetch_trace"],
-        {part: CARD_PARTS[part] for part in parts},
+        hydrate_part,
         vector["continuity"],
     )
     return result, state
@@ -741,11 +751,13 @@ def run_card_vector(vector, suffix="base", hydrated_parts=None):
 # V26 is the required deterministic fixture deck. Every negative vector is a fully
 # content-addressed and (where applicable) re-signed mutation, so it reaches the named
 # check instead of being caught accidentally by an earlier broken hash.
-CARD_RESULTS, CARD_STATES = {}, {}
+CARD_RESULTS, CARD_STATES, CARD_HYDRATION_CALLS = {}, {}, {}
 for vector in CARD_DECK["vectors"]:
-    verdict, state = run_card_vector(vector)
+    calls = []
+    verdict, state = run_card_vector(vector, hydration_calls=calls)
     CARD_RESULTS[vector["name"]] = verdict
     CARD_STATES[vector["name"]] = state
+    CARD_HYDRATION_CALLS[vector["name"]] = calls
     expected = vector["expected"]
     matches = (
         verdict[0] is expected["ok"]
@@ -776,6 +788,24 @@ check("V26 a trusted attacker key cannot impersonate an unauthorized subject",
       not CARD_RESULTS["attacker-key-impersonation"][0]
       and "no current signed authorization" in
       CARD_RESULTS["attacker-key-impersonation"][2])
+check("V26 future subject and delegation tenures are not effective at verifier now",
+      all(CARD_RESULTS[name][1] == "signature"
+          and not CARD_HYDRATION_CALLS[name]
+          for name in ("subject-not-yet-effective",
+                       "delegation-not-yet-effective")))
+pre_hydration_refusals = (
+    "classification-violation", "insufficient-scope",
+    "reconnect-during-hydration", "duplicate-replayed-nonce",
+    "fetch-ipv4-multicast", "fetch-ipv6-multicast",
+)
+check("V26 policy, scope, network, and nonce refusals touch no confidential bytes",
+      all(not CARD_HYDRATION_CALLS[name] for name in pre_hydration_refusals))
+check("V26 policy and scope refusal occurs before a durable nonce claim",
+      all(CARD_STATES[name].nonce_state(
+          R.parse_card_link(next(
+              vector for vector in CARD_DECK["vectors"]
+              if vector["name"] == name)["link"])["nonce"]) is None
+          for name in ("classification-violation", "insufficient-scope")))
 check("V26 revocation covers manifest, key, and subject independently",
       all(CARD_RESULTS[name][1] == "revocation" for name in
           ("manifest-revoked", "key-revoked", "subject-revoked")))
@@ -873,7 +903,7 @@ resumed = R.verify_card_link(
     resume_vector["now_utc"], resume_vector["runtime_policy"],
     resume_vector["authority_view"], resume_vector["revocation_view"],
     restarted_state, resume_vector["connection_id"], resume_vector["fetch_trace"],
-    CARD_PARTS, resume_vector["continuity"])
+    lambda entry: CARD_PARTS[entry["part"]], resume_vector["continuity"])
 check("V29 crash-window hydration claim survives restart and resumes same connection",
       claimed["state"] == "hydrating" and resumed[0]
       and restarted_state.nonce_state(resume_nonce)["state"] == "awake")

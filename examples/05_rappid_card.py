@@ -71,7 +71,7 @@ try:
         state,
         fixture["connection_id"],
         fixture["fetch_trace"],
-        parts,
+        lambda entry: parts.get(entry["part"]),
         fixture["continuity"],
     )
     assert ok, f"physical card refused at {step}: {reason}"
@@ -103,7 +103,7 @@ try:
         R.SQLiteCardState(state_path),
         fixture["connection_id"],
         fixture["fetch_trace"],
-        parts,
+        lambda entry: parts.get(entry["part"]),
         fixture["continuity"],
     )
     assert not replay[0] and replay[1] == "replay-nonce"
@@ -131,7 +131,7 @@ try:
         R.SQLiteCardState(production_path),
         production_refusal["connection_id"],
         production_refusal["fetch_trace"],
-        parts,
+        lambda entry: parts.get(entry["part"]),
         production_refusal["continuity"],
     )
     assert not refused[0] and refused[1] == "signature"

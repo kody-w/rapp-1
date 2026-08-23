@@ -699,6 +699,13 @@ mismatch, or octets whose `Hb(space, octets)` differs from the inventory hash. P
 therefore be fetched only after classification/scope policy passes and are never plaintext in the
 link or manifest.
 
+A presentation verifier **MUST** receive hydration as a lazy, bounded per-entry callback (or an
+equivalent explicit preflight/post-claim phase), not as an already-hydrated byte map. The verifier
+invokes that callback at most once for each signed inventory entry, supplies the exact signed
+`{part,space,hash,bytes,required}` bound, and **MUST NOT** invoke it until steps 1–8 have passed and
+step 9 has durably committed `hydrating`. Any policy, scope, origin, expiry, revocation, replay, or
+contention refusal therefore touches zero confidential part bytes.
+
 `parent` is `null` or the exact §7.7.5 `{rappid,particle}` pointer and **MUST NOT** name the card's
 own RAPPID. It binds lineage for continuity; it does not create or change identity.
 
@@ -873,7 +880,8 @@ The required deterministic deck is `vectors/rappid-card/deck.json`, generated an
 valid-test, valid-production, expired, manifest-revoked, key-revoked, subject-revoked,
 wrong-manifest-hash, deep-payload, oversized-payload, newline-rappid,
 newline-manifest-hash, newline-lclabel, newline-profile-token, newline-connection-id,
-unknown-signing-key, attacker-key-impersonation, delegation-expired, delegation-revoked,
+unknown-signing-key, attacker-key-impersonation, subject-not-yet-effective,
+delegation-not-yet-effective, delegation-expired, delegation-revoked,
 forged-revocation-view, stale-revocation-view,
 unavailable-revocation-view, rollback-revocation-view, protocol-incompatible,
 runtime-incompatible, unsupported-feature, feature-superset, classification-violation,
@@ -884,6 +892,8 @@ endpoint-empty-query, endpoint-empty-fragment, endpoint-space, endpoint-backslas
 endpoint-bad-percent, endpoint-double-encoding, endpoint-numeric-127-1,
 endpoint-numeric-octal, endpoint-numeric-hex, endpoint-numeric-short-private,
 endpoint-loopback-literal, endpoint-private-literal,
+endpoint-ipv4-multicast-literal, endpoint-ipv6-multicast-literal,
+fetch-ipv4-multicast, fetch-ipv6-multicast,
 endpoint-link-local-literal, endpoint-reserved-literal, endpoint-unapproved-origin,
 endpoint-redirect-origin, endpoint-private-dns, fetch-numeric-alias,
 secret-endpoint-password, secret-password,
