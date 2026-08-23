@@ -27,6 +27,7 @@ class BookParser(HTMLParser):
         self.statuses = 0
         self.wrapper_kinds: list[str] = []
         self.prompt_declarations = 0
+        self.hints = 0
         self.aria_labels: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -51,6 +52,8 @@ class BookParser(HTMLParser):
             assert tag == "button"
             assert values.get("type") == "button"
             assert values.get("data-copy-kind") in {"code", "prompt"}
+            assert values.get("aria-controls")
+            assert values.get("aria-describedby")
             self.aria_labels.append(values.get("aria-label", ""))
         if "data-copy-example-link" in values:
             self.links += 1
@@ -60,6 +63,8 @@ class BookParser(HTMLParser):
             assert values.get("role") == "status"
             assert values.get("aria-live") == "polite"
             assert values.get("aria-atomic") == "true"
+        if "data-copy-example-hint" in values:
+            self.hints += 1
 
     def handle_endtag(self, tag: str) -> None:
         if tag == "code" and self._example_chunks is not None:
@@ -142,7 +147,8 @@ def main() -> int:
 
     for page in pages:
         source = parse(page.read_text(encoding="utf-8"))
-        rendered = parse(dump_dom(chrome, f"{args.base_url}/book/{page.name}"))
+        rendered_html = dump_dom(chrome, f"{args.base_url}/book/{page.name}")
+        rendered = parse(rendered_html)
         assert rendered.examples == source.examples, f"example bytes changed in {page.name}"
         count = len(source.examples)
         assert len(rendered.wrapper_kinds) == count, f"wrapper mismatch in {page.name}"
@@ -150,9 +156,12 @@ def main() -> int:
         assert rendered.links == count, f"deep-link mismatch in {page.name}"
         assert rendered.statuses == count, f"status mismatch in {page.name}"
         assert rendered.wrapper_kinds.count("prompt") == source.prompt_declarations
+        assert rendered.hints == source.prompt_declarations
+        if source.prompt_declarations:
+            assert "Paste into any AI you choose and adapt it to your context." in rendered_html
         assert all(
             re.fullmatch(
-                r"(Copy (?:code|prompt)|Link to (?:code|prompt)) example \d+",
+                r"(Copy (?:code|prompt) to clipboard|Link to (?:code|prompt) example \d+)",
                 label,
             )
             for label in rendered.aria_labels

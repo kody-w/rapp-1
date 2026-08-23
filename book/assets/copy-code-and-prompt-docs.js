@@ -7,13 +7,16 @@
     promptIdPrefix: 'prompt-example',
     maxBlocks: 10000,
     maxBytes: 1048576,
-    resetAfterMs: 1800,
+    copiedResetAfterMs: 1600,
+    errorResetAfterMs: 5000,
     codeCopyLabel: 'Copy code',
     promptCopyLabel: 'Copy prompt',
-    codeCopiedLabel: 'Code copied',
-    promptCopiedLabel: 'Prompt copied',
-    errorLabel: 'Copy failed',
+    copiedLabel: 'Copied',
+    manualCopyLabel: 'Press Ctrl/Cmd+C',
+    promptHint: 'Paste into any AI you choose and adapt it to your context.',
   });
+
+  const LINE_NUMBER_SELECTOR = '.lineno, .line-number, [data-line-number], .rouge-gutter';
 
   function boundedInteger(value, fallback, minimum, maximum) {
     return Number.isSafeInteger(value) && value >= minimum && value <= maximum
@@ -37,20 +40,33 @@
       promptIdPrefix: idPrefix(source.promptIdPrefix, DEFAULTS.promptIdPrefix),
       maxBlocks: boundedInteger(source.maxBlocks, DEFAULTS.maxBlocks, 1, DEFAULTS.maxBlocks),
       maxBytes: boundedInteger(source.maxBytes, DEFAULTS.maxBytes, 1, DEFAULTS.maxBytes),
-      resetAfterMs: boundedInteger(source.resetAfterMs, DEFAULTS.resetAfterMs, 0, 60000),
+      copiedResetAfterMs: boundedInteger(
+        source.copiedResetAfterMs ?? source.resetAfterMs,
+        DEFAULTS.copiedResetAfterMs,
+        0,
+        60000,
+      ),
+      errorResetAfterMs: boundedInteger(
+        source.errorResetAfterMs ?? source.resetAfterMs,
+        DEFAULTS.errorResetAfterMs,
+        0,
+        60000,
+      ),
       codeCopyLabel: stringOption(source.codeCopyLabel || source.copyLabel, DEFAULTS.codeCopyLabel),
       promptCopyLabel: stringOption(source.promptCopyLabel, DEFAULTS.promptCopyLabel),
-      codeCopiedLabel: stringOption(
-        source.codeCopiedLabel || source.copiedLabel,
-        DEFAULTS.codeCopiedLabel,
-      ),
-      promptCopiedLabel: stringOption(source.promptCopiedLabel, DEFAULTS.promptCopiedLabel),
-      errorLabel: stringOption(source.errorLabel, DEFAULTS.errorLabel),
+      copiedLabel: stringOption(source.copiedLabel, DEFAULTS.copiedLabel),
+      manualCopyLabel: stringOption(source.manualCopyLabel, DEFAULTS.manualCopyLabel),
+      promptHint: stringOption(source.promptHint, DEFAULTS.promptHint),
     };
   }
 
   function sourceText(element) {
-    return typeof element?.textContent === 'string' ? element.textContent : '';
+    if (!element?.cloneNode) {
+      return typeof element?.textContent === 'string' ? element.textContent : '';
+    }
+    const clean = element.cloneNode(true);
+    clean.querySelectorAll?.(LINE_NUMBER_SELECTOR).forEach((node) => node.remove());
+    return typeof clean.textContent === 'string' ? clean.textContent : '';
   }
 
   function byteLength(text) {
@@ -60,12 +76,37 @@
     return unescape(encodeURIComponent(text)).length;
   }
 
+  function restoreSelection(selection, ranges) {
+    if (!selection) return;
+    try {
+      selection.removeAllRanges();
+      ranges.forEach((range) => selection.addRange(range));
+    } catch {
+      // Saved ranges can become stale when the page changes during a copy.
+    }
+  }
+
+  function focusWithoutScrolling(element) {
+    if (!element || typeof element.focus !== 'function') return;
+    try {
+      element.focus({ preventScroll: true });
+    } catch {
+      try {
+        element.focus();
+      } catch {
+        // Copying can still succeed when scripted focus is blocked.
+      }
+    }
+  }
+
   async function copyText(text, environment) {
     const env = environment || {};
     const navigatorObject = env.navigator || global.navigator;
     const documentObject = env.document || global.document;
+    const windowObject = env.window || global;
+    const secureContext = env.isSecureContext ?? windowObject?.isSecureContext;
 
-    if (navigatorObject?.clipboard?.writeText) {
+    if (secureContext && navigatorObject?.clipboard?.writeText) {
       try {
         await navigatorObject.clipboard.writeText(text);
         return 'clipboard';
@@ -79,16 +120,25 @@
     }
 
     const textarea = documentObject.createElement('textarea');
+    const selection = windowObject?.getSelection?.() || null;
+    const ranges = [];
+    const activeElement = documentObject.activeElement;
+    if (selection) {
+      for (let index = 0; index < selection.rangeCount; index += 1) {
+        ranges.push(selection.getRangeAt(index).cloneRange());
+      }
+    }
     textarea.value = text;
-    textarea.setAttribute('readonly', '');
+    textarea.readOnly = true;
     textarea.setAttribute('aria-hidden', 'true');
     textarea.style.position = 'fixed';
-    textarea.style.inset = '-9999px auto auto -9999px';
+    textarea.style.top = '0';
+    textarea.style.left = '-9999px';
     textarea.style.opacity = '0';
     documentObject.body.appendChild(textarea);
 
     try {
-      textarea.focus?.();
+      focusWithoutScrolling(textarea);
       textarea.select?.();
       textarea.setSelectionRange?.(0, textarea.value.length);
       if (!documentObject.execCommand('copy')) {
@@ -97,6 +147,22 @@
       return 'fallback';
     } finally {
       textarea.remove();
+      restoreSelection(selection, ranges);
+      focusWithoutScrolling(activeElement);
+    }
+  }
+
+  function selectSource(source) {
+    const selection = global.getSelection?.();
+    if (!selection || !global.document?.createRange) return;
+    try {
+      focusWithoutScrolling(source);
+      const range = global.document.createRange();
+      range.selectNodeContents(source);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    } catch {
+      // The readable source remains in place if selection is sandboxed.
     }
   }
 
@@ -157,28 +223,39 @@
     return kind === 'prompt'
       ? {
           idle: options.promptCopyLabel,
-          copied: options.promptCopiedLabel,
           noun: 'prompt',
+          title: 'Prompt',
         }
       : {
           idle: options.codeCopyLabel,
-          copied: options.codeCopiedLabel,
           noun: 'code',
+          title: 'Code',
         };
   }
 
-  function setState(button, status, state, kindLabels, options) {
-    const label = state === 'copied' ? kindLabels.copied : options.errorLabel;
+  function setState(button, status, state, kindLabels, options, source) {
+    const label = button.querySelector('.copy-example-label');
+    const copied = state === 'copied';
+    const stateLabel = copied ? options.copiedLabel : options.manualCopyLabel;
+    global.clearTimeout?.(Number(button.dataset.copyTimer || 0));
     button.dataset.state = state;
-    button.textContent = label;
-    status.textContent = label;
+    button.classList.toggle('is-copied', copied);
+    if (label) label.textContent = stateLabel;
+    if (copied) {
+      status.textContent = `${kindLabels.title} copied to clipboard.`;
+    } else {
+      selectSource(source);
+      status.textContent = `Automatic copy is unavailable. The complete ${kindLabels.noun} is selected; press Control or Command plus C to copy.`;
+    }
 
-    if (options.resetAfterMs > 0) {
-      global.setTimeout(() => {
+    const resetAfterMs = copied ? options.copiedResetAfterMs : options.errorResetAfterMs;
+    if (resetAfterMs > 0) {
+      const timer = global.setTimeout(() => {
+        button.classList.remove('is-copied');
         button.dataset.state = 'idle';
-        button.textContent = kindLabels.idle;
-        status.textContent = '';
-      }, options.resetAfterMs);
+        if (label) label.textContent = kindLabels.idle;
+      }, resetAfterMs);
+      button.dataset.copyTimer = String(timer);
     }
   }
 
@@ -206,6 +283,9 @@
       wrapper.id = metadata.id;
     }
     wrapper.setAttribute('tabindex', '-1');
+    if (!code.id) {
+      code.id = `${wrapper.id}-text`;
+    }
 
     let toolbar = wrapper.querySelector(':scope > .copy-example-toolbar');
     if (!toolbar) {
@@ -230,6 +310,17 @@
       status.setAttribute('aria-atomic', 'true');
       toolbar.appendChild(status);
     }
+    status.id = `${wrapper.id}-status`;
+
+    let hint = toolbar.querySelector('[data-copy-example-hint]');
+    if (metadata.kind === 'prompt' && !hint) {
+      hint = createElement(root, 'p');
+      hint.className = 'copy-example-hint';
+      hint.dataset.copyExampleHint = '';
+      hint.id = `${wrapper.id}-hint`;
+      hint.textContent = options.promptHint;
+      toolbar.appendChild(hint);
+    }
 
     let permalink = toolbar.querySelector('[data-copy-example-link]');
     if (!permalink) {
@@ -251,27 +342,43 @@
       button.className = 'copy-example-button';
       button.dataset.copyExampleButton = '';
       button.dataset.state = 'idle';
+      const icon = createElement(root, 'span');
+      icon.className = 'copy-example-icon';
+      icon.setAttribute('aria-hidden', 'true');
+      icon.textContent = '⧉';
+      const label = createElement(root, 'span');
+      label.className = 'copy-example-label';
+      label.textContent = kindLabels.idle;
+      button.appendChild(icon);
+      button.appendChild(label);
       toolbar.appendChild(button);
       button.addEventListener('click', async () => {
+        status.textContent = '';
         const text = sourceText(code);
         if (byteLength(text) > options.maxBytes) {
-          setState(button, status, 'error', kindLabels, options);
+          setState(button, status, 'error', kindLabels, options, code);
           return;
         }
         try {
           await copyText(text);
-          setState(button, status, 'copied', kindLabels, options);
+          setState(button, status, 'copied', kindLabels, options, code);
         } catch {
-          setState(button, status, 'error', kindLabels, options);
+          setState(button, status, 'error', kindLabels, options, code);
         }
       });
     }
-    button.textContent = button.dataset.state === 'idle' ? kindLabels.idle : button.textContent;
     button.setAttribute(
       'aria-label',
-      `${kindLabels.idle} example ${metadata.ordinal}`,
+      `${kindLabels.idle} to clipboard`,
+    );
+    button.setAttribute('aria-controls', code.id);
+    button.setAttribute(
+      'aria-describedby',
+      hint ? `${hint.id} ${status.id}` : status.id,
     );
     button.dataset.copyKind = metadata.kind;
+    if (hint) toolbar.appendChild(hint);
+    toolbar.appendChild(status);
     wrapper.dataset.copyOrdinal = String(globalOrdinal);
     return true;
   }

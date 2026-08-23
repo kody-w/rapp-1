@@ -6,16 +6,15 @@
 
 .copy-example > pre {
   margin: 0;
-  padding-top: 3rem;
 }
 
 .copy-example-toolbar {
-  position: absolute;
-  z-index: 1;
-  inset: 0.55rem 0.65rem auto auto;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.5rem;
+  margin-bottom: 0.5rem;
   font-family: system-ui, sans-serif;
   font-size: 0.75rem;
 }
@@ -57,11 +56,26 @@
   color: #991b1b;
 }
 
+.copy-example-icon {
+  margin-right: 0.35rem;
+  line-height: 1;
+}
+
+.copy-example-hint {
+  order: 3;
+  flex: 1 1 15rem;
+  margin: 0;
+  color: #565656;
+  font: 0.75rem/1.4 system-ui, sans-serif;
+}
+
 .copy-example-status {
-  min-width: 1px;
+  order: 4;
+  flex: 1 1 100%;
   min-height: 1em;
   overflow: hidden;
   color: inherit;
+  text-align: right;
 }
 
 @media (max-width: 620px) {
@@ -74,10 +88,6 @@
 @media print {
   .copy-example-toolbar {
     display: none;
-  }
-
-  .copy-example > pre {
-    padding-top: 1.25rem;
   }
 }
 
