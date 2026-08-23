@@ -1,0 +1,2 @@
+# RAPPID card fixtures are content-addressed protocol bytes.
+vectors/rappid-card/** -text
