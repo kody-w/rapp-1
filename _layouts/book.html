@@ -8,8 +8,8 @@
   <title>{% if page.book_home %}{{ site.title }}{% else %}{{ page.title }} · {{ site.title }}{% endif %}</title>
   <link rel="canonical" href="{{ page.url | absolute_url }}">
   <link rel="stylesheet" href="{{ '/book/assets/book.css' | relative_url }}">
-  <link rel="stylesheet" href="{{ '/book/assets/copy-code-docs.css' | relative_url }}">
-  <script defer src="{{ '/book/assets/copy-code-docs.js' | relative_url }}"></script>
+  <link rel="stylesheet" href="{{ '/book/assets/copy-code-and-prompt-docs.css' | relative_url }}">
+  <script defer src="{{ '/book/assets/copy-code-and-prompt-docs.js' | relative_url }}"></script>
 </head>
 <body class="book-shell{% if page.book_home %} book-home{% endif %}">
   <a class="skip-link" href="#book-text">Skip to the book</a>
@@ -73,7 +73,7 @@
     </article>
     <footer class="book-colophon">
       <span>RAPP rev-5</span>
-      <span>Every code example is copyable. The normative authority is
+      <span>Every code and prompt example is copyable. The normative authority is
         <a href="{{ '/SPEC.md' | relative_url }}">SPEC.md</a>.</span>
     </footer>
   </main>

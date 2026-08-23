@@ -20,12 +20,13 @@ class BookParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.stack: list[str] = []
-        self.code: list[str] = []
-        self._code_chunks: list[str] | None = None
+        self.examples: list[str] = []
+        self._example_chunks: list[str] | None = None
         self.buttons = 0
         self.links = 0
         self.statuses = 0
-        self.wrappers = 0
+        self.wrapper_kinds: list[str] = []
+        self.prompt_declarations = 0
         self.aria_labels: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -34,33 +35,42 @@ class BookParser(HTMLParser):
         if tag not in self.VOID_ELEMENTS:
             self.stack.append(tag)
         if tag == "code" and parent == "pre":
-            self._code_chunks = []
-        if "data-copy-code-docs" in values:
-            self.wrappers += 1
-            assert re.fullmatch(r"code-example-[a-z0-9-]+-\d+", values.get("id", ""))
-        if "data-copy-code-button" in values:
+            self._example_chunks = []
+        if tag in {"pre", "code"} and values.get("data-copy-kind") == "prompt":
+            self.prompt_declarations += 1
+        if "data-copy-example" in values:
+            kind = values.get("data-copy-kind", "")
+            assert kind in {"code", "prompt"}
+            self.wrapper_kinds.append(kind)
+            assert re.fullmatch(
+                rf"{kind}-example-[a-z0-9-]+-\d+",
+                values.get("id", ""),
+            )
+        if "data-copy-example-button" in values:
             self.buttons += 1
             assert tag == "button"
             assert values.get("type") == "button"
+            assert values.get("data-copy-kind") in {"code", "prompt"}
             self.aria_labels.append(values.get("aria-label", ""))
-        if "data-copy-code-link" in values:
+        if "data-copy-example-link" in values:
             self.links += 1
             self.aria_labels.append(values.get("aria-label", ""))
-        if "data-copy-code-status" in values:
+        if "data-copy-example-status" in values:
             self.statuses += 1
             assert values.get("role") == "status"
             assert values.get("aria-live") == "polite"
+            assert values.get("aria-atomic") == "true"
 
     def handle_endtag(self, tag: str) -> None:
-        if tag == "code" and self._code_chunks is not None:
-            self.code.append("".join(self._code_chunks))
-            self._code_chunks = None
+        if tag == "code" and self._example_chunks is not None:
+            self.examples.append("".join(self._example_chunks))
+            self._example_chunks = None
         if self.stack:
             self.stack.pop()
 
     def handle_data(self, data: str) -> None:
-        if self._code_chunks is not None:
-            self._code_chunks.append(data)
+        if self._example_chunks is not None:
+            self._example_chunks.append(data)
 
 
 def parse(html: str) -> BookParser:
@@ -111,38 +121,56 @@ def main() -> int:
 
     book = args.site / "book"
     assets = book / "assets"
-    assert (assets / "copy-code-docs.js").is_file()
-    assert (assets / "copy-code-docs.css").is_file()
-    runtime = (assets / "copy-code-docs.js").read_text(encoding="utf-8")
+    script = assets / "copy-code-and-prompt-docs.js"
+    assert script.is_file()
+    assert (assets / "copy-code-and-prompt-docs.css").is_file()
+    runtime = script.read_text(encoding="utf-8")
     assert "fetch(" not in runtime
     assert "XMLHttpRequest" not in runtime
     assert "clipboard.read" not in runtime
+    assert ".submit(" not in runtime
+    assert "eval(" not in runtime
 
     pages = sorted(
         page for page in book.glob("*.html")
         if page.name != "print.html" and "<pre" in page.read_text(encoding="utf-8")
     )
-    assert pages, "no interactive code pages were generated"
+    assert pages, "no interactive example pages were generated"
     chrome = chrome_binary()
     total = 0
+    prompt_total = 0
 
     for page in pages:
         source = parse(page.read_text(encoding="utf-8"))
         rendered = parse(dump_dom(chrome, f"{args.base_url}/book/{page.name}"))
-        assert rendered.code == source.code, f"code bytes changed in {page.name}"
-        count = len(source.code)
-        assert rendered.wrappers == count, f"wrapper mismatch in {page.name}"
+        assert rendered.examples == source.examples, f"example bytes changed in {page.name}"
+        count = len(source.examples)
+        assert len(rendered.wrapper_kinds) == count, f"wrapper mismatch in {page.name}"
         assert rendered.buttons == count, f"button mismatch in {page.name}"
         assert rendered.links == count, f"deep-link mismatch in {page.name}"
         assert rendered.statuses == count, f"status mismatch in {page.name}"
+        assert rendered.wrapper_kinds.count("prompt") == source.prompt_declarations
         assert all(
-            re.fullmatch(r"(Copy|Link to) code example \d+", label)
+            re.fullmatch(
+                r"(Copy (?:code|prompt)|Link to (?:code|prompt)) example \d+",
+                label,
+            )
             for label in rendered.aria_labels
         )
-        assert all("Copy" not in text and "Copied" not in text for text in rendered.code)
+        assert all(
+            "Copy code" not in text
+            and "Copy prompt" not in text
+            and "copied" not in text.lower()
+            for text in rendered.examples
+        )
         total += count
+        prompt_total += source.prompt_declarations
 
-    print(f"validated {total} byte-exact examples across {len(pages)} interactive pages")
+    assert prompt_total >= 1, "no explicitly marked prompt example was generated"
+    print(
+        f"validated {total} byte-exact examples "
+        f"({prompt_total} prompt) across {len(pages)} interactive pages"
+    )
     return 0
 
 
