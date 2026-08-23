@@ -215,6 +215,18 @@ with tempfile.TemporaryDirectory() as unresolved_repo:
     verdict, findings, _ = RC.check_repo(unresolved_repo)
 check("V14 the repo gate reports unresolved lineage UNVERIFIED, never COMPLIANT",
       verdict == "UNVERIFIED" and findings[0].get("status") == "unverified")
+with tempfile.TemporaryDirectory() as lineage_repo:
+    for name, frames in (("parent", BODY), ("child", [birth])):
+        frame_dir = os.path.join(lineage_repo, name, "frames")
+        os.makedirs(frame_dir)
+        for index, frame in enumerate(frames):
+            with open(os.path.join(frame_dir, f"{index}.json"), "w",
+                      encoding="utf-8") as handle:
+                json.dump(frame, handle)
+    verdict, findings, evidence = RC.check_repo(lineage_repo)
+check("V14 the repo gate resolves and verifies locally present parent/offspring lineage",
+      verdict == "COMPLIANT" and not findings
+      and any("§7.7 growth folds" in item["ok"] for item in evidence))
 selfp = reframe(birth, {**birth["payload"], "parent": {"rappid": CHILD,
                                                        "particle": STATE["particle"]}})
 ok, step, _ = R.verify_growth_payload(selfp["payload"], CHILD)

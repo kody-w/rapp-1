@@ -85,22 +85,74 @@ def check_repo(root):
                              "detail": f"parent_rappid not RAPP grammar: {parent}"})
 
     # ---- frame chains ----
-    for fdir in sorted({os.path.dirname(p) for p in
-                        glob.glob(os.path.join(root, "**", "frames", "*.json"), recursive=True)
-                        if ".git/" not in p}):
+    frame_directories = sorted({
+        os.path.dirname(path)
+        for path in glob.glob(os.path.join(root, "**", "frames", "*.json"), recursive=True)
+        if ".git/" not in path
+    })
+    chains = []
+    chains_by_stream = {}
+    for fdir in frame_directories:
         files = sorted((f for f in glob.glob(os.path.join(fdir, "*.json"))
                         if re.match(r"^\d+\.json$", os.path.basename(f))),
                        key=lambda f: int(os.path.basename(f)[:-5]))
         if not files:
             continue
+        chain = [json.load(open(path)) for path in files]
+        chains.append((fdir, files, chain))
+        stream_id = chain[0].get("stream_id")
+        if isinstance(stream_id, str):
+            chains_by_stream[stream_id] = chain
+
+    fold_cache = {}
+
+    def fold_local(stream_id, particle=None, visiting=()):
+        """Fold one locally present lineage, resolving each parent at its claimed particle."""
+        key = (stream_id, particle)
+        if key in fold_cache:
+            return fold_cache[key]
+        if stream_id in visiting:
+            return False, "§7.7.5", "local parent lineage contains a cycle", None
+        chain = chains_by_stream.get(stream_id)
+        if chain is None:
+            return False, "§7.7.5", (
+                f"{R.UNRESOLVED_PARENT} — parent stream {stream_id!r} is not in this checkout"
+            ), None
+        selected = chain
+        if particle is not None:
+            matches = [
+                index for index, frame in enumerate(chain)
+                if frame.get("payload_hash") == particle
+            ]
+            if not matches:
+                return False, "§7.7.5", (
+                    f"parent particle {particle} is not present in local stream {stream_id}"
+                ), None
+            selected = chain[:matches[0] + 1]
+        inherited = None
+        genesis = selected[0].get("payload", {}) if selected else {}
+        parent = genesis.get("parent") if isinstance(genesis, dict) else None
+        if parent is not None:
+            if not isinstance(parent, dict):
+                return False, "§7.7.5", "parent pointer is not an object", None
+            inherited_result = fold_local(
+                parent.get("rappid"), parent.get("particle"), (*visiting, stream_id)
+            )
+            if not inherited_result[0]:
+                return inherited_result
+            inherited = inherited_result[3]
+        result = R.fold_body_stream(
+            selected, stream_id_of_record=stream_id, inherited=inherited
+        )
+        fold_cache[key] = result
+        return result
+
+    for fdir, files, chain in chains:
         has_artifact = True
         rel = os.path.relpath(fdir, root)
         canon_ok = conformant = 0
         head = None  # thread the head so chain linkage (seq/prev/utc) is actually checked
-        chain = []
-        for f in files:
-            fr = json.load(open(f))
-            chain.append(fr)
+        for fr in chain:
             p, s = fr.get("payload"), (fr.get("sha256") or fr.get("hash"))
             if p is not None and s is not None and _untagged(p) == s:
                 canon_ok += 1
@@ -120,8 +172,7 @@ def check_repo(root):
         # conformant reader rebuilds it — one identity, no stage regression, no fabricated
         # inheritance. A parent stream we do not hold is UNVERIFIED, never clean.
         if any(fr.get("kind") in (R.BODY_DIMENSION, R.BODY_RECONSTRUCTED) for fr in chain):
-            ok, step, why, state = R.fold_body_stream(
-                chain, stream_id_of_record=chain[0].get("stream_id"))
+            ok, step, why, state = fold_local(chain[0].get("stream_id"))
             if ok:
                 w = state["weight"]
                 evidence.append({"artifact": rel, "ok": (
