@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUTPUT="$ROOT/book/the-rapp-programming-language.pdf"
+OUTPUT="${PDF_OUTPUT:-$ROOT/book/the-rapp-programming-language.pdf}"
 BUILD_DIR="$ROOT/.book-build/pdf"
 SERVER_PID=""
 

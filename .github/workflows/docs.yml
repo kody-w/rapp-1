@@ -36,5 +36,6 @@ jobs:
           name: documentation-evidence
           path: |
             .book-build/tests/print-a.png
+            .book-build/tests/generated.pdf
             book/the-rapp-programming-language.pdf
           if-no-files-found: error

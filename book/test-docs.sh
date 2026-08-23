@@ -122,7 +122,8 @@ curl -fsS "http://127.0.0.1:$PORT_B/book/print.html" >/dev/null
   >/dev/null 2>&1
 cmp "$BUILD_ROOT/print-a.png" "$BUILD_ROOT/print-b.png"
 
-"$ROOT/book/build-pdf.sh"
 python3 "$ROOT/book/test-pdf.py"
+PDF_OUTPUT="$BUILD_ROOT/generated.pdf" "$ROOT/book/build-pdf.sh"
+python3 "$ROOT/book/test-pdf.py" "$BUILD_ROOT/generated.pdf" --portable-render
 
 echo "documentation build, DOM, representative render, and PDF checks passed"

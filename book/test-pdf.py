@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import html
 from pathlib import Path
 import re
@@ -22,12 +23,27 @@ def run(*args: str) -> str:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("pdf", nargs="?", type=Path)
+    parser.add_argument(
+        "--portable-render",
+        action="store_true",
+        help="allow platform font pagination while retaining geometry and URI checks",
+    )
+    args = parser.parse_args()
     root = Path(__file__).resolve().parent.parent
-    pdf = root / "book" / "the-rapp-programming-language.pdf"
+    pdf = args.pdf or root / "book" / "the-rapp-programming-language.pdf"
+    pdf = pdf.resolve()
     assert pdf.is_file() and pdf.stat().st_size > 0
 
     info = run("pdfinfo", str(pdf))
-    assert re.search(r"^Pages:\s+108$", info, re.MULTILINE), info
+    pages_match = re.search(r"^Pages:\s+(\d+)$", info, re.MULTILINE)
+    assert pages_match, info
+    pages = int(pages_match.group(1))
+    if args.portable_render:
+        assert 100 <= pages <= 108, info
+    else:
+        assert pages == 108, info
     assert re.search(r"^Page size:\s+432 x 648 pts", info, re.MULTILINE), info
 
     output = root / ".book-build" / "pdf-validation"
@@ -63,7 +79,7 @@ def main() -> int:
     assert text.count("COPY EXAMPLES ONLINE") == 15
     assert re.search(r"The RAPP\s+Programming\s+Language", text)
     print(
-        f"validated 108-page 6x9 PDF with {len(external)} "
+        f"validated {pages}-page 6x9 PDF with {len(external)} "
         "HTTPS allowlisted URI annotations"
     )
     return 0
