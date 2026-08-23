@@ -6,7 +6,10 @@
   <meta name="theme-color" content="#f4efe2">
   <meta name="description" content="{{ page.description | default: site.description | escape }}">
   <title>{% if page.book_home %}{{ site.title }}{% else %}{{ page.title }} · {{ site.title }}{% endif %}</title>
+  <link rel="canonical" href="{{ page.url | absolute_url }}">
   <link rel="stylesheet" href="{{ '/book/assets/book.css' | relative_url }}">
+  <link rel="stylesheet" href="{{ '/book/assets/copy-code-docs.css' | relative_url }}">
+  <script defer src="{{ '/book/assets/copy-code-docs.js' | relative_url }}"></script>
 </head>
 <body class="book-shell{% if page.book_home %} book-home{% endif %}">
   <a class="skip-link" href="#book-text">Skip to the book</a>
@@ -47,7 +50,8 @@
       <a href="{{ '/book/C-selected-exercise-solutions.html' | relative_url }}"><b>C</b> Solutions</a>
     </nav>
 
-    <p class="book-source"><a href="{{ '/book/print.html' | relative_url }}">Complete print edition</a><br>
+    <p class="book-source"><a href="{{ '/book/' | relative_url }}">Interactive edition</a><br>
+      <a href="{{ '/book/print.html' | relative_url }}">Complete print edition</a><br>
       <a href="{{ '/book/the-rapp-programming-language.pdf' | relative_url }}">Download PDF</a><br>
       <a href="{{ '/SPEC.md' | relative_url }}">Normative standard</a><br>
       <a href="https://github.com/kody-w/rapp-1">Source on GitHub</a></p>
@@ -69,7 +73,8 @@
     </article>
     <footer class="book-colophon">
       <span>RAPP rev-5</span>
-      <span>The normative authority is <a href="{{ '/SPEC.md' | relative_url }}">SPEC.md</a>.</span>
+      <span>Every code example is copyable. The normative authority is
+        <a href="{{ '/SPEC.md' | relative_url }}">SPEC.md</a>.</span>
     </footer>
   </main>
 

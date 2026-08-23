@@ -1,0 +1,82 @@
+.copy-code-example {
+  position: relative;
+  margin: 1.7rem -0.4rem;
+  scroll-margin-top: 4.5rem;
+}
+
+.copy-code-example > pre {
+  margin: 0;
+  padding-top: 3rem;
+}
+
+.copy-code-toolbar {
+  position: absolute;
+  z-index: 1;
+  inset: 0.55rem 0.65rem auto auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: system-ui, sans-serif;
+  font-size: 0.75rem;
+}
+
+.copy-code-button,
+.copy-code-link {
+  min-height: 2rem;
+  border: 1px solid currentColor;
+  border-radius: 0.25rem;
+  background: Canvas;
+  color: CanvasText;
+  font: 700 0.75rem/1 system-ui, sans-serif;
+}
+
+.copy-code-button {
+  min-width: 4.5rem;
+  padding: 0.45rem 0.7rem;
+  cursor: pointer;
+}
+
+.copy-code-link {
+  width: 2rem;
+  display: inline-grid;
+  place-items: center;
+  text-decoration: none;
+}
+
+.copy-code-button:focus-visible,
+.copy-code-link:focus-visible {
+  outline: 3px solid Highlight;
+  outline-offset: 2px;
+}
+
+.copy-code-button[data-state="copied"] {
+  color: #166534;
+}
+
+.copy-code-button[data-state="error"] {
+  color: #991b1b;
+}
+
+.copy-code-status {
+  min-width: 1px;
+  min-height: 1em;
+  overflow: hidden;
+  color: inherit;
+}
+
+@media (max-width: 620px) {
+  .copy-code-example {
+    margin-right: -0.5rem;
+    margin-left: -0.5rem;
+  }
+}
+
+@media print {
+  .copy-code-toolbar {
+    display: none;
+  }
+
+  .copy-code-example > pre {
+    padding-top: 1.25rem;
+  }
+}

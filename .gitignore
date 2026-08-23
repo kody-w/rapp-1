@@ -1,3 +1,4 @@
 estate/
+.book-build/
 __pycache__/
 *.pyc
