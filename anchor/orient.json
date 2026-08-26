@@ -1,18 +1,18 @@
 {
   "schema": "rapp/1-anchor",
-  "generated_utc": "2026-08-26T20:54:19.671Z",
+  "generated_utc": "2026-08-26T20:56:55.774Z",
   "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
   "head": {
-    "seq": 2,
-    "frame_hash": "8c78ac8415a48e8ff02d4c4363cf3afd2003399c76e64ad938609a7ca8fe7b23",
-    "payload_hash": "7fc511c74e677a748a71b7042fa1519429e0819096b5bdfcc610f7985fe980ff"
+    "seq": 4,
+    "frame_hash": "5aa99ae21b39b2c3e5e63c696dc3c34596aabbc721cda002b9c4f7ef100f7363",
+    "payload_hash": "f75e1511ae48bc35efc791b9f15c869cb316e36de351786ba7ca8d868c8b1b72"
   },
   "spec": {
     "revision": "rev-5",
     "normative_path": "SPEC.md",
     "normative_sha256": "cea7847f98f9751734995f46fd4e1bde211c8eb9d03dbbb477934213865bb91a",
     "canonical_repo": "https://github.com/kody-w/rapp-1",
-    "commit": "002cf089d3219f17c55b05ab1e2d8246e316dc8b"
+    "commit": "a37274a99c223188590cfcab5573db552ee2c0ee"
   },
   "registered_kinds": [
     "body.pulse",
@@ -195,6 +195,36 @@
         "stale_terms"
       ],
       "max_rules": "0"
+    }
+  },
+  "moods": {
+    "night": {
+      "when": {
+        "hour_gte": "22"
+      },
+      "profile": "minimal",
+      "why": "low-attention hours; smallest honest context"
+    },
+    "early": {
+      "when": {
+        "hour_lt": "6"
+      },
+      "profile": "minimal",
+      "why": "same"
+    },
+    "storm": {
+      "when": {
+        "conditions": "storm,rain,snow"
+      },
+      "profile": "audit",
+      "why": "degraded links are when drift hides; lead with verification"
+    },
+    "clear": {
+      "when": {
+        "conditions": "clear,sunny"
+      },
+      "profile": "interop",
+      "why": "good conditions, normal posture"
     }
   },
   "profile_signals": {
