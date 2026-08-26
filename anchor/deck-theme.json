@@ -1,0 +1,71 @@
+{
+  "_about": "The default deck theme for RAPP install packets. This file is DATA: a generator reads it at runtime and renders to it. To brand every deck as your own, copy this file into any public repo, change what you care about, and point DECK_DOGG_URL at your raw URL \u2014 no code change, no rebuild, no redeploy. Anything you omit falls back to these values, so a four-colour palette is a complete theme.",
+  "_fields": {
+    "palette": "hex colours without '#': ink, paper, accent, accent_soft, muted, rule",
+    "slides": "the slide plan itself \u2014 reorder, drop or add; a slide whose source is empty is skipped and named in the packet manifest rather than faked",
+    "type": "font names and point sizes as strings (the canonical form forbids floats)",
+    "voice": "guidance for whoever writes copy against this theme"
+  },
+  "name": "RAPP default",
+  "palette": {
+    "accent": "2C6E63",
+    "accent_soft": "E6EFED",
+    "ink": "1A1A1A",
+    "muted": "6B7280",
+    "paper": "FFFFFF",
+    "rule": "D8DEDC"
+  },
+  "schema": "rapp/1-deck-theme",
+  "slides": [
+    {
+      "id": "title",
+      "kind": "title"
+    },
+    {
+      "heading": "What it does",
+      "id": "what",
+      "kind": "statement"
+    },
+    {
+      "heading": "Capabilities",
+      "id": "capabilities",
+      "kind": "bullets",
+      "source": "capabilities"
+    },
+    {
+      "heading": "How you call it",
+      "id": "inputs",
+      "kind": "table",
+      "source": "params"
+    },
+    {
+      "heading": "What it will not do",
+      "id": "honesty",
+      "kind": "bullets",
+      "source": "limits"
+    },
+    {
+      "heading": "Install",
+      "id": "install",
+      "kind": "steps"
+    },
+    {
+      "heading": "Provenance",
+      "id": "provenance",
+      "kind": "kv"
+    }
+  ],
+  "type": {
+    "body": "Segoe UI",
+    "body_pt": "14",
+    "head_pt": "22",
+    "mono": "Consolas",
+    "small_pt": "11",
+    "title": "Segoe UI Semibold",
+    "title_pt": "34"
+  },
+  "voice": {
+    "avoid": "claims the agent's own contract does not support",
+    "tone": "plain and specific; state what the agent does and does not do"
+  }
+}
