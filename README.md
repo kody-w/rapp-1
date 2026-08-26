@@ -26,9 +26,13 @@ python3 examples/01_hello_frame.py   # build and verify your first frame
 ```
 
 `conformance.py` proves the reference implementation against 16 controlled checks. `realcheck.py`
-synchronizes the public repos of a live estate and currently verifies **46/46 committed frames**,
-all chain links, and four canonical identity records with **0 remaining drift findings**. The
-historical red report and current green report form the before/after case study in chapter 10.
+synchronizes the public repos of a live estate and verifies every committed frame: the captured
+2026-08-20 run accepted **46/46 committed frames**, all chain links, and four canonical identity
+records with **0 drift findings**, and a 2026-08-26 re-observation of the grown estate accepted
+**50/50**. The estate is live and the audit is re-run on a weekly schedule
+([estate watch](.github/workflows/estate-watch.yml)) that files an issue the moment reality
+drifts. The historical red report and the captured green report form the before/after case study
+in chapter 10.
 
 ## What's here
 
@@ -105,8 +109,11 @@ because everyone building on it turns the same bytes into the same tree.
 
 ## Status
 
-RAPP rev-5. The reference profile passes 16/16 controlled checks. The synchronized estate audit
-accepts 46/46 committed frames, verifies 46/46 chain links and four canonical identity records,
-and reports zero current drift. See [`REAL-WORLD-REPORT.txt`](REAL-WORLD-REPORT.txt).
+RAPP rev-5. The reference profile passes 16/16 controlled checks on every push — CI runs the
+suite on Python 3.9 and 3.13, runs all six examples, and enforces byte parity between `rapp.py`
+and the SDK agent's embedded primitives (`parity_check.py`). The captured 2026-08-20 estate audit
+accepted 46/46 committed frames and four canonical identity records with zero drift; the estate
+is live and re-audited weekly (the 2026-08-26 observation accepted 50/50). See
+[`REAL-WORLD-REPORT.txt`](REAL-WORLD-REPORT.txt) for the captured case-study run.
 
 *License: the protocol is meant to be implemented. Do.*

@@ -9,11 +9,45 @@ permissions:
   contents: read
 
 jobs:
+  protocol:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Protocol conformance (spec floor is stdlib-only, any modern Python)
+        run: python3 conformance.py
+      - name: Reference/agent primitive parity (one canonicalizer, enforced)
+        run: python3 parity_check.py
+      - name: Run every example end to end
+        run: |
+          for f in examples/0*.py; do
+            echo "== $f"
+            python3 "$f"
+          done
+
   docs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Committed PDF must not lag the book source
+        run: |
+          pdf_commit=$(git rev-list -1 HEAD -- book/the-rapp-programming-language.pdf)
+          src_commit=$(git rev-list -1 HEAD -- 'book/*.md' ':!book/README.md' 'book/assets' '_layouts/book-print.html')
+          echo "pdf:  $pdf_commit"
+          echo "src:  $src_commit"
+          if [ "$pdf_commit" != "$src_commit" ] && ! git merge-base --is-ancestor "$src_commit" "$pdf_commit"; then
+            echo "::error::book source changed after the committed PDF was last rebuilt — run book/build-pdf.sh and commit the result"
+            exit 1
+          fi
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3'

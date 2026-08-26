@@ -1,0 +1,60 @@
+name: Estate watch
+
+# The README's real-world claim is a synchronized observation of MUTABLE public
+# repositories — it can decay with no commit to this repo. This scheduled run
+# re-observes the live estate weekly and opens (or updates) an issue the moment
+# realcheck finds drift, so the front page never silently outlives reality.
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Re-observe the live estate
+        id: observe
+        run: |
+          set -o pipefail
+          {
+            python3 conformance.py
+            python3 parity_check.py
+            python3 realcheck.py
+          } 2>&1 | tee watch-report.txt
+      - name: File drift as an issue (red oracle, not a bypass)
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="estate-watch: live estate drift or check failure"
+          body="Scheduled re-observation failed on $(date -u +%F). Tail of the report:
+
+          \`\`\`
+          $(tail -40 watch-report.txt 2>/dev/null || echo 'no report captured')
+          \`\`\`
+
+          Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          existing=$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "$title" --body "$body"
+          fi
+      - name: Upload observation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: estate-watch-report
+          path: watch-report.txt
+          if-no-files-found: ignore
