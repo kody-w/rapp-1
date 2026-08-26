@@ -1,0 +1,98 @@
+{
+  "schema": "rapp/1-anchor",
+  "generated_utc": "2026-08-26T20:43:39.106Z",
+  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
+  "head": {
+    "seq": 1,
+    "frame_hash": "963bf0689eb294164029a9088910749446c4e0fe0757fd27988b8fc220e5ab36",
+    "payload_hash": "50283a1267c896d96e5f33f1c03060729a3695e0ab2e1f782390978d5e6c1dd5"
+  },
+  "spec": {
+    "revision": "rev-5",
+    "normative_path": "SPEC.md",
+    "normative_sha256": "cea7847f98f9751734995f46fd4e1bde211c8eb9d03dbbb477934213865bb91a",
+    "canonical_repo": "https://github.com/kody-w/rapp-1",
+    "commit": "00798f05dd086676754a97e63e759fedf856075d"
+  },
+  "registered_kinds": [
+    "body.pulse",
+    "body.re-genesis",
+    "body.reconstructed",
+    "body.twin-pulse",
+    "memory.chat-turn",
+    "memory.re-genesis",
+    "memory.reconstructed",
+    "memory.save",
+    "memory.tool-call",
+    "swarm.echo",
+    "swarm.guidance",
+    "swarm.re-genesis",
+    "swarm.reconstructed",
+    "swarm.telemetry"
+  ],
+  "verify": "sha256 of <canonical_repo>/blob/<commit>/<normative_path> MUST equal spec.normative_sha256; recompute it yourself rather than trusting this file",
+  "signed": false,
+  "unsigned_because": "no authenticated \u00a713 registry or owner-signing authority exists in this estate; a signature without one would be fabrication. Legal for a body-stream: \u00a77.5 step 6 binds swarm-streams only.",
+  "vocabulary": {
+    "estate": {
+      "status": "live",
+      "where": "\u00a79.2 egg variant"
+    },
+    "invite": {
+      "status": "live",
+      "where": "\u00a79.2 egg variant"
+    },
+    "neighborhood": {
+      "status": "live",
+      "where": "\u00a79.2 egg variant"
+    },
+    "organism": {
+      "status": "live",
+      "where": "\u00a79.2 egg variant"
+    },
+    "rapplication": {
+      "status": "live",
+      "where": "\u00a79.2 egg variant"
+    },
+    "session": {
+      "status": "live",
+      "where": "\u00a79.2 egg variant"
+    },
+    "memory": {
+      "status": "live",
+      "where": "\u00a77.2 kind family"
+    },
+    "swarm": {
+      "status": "live",
+      "where": "\u00a77.2 kind family"
+    },
+    "body": {
+      "status": "live",
+      "where": "\u00a77.2 kind family"
+    },
+    "metropolis": {
+      "status": "retired",
+      "where": "rapp-metropolis/1.0 tier 3; that doc is now a retirement notice in kody-w/rapp-estate \u2014 bytes only at git 24c8fdc, sha256 690f6109\u2026"
+    },
+    "rapp-frame/2.0": {
+      "status": "retired",
+      "where": "legacy envelope token, superseded by rapp/1 (\u00a77.1)"
+    },
+    "rapp-frame/2.1": {
+      "status": "retired",
+      "where": "legacy envelope token, superseded by rapp/1 (\u00a77.1)"
+    },
+    "rapp-rappid-spec/2.0": {
+      "status": "retired",
+      "where": "legacy, superseded by rapp/1 \u00a76"
+    },
+    "rapp-protocol/1.0": {
+      "status": "retired",
+      "where": "legacy, superseded by rapp/1"
+    },
+    "rbox": {
+      "status": "not-in-spec",
+      "where": "operator's working word for a machine running an organism; the spec's word is `organism` (\u00a79.2)"
+    }
+  }
+}
