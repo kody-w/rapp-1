@@ -14,7 +14,23 @@ a conformance suite, and a book that teaches it end to end.
 
 ---
 
-## Quickstart (60 seconds)
+## Quickstart (60 seconds, zero typing)
+
+You never need to type code to use RAPP. Copy one prompt, paste it into your
+**brainsurgeon** — an agentic CLI like Claude Code or GitHub Copilot CLI — and watch it work:
+
+```text
+You are my hands — I watch, you type. Clone https://github.com/kody-w/rapp-1 and prove
+RAPP to me end to end: (1) run python3 conformance.py — I expect 16/16 PASS; (2) run
+python3 realcheck.py — the spec against the live public estate — and explain the verdict
+in plain English; (3) run python3 examples/01_hello_frame.py and walk me through the
+frame it built, one line per key. Narrate as you go, show real output, and stop on any
+red result — a red check is a finding, not something to patch around.
+```
+
+Every task in this repository has a prompt like this — the whole journey, from first frame to
+implementing RAPP in your own language, is in [**`PROMPTS.md`, the prompt book**](PROMPTS.md).
+Prefer to drive the machine yourself? The commands your brainsurgeon runs:
 
 ```bash
 git clone https://github.com/kody-w/rapp-1
@@ -39,6 +55,7 @@ in chapter 10.
 | file | what it is |
 |------|-----------|
 | **[`SPEC.md`](SPEC.md)** | the normative RAPP standard (rev-5) — 15 sections, RFC-grounded |
+| **[`PROMPTS.md`](PROMPTS.md)** | the prompt book — every task as a copy-paste prompt for your brainstem or brainsurgeon; you never type code |
 | **[`rapp.py`](rapp.py)** | the reference implementation, stdlib only, ~140 lines you are meant to read |
 | **[`conformance.py`](conformance.py)** | test vectors V1–V9; run it, watch it go green |
 | **[`realcheck.py`](realcheck.py)** | runs RAPP against the live estate's real committed artifacts |
@@ -50,12 +67,24 @@ in chapter 10.
 
 Drop one file into any RAPP brainstem's `agents/` directory (no restart) and it gains a working
 RAPP toolkit — mint compliant rappids, scaffold organism seeds, build/verify frames,
-content-address values, and lint public repos for compliance, all drivable in plain English:
+content-address values, and lint public repos for compliance, all drivable in plain English.
+Paste this into your brainsurgeon and it installs and proves the toolkit while you watch:
+
+```text
+Install the RAPP SDK Builder agent into my local brainstem: download
+https://raw.githubusercontent.com/kody-w/rapp-1/main/agents/rapp_sdk_builder_agent.py
+into my brainstem's agents/ directory (find the right one — standard installs use
+~/.brainstem/src/rapp_brainstem/agents/), no restart needed. Then prove it: run the
+agent's sync action and show me embedded_matches_public_reference: true, and ask my
+brainstem to "mint a keyless rappid for @me/hello".
+```
+
+From then on you just talk to your brainstem: *"scaffold a new RAPP organism @me/scratch"*.
+The one command behind the install, if you want it:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/kody-w/rapp-1/main/agents/rapp_sdk_builder_agent.py \
   -o ~/.brainstem/src/rapp_brainstem/agents/rapp_sdk_builder_agent.py
-# then just talk to your brainstem: "scaffold a new RAPP organism @me/scratch"
 ```
 
 It's self-contained (embeds the reference primitives; its `sync` action proves byte-identical
