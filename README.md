@@ -116,4 +116,6 @@ accepted 46/46 committed frames and four canonical identity records with zero dr
 is live and re-audited weekly (the 2026-08-26 observation accepted 50/50). See
 [`REAL-WORLD-REPORT.txt`](REAL-WORLD-REPORT.txt) for the captured case-study run.
 
-*License: the protocol is meant to be implemented. Do.*
+*License: the protocol is meant to be implemented. Do — [SPEC.md, the reference
+implementation, suite, tooling, and agents are MIT](LICENSE). The three books remain
+authored works, all rights reserved.*
