@@ -1,19 +1,29 @@
 {
-  "_about": "The default deck theme for RAPP install packets. This file is DATA: a generator reads it at runtime and renders to it. To brand every deck as your own, copy this file into any public repo, change what you care about, and point DECK_DOGG_URL at your raw URL \u2014 no code change, no rebuild, no redeploy. Anything you omit falls back to these values, so a four-colour palette is a complete theme.",
+  "_about": "The default deck theme for RAPP install packets, in Microsoft Fluent. This file is DATA: a generator reads it at runtime and renders to it. To brand every deck as your own, copy it into any repo \u2014 public, or PRIVATE with contributors approved \u2014 change what you care about, and point DECK_DOGG_URL at your raw URL. No code change, no rebuild, no redeploy. Anything you omit falls back to these values, so four brand colours is already a complete theme.",
   "_fields": {
-    "palette": "hex colours without '#': ink, paper, accent, accent_soft, muted, rule",
-    "slides": "the slide plan itself \u2014 reorder, drop or add; a slide whose source is empty is skipped and named in the packet manifest rather than faked",
-    "type": "font names and point sizes as strings (the canonical form forbids floats)",
-    "voice": "guidance for whoever writes copy against this theme"
+    "brand": "wordmark, foot_left, bar \u2014 the strip, footer and title mark",
+    "palette": "hex colours without '#'; ink, paper, accent, muted, rule are required, the rest optional",
+    "slides": "the slide plan itself; a slide whose source is empty is SKIPPED and named in the packet manifest, never faked",
+    "type": "font names and point sizes as strings (the canonical form forbids floats)"
   },
-  "name": "RAPP default",
+  "_private_themes": "A theme may live in a private repo: globally addressable, readable only by approved contributors. raw.githubusercontent returns 404 \u2014 not 403 \u2014 to everyone else, so 'not approved' and 'does not exist' look identical. A generator must therefore NEVER silently fall back from a private theme to this default: someone whose access was revoked would keep producing generic decks believing they were branded. Pass private=true and set a token in RAPP_DOGG_TOKEN / GITHUB_TOKEN; on refusal, no packet is written.",
+  "brand": {
+    "bar": "true",
+    "foot_left": "Microsoft",
+    "wordmark": "RAPP \u00b7 Rapid Agent Prototype Platform"
+  },
+  "name": "Microsoft Fluent (RAPP default)",
   "palette": {
-    "accent": "2C6E63",
-    "accent_soft": "E6EFED",
-    "ink": "1A1A1A",
-    "muted": "6B7280",
+    "accent": "0078D4",
+    "accent_deep": "0E5AA7",
+    "accent_soft": "EAF3FB",
+    "grape": "8661C5",
+    "green": "107C10",
+    "ink": "0B2A4A",
+    "muted": "605E5C",
     "paper": "FFFFFF",
-    "rule": "D8DEDC"
+    "rule": "BFBFBF",
+    "warm": "D83B01"
   },
   "schema": "rapp/1-deck-theme",
   "slides": [
@@ -58,11 +68,11 @@
   "type": {
     "body": "Segoe UI",
     "body_pt": "14",
-    "head_pt": "22",
+    "head_pt": "24",
     "mono": "Consolas",
     "small_pt": "11",
     "title": "Segoe UI Semibold",
-    "title_pt": "34"
+    "title_pt": "36"
   },
   "voice": {
     "avoid": "claims the agent's own contract does not support",
