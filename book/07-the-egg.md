@@ -208,6 +208,22 @@ files and this canonical manifest are this portable unit.” Both close their sc
 hash spaces, exclude signatures from stable identity, and require consumers to recompute rather
 than trust stored digests.
 
+### Hatching: one artifact, many instances (§9.4)
+
+An egg names an **artifact**; a hatch creates an **instance** — and the two must never share an
+identity. The `rappid` packed inside the egg rides unchanged into every install: that is how two
+machines know they run the same thing. But the *installation itself* is a new organism, so the
+host mints a **fresh identity** for it at first boot (§6.2 — from entropy, exactly once, never
+derived from the artifact id, the hostname, or a path), and records **`grown_from`**: the egg
+address it was instantiated from.
+
+`grown_from` is written at mint time, immutable afterward, `null` when the source is genuinely
+unknown, and never invented — lineage is a fact about a birth, not a claim. It is lineage, **not
+inheritance**: knowing where an instance came from confers no authority, no trust, and no key
+material. The teaching mnemonic: *same egg, same artifact rappid, different instance rappids,
+each pointing home.* This is the identity mistake most installers make — sharing one identity
+across installs, or re-minting the artifact id on every hatch — and §9.4 closes both doors.
+
 ## 7.9 Exercises
 
 **Exercise 7-1.** Run `examples/06_pack_an_egg.py`. Add a third file and predict which file hash,
@@ -233,6 +249,8 @@ until the complete byte strings match, not only the extracted files.
 - `rapp/1:egg-manifest` addresses the whole manifest with `sig` removed.
 - Consumers verify path safety and integrity before variant viability.
 - Invite authority comes from the estate-owner succession, not merely from any valid signer.
+- A hatch mints a fresh instance identity and records `grown_from` — the artifact id is shared,
+  the instance id never is (§9.4).
 
 The byte model is now complete. The next chapter crosses the boundary from integrity to
 authorship.

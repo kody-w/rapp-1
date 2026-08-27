@@ -52,11 +52,19 @@ def main():
     results["§7 frame chain (genesis+child)"] = okg[0] and okc[0]
 
     # ── §9 pack + hatch round-trip (a real organism egg for THIS twin) ──
+    # §9.4: the twin is an INSTANCE — fresh identity (r1, minted above), with
+    # grown_from = the address of the egg it was instantiated from. Recorded at
+    # mint, never fabricated (the .iso's own address, recomputed per §9.1).
+    iso_manifest, _ = rapp.read_egg(blob)
+    grown_from = rapp.egg_address(iso_manifest)
     twin_files = {
-        "rappid.json": (json.dumps({"schema": "rapp/1", "rappid": r1}) + "\n").encode(),
+        "rappid.json": (json.dumps({"schema": "rapp/1", "rappid": r1,
+                                    "grown_from": grown_from}) + "\n").encode(),
         "soul.md": b"# hatched twin\n",
         "frames/0.json": (json.dumps(g) + "\n").encode(),
     }
+    results["§9.4 instance identity (fresh mint + grown_from recorded, distinct from artifact)"] = (
+        r1 != r2 and len(grown_from) == 64 and grown_from != r1.rsplit(":", 1)[-1])
     egg = rapp.pack_egg("organism", r1, utc, files=twin_files)
     oke, se, we = rapp.verify_egg(egg)
     results["§9 pack this twin as an egg"] = oke

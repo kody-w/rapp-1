@@ -1,7 +1,7 @@
 # The RAPP Protocol Suite
 ### Unified normative specification of identity, canonicalization, the frame, the wire, and the egg
 
-**Status:** Draft standard for ratification (Kody, estate owner). **rev-5.** **Obsoletes / consolidates:**
+**Status:** Draft standard for ratification (Kody, estate owner). **rev-6.** **Obsoletes / consolidates:**
 `rapp-frame/2.0`, `rapp-frame/2.1`, `rapp-rappid-spec/2.0`, `rapp-protocol/1.0`, all scattered egg specs
 (§9 subsumes them), and `OSI.md`. On ratification this is the single living standard; the consolidated
 specs become retired historical record (Federal Constitution Art. X).
@@ -331,6 +331,27 @@ member-packing `neighborhood` egg. The banned legacy stamps (`brainstem-egg/2.3-
   equals `contents` ∪ {`manifest.json`} in the §9.1 deterministic order (this is the zip-slip defense; an
   unenforced path grammar defends nothing); (1) every `contents[].hash` recomputes per §5; (2) the variant's
   §9.2 structural requirements hold — and refuse whole on any failure; it **MUST NOT** reparent on transport.
+
+### 9.4 Instantiation — instance identity and `grown_from` lineage (rev-6; closes the hatch seam)
+An egg names an **artifact**; a hatch creates an **instance**. Rev-5 specified packing and reading but
+left instantiation identity unwritten, so every implementation had to invent its own — this section is
+that missing word.
+
+- The `rappid` in a packed egg's `rappid.json` (§9.2) names the **artifact**. Every hatch of the same
+  egg reads the **same** artifact identity (§6.2 canonicalize-on-read); re-minting it on hatch is
+  prohibited (§6.2).
+- A consumer that instantiates an egg into a live installation **MUST** mint a **fresh §6.2 identity
+  for the instance**, exactly once, at first boot — from entropy, never derived from the artifact
+  identity, host name, or path. Two instances of one egg share the artifact identity and **MUST NOT**
+  share an instance identity.
+- The instance's identity document **SHOULD** record **`grown_from`**: the §9.1 egg address
+  (64 lowercase hex) of the egg it was instantiated from. `grown_from` is written at mint time and is
+  **immutable** thereafter; it is `null` when the source is unknown; a producer **MUST NOT** fabricate
+  it — lineage is a fact about a birth, never a claim to invent. An instance that cannot say where it
+  came from says `null`.
+- `grown_from` is **lineage, not inheritance**: it confers no authority, no trust, and no §10 key
+  material. A reader **MUST** treat it as an unverified assertion unless the named egg is available and
+  its address recomputes per §9.1/§5.
 
 ## 10. Trust and signatures (L2)
 `sig` is OPTIONAL on memory/body streams and REQUIRED on swarm streams (§8). Chain integrity comes from the
