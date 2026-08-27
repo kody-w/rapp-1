@@ -1,303 +1,103 @@
 {
-  "schema": "rapp/1-anchor",
-  "generated_utc": "2026-08-27T00:01:37.165Z",
-  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
-  "head": {
-    "seq": 5,
-    "frame_hash": "f7a423190f613f9d0de3c63fb8add1a1d032410f2c74eb79a201da6151a7107a",
-    "payload_hash": "776f7ea01b2ce0c748ca9eeed8886b4e70101ba63871dbf82a12fbd3e84f91e8"
+ "schema": "rapp/1-anchor",
+ "generated_utc": "2026-08-27T22:47:28.791Z",
+ "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
+ "head": {
+  "seq": 6,
+  "frame_hash": "da8dd02d50796c57ac7f9b7b1d8fd86d8a2d10ba15d28776914e71118243ce12",
+  "payload_hash": "72402ad7f2666f634e82ceb9ada3d2f577db5100160bd88c51f9f0aafc7ffad2"
+ },
+ "spec": {
+  "revision": "rev-6",
+  "normative_path": "SPEC.md",
+  "normative_sha256": "8212bbccaf86f2dc81bd07e2fcd5184f3a157f4eee162b13a698407684b6e134",
+  "canonical_repo": "https://github.com/kody-w/rapp-1",
+  "commit": "2d3e50df04d5beaf40045da244493503d16f7779"
+ },
+ "registered_kinds": [
+  "body.pulse",
+  "body.re-genesis",
+  "body.reconstructed",
+  "body.twin-pulse",
+  "memory.chat-turn",
+  "memory.re-genesis",
+  "memory.reconstructed",
+  "memory.save",
+  "memory.tool-call",
+  "swarm.echo",
+  "swarm.guidance",
+  "swarm.re-genesis",
+  "swarm.reconstructed",
+  "swarm.telemetry"
+ ],
+ "vocabulary": {
+  "estate": {
+   "status": "live",
+   "where": "\u00a79.2 egg variant"
   },
-  "spec": {
-    "revision": "rev-5",
-    "normative_path": "SPEC.md",
-    "normative_sha256": "cea7847f98f9751734995f46fd4e1bde211c8eb9d03dbbb477934213865bb91a",
-    "canonical_repo": "https://github.com/kody-w/rapp-1",
-    "commit": "d2cd5abed48d3f52b86bbb975ac3558286d1db41"
+  "invite": {
+   "status": "live",
+   "where": "\u00a79.2 egg variant"
   },
-  "registered_kinds": [
-    "body.pulse",
-    "body.re-genesis",
-    "body.reconstructed",
-    "body.twin-pulse",
-    "memory.chat-turn",
-    "memory.re-genesis",
-    "memory.reconstructed",
-    "memory.save",
-    "memory.tool-call",
-    "swarm.echo",
-    "swarm.guidance",
-    "swarm.re-genesis",
-    "swarm.reconstructed",
-    "swarm.telemetry"
-  ],
-  "vocabulary": {
-    "estate": {
-      "status": "live",
-      "where": "\u00a79.2 egg variant"
-    },
-    "invite": {
-      "status": "live",
-      "where": "\u00a79.2 egg variant"
-    },
-    "neighborhood": {
-      "status": "live",
-      "where": "\u00a79.2 egg variant"
-    },
-    "organism": {
-      "status": "live",
-      "where": "\u00a79.2 egg variant"
-    },
-    "rapplication": {
-      "status": "live",
-      "where": "\u00a79.2 egg variant"
-    },
-    "session": {
-      "status": "live",
-      "where": "\u00a79.2 egg variant"
-    },
-    "memory": {
-      "status": "live",
-      "where": "\u00a77.2 kind family"
-    },
-    "swarm": {
-      "status": "live",
-      "where": "\u00a77.2 kind family"
-    },
-    "body": {
-      "status": "live",
-      "where": "\u00a77.2 kind family"
-    },
-    "metropolis": {
-      "status": "retired",
-      "where": "rapp-metropolis/1.0 tier 3; that doc is now a retirement notice in kody-w/rapp-estate \u2014 bytes only at git 24c8fdc, sha256 690f6109\u2026"
-    },
-    "rapp-frame/2.0": {
-      "status": "retired",
-      "where": "legacy envelope token, superseded by rapp/1 (\u00a77.1)"
-    },
-    "rapp-frame/2.1": {
-      "status": "retired",
-      "where": "legacy envelope token, superseded by rapp/1 (\u00a77.1)"
-    },
-    "rapp-rappid-spec/2.0": {
-      "status": "retired",
-      "where": "legacy, superseded by rapp/1 \u00a76"
-    },
-    "rapp-protocol/1.0": {
-      "status": "retired",
-      "where": "legacy, superseded by rapp/1"
-    },
-    "rbox": {
-      "status": "not-in-spec",
-      "where": "operator's working word for a machine running an organism; the spec's word is `organism` (\u00a79.2)"
-    }
+  "neighborhood": {
+   "status": "live",
+   "where": "\u00a79.2 egg variant"
   },
-  "rules": [
-    {
-      "t": "fact",
-      "c": "spec MUST be exactly \"rapp/1\"; exactly the eleven keys, none missing, none extra; a field that does not apply is present as null, never omitted."
-    },
-    {
-      "t": "gotcha",
-      "c": "Canonical form is RFC 8785 JCS and FORBIDS floats \u2014 numbers ride as strings. A float silently breaks byte-reproducibility."
-    },
-    {
-      "t": "fact",
-      "c": "payload_hash = H(\"rapp/1:particle\", payload) \u2014 content only, reproducible across instances."
-    },
-    {
-      "t": "fact",
-      "c": "frame_hash = H(\"rapp/1:wave\", frame minus {frame_hash, sig}) \u2014 unique per stream instance."
-    },
-    {
-      "t": "gotcha",
-      "c": "prev_wave is non-null IFF the stream is a swarm-stream AND seq>0; null everywhere else, including EVERY genesis. Setting it on an ordinary chain makes the frame unverifiable."
-    },
-    {
-      "t": "gotcha",
-      "c": "\u00a76.2 MINT-ONCE: the 64-hex tail is minted from uuid4 entropy exactly once. A producer MUST NOT derive it from owner/slug or any name \u2014 sha256(\"owner/slug\") is prohibited (drift ID-01/C3). On read, reuse the stored tail; never re-mint."
-    },
-    {
-      "t": "pattern",
-      "c": "Verification REFUSES, never repairs or reparents. A frame that does not verify is quarantined and reported, not fixed."
-    },
-    {
-      "t": "gotcha",
-      "c": "A swarm-stream frame with sig==null is refused (\u00a77.5 step 6), so unsigned coordination belongs on body/memory streams, which permit sig==null."
-    },
-    {
-      "t": "fact",
-      "c": "Eggs are byte-reproducible: ZIP method `stored` only, timestamps 1980-01-01, contents sorted by UTF-8 path bytes. Two conformant packers of the same manifest emit BYTE-IDENTICAL eggs."
-    },
-    {
-      "t": "pattern",
-      "c": "Cross-stream merge order (Dream-Catcher) is ascending utc bytewise, ties broken by ascending frame_hash bytewise \u2014 this is how N streams compose into one view."
-    },
-    {
-      "t": "pattern",
-      "c": "One writer per stream. Two writers computing seq=head.seq+1 produce duplicate seqs; distinct streams stay distinct."
-    }
-  ],
-  "profiles": {
-    "interop": {
-      "why": "a peer may be out of date; lead with what it can get WRONG",
-      "types": [
-        "gotcha"
-      ],
-      "show": [
-        "keys",
-        "stale_terms",
-        "pointer"
-      ],
-      "max_rules": "6"
-    },
-    "authoring": {
-      "why": "hand-building a frame; the envelope rules are what bite",
-      "types": [
-        "gotcha",
-        "fact"
-      ],
-      "show": [
-        "keys",
-        "eggs"
-      ],
-      "max_rules": "8"
-    },
-    "audit": {
-      "why": "judging conformance; refuse-never-repair and the identity law govern",
-      "types": [
-        "pattern",
-        "gotcha"
-      ],
-      "show": [
-        "keys",
-        "stale_terms"
-      ],
-      "max_rules": "8"
-    },
-    "onboarding": {
-      "why": "new organism; needs the shape of the world, not the edge cases",
-      "types": [
-        "fact"
-      ],
-      "show": [
-        "keys",
-        "eggs",
-        "stale_terms",
-        "pointer"
-      ],
-      "max_rules": "5"
-    },
-    "minimal": {
-      "why": "smallest honest context",
-      "types": [],
-      "show": [
-        "stale_terms"
-      ],
-      "max_rules": "0"
-    }
+  "organism": {
+   "status": "live",
+   "where": "\u00a79.2 egg variant"
   },
-  "moods": {
-    "night": {
-      "when": {
-        "hour_gte": "22"
-      },
-      "profile": "minimal",
-      "why": "low-attention hours; smallest honest context"
-    },
-    "early": {
-      "when": {
-        "hour_lt": "6"
-      },
-      "profile": "minimal",
-      "why": "same"
-    },
-    "storm": {
-      "when": {
-        "conditions": "storm,rain,snow"
-      },
-      "profile": "audit",
-      "why": "degraded links are when drift hides; lead with verification"
-    },
-    "clear": {
-      "when": {
-        "conditions": "clear,sunny"
-      },
-      "profile": "interop",
-      "why": "good conditions, normal posture"
-    }
+  "rapplication": {
+   "status": "live",
+   "where": "\u00a79.2 egg variant"
   },
-  "profile_signals": {
-    "unknown-peer": "interop",
-    "stranger": "interop",
-    "handshake": "interop",
-    "write": "authoring",
-    "author": "authoring",
-    "mint": "authoring",
-    "build": "authoring",
-    "verify": "audit",
-    "check": "audit",
-    "conform": "audit",
-    "drift": "audit",
-    "join": "onboarding",
-    "new": "onboarding",
-    "install": "onboarding"
+  "session": {
+   "status": "live",
+   "where": "\u00a79.2 egg variant"
   },
-  "default_profile": "interop",
-  "exchange": {
-    "shape": "push a frame in, get a frame back shaped by what you pushed \u2014 ONE hop.",
-    "rule": "the responder appends its reply to its OWN chain BEFORE returning it, so the synchronous answer and the replicated answer are the same frame with the same frame_hash. A fast path must never state a fact the durable path disagrees with.",
-    "idempotence": "keyed on the request's payload_hash \u2014 a retry returns the existing reply, never a second one.",
-    "carrier": "POST /chat with {\"user_input\": <envelope>}; the reply is in the `response` field. Offline, the identical frames ride store-and-forward."
+  "memory": {
+   "status": "live",
+   "where": "\u00a77.2 kind family"
   },
-  "kind_families": {
-    "memory": {
-      "stream": "memory-stream",
-      "logs": "one organism's life",
-      "kinds": [
-        "memory.chat-turn",
-        "memory.tool-call",
-        "memory.save",
-        "memory.reconstructed",
-        "memory.re-genesis"
-      ]
-    },
-    "swarm": {
-      "stream": "swarm-stream (net:label)",
-      "logs": "the planetary wire",
-      "kinds": [
-        "swarm.guidance",
-        "swarm.echo",
-        "swarm.telemetry",
-        "swarm.reconstructed",
-        "swarm.re-genesis"
-      ]
-    },
-    "body": {
-      "stream": "body-stream (bare rappid)",
-      "logs": "an organism's biography",
-      "kinds": [
-        "body.pulse",
-        "body.twin-pulse",
-        "body.reconstructed",
-        "body.re-genesis"
-      ]
-    }
+  "swarm": {
+   "status": "live",
+   "where": "\u00a77.2 kind family"
   },
-  "frame_keys": [
-    "spec",
-    "kind",
-    "stream_id",
-    "seq",
-    "utc",
-    "payload",
-    "payload_hash",
-    "prev",
-    "prev_wave",
-    "sig",
-    "frame_hash"
-  ],
-  "verify": "sha256 of <canonical_repo>/blob/<commit>/<normative_path> MUST equal spec.normative_sha256; recompute it yourself rather than trusting this file",
-  "signed": false,
-  "unsigned_because": "no authenticated \u00a713 registry or owner-signing authority exists in this estate; a signature without one would be fabrication. Legal for a body-stream: \u00a77.5 step 6 binds swarm-streams only."
+  "body": {
+   "status": "live",
+   "where": "\u00a77.2 kind family"
+  },
+  "metropolis": {
+   "status": "retired",
+   "where": "rapp-metropolis/1.0 tier 3; that doc is now a retirement notice in kody-w/rapp-estate \u2014 bytes only at git 24c8fdc, sha256 690f6109\u2026"
+  },
+  "rapp-frame/2.0": {
+   "status": "retired",
+   "where": "legacy envelope token, superseded by rapp/1 (\u00a77.1)"
+  },
+  "rapp-frame/2.1": {
+   "status": "retired",
+   "where": "legacy envelope token, superseded by rapp/1 (\u00a77.1)"
+  },
+  "rapp-rappid-spec/2.0": {
+   "status": "retired",
+   "where": "legacy, superseded by rapp/1 \u00a76"
+  },
+  "rapp-protocol/1.0": {
+   "status": "retired",
+   "where": "legacy, superseded by rapp/1"
+  },
+  "rbox": {
+   "status": "not-in-spec",
+   "where": "operator's working word for a machine running an organism; the spec's words are `organism` (\u00a79.2) and `instance` (\u00a79.4)"
+  },
+  "grown_from": {
+   "status": "live",
+   "where": "\u00a79.4 instantiation \u2014 instance lineage key"
+  },
+  "instance": {
+   "status": "live",
+   "where": "\u00a79.4 instantiation \u2014 a hatched install; fresh \u00a76.2 identity, never shared"
+  }
+ }
 }
