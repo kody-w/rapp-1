@@ -2,3 +2,6 @@ estate/
 .book-build/
 __pycache__/
 *.pyc
+trust/*.key
+trust/*.p8
+trust/*.pem

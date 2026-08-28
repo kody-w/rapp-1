@@ -21,10 +21,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Install isolated trust-tool dependency
+        run: python3 -m pip install -r trust/requirements.txt
       - name: Protocol conformance (spec floor is stdlib-only, any modern Python)
         run: python3 conformance.py
       - name: Reference/agent primitive parity (one canonicalizer, enforced)
         run: python3 parity_check.py
+      - name: Trust-registry candidate conformance
+        run: python3 -m unittest -v trust.test_rapp_trust
       - name: Run every example end to end
         run: |
           for f in examples/0*.py; do
@@ -64,6 +68,10 @@ jobs:
         run: ./book/test-docs.sh
       - name: Run protocol conformance
         run: python3 conformance.py
+      - name: Install and run trust-registry candidate conformance
+        run: |
+          python3 -m pip install -r trust/requirements.txt
+          python3 -m unittest -v trust.test_rapp_trust
       - name: Upload print regression evidence
         if: always()
         uses: actions/upload-artifact@v4

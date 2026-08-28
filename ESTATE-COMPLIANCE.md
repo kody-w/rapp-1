@@ -13,7 +13,7 @@
 >
 > **Build-level pressure test** (via `rapp_sdk_builder`): every primitive exercised end-to-end —
 > mint (§6.2 keyless, not a name-hash) · canonicalize (JCS) · frame (§7 11-key) · verify · tamper-refusal ·
-> scaffold · chain-link — all green. Reference `conformance.py`: 12/12 core vectors PASS.
+> scaffold · chain-link — all green. Reference `conformance.py`: 16/16 controlled checks PASS.
 
 The kody-w estate predates RAPP. This tracks bringing every RAPP-artifact-bearing repo to
 compliance **now, before RAPP is adopted by anyone outside the estate** — the one window where

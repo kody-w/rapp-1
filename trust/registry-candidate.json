@@ -1,0 +1,63 @@
+{
+  "schema": "rapp/1-registry-candidate",
+  "registry_version": 1,
+  "status": "unsigned-candidate",
+  "estate": "kody-w",
+  "issued_utc": "2026-08-28T00:35:03.408Z",
+  "registry_seq": null,
+  "previous_registry_hash": null,
+  "canonical_source": {
+    "repo": "https://github.com/kody-w/RAPP",
+    "path": "rapp-map/ecosystem-spec.json",
+    "commit": null,
+    "retrieval_status": "unavailable"
+  },
+  "provenance": {
+    "proposal_repo": "https://github.com/kody-w/rapp-1",
+    "base_commit": "f75226ed5e7ab6aa3698f8092dd0ad79bf0102a0",
+    "base_tree": "37f283625f7f57bd804915b196f23fdc6c52dbb1",
+    "spec_path": "SPEC.md",
+    "spec_commit": "2d3e50df04d5beaf40045da244493503d16f7779",
+    "spec_sha256": "8212bbccaf86f2dc81bd07e2fcd5184f3a157f4eee162b13a698407684b6e134",
+    "anchor_path": "anchor/chain.jsonl",
+    "anchor_stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
+    "anchor_seq": 6,
+    "anchor_frame_hash": "da8dd02d50796c57ac7f9b7b1d8fd86d8a2d10ba15d28776914e71118243ce12",
+    "anchor_feed": "https://github.com/kody-w/rapp-1/commits/main/anchor.atom",
+    "feed_role": "discovery-only-pull-and-verify-chain"
+  },
+  "frame": {
+    "spec": "rapp/1",
+    "keys": [
+      "spec",
+      "kind",
+      "stream_id",
+      "seq",
+      "utc",
+      "payload",
+      "payload_hash",
+      "prev",
+      "prev_wave",
+      "sig",
+      "frame_hash"
+    ],
+    "hash_space": "rapp/1:wave"
+  },
+  "algorithms": ["EdDSA"],
+  "owners": [],
+  "rappids": [],
+  "keys": [],
+  "kinds": [
+    {"kind": "ms-rapp.factory-artifact", "family": "body", "deprecated": false},
+    {"kind": "ms-rapp.factory-output-wave", "family": "swarm", "deprecated": false},
+    {"kind": "ms-rapp.factory-transform-request", "family": "swarm", "deprecated": false}
+  ],
+  "egg_variants": [
+    {"variant": "ms-rapp-factory-artifact", "deprecated": false},
+    {"variant": "ms-rapp-factory-output-wave", "deprecated": false},
+    {"variant": "ms-rapp-factory-transform-request", "deprecated": false}
+  ],
+  "tombstones": [],
+  "re_anchors": [],
+  "sig": null
+}

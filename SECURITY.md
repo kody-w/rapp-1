@@ -8,7 +8,7 @@ reports are taken seriously at two levels:
   lets a verifier accept what §7.5/§9.3 say it must refuse, or weakens the trust model
   in §10/§13/§14 (signature bypass, replay, identity forgery, egg path escapes).
 - **Implementation flaws** — bugs in `rapp.py`, `conformance.py`, the SDK Builder agent,
-  or the tooling that would mislead someone relying on a green result.
+  `trust/rapp_trust.py`, or tooling that would mislead someone relying on a green result.
 
 ## Reporting
 

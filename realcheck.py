@@ -157,7 +157,7 @@ def sync_estate():
 
 
 print("=" * 74)
-print("RAPP rev-5 — REAL-WORLD CHECK against current kody-w estate artifacts")
+print("RAPP rev-6 — REAL-WORLD CHECK against current kody-w estate artifacts")
 print("=" * 74)
 print("\nsynchronizing public repos (needs git + network):")
 sync_estate()
