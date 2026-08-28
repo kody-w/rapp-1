@@ -31,3 +31,8 @@ just ticks.)
 **Discipline:** the feed is discovery, not verification. Its entry IDs are commit SHAs, not
 frame hashes. On a tick, pull `orient.json` and `chain.jsonl` and verify the chain's own
 hashes — trust the chain, never the feed. A feed is just XML someone served you.
+
+**Doctrine — feeds over the API:** estate tools pull Atom feeds instead of the GitHub REST
+API whenever a feed carries the answer (change detection, ticks, release pulses). Feeds are
+plain cacheable web requests with no token and no rate ceiling; the API is reserved for what
+feeds cannot carry. High-traffic consumers (RAR clients included) especially.
