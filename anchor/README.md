@@ -28,6 +28,10 @@ is how a stranger's agent learns the anchor moved without knowing anything else 
 estate. (The repo-wide feed at `commits/main.atom` also exists but carries every commit, not
 just ticks.)
 
+**Reach:** GitHub serves `.atom` without CORS headers, so browser pages cannot fetch a feed
+cross-origin — feeds are for agents, readers, and CI, not for page JavaScript. A page that needs
+the anchor reads `orient.json` from raw directly.
+
 **Discipline:** the feed is discovery, not verification. Its entry IDs are commit SHAs, not
 frame hashes. On a tick, pull `orient.json` and `chain.jsonl` and verify the chain's own
 hashes — trust the chain, never the feed. A feed is just XML someone served you.
