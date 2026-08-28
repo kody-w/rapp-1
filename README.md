@@ -54,7 +54,8 @@ in chapter 10.
 
 | file | what it is |
 |------|-----------|
-| **[`SPEC.md`](SPEC.md)** | the normative RAPP standard (rev-5) — 15 sections, RFC-grounded |
+| **[`SPEC.md`](SPEC.md)** | the normative RAPP standard (rev-6) — 15 sections, RFC-grounded |
+| **[`anchor/`](anchor/README.md)** | the public pullable anchor — spec pin, kinds, and vocabulary status in `orient.json`, plus [the DOGG feed](https://github.com/kody-w/rapp-1/commits/main/anchor.atom): subscribe to anchor ticks in any feed reader |
 | **[`CONSTITUTION.md`](CONSTITUTION.md)** | the rapp/1 Protocol Constitution — the law of change: how the standard, this repo, and its claims may lawfully evolve |
 | **[`PROMPTS.md`](PROMPTS.md)** | the prompt book — every task as a copy-paste prompt for your brainstem or brainsurgeon; you never type code |
 | **[`rapp.py`](rapp.py)** | the reference implementation, stdlib only, ~140 lines you are meant to read |
