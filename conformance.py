@@ -318,6 +318,19 @@ prefix_conflict = R.pack_egg(
     },
 )
 prefix_ok, prefix_step, _ = R.verify_egg(prefix_conflict)
+manifest_alias = R.pack_egg(
+    "organism",
+    sealed_rappid,
+    descriptor["created_utc"],
+    files={
+        "rappid.json": (
+            '{"rappid":"' + sealed_rappid + '"}'
+        ).encode(),
+        "soul.md": b"# soul\n",
+        "MANIFEST.JSON": b"shadow",
+    },
+)
+manifest_alias_ok, manifest_alias_step, _ = R.verify_egg(manifest_alias)
 
 
 class Utf8ZipInfo(zipfile.ZipInfo):
@@ -352,6 +365,8 @@ check(
         and alias_step == "§9.1"
         and not prefix_ok
         and prefix_step == "§9.1"
+        and not manifest_alias_ok
+        and manifest_alias_step == "§9.1"
     ),
 )
 

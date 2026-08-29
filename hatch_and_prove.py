@@ -107,9 +107,19 @@ def hatch(iso_gz, expected_egg_hash, expected_gzip_hash):
     root = Path(home).resolve()
     destinations = []
     collision_keys = set()
+    organisms = {}
     for organism, files in _collect_organisms(blob, verifier):
-        slug = trusted_rapp.rappid_parts(organism["rappid"])["slug"]
-        organism_root = (root / slug).resolve()
+        rappid = organism["rappid"]
+        address = trusted_rapp.egg_address(organism)
+        previous = organisms.get(rappid)
+        if previous is not None:
+            if previous[0] != address:
+                raise ValueError("one organism identity names conflicting eggs")
+            continue
+        organisms[rappid] = (address, organism, files)
+    for rappid, (_, organism, files) in organisms.items():
+        parts = trusted_rapp.rappid_parts(rappid)
+        organism_root = (root / f"{parts['owner']}--{parts['slug']}").resolve()
         if root not in organism_root.parents:
             raise ValueError("organism path escaped the hatch root")
         for relative, octets in files.items():
@@ -131,7 +141,11 @@ def main():
     print("═══ HATCHING the estate .iso as a twin (offline) ═══")
     home, blob = hatch(ISO_GZ, EXPECTED_EGG_HASH, EXPECTED_GZIP_HASH)
     # the hatched twin carries its OWN reference impl — use IT (real dogfooding)
-    sys.path.insert(0, os.path.join(home, "rapp-1"))
+    matches = sorted(Path(home).glob("*--rapp-1/rapp.py"))
+    if len(matches) != 1:
+        raise ValueError("hatched estate must contain exactly one rapp-1 organism")
+    bundled_rapp_root = str(matches[0].parent)
+    sys.path.insert(0, bundled_rapp_root)
     import rapp
     print(f"  hatched at {home}")
     print(f"  twin uses its OWN bundled rapp.py: {rapp.__file__}")
@@ -189,9 +203,12 @@ def main():
 
     # ── §12 + full ecosystem: rapp_check every bundled repo (offline) ──
     sys.path.insert(0, os.path.join(home, "rapp-1"))
-    spec = importlib.util.spec_from_file_location("rc", os.path.join(home, "rapp-1", "rapp_check.py"))
+    spec = importlib.util.spec_from_file_location(
+        "rc",
+        os.path.join(bundled_rapp_root, "rapp_check.py"),
+    )
     rc = importlib.util.module_from_spec(spec); spec.loader.exec_module(rc)
-    repos = sorted(glob.glob(os.path.join(home, "repos", "*")))
+    repos = sorted(glob.glob(os.path.join(home, "*", "repos", "*")))
     drift = []
     for d in repos:
         verdict, findings, _ = rc.check_repo(d)

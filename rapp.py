@@ -802,7 +802,7 @@ def verify_egg(
         return (False, "§9.1", "contents not sorted by path bytes")
     if len(paths) != len(set(paths)):
         return (False, "§9.1", "duplicate path")
-    if not _path_set_valid(paths):
+    if not _path_set_valid(["manifest.json", *paths]):
         return (False, "§9.1", "paths collide or conflict on common filesystems")
     if v in _EGG_JSON_VARIANTS:
         if contents != []:
