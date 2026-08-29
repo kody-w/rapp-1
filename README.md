@@ -21,7 +21,7 @@ You never need to type code to use RAPP. Copy one prompt, paste it into your
 
 ```text
 You are my hands — I watch, you type. Clone https://github.com/kody-w/rapp-1 and prove
-RAPP to me end to end: (1) run python3 conformance.py — I expect 16/16 PASS; (2) run
+RAPP to me end to end: (1) run python3 conformance.py — I expect 22/22 PASS; (2) run
 python3 realcheck.py — the spec against the live public estate — and explain the verdict
 in plain English; (3) run python3 examples/01_hello_frame.py and walk me through the
 frame it built, one line per key. Narrate as you go, show real output, and stop on any
@@ -36,12 +36,12 @@ Prefer to drive the machine yourself? The commands your brainsurgeon runs:
 git clone https://github.com/kody-w/rapp-1
 cd rapp-1
 
-python3 conformance.py     # 16/16 — controlled protocol vectors
+python3 conformance.py     # 22/22 — controlled protocol vectors
 python3 realcheck.py       # the spec run against the REAL committed estate
 python3 examples/01_hello_frame.py   # build and verify your first frame
 ```
 
-`conformance.py` proves the reference implementation against 16 controlled checks. `realcheck.py`
+`conformance.py` proves the reference implementation against 22 controlled checks. `realcheck.py`
 synchronizes the public repos of a live estate and verifies every committed frame: the captured
 2026-08-20 run accepted **46/46 committed frames**, all chain links, and four canonical identity
 records with **0 drift findings**, and a 2026-08-26 re-observation of the grown estate accepted
@@ -93,6 +93,23 @@ It's self-contained (embeds the reference primitives; its `sync` action proves b
 addresses to the public `rapp.py`) and falls back to a standalone base so it also runs outside a
 brainstem: `python3 agents/rapp_sdk_builder_agent.py`.
 
+## Restricted artifacts on public mirrors
+
+RAPP rev-7 adds the `sealed` egg variant for globally available ciphertext with restricted key release.
+A GitHub Raw URL may host the sealed egg publicly because the package contains only AES-256-GCM
+ciphertext. The manifest is signed and content-addressed; a RAPP key-service organism releases a
+recipient-wrapped key only after scoped entitlement checks through the existing `POST /chat` wire.
+
+This is encryption, not obfuscation:
+
+- never put a password or key in the URL;
+- never embed a shared master key in a client;
+- pin raw URLs to immutable commit SHAs;
+- bytecode can be inspected after an authorized recipient decrypts it;
+- revocation stops future key release but cannot erase prior decrypted copies.
+
+The normative shape and refusal rules are in [`SPEC.md` §9.2.1](SPEC.md#921-sealed-artifact-profile).
+
 ## Three books
 
 - **[The Visual Guide — *Design & Build Agents*](https://kody-w.github.io/rapp-1/guide/)** — a
@@ -140,7 +157,7 @@ because everyone building on it turns the same bytes into the same tree.
 
 ## Status
 
-RAPP rev-5. The reference profile passes 16/16 controlled checks on every push — CI runs the
+RAPP rev-7. The reference profile passes 22/22 controlled checks on every push — CI runs the
 suite on Python 3.9 and 3.13, runs all six examples, and enforces byte parity between `rapp.py`
 and the SDK agent's embedded primitives (`parity_check.py`). The captured 2026-08-20 estate audit
 accepted 46/46 committed frames and four canonical identity records with zero drift; the estate

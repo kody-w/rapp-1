@@ -71,7 +71,7 @@
 </head>
 <body>
 <header><div class="wrap">
-  <div class="tag">RAPP · programming language · RAPP rev-5</div>
+  <div class="tag">RAPP · programming language · RAPP rev-7</div>
   <h1>The wire that carries <span class="s">agents</span>.</h1>
   <p class="sub">RAPP is the programming language for agents that keep a verifiable memory and
     talk over one exact wire. Five primitives, specified so independent implementations produce
@@ -94,7 +94,7 @@
   <div class="promptbox">
     <button class="copybtn" type="button" data-copy="prompt">Copy prompt</button>
     <pre id="qs-prompt">You are my hands — I watch, you type. Clone https://github.com/kody-w/rapp-1 and prove
-RAPP to me end to end: (1) run python3 conformance.py — I expect 16/16 PASS; (2) run
+RAPP to me end to end: (1) run python3 conformance.py — I expect 22/22 PASS; (2) run
 python3 realcheck.py — the spec against the live public estate — and explain the verdict
 in plain English; (3) run python3 examples/01_hello_frame.py and walk me through the
 frame it built, one line per key. Narrate as you go, show real output, and stop on any
@@ -104,7 +104,7 @@ red result — a red check is a finding, not something to patch around.</pre>
   <pre><span class="c"># clone, then watch the spec prove itself — and meet the real world</span>
 git clone https://github.com/kody-w/rapp-1 && cd rapp-1
 
-python3 conformance.py     <span class="c"># <span class="g">16/16</span> — controlled protocol vectors</span>
+python3 conformance.py     <span class="c"># <span class="g">22/22</span> — controlled protocol vectors</span>
 python3 realcheck.py       <span class="c"># RAPP vs the REAL committed estate</span>
 python3 examples/01_hello_frame.py   <span class="c"># build & verify your first frame</span></pre>
 </div></section>
@@ -156,7 +156,7 @@ python3 examples/01_hello_frame.py   <span class="c"># build & verify your first
 </div></section>
 
 <footer><div class="wrap">
-  RAPP rev-5 — one spec, one canonicalizer, one mint, one frame. The protocol is meant to be
+  RAPP rev-7 — one spec, one canonicalizer, one mint, one frame. The protocol is meant to be
   implemented. <a href="https://github.com/kody-w/rapp-1">Do →</a>
 </div></footer>
 <script>

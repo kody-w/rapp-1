@@ -2,7 +2,7 @@
 
 ## A tutorial, programming workbook, and field reference for verifiable agents
 
-**RAPP rev-5 · Book edition**
+**RAPP rev-7 · Book edition**
 
 RAPP is a small programming language, expressed as a wire protocol, with a large promise: two independent implementations can write down
 what an agent did, give that record an address, join it to a verifiable history, and exchange it
@@ -127,7 +127,7 @@ all four aligned.
 
 | Artifact | Role |
 |---|---|
-| [`SPEC.md`](../SPEC.md) | normative RAPP rev-5 standard |
+| [`SPEC.md`](../SPEC.md) | normative RAPP rev-7 standard |
 | [`rapp.py`](../rapp.py) | small, stdlib-only reference profile |
 | [`conformance.py`](../conformance.py) | producer/consumer interoperability vectors |
 | [`realcheck.py`](../realcheck.py) | evidence from committed estate artifacts |

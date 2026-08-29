@@ -1,7 +1,7 @@
 # The RAPP Protocol Suite
 ### Unified normative specification of identity, canonicalization, the frame, the wire, and the egg
 
-**Status:** Draft standard for ratification (Kody, estate owner). **rev-6.** **Obsoletes / consolidates:**
+**Status:** Draft standard for ratification (Kody, estate owner). **rev-7.** **Obsoletes / consolidates:**
 `rapp-frame/2.0`, `rapp-frame/2.1`, `rapp-rappid-spec/2.0`, `rapp-protocol/1.0`, all scattered egg specs
 (§9 subsumes them), and `OSI.md`. On ratification this is the single living standard; the consolidated
 specs become retired historical record (Federal Constitution Art. X).
@@ -79,8 +79,9 @@ H(space, v) = lowercase_hex( SHA-256( utf8(space) || 0x0A || canonical(v) ) )   
 Hb(space, b) = lowercase_hex( SHA-256( utf8(space) || 0x0A || b ) )                ; b raw octets
 ```
 `space` is an exact ASCII tag, none containing `0x0A`: `"rapp/1:particle"`, `"rapp/1:wave"`, `"rapp/1:egg"`,
-`"rapp/1:egg-manifest"`, `"rapp/1:rappid"`, `"rapp/1:seal"`. A tag is used by either `H` or `Hb`, never
-both. Output is always exactly 64 lowercase hex, **never truncated or uppercased**. Two values
+`"rapp/1:egg-manifest"`, `"rapp/1:rappid"`, `"rapp/1:seal"`, `"rapp/1:sealed-aad"`,
+`"rapp/1:sealed-key-request"`. A tag is used by either `H` or `Hb`, never both. Output is always exactly
+64 lowercase hex, **never truncated or uppercased**. Two values
 are treated as the same object iff their same-space hashes are equal; SHA-256 collision resistance
 [FIPS 180-4] is a security assumption of this standard (§14). A `name/X.Y` label is never identity — only
 a hash is. A bare 64-hex is meaningful **only** within its space; an implementation **MUST NOT** dereference
@@ -287,7 +288,10 @@ variants). The manifest is a §4 value with exactly these members:
   `hash = Hb("rapp/1:egg", file_octets)` (§5) over the raw stored octets. `contents` is **always present**;
   for JSON (pointer/session) variants it **MUST** be exactly `[]`.
 - `path` **MUST** be a relative POSIX path: `/`-separated NFC UTF-8 segments, no `.`/`..` segment, no
-  leading `/`, no backslash, no duplicate `path` in one manifest. `contents` **MUST** be sorted ascending
+  leading `/`, no backslash, no Windows drive-qualified first segment (`ALPHA ":"`), no duplicate `path`
+  in one manifest. A segment **MUST NOT** end in a period/space, contain `:`, contain a C0 control, or have
+  a case-insensitive basename equal to `CON`, `PRN`, `AUX`, `NUL`, `COM1`–`COM9`, or `LPT1`–`LPT9`.
+  `contents` **MUST** be sorted ascending
   by the UTF-8 bytes of `path`.
 - `payload` is a §4 object (variant-specific). `sig` is a §10 JWS over `canonical(manifest \ {sig})`, or
   `null`. For the `invite` variant `sig` is REQUIRED and **MUST** verify with `kid` in the §13.2 estate-owner
@@ -317,10 +321,137 @@ variants). The manifest is a §4 value with exactly these members:
 | `invite` | JSON | a QR-sized pointer (**no packed files**) | `payload` = `{target_rappid:<rappid>, target_url:<string>, target_kind:("neighborhood" / "estate")}`; contents `[]`; `sig` REQUIRED |
 | `neighborhood` | ZIP | several organisms meant to live together | `payload` = `{members:[<rappid>,…]}`; contents = one sub-egg per member, named `<owner>--<slug>.egg` at the root, matched by the sub-egg manifest's `rappid` == the `payload.members[]` entry |
 | `estate` | ZIP | several neighborhoods | `payload` = `{neighborhoods:[<rappid>,…]}`; contents = one sub-egg per neighborhood, named `<owner>--<slug>.egg` at root, matched by sub-egg `rappid` |
+| `sealed` | ZIP | publicly mirrorable ciphertext with scoped key release | contents MUST be exactly `ciphertext.bin`; payload is the closed `rapp-sealed-artifact/1` profile in §9.2.1; `sig` REQUIRED |
 
 The QR-sized invite that caused EGG-01 is the **`invite`** variant: a signed pointer object, not a
 member-packing `neighborhood` egg. The banned legacy stamps (`brainstem-egg/2.3-neighborhood`,
 `neighborhood-egg/1.0`) migrate to `{schema:"rapp/1-egg", variant:"invite" / "neighborhood"}` (Art. III).
+
+### 9.2.1 Sealed artifact profile
+
+The `sealed` variant lets any unauthenticated mirror, including a commit-pinned
+`raw.githubusercontent.com` URL, distribute an encrypted artifact globally without distributing its
+decryption key.
+
+The public bytes are **ciphertext, not access control**. Bytecode or obfuscation alone provides no
+confidentiality. A conformant producer **MUST** use a random 256-bit data-encryption key (DEK) per artifact,
+**MUST NOT** embed that DEK or a shared master key in the egg/client/URL, and **MUST NOT** place a password
+in a URL. A password, passkey, device assertion, or account credential may authenticate to the key service;
+it is not the artifact encryption key.
+
+The ZIP contents are exactly one file:
+
+```text
+ciphertext.bin = AES-256-GCM ciphertext || 16-byte authentication tag
+```
+
+The manifest `payload` has exactly:
+
+```json
+{
+  "schema": "rapp-sealed-artifact/1",
+  "cipher": "A256GCM",
+  "nonce": "<12 bytes, unpadded base64url>",
+  "plaintext_commitment": "<64hex>",
+  "plaintext_bytes": 1234,
+  "media_type": "application/wasm",
+  "key_id": "<64hex>",
+  "key_service_rappid": "rappid:@owner/key-service:64hex",
+  "key_service_url": "https://keys.example.com/chat",
+  "access": "scoped-key-release",
+  "aad_hash": "<64hex>"
+}
+```
+
+`plaintext_commitment` is a keyed commitment that cannot be tested without the DEK:
+
+```text
+prk = HMAC-SHA-256(32 zero octets, DEK)
+commitment_key = HMAC-SHA-256(prk, utf8("rapp/1:sealed-commitment") || 0x01)
+plaintext_commitment = lowercase_hex(HMAC-SHA-256(commitment_key, plaintext_octets))
+```
+
+This is the [RFC 5869] HKDF-Extract/HKDF-Expand construction with an empty salt, one 32-byte output block,
+and the exact info string `rapp/1:sealed-commitment`. The commitment is public but does not permit an
+offline dictionary attack without the random 256-bit DEK.
+
+The exact authenticated-data descriptor is:
+
+```json
+{
+  "schema": "rapp-sealed-artifact/1",
+  "artifact_rappid": "<manifest.rappid>",
+  "created_utc": "<manifest.created_utc>",
+  "key_id": "<payload.key_id>",
+  "plaintext_commitment": "<payload.plaintext_commitment>",
+  "plaintext_bytes": 1234,
+  "media_type": "<payload.media_type>"
+}
+```
+
+`aad_hash = H("rapp/1:sealed-aad", descriptor)`, and `canonical(descriptor)` is supplied as AES-GCM
+additional authenticated data. `nonce` decodes to exactly 12 bytes. `plaintext_bytes` is an integer from
+zero through `2^30` (1 GiB), a RAPP safety ceiling below both the [NIST SP 800-38D] per-invocation limit
+and the deterministic non-ZIP64 container boundary.
+`ciphertext.bin` length is exactly `plaintext_bytes + 16`. The sealed egg's manifest signature is REQUIRED
+and verifies per §10 with `kid` exactly equal to `manifest.rappid`. A sealed artifact therefore uses a
+keyed §6.2 rappid controlled by its authorized publisher; another valid registry key cannot sign on its
+behalf.
+
+`key_service_rappid` identifies the RAPP organism authorizing key release. `key_service_url` is its absolute
+HTTPS §8 `POST /chat` URL and **MUST** end in `/chat`. The URL is location, not authority: the service
+response is accepted only when its signatures and identifiers bind to `key_service_rappid`.
+
+The caller sends the following canonical JSON object as the `user_input` string:
+
+```json
+{
+  "schema": "rapp-sealed-key-request/1",
+  "egg_hash": "<64hex>",
+  "key_id": "<64hex>",
+  "recipient_rappid": "rappid:@owner/device:64hex",
+  "recipient_spki_der_b64": "<standard base64>",
+  "request_nonce": "<64hex>",
+  "expires_utc": "YYYY-MM-DDTHH:MM:SS.mmmZ",
+  "sig": "<recipient detached JWS>"
+}
+```
+
+`sig` is over `canonical(request \ {sig})` and verifies under `recipient_rappid`; `egg_hash` is the §9.1
+sealed egg address. The key service verifies entitlement, exact `(egg_hash,key_id)`, request expiry,
+recipient key binding, and nonce non-reuse.
+
+The §8 `response` string is canonical JSON:
+
+```json
+{
+  "schema": "rapp-sealed-key-release/1",
+  "egg_hash": "<request.egg_hash>",
+  "key_id": "<request.key_id>",
+  "recipient_rappid": "<request.recipient_rappid>",
+  "request_hash": "<H('rapp/1:sealed-key-request', request without sig)>",
+  "wrap_alg": "ECDH-ES+A256KW",
+  "wrapped_key_jwe": "<JWE Compact Serialization>",
+  "issued_utc": "YYYY-MM-DDTHH:MM:SS.mmmZ",
+  "expires_utc": "YYYY-MM-DDTHH:MM:SS.mmmZ",
+  "service_sig": "<key-service detached JWS>"
+}
+```
+
+`service_sig` is over `canonical(release \ {service_sig})` and verifies under `key_service_rappid`.
+`wrapped_key_jwe` uses [RFC 7516] with `alg:"ECDH-ES+A256KW"` and `enc:"A256GCM"` for the declared
+recipient SPKI. The service **MUST NOT** return a global raw DEK. Authorization, expiry, device scope, and
+key rotation are service policy recorded in signed frames, not fields that alter the sealed egg's content
+address.
+
+A mirror URL **SHOULD** be immutable (for GitHub Raw, pin a commit SHA rather than a moving branch). URL
+secrecy is never assumed: integrity comes from the egg address and signature, confidentiality from
+AES-GCM, and use authorization from scoped key release.
+
+Revocation prevents future key release. It cannot erase ciphertext or plaintext already downloaded and
+decrypted by an authorized recipient. A conformant product **MUST** state this limit plainly. It also
+**MUST NOT** claim that encrypted bytecode cannot be inspected after decryption; legal/license controls and
+bounded server authority remain separate from cryptographic confidentiality.
 
 ### 9.3 Conformance
 - **Producer** **MUST** emit only `schema:"rapp/1-egg"` with a variant from §9.2, a §6.1 rappid, and, for
@@ -502,17 +633,30 @@ tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.
   as earlier) and bias UTC-first merges. A consumer **SHOULD** refuse a frame whose `utc` exceeds receipt
   time by >300 s, and adversarial-scope merges **SHOULD** rank by `min(utc, first-seen)`; a bricked stream
   converges by re-genesis (§12.1).
+- **Sealed-artifact limits:** a public mirror sees ciphertext and metadata. AES-GCM protects confidentiality
+  only while the DEK remains secret; a recipient that has lawfully decrypted plaintext can copy it.
+  Revocation stops future wrapped-key release, not prior possession. Shared passwords, embedded master keys,
+  moving-branch URLs, nonce reuse under one DEK, and claims that bytecode cannot be inspected after
+  decryption are non-conformant security postures (§9.2.1).
 
 ## 15. References
 [RFC 2119] [RFC 8174] requirement terms · [RFC 8259] JSON · [RFC 7493] I-JSON · [RFC 8785] JCS ·
 [FIPS 180-4] SHA-256 · [RFC 3986] URI · [RFC 5234] ABNF · [RFC 7405] case-sensitive ABNF · [RFC 9562] UUID
 (obsoletes RFC 4122) · [RFC 5280] X.509 SPKI · [RFC 7515] JWS · [RFC 7797] unencoded JWS payload ·
 [RFC 7518] JWA/ES256 · [RFC 8037] EdDSA in JOSE · [RFC 6979] deterministic ECDSA · [RFC 3339] timestamps ·
-[ECMA-262] ECMAScript.
+[NIST SP 800-38D] AES-GCM · [RFC 2104] HMAC · [RFC 5869] HKDF · [RFC 7516] JWE · [ECMA-262] ECMAScript.
 
 ---
 
 ### Revision log
+- **rev-7 (sealed-artifact profile)** — registered the `sealed` egg variant for globally mirrorable public
+  ciphertext with signed manifests and scoped recipient key release (§9.2.1); added the
+  `rapp/1:sealed-aad` and `rapp/1:sealed-key-request` address spaces; pinned AES-256-GCM, keyed plaintext
+  commitment, nonce/AAD/ciphertext shape, authorized publisher and key-broker boundaries, immutable-URL
+  guidance, and the honest revocation/decompilation limits.
+- **rev-6 (instantiation seam)** — defined artifact versus instance identity and immutable `grown_from`
+  lineage (§9.4), requiring every hatch to mint a fresh instance identity without reminting the egg's
+  artifact identity.
 - **rev-5 (war-game round 3 fold)** — folded 5 blockers + 7 majors + 7 minors, all clustered on the trust
   model that rev-4's fixes made load-bearing: the **registry is now a signed root of trust** (§13.1) —
   owner-signed, anchored to the out-of-band `estate_owner` rappid fingerprint, `registry_seq`-monotonic,

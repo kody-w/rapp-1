@@ -13,7 +13,7 @@ description: What RAPP is and how to read The RAPP Programming Language
 
 ### A tutorial and reference manual for verifiable agents
 
-*Written against RAPP rev-5. Every code fragment in this book runs on `rapp.py`, the
+*Written against RAPP rev-7. Every code fragment in this book runs on `rapp.py`, the
 stdlib-only reference implementation that ships beside it, and every claim about "the real
 world" is checked by `realcheck.py` against the actual committed artifacts of a live estate.*
 

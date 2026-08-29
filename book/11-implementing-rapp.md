@@ -56,7 +56,7 @@ consumer until §10 cryptography and §13 authority checks are supplied.
 Write the target at the top of the port:
 
 ```text
-Target: RAPP rev-5 Producer + byte-core Consumer
+Target: RAPP rev-7 Producer + byte-core Consumer
 Implemented: §§4–7, §9 integrity/viability
 External adapters required: §10 JWS, §13 registry and freshness
 ```
@@ -260,7 +260,7 @@ anything. A convenience API such as `zip.extractall()` must never be the parser.
 Run `python3 examples/06_pack_an_egg.py`. It proves stable bytes for the same inputs, a changed egg
 address after one file changes, and refusal of `../escape`.
 
-Independent packers should exchange fixtures for all six variants. “My packer can read its own
+Independent packers should exchange fixtures for all seven variants. “My packer can read its own
 output” is a unit test, not interoperability.
 
 ## 11.9 Put Cryptography Behind a Narrow Adapter

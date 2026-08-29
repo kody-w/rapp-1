@@ -59,7 +59,7 @@ different addresses.
 **egg**
 
 A `rapp/1-egg` manifest plus, for tree variants, deterministic stored-ZIP contents. An egg packages
-an organism, rapplication, session, invite, neighborhood, or estate.
+an organism, rapplication, session, invite, neighborhood, estate, or sealed ciphertext artifact.
 
 **estate**
 
