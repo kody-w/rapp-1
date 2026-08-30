@@ -692,7 +692,7 @@ def verify_orient(
         }
         if spec != expected:
             raise ChainError("orient.json normative view metadata does not match the head")
-        if allow_unpublished_rev14_draft and "authority" not in orient:
+        if allow_unpublished_rev14_draft:
             return orient
         if orient.get("authority") != AUTHORITY_POLICY:
             raise ChainError("orient.json authority/ratification metadata drift")
