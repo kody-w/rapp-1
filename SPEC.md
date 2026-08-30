@@ -1,7 +1,7 @@
 # The RAPP Protocol Suite
 ### Unified normative specification of identity, canonicalization, the frame, the wire, and the egg
 
-**Status:** Draft standard for ratification (Kody, estate owner). **rev-7.** **Obsoletes / consolidates:**
+**Status:** Draft standard for ratification (Kody, estate owner). **rev-8.** **Obsoletes / consolidates:**
 `rapp-frame/2.0`, `rapp-frame/2.1`, `rapp-rappid-spec/2.0`, `rapp-protocol/1.0`, all scattered egg specs
 (§9 subsumes them), and `OSI.md`. On ratification this is the single living standard; the consolidated
 specs become retired historical record (Federal Constitution Art. X).
@@ -589,6 +589,10 @@ tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.
 ---
 
 ### Revision log
+- **rev-8 (immutable Grail closure)** — makes pin selection deterministic through `release_scope`,
+  defines the exact signed §13.3 `grail-kernel` entry and owner-at-time activation, requires consumers
+  to persist every accepted binding, and specifies repository-object and executed-entry-point
+  verification across interpreted and derived runtimes.
 - **rev-7 (immutable Grail constitution)** — defines the Grail kernel by the SHA-256 of its exact bytes
   (§3), makes every ring and release/deployment stage verify both the pin and the actually executed entry
   point (§11.1), forbids post-test substitution, and makes changed bytes a different Grail rather than a
