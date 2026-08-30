@@ -1,7 +1,7 @@
 # The RAPP Protocol Suite
 ### Unified normative specification of identity, canonicalization, the frame, the wire, and the egg
 
-**Status:** Draft standard for ratification (Kody, estate owner). **rev-9.** **Obsoletes / consolidates:**
+**Status:** Draft standard for ratification (Kody, estate owner). **rev-10.** **Obsoletes / consolidates:**
 `rapp-frame/2.0`, `rapp-frame/2.1`, `rapp-rappid-spec/2.0`, `rapp-protocol/1.0`, all scattered egg specs
 (§9 subsumes them), and `OSI.md`. On ratification this is the single living standard; the consolidated
 specs become retired historical record (Federal Constitution Art. X).
@@ -536,11 +536,13 @@ registry containing that valid declaration. Until then it is structural evidence
 identified by `grail_id`, never by a mutable branch, tag, repository name, or product label. Once
 activated, the pin is a permanent compatibility anchor, not a moving release channel:
 
-1. Every conformance evaluation **MUST** receive the expected `(release_scope, grail_id)` from the
-   authenticated registry or an authenticated owner-controlled release policy, never from candidate
-   bytes or candidate-controlled configuration. Every ring and release/deployment stage, including
-   development, qualification, Preprod, installation, and production verification, **MUST** compare the
-   candidate's Grail path to that exact binding, SHA-256, and byte length.
+1. Every conformance evaluation **MUST** receive `release_scope` from an authenticated owner-controlled
+   release policy, never from candidate bytes or candidate-controlled configuration, then resolve its
+   one `grail_id` exclusively from the activated, persisted §13.3 binding. If the policy repeats
+   `grail_id`, that value is only a consistency assertion and **MUST** byte-equal the registry result; it
+   cannot select or rebind the pin. Every ring and release/deployment stage, including development,
+   qualification, Preprod, installation, and production verification, **MUST** compare the candidate's
+   Grail path to that exact binding, SHA-256, and byte length.
 2. A missing, changed, substituted, or unmeasured Grail byte is `kernel-drift` and **MUST** fail closed.
    Approval, urgency, compatibility claims, and semantic equivalence cannot waive byte inequality.
 3. A pipeline **MUST NOT** silently restore the pinned file after testing a different file. The exact
@@ -549,12 +551,16 @@ activated, the pin is a permanent compatibility anchor, not a moving release cha
    filesystem indirection to one regular runtime entry-point file under the immutable release root;
    refuse links and ambiguous alternatives; verify its bytes; and bind the release digest, resolved
    entry-point path, `release_scope`, `grail_id`, raw SHA-256, and byte length into its evidence.
-5. Every gate that executes the kernel **MUST** hash that resolved file after extraction and immediately
-   before launch, then launch that exact path. At least one execution gate for every supported production
-   platform **MUST** do so before release approval. Merely carrying an unused matching file is
-   insufficient. A stored transpiled, bundled, generated, or patched derivative is different kernel
-   bytes and requires a new `grail_id`; ordinary interpreter/JIT compilation directly from the pinned
-   bytes is permitted when no alternate stored kernel is selected.
+5. Every gate that executes the kernel **MUST** bind verification atomically to execution from a sealed
+   immutable object or snapshot. An already-open descriptor is sufficient only when its backing bytes
+   are under platform-enforced write exclusion for the entire verification-through-consumption interval
+   and the interpreter/loader consumes that exact descriptor without reopening a pathname. An immutable
+   content-addressed release root is sufficient only when no concurrent principal can modify it. A
+   hash-then-path-launch without one of those guarantees is nonconformant. At least one execution gate for
+   every supported production platform **MUST** perform this proof before release approval. Merely
+   carrying an unused matching file is insufficient. A stored transpiled, bundled, generated, or patched
+   derivative is different kernel bytes and requires a new `grail_id`; ordinary interpreter/JIT
+   compilation directly from the pinned bytes is permitted when no alternate stored kernel is selected.
 6. New implementation behavior **MUST** live outside the Grail kernel and **MUST NOT** alter any
    RAPP-visible canonical form or wire semantic except through the registration and evolution rules of
    §§7, 9, 12, and 13.
@@ -725,11 +731,15 @@ tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.
 ---
 
 ### Revision log
-- **rev-9 (sealed artifact + immutable Grail closure)** — registered the `sealed` egg variant for globally
-  mirrorable public ciphertext with signed manifests and scoped recipient key release (§9.2.1); added the
-  `rapp/1:sealed-aad` and `rapp/1:sealed-key-request` address spaces; retained rev-8's deterministic
-  `release_scope`, persistent Grail binding, repository-object verification, and executed-entry-point
-  verification; and made both confidentiality limits and kernel drift release-blocking.
+- **rev-10 (sealed artifact + Grail execution closure)** — registered the `sealed` egg variant for
+  globally mirrorable public ciphertext with signed manifests and scoped recipient key release (§9.2.1);
+  added the `rapp/1:sealed-aad` and `rapp/1:sealed-key-request` address spaces; retained rev-9's exclusive
+  `release_scope` selection, persisted Grail binding, and verification-to-execution protections; and made
+  both confidentiality limits and kernel drift release-blocking.
+- **rev-9 (Grail selection and execution closure)** — makes release policy select only
+  `release_scope`, resolves `grail_id` exclusively through the activated persisted registry binding,
+  and closes verification-to-execution races by requiring a sealed immutable object/snapshot or
+  platform-enforced write exclusion through byte consumption.
 - **rev-8 (immutable Grail closure)** — makes pin selection deterministic through `release_scope`,
   defines the exact signed §13.3 `grail-kernel` entry and owner-at-time activation, requires consumers
   to persist every accepted binding, and specifies repository-object and executed-entry-point

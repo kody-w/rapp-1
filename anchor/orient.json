@@ -1,18 +1,18 @@
 {
  "schema": "rapp/1-anchor",
- "generated_utc": "2026-08-30T02:03:26.159Z",
+ "generated_utc": "2026-08-30T02:08:03.554Z",
  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
  "head": {
   "seq": 9,
-  "frame_hash": "f16047da436f5ac85dda3b2033139b24928377c8316d5bcaca770faf4f5f2b2b",
-  "payload_hash": "cec7818e564f6d7bca11418d9ed096aa40c50d016ead7d97211e784a58216777"
+  "frame_hash": "24d8a02b1be5490c0d531dc568a4b6b580526015b7eb0b61b7062873cb8efbf3",
+  "payload_hash": "668aff2ebe980ce7a79a661e53bfa2612f110e2d6d80fe4b6250d5740d9ca521"
  },
  "spec": {
   "revision": "rev-9",
   "normative_path": "SPEC.md",
-  "normative_sha256": "70f62e7283b3770afcf445661be64656b7f31829e5f1465af73848bda340367e",
+  "normative_sha256": "f3125fc81c143ffefe96909326f6b0a70a01a97a2aaeed9d7945cd2359b5252b",
   "canonical_repo": "https://github.com/kody-w/rapp-1",
-  "commit": "2d824d896c55aaea940aa83138973e77c859770c"
+  "commit": "309050cc3d05c908d2338cb3b63068601b3cab2f"
  },
  "registered_kinds": [
   "body.pulse",
@@ -33,51 +33,51 @@
  "vocabulary": {
   "body": {
    "status": "live",
-   "where": "§7.2 kind family"
+   "where": "\u00a77.2 kind family"
   },
   "estate": {
    "status": "live",
-   "where": "§9.2 egg variant"
+   "where": "\u00a79.2 egg variant"
   },
   "grail": {
    "status": "live",
-   "where": "§3 terminology; §11.1 immutable Grail kernel conformance; Constitution Article 15"
+   "where": "\u00a73 terminology; \u00a711.1 immutable Grail kernel conformance; Constitution Article 15"
   },
   "grown_from": {
    "status": "live",
-   "where": "§9.4 instantiation — instance lineage key"
+   "where": "\u00a79.4 instantiation \u2014 instance lineage key"
   },
   "instance": {
    "status": "live",
-   "where": "§9.4 instantiation — a hatched install; fresh §6.2 identity, never shared"
+   "where": "\u00a79.4 instantiation \u2014 a hatched install; fresh \u00a76.2 identity, never shared"
   },
   "invite": {
    "status": "live",
-   "where": "§9.2 egg variant"
+   "where": "\u00a79.2 egg variant"
   },
   "memory": {
    "status": "live",
-   "where": "§7.2 kind family"
+   "where": "\u00a77.2 kind family"
   },
   "metropolis": {
    "status": "retired",
-   "where": "rapp-metropolis/1.0 tier 3; that doc is now a retirement notice in kody-w/rapp-estate — bytes only at git 24c8fdc, sha256 690f6109…"
+   "where": "rapp-metropolis/1.0 tier 3; that doc is now a retirement notice in kody-w/rapp-estate \u2014 bytes only at git 24c8fdc, sha256 690f6109\u2026"
   },
   "neighborhood": {
    "status": "live",
-   "where": "§9.2 egg variant"
+   "where": "\u00a79.2 egg variant"
   },
   "organism": {
    "status": "live",
-   "where": "§9.2 egg variant"
+   "where": "\u00a79.2 egg variant"
   },
   "rapp-frame/2.0": {
    "status": "retired",
-   "where": "legacy envelope token, superseded by rapp/1 (§7.1)"
+   "where": "legacy envelope token, superseded by rapp/1 (\u00a77.1)"
   },
   "rapp-frame/2.1": {
    "status": "retired",
-   "where": "legacy envelope token, superseded by rapp/1 (§7.1)"
+   "where": "legacy envelope token, superseded by rapp/1 (\u00a77.1)"
   },
   "rapp-protocol/1.0": {
    "status": "retired",
@@ -85,27 +85,23 @@
   },
   "rapp-rappid-spec/2.0": {
    "status": "retired",
-   "where": "legacy, superseded by rapp/1 §6"
+   "where": "legacy, superseded by rapp/1 \u00a76"
   },
   "rapplication": {
    "status": "live",
-   "where": "§9.2 egg variant"
+   "where": "\u00a79.2 egg variant"
   },
   "rbox": {
    "status": "not-in-spec",
-   "where": "operator's working word for a machine running an organism; the spec's words are `organism` (§9.2) and `instance` (§9.4)"
+   "where": "operator's working word for a machine running an organism; the spec's words are `organism` (\u00a79.2) and `instance` (\u00a79.4)"
   },
   "session": {
    "status": "live",
-   "where": "§9.2 egg variant"
+   "where": "\u00a79.2 egg variant"
   },
   "swarm": {
    "status": "live",
-   "where": "§7.2 kind family"
-  },
-  "sealed": {
-   "status": "live",
-   "where": "§9.2 sealed egg variant and §9.2.1 profile"
+   "where": "\u00a77.2 kind family"
   }
  }
 }
