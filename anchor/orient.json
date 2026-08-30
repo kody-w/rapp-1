@@ -1,18 +1,18 @@
 {
  "schema": "rapp/1-anchor",
- "generated_utc": "2026-08-30T01:43:43.314Z",
+ "generated_utc": "2026-08-30T01:50:03.050Z",
  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
  "head": {
-  "seq": 7,
-  "frame_hash": "3620f45825dbf73280a1df2db3aac4de87b07297afc35e1cee3034eb3c3ea6ef",
-  "payload_hash": "c8bdac0f3f194d35f8b60d968178dbb6ed133b6422d721c9e3e34980118679d2"
+  "seq": 8,
+  "frame_hash": "65e2b1694f6c8d418bd66c7e8e8f567f798f5e9a210e68b9e0ed226aaf364786",
+  "payload_hash": "fb24c39d10b7083a7907f85cd35d5e04a15edd1d233171782cfb297374e19f37"
  },
  "spec": {
-  "revision": "rev-7",
+  "revision": "rev-8",
   "normative_path": "SPEC.md",
-  "normative_sha256": "ad116c1524c02918b9f53a508389b433cf011e1f44500ad6e315f5784e079140",
+  "normative_sha256": "c0fb3cd46d110daaabdcfad17f2105dc27dda613dbc10665852fcc974f42e1cc",
   "canonical_repo": "https://github.com/kody-w/rapp-1",
-  "commit": "9506f486b316cea84e8eaadc7b664eb4b3bcf942"
+  "commit": "7c8ee377eec000f07a0b659cf52939f16b01c58d"
  },
  "registered_kinds": [
   "body.pulse",
@@ -31,65 +31,17 @@
   "swarm.telemetry"
  ],
  "vocabulary": {
-  "estate": {
-   "status": "live",
-   "where": "\u00a79.2 egg variant"
-  },
-  "invite": {
-   "status": "live",
-   "where": "\u00a79.2 egg variant"
-  },
-  "neighborhood": {
-   "status": "live",
-   "where": "\u00a79.2 egg variant"
-  },
-  "organism": {
-   "status": "live",
-   "where": "\u00a79.2 egg variant"
-  },
-  "rapplication": {
-   "status": "live",
-   "where": "\u00a79.2 egg variant"
-  },
-  "session": {
-   "status": "live",
-   "where": "\u00a79.2 egg variant"
-  },
-  "memory": {
-   "status": "live",
-   "where": "\u00a77.2 kind family"
-  },
-  "swarm": {
-   "status": "live",
-   "where": "\u00a77.2 kind family"
-  },
   "body": {
    "status": "live",
    "where": "\u00a77.2 kind family"
   },
-  "metropolis": {
-   "status": "retired",
-   "where": "rapp-metropolis/1.0 tier 3; that doc is now a retirement notice in kody-w/rapp-estate \u2014 bytes only at git 24c8fdc, sha256 690f6109\u2026"
+  "estate": {
+   "status": "live",
+   "where": "\u00a79.2 egg variant"
   },
-  "rapp-frame/2.0": {
-   "status": "retired",
-   "where": "legacy envelope token, superseded by rapp/1 (\u00a77.1)"
-  },
-  "rapp-frame/2.1": {
-   "status": "retired",
-   "where": "legacy envelope token, superseded by rapp/1 (\u00a77.1)"
-  },
-  "rapp-rappid-spec/2.0": {
-   "status": "retired",
-   "where": "legacy, superseded by rapp/1 \u00a76"
-  },
-  "rapp-protocol/1.0": {
-   "status": "retired",
-   "where": "legacy, superseded by rapp/1"
-  },
-  "rbox": {
-   "status": "not-in-spec",
-   "where": "operator's working word for a machine running an organism; the spec's words are `organism` (\u00a79.2) and `instance` (\u00a79.4)"
+  "grail": {
+   "status": "live",
+   "where": "\u00a73 terminology; \u00a711.1 immutable Grail kernel conformance; Constitution Article 15"
   },
   "grown_from": {
    "status": "live",
@@ -99,9 +51,57 @@
    "status": "live",
    "where": "\u00a79.4 instantiation \u2014 a hatched install; fresh \u00a76.2 identity, never shared"
   },
-  "grail": {
+  "invite": {
    "status": "live",
-   "where": "\u00a73 terminology; \u00a711.1 immutable Grail kernel conformance; Constitution Article 15"
+   "where": "\u00a79.2 egg variant"
+  },
+  "memory": {
+   "status": "live",
+   "where": "\u00a77.2 kind family"
+  },
+  "metropolis": {
+   "status": "retired",
+   "where": "rapp-metropolis/1.0 tier 3; that doc is now a retirement notice in kody-w/rapp-estate \u2014 bytes only at git 24c8fdc, sha256 690f6109\u2026"
+  },
+  "neighborhood": {
+   "status": "live",
+   "where": "\u00a79.2 egg variant"
+  },
+  "organism": {
+   "status": "live",
+   "where": "\u00a79.2 egg variant"
+  },
+  "rapp-frame/2.0": {
+   "status": "retired",
+   "where": "legacy envelope token, superseded by rapp/1 (\u00a77.1)"
+  },
+  "rapp-frame/2.1": {
+   "status": "retired",
+   "where": "legacy envelope token, superseded by rapp/1 (\u00a77.1)"
+  },
+  "rapp-protocol/1.0": {
+   "status": "retired",
+   "where": "legacy, superseded by rapp/1"
+  },
+  "rapp-rappid-spec/2.0": {
+   "status": "retired",
+   "where": "legacy, superseded by rapp/1 \u00a76"
+  },
+  "rapplication": {
+   "status": "live",
+   "where": "\u00a79.2 egg variant"
+  },
+  "rbox": {
+   "status": "not-in-spec",
+   "where": "operator's working word for a machine running an organism; the spec's words are `organism` (\u00a79.2) and `instance` (\u00a79.4)"
+  },
+  "session": {
+   "status": "live",
+   "where": "\u00a79.2 egg variant"
+  },
+  "swarm": {
+   "status": "live",
+   "where": "\u00a77.2 kind family"
   }
  }
 }
