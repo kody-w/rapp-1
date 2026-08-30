@@ -678,10 +678,13 @@ def main() -> None:
     BOOTSTRAP.mkdir(exist_ok=True)
     profile_path = ROOT / bootstrap_index["profile_path"]
     existing_profiles = set(BOOTSTRAP.glob("sha256-*.json"))
-    if existing_profiles - {profile_path}:
+    stale_profiles = existing_profiles - {profile_path}
+    if stale_profiles and replaced_draft is None:
         raise SystemExit(
             "rapp-anchor-bootstrap/1 is frozen; publish a new bootstrap version"
         )
+    for stale_profile in stale_profiles:
+        stale_profile.unlink()
     if profile_path.exists() and profile_path.read_bytes() != profile_octets:
         raise SystemExit("content-addressed bootstrap profile path has wrong bytes")
     M.atomic_write(profile_path, profile_octets)

@@ -381,6 +381,20 @@ def parse_chain(chain_octets: bytes, profile: dict) -> List[dict]:
 
 def verify_chain(chain_octets: bytes, profile: dict) -> List[dict]:
     frames = parse_chain(chain_octets, profile)
+    seen_seq = {}
+    children = {}
+    for line_number, frame in enumerate(frames, 1):
+        if frame["seq"] in seen_seq:
+            raise BootstrapError(
+                f"duplicate seq/fork at lines {seen_seq[frame['seq']]} and {line_number}"
+            )
+        if frame["prev"] is not None and frame["prev"] in children:
+            raise BootstrapError(
+                f"fork at lines {children[frame['prev']]} and {line_number}"
+            )
+        seen_seq[frame["seq"]] = line_number
+        if frame["prev"] is not None:
+            children[frame["prev"]] = line_number
     genesis = frames[0]
     authority = profile["authority"]
     if (

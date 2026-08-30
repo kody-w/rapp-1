@@ -291,21 +291,21 @@ class SpecChainTests(unittest.TestCase):
         malformed_chain = b"".join(self.lines[:-1]) + json.dumps(
             malformed, ensure_ascii=False
         ).encode("utf-8") + b"\n"
-        self.assert_chain_refused(malformed_chain, "step 1")
+        self.assert_chain_refused(malformed_chain, "eleven-key envelope")
 
         payload = copy.deepcopy(self.head)
         payload["payload"]["revision"] = "rev-999"
         payload_chain = b"".join(self.lines[:-1]) + json.dumps(
             payload, ensure_ascii=False
         ).encode("utf-8") + b"\n"
-        self.assert_chain_refused(payload_chain, "step 2")
+        self.assert_chain_refused(payload_chain, "particle mismatch")
 
         wave = copy.deepcopy(self.head)
         wave["frame_hash"] = "0" * 64
         wave_chain = b"".join(self.lines[:-1]) + json.dumps(
             wave, ensure_ascii=False
         ).encode("utf-8") + b"\n"
-        self.assert_chain_refused(wave_chain, "step 3")
+        self.assert_chain_refused(wave_chain, "wave mismatch")
 
         prev = copy.deepcopy(self.head)
         prev["prev"] = "0" * 64
@@ -318,7 +318,7 @@ class SpecChainTests(unittest.TestCase):
         prev_chain = b"".join(self.lines[:-1]) + json.dumps(
             prev, ensure_ascii=False
         ).encode("utf-8") + b"\n"
-        self.assert_chain_refused(prev_chain, "step 4")
+        self.assert_chain_refused(prev_chain, "prev does not match")
 
     def test_corrupt_inline_text_hash_and_length_are_refused(self) -> None:
         text = copy.deepcopy(self.head["payload"])
@@ -442,6 +442,7 @@ class SpecChainTests(unittest.TestCase):
             "rev-15",
         )
         for text in (constitution, spec, anchor_readme):
+            text = " ".join(text.split())
             for phrase in wording:
                 self.assertIn(phrase, text)
 
