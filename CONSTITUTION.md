@@ -1,23 +1,23 @@
 # The rapp/1 Protocol Constitution
 
-**Status: DRAFT — pending full ratification by the estate owner.** Article
-15's permanent byte-immutability rule was explicitly owner-authorized on
-2026-08-29. Article 16's production-seaworthiness rule was explicitly
-owner-authorized on 2026-08-30. Each becomes binding when the pull request
-carrying its exact bytes is merged under Article 14.
+**Status: RATIFIED BY THE ESTATE OWNER.** Articles 15 and 16 were explicitly
+owner-authorized on 2026-08-29 and 2026-08-30. Article 17 and full-document
+public ratification were owner-authorized on 2026-08-30 and become effective
+when the pull request carrying these exact bytes is merged under Article 14.
 
 `SPEC.md` is the law of **bytes** — what a conformant implementation must emit and
 refuse. This Constitution is the law of **change** — how the standard, this repository,
 and every claim they make may lawfully evolve. When the two disagree about bytes, the
 SPEC wins; when they disagree about process, this Constitution wins.
 
-**Relation to the Federal Constitution.** The estate's Federal Constitution (pinned at
-`rapp-god/authority/records/federal-governance.json`, content withheld behind the
-private boundary) governs estate-level ratification and owner decisions. `SPEC.md`
-cites several of its articles; because readers of a public standard must be able to
-resolve every citation, Articles 2–7 below restate, in public, the principles the SPEC
-relies on — with a concordance at the end. If the Federal Constitution is later
-published and conflicts, it prevails and this document is amended, visibly.
+**Relation to private estate governance.** Private constitutions may govern
+estate-level product, company, or owner decisions, but they do not govern public
+RAPP/1 bytes or protocol amendment. `SPEC.md` and this public Protocol
+Constitution are final for protocol conformance and governance. Historical
+Federal-Constitution citations in `SPEC.md` resolve to the public restatements
+in Articles 2–7 and the concordance below. A conflicting private rule must be
+changed or treated as nonconformant; it cannot silently override this public
+standard.
 
 ---
 
@@ -68,9 +68,10 @@ Fork resolution, stream bricking, re-genesis, and the retirement of a spec are
 **owner-authorized operations** — one authorized convergence, never an implementer's
 improvisation. "Owner-signed" is evaluated against the owner **in effect at the
 artifact's time** (SPEC §13.2), so succession never rewrites history. Estate-level
-scope — what belongs in this repo versus elsewhere — follows the master plan the
-registry points to. *(Cited by SPEC §7.6, §12.1 as Fed. Const. Art. X; scope by SPEC
-§11 as Art. VII.)*
+product organization follows the master plan the registry points to. A master
+plan cannot redefine this repository's protocol scope, authority, canonical
+bytes, or amendment process. *(Cited by SPEC §7.6, §12.1 as Fed. Const. Art. X;
+estate-product scope by SPEC §11 as Art. VII.)*
 
 ## Article 7 — Identity Is Minted, Never Derived
 
@@ -201,6 +202,26 @@ This article is entrenched. Future amendments may strengthen its evidence and
 recovery requirements, but may not authorize unqualified user traffic,
 in-place serving mutation, silent degradation, or bypass of a red gate.
 
+## Article 17 — RAPP Is the Foundation; This Repository Is the Protocol
+
+The canonical public RAPP foundation, product home, reference implementation,
+organism model, and philosophy remain in `kody-w/RAPP`.
+
+This repository, `kody-w/rapp-1`, is the protocol authority: canonicalization,
+content addressing, identity, frames, wire, eggs, trust, registries, and
+protocol-level profiles.
+
+1. Protocol authority does not transfer product authority.
+2. A downstream Rappter or RapterBox LLC product may implement RAPP/1 without
+   becoming part of the foundation or this protocol repository.
+3. Private company doctrine, ownership administration, customer data, and
+   proprietary product code do not belong here.
+4. `FOUNDATION.json` pins the canonical product-home relationship.
+5. `PHILOSOPHY.md` in this repository is a byte-identical public mirror for
+   protocol readers; on drift, the pinned `kody-w/RAPP` source wins.
+
+This article changes repository scope, not RAPP/1 bytes or wire semantics.
+
 ---
 
 ## Concordance — resolving SPEC.md's Federal Constitution citations
@@ -216,7 +237,7 @@ in-place serving mutation, silent degradation, or bypass of a red gate.
 | Fed. Const. Art. X | §1, §7.6, §12.1 — owner fork resolution, retired specs | Article 6 |
 
 *Drafted 2026-08-26 in public session. Article 15 owner-authorized 2026-08-29;
-Article 16 owner-authorized 2026-08-30. Each is recorded as ratified by the
-merge that introduces its exact bytes; full-document ratification remains the
-estate owner's word. One spec, one canonicalizer, one mint, one frame, one
-immutable Grail, one qualified path to users.*
+Articles 16–17 and the complete public Protocol Constitution owner-ratified
+2026-08-30. The merge introducing these exact bytes is the public ratification
+record. One spec, one canonicalizer, one mint, one frame, one immutable Grail,
+one qualified path to users.*

@@ -124,9 +124,11 @@ current form citing the sealed head → old frames retained under `legacy/` (sea
 - **No legacy (§12 / Fed. Const. Art. III):** converge and delete; a legacy form encountered is a
   drift finding. Immutable chains converge by **re-genesis** (§12.1), old frames retained as sealed
   history (Amendment III-a).
-- **Registry as root of trust (§13):** `rapp-map/ecosystem-spec.json`, owner-signed, anchored to an
-  out-of-band `estate_owner` rappid fingerprint, `registry_seq`-monotonic. Owner succession is
-  time-scoped (§13.2).
+- **Registry as root of trust (§13):** each estate selects an owner-controlled
+  `rapp/1-registry`, owner-signed, anchored to an out-of-band `estate_owner`
+  rappid fingerprint, and `registry_seq`-monotonic. The kody-w
+  `rapp-map/ecosystem-spec.json` path is a reference-estate instance, not
+  protocol authority. Owner succession is time-scoped (§13.2).
 
 ## A.9 The Reference Implementation
 

@@ -1,195 +1,60 @@
 # Why RAPP
-## The organism grows around the Grail
 
-RAPP begins with one permanent idea:
+RAPP is the public foundation for growing portable digital organisms around an
+immutable Grail.
 
-> Plant the same sacred kernel in new ground, then let the organism grow around
-> it without changing what made it the same organism.
-
-The Grail is the seed. RAPP is the living structure that wraps it: identity,
-agents, organs, tools, policy, memory, state, interfaces, deployment, and
-experience. New capability grows outward as a new layer. It is not welded into
-the kernel.
-
-This is not merely an implementation pattern. It is the reason RAPP exists.
-
-## The first question
-
-Every RAPP begins with:
+Every RAPP begins with one question:
 
 > **What should I do?**
 
-The answer is not a monolithic program written all at once. The problem is
-RAPPed up:
+The problem is wrapped one verifiable layer at a time. Each meaningful attempt
+becomes a frame. Agents, organs, policy, memory, state, deployment, and
+experience grow outward rather than being welded into the kernel. When the
+organism reliably fulfills its bounded goal, it can graduate into the wild.
 
-1. name the goal and its boundary;
-2. add one capability layer;
-3. record what happened in a frame;
-4. test the result against evidence;
-5. add, replace, or remove the next layer;
-6. repeat until the organism reliably does what was asked.
+Portable, self-documenting organisms may later produce distinctly identified
+offspring or crosses while preserving every ancestor and lineage address.
 
-Layer after layer, frame after frame, the problem becomes a bounded organism.
-The history of how it learned to fulfill the goal remains inspectable instead
-of disappearing inside the final build.
+## Repository boundary
 
-When the organism does what was asked, it **graduates**. Graduation is the
-point where a RAPP leaves the protected nursery, enters the wild, and begins
-fulfilling its RAPPed-up goal for real users. Graduation requires identity,
-qualification, health limits, and a return path. It is not permission to mutate
-silently after release.
+- **`kody-w/RAPP`** — canonical foundation, product home, organism model,
+  public reference implementation, and philosophy.
+- **`kody-w/rapp-1`** — canonical interoperable protocol: bytes, addresses,
+  identity, frames, wire, eggs, trust, registry, and protocol profiles.
+- **Rappter** — the singular downstream customer-facing brand at
+  `rappter.com`.
+- **RapterBox** — the company name and a separate downstream sub-product.
 
-## Offspring in the wild
+RAPP/1 does not replace the RAPP repository. RapterBox LLC products may build
+on RAPP, but private LLC doctrine, ownership administration, customer data, and
+proprietary product code do not belong in the RAPP foundation.
 
-A graduated organism remains portable and self-documented. When it encounters
-a challenge its current body cannot meet, it does not erase itself. It records
-the encounter, RAPPs the new problem in a candidate lineage, and may produce an
-**offspring**:
+Downstream Rappter and RapterBox implementations may live in their own
+repositories. They consume the foundation; they do not become a second
+authority for RAPP.
 
-- the ancestor remains immutable;
-- the offspring receives a new identity;
-- the offspring records the typed content addresses of its parent material;
-- the new layers and frames belong to the offspring's own history.
+## Current protocol status
 
-Two or more RAPPed objects may also be **crossed**. Crossing does not blend
-identities or silently transfer authority. It creates a new organism with a new
-identity and explicit multi-parent lineage. Its parents remain intact. Their
-self-documenting bodies give the offspring a chance to combine capabilities
-and solve a challenge neither parent could satisfy alone.
+The main `kody-w/RAPP` repository's current implementation pin is the
+structural RAPP/1 rev-5 record in
+[`RAPP1_AUTHORITY.json`](https://github.com/kody-w/RAPP/blob/main/RAPP1_AUTHORITY.json),
+and its limitations remain explicit in
+[`RAPP1_STATUS.md`](https://github.com/kody-w/RAPP/blob/main/RAPP1_STATUS.md).
 
-This can continue indefinitely across generations. "Try forever" means an
-unbounded lineage of inspectable, bounded attempts — never one uncontrolled
-infinite loop consuming user trust or resources.
+Canonicalization, identity, frames, wire, eggs, registry, trust, and protocol
+evolution defer to that pinned authority until an authorized migration advances
+the implementation pin. The public RAPP/1 standard may advance independently.
 
-## Why it is called RAPP
+## Open-source direction
 
-RAPP is a name before it is an acronym, but its construction is deliberate:
+RAPP is the public foundation and is intended for open-source stewardship.
+The repository's currently published PolyForm and documentation licenses remain
+legally operative until the contributor/rights inventory and authorized license
+migration are complete. Repository administration does not itself establish
+ownership allocation; see
+[`RIGHTS-NOTICE.md`](https://github.com/kody-w/RAPP/blob/main/RIGHTS-NOTICE.md).
 
-- **R** is recursive. The same organism grammar repeats from one agent, to a
-  rapplication, to a brainstem, to a neighborhood, to an estate.
-- **APP** is application. The result is useful, runnable life rather than a
-  passive model or a pile of infrastructure.
-- Spoken aloud, RAPP carries the idea of **wrap**. Capability wraps the Grail
-  instead of cutting into it.
+The survival rule is simple:
 
-A RAPP is therefore a recursive application organism: an immutable identity
-and kernel surrounded by composable living layers.
-
-RAPP is also a verb:
-
-> To RAPP a problem is to wrap it in verifiable layers and frames until the
-> resulting organism can be safely graduated to fulfill that goal in the wild.
-
-The name is intentionally not expanded into a rigid marketing acronym. Its
-meaning is architectural and testable.
-
-## The growth model
-
-```text
-environment and skin
-  deployment, health, and recovery
-    policy, permissions, and human seams
-      memory, state, and identity
-        agents, tools, adapters, and organs
-          RAPP/1 protocol membrane
-            immutable Grail kernel
-```
-
-Each outer layer may specialize for a person, business, device, region, or
-mission. The center remains the same.
-
-This gives RAPP two properties that ordinary application stacks usually trade
-against each other:
-
-1. **Continuity.** The organism retains identity and lineage while its
-   capabilities grow.
-2. **Portability.** The same verified seed can be planted on new hardware, in a
-   new region, for a new tenant, or inside a new product without silently
-   becoming a different species.
-
-## The Grail is a seed, not a feature backlog
-
-The kernel owns only what every organism of the species must share. A request
-that appears to require a kernel edit is first tested against the outer growth
-surfaces:
-
-- agent;
-- adapter;
-- organ;
-- configuration;
-- policy;
-- frame;
-- state schema;
-- deployment control plane;
-- user-facing skin.
-
-If the capability can live in one of those layers, it belongs there. If it
-cannot, the system reports an incompatibility rather than quietly changing the
-Grail under an existing identity.
-
-## New ground
-
-"Planting" is literal architecture. A RAPP organism may be placed:
-
-- on a person's local machine;
-- in a business-controlled box;
-- in an enterprise tenant;
-- in an isolated regional cell;
-- on a provider-neutral runtime;
-- in a future substrate not known when the kernel was written.
-
-The ground supplies resources and policy. It does not redefine the seed.
-Environment-specific behavior is an outer layer with an address, owner, and
-removal path.
-
-## Growth without user disruption
-
-The AI that serves users is a qualified release, not a live experiment.
-Learning and mutation occur in an isolated candidate lineage. A candidate earns
-its way outward through RAPP CI/CD and reaches users through RAPP Deploy.
-
-The serving organism remains stable until the next organism version has:
-
-- the same authenticated Grail;
-- a complete content-addressed release capsule;
-- passing, fresh qualification evidence;
-- state compatibility and restore proof;
-- bounded progressive exposure;
-- a known exact rollback release.
-
-Users experience continuity while the organism continues to grow.
-
-## The RAPP test
-
-A design belongs in RAPP when the answer to each question is yes:
-
-1. Can the Grail remain byte-identical?
-2. Can the capability be expressed as a removable outer layer?
-3. Can its identity, inputs, and effects be verified?
-4. Can the organism be replanted without losing lineage?
-5. Can offspring or crosses name every parent without inheriting hidden
-   authority?
-6. Can a failed layer be isolated or rolled back without harming healthy
-   users?
-7. Can a stranger implement the same contract without private interpretation?
-
-If not, the design is not finished.
-
-## Open foundation, owned organisms
-
-RAPP/1 is an open protocol intended for independent implementation. The
-organisms grown with it may be personal, public, commercial, private, or
-regulated. Openness of the seed does not erase ownership of an organism's
-identity, memory, policy, data, brand, or authored experience.
-
-That separation is the compact:
-
-> One open seed. Infinitely many owned organisms. No hidden mutation of the
-> root.
-
----
-
-**Canonical philosophy:** this file in `kody-w/rapp-1`.  
-**Operational law:** `CONSTITUTION.md`, RAPP CI/CD, and RAPP Deploy.  
-**Company expression:** RapterBox LLC's Constitution and Ten Commandments at
-`https://rapterbox.com/rapp`.
+> Keep the RAPP foundation public and interoperable. Keep Rappter and
+> RapterBox LLC product IP distinct.

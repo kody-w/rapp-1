@@ -8,6 +8,7 @@ import json
 import pathlib
 import subprocess
 import sys
+import urllib.request
 from datetime import datetime, timezone
 
 
@@ -19,7 +20,7 @@ import rapp as R
 ANCHOR = pathlib.Path(__file__).resolve().parent
 CHAIN = ANCHOR / "chain.jsonl"
 ORIENT = ANCHOR / "orient.json"
-REVISION = "rev-11"
+REVISION = "rev-12"
 
 
 def utc_now() -> str:
@@ -32,6 +33,8 @@ def utc_now() -> str:
 def main() -> None:
     anchored_paths = [
         "SPEC.md",
+        "CONSTITUTION.md",
+        "FOUNDATION.json",
         "PHILOSOPHY.md",
         "rapp.py",
         "protocols/index.json",
@@ -56,6 +59,8 @@ def main() -> None:
             "--untracked-files=all",
             "--",
             "SPEC.md",
+            "CONSTITUTION.md",
+            "FOUNDATION.json",
             "PHILOSOPHY.md",
             "rapp.py",
             "protocols",
@@ -65,7 +70,7 @@ def main() -> None:
     )
     if status.strip():
         raise SystemExit(
-            "commit SPEC.md, PHILOSOPHY.md, rapp.py, and protocols before generating the anchor"
+            "commit SPEC.md, CONSTITUTION.md, FOUNDATION.json, PHILOSOPHY.md, rapp.py, and protocols before generating the anchor"
         )
     commit = subprocess.check_output(
         ["git", "rev-parse", "HEAD"],
@@ -78,6 +83,7 @@ def main() -> None:
         text=True,
     ).strip()
     spec_octets = (ROOT / "SPEC.md").read_bytes()
+    constitution_octets = (ROOT / "CONSTITUTION.md").read_bytes()
     observed_utc = utc_now()
     frames = [
         json.loads(line)
@@ -92,10 +98,66 @@ def main() -> None:
     payload["commit"] = commit
     payload["commit_utc"] = commit_utc
     payload["observed_utc"] = observed_utc
+    payload["constitution"] = {
+        "path": "CONSTITUTION.md",
+        "sha256": hashlib.sha256(constitution_octets).hexdigest(),
+        "size_bytes": len(constitution_octets),
+    }
+    foundation = R._strict_json((ROOT / "FOUNDATION.json").read_bytes())
+    if set(foundation) != {
+        "schema",
+        "status",
+        "repository",
+        "commit",
+        "path",
+        "sha256",
+        "size_bytes",
+        "relationship",
+    }:
+        raise SystemExit("FOUNDATION.json has an unexpected shape")
+    if foundation["schema"] != "rapp-foundation-pointer/1":
+        raise SystemExit("FOUNDATION.json has the wrong schema")
+    if foundation["repository"] != "https://github.com/kody-w/RAPP":
+        raise SystemExit("FOUNDATION.json names the wrong product home")
+    if (
+        not isinstance(foundation["commit"], str)
+        or len(foundation["commit"]) != 40
+        or any(ch not in "0123456789abcdef" for ch in foundation["commit"])
+    ):
+        raise SystemExit("FOUNDATION.json commit is not 40 lowercase hex")
     philosophy_octets = (ROOT / "PHILOSOPHY.md").read_bytes()
+    philosophy_sha256 = hashlib.sha256(philosophy_octets).hexdigest()
+    if (
+        foundation["path"] != "PHILOSOPHY.md"
+        or foundation["sha256"] != philosophy_sha256
+        or foundation["size_bytes"] != len(philosophy_octets)
+    ):
+        raise SystemExit("foundation philosophy mirror drift")
+    foundation_url = (
+        "https://raw.githubusercontent.com/kody-w/RAPP/"
+        f"{foundation['commit']}/{foundation['path']}"
+    )
+    try:
+        with urllib.request.urlopen(foundation_url, timeout=30) as response:
+            canonical_philosophy = response.read()
+    except Exception as error:
+        raise SystemExit(f"cannot resolve pinned RAPP foundation: {error}") from error
+    if canonical_philosophy == b"404: Not Found":
+        raise SystemExit("pinned RAPP foundation path is missing")
+    if (
+        canonical_philosophy != philosophy_octets
+        or hashlib.sha256(canonical_philosophy).hexdigest() != foundation["sha256"]
+        or len(canonical_philosophy) != foundation["size_bytes"]
+    ):
+        raise SystemExit("pinned RAPP foundation bytes do not match the mirror")
+    payload["foundation"] = foundation
     payload["philosophy"] = {
-        "path": "PHILOSOPHY.md",
-        "sha256": hashlib.sha256(philosophy_octets).hexdigest(),
+        "canonical_repository": foundation["repository"],
+        "canonical_commit": foundation["commit"],
+        "canonical_path": foundation["path"],
+        "canonical_sha256": foundation["sha256"],
+        "mirror_path": "PHILOSOPHY.md",
+        "mirror_sha256": philosophy_sha256,
     }
     profile_index = R._strict_json((ROOT / "protocols" / "index.json").read_bytes())
     if set(profile_index) != {
@@ -201,6 +263,13 @@ def main() -> None:
                 "is bounded and parent authority never transfers implicitly."
             ),
         },
+        {
+            "t": "fact",
+            "c": (
+                "kody-w/RAPP remains the public foundation and product home; "
+                "kody-w/rapp-1 defines the interoperable protocol only."
+            ),
+        },
     ]
     for rule in rules:
         if rule not in payload["rules"]:
@@ -232,7 +301,9 @@ def main() -> None:
     }
     orient["vocabulary"] = payload["vocabulary"]
     orient["operational_profiles"] = operational_profiles
+    orient["foundation"] = foundation
     orient["philosophy"] = payload["philosophy"]
+    orient["constitution"] = payload["constitution"]
     ORIENT.write_text(
         json.dumps(orient, ensure_ascii=False, indent=1) + "\n",
         encoding="utf-8",

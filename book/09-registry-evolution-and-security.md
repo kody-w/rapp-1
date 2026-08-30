@@ -27,14 +27,17 @@ through code, repositories, and human convention.
 
 ## 9.1 The Registry Is the Root of Trust
 
-The estate registry, `rapp-map/ecosystem-spec.json`, plays several roles at once:
+An estate-selected, owner-controlled `schema:"rapp/1-registry"` document plays
+several roles at once. The kody-w reference estate has historically used
+`rapp-map/ecosystem-spec.json`; that is one estate instance, not protocol
+authority:
 
 - it binds keyed rappids to public keys;
 - it registers frame kinds and their stream families;
 - it records the current genesis of every stream;
 - it carries key tombstones and identity re-anchors;
 - it names the estate owner and that owner’s succession; and
-- it points at the canonical protocol and master plan.
+- it pins the estate's adopted protocol revision and points at the estate master plan.
 
 Those powers make the registry security-critical. An unsigned mutable registry would let an
 attacker replace a signing key, hide a tombstone, authorize a forged genesis, or redefine a kind.
@@ -103,7 +106,7 @@ Entries are added, never silently rewritten or removed. Retirement is explicit w
 
 | Entry | What it authorizes or records |
 |---|---|
-| `protocol` | canonical spec repository, path, and hash |
+| `protocol` | estate adoption pin for a canonical spec repository, path, and hash; never authority to redefine that protocol |
 | `kind` | one exact event kind and its stream family |
 | `egg-variant` | one allowed §9 package variant |
 | `error-code` | one machine-readable `/chat` failure code |

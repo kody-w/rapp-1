@@ -1,10 +1,11 @@
 # The RAPP Protocol Suite
 ### Unified normative specification of identity, canonicalization, the frame, the wire, and the egg
 
-**Status:** Draft standard for ratification (Kody, estate owner). **rev-11.** **Obsoletes / consolidates:**
+**Status:** Owner-ratified RAPP/1 standard. **rev-12.** **Obsoletes / consolidates:**
 `rapp-frame/2.0`, `rapp-frame/2.1`, `rapp-rappid-spec/2.0`, `rapp-protocol/1.0`, all scattered egg specs
-(§9 subsumes them), and `OSI.md`. On ratification this is the single living standard; the consolidated
-specs become retired historical record (Federal Constitution Art. X).
+(§9 subsumes them), and `OSI.md`. This is the single living standard; the consolidated specs are
+retired historical record (Protocol Constitution Article 6). Rev-12 becomes the published current
+revision when the source merge and append-only anchor update carrying these exact bytes complete.
 
 **Rides existing standards; invents nothing:** requirement terms [RFC 2119]/[RFC 8174]; JSON restricted to
 I-JSON [RFC 7493] over [RFC 8259]; canonicalization [RFC 8785] (JCS); hashing SHA-256 [FIPS 180-4] with
@@ -22,6 +23,12 @@ load-bearing primitives so any two independent implementations interoperate **by
 out-of-band agreement**: canonicalization (§4), content addressing (§5), identity (§6), the frame (§7),
 the egg (§9) — all riding one wire (§8): `POST /chat`, or a signed append-only frame. Implementations add
 agents, cartridges, and registered `kind`s — never new endpoints, never new envelopes.
+
+**Repository scope.** `kody-w/RAPP` is the canonical public RAPP foundation,
+product home, reference implementation, organism model, and philosophy.
+`kody-w/rapp-1` is the canonical interoperable protocol authority. This
+specification governs wire-compatible bytes and conformance; it does not absorb
+the RAPP product or any downstream Rappter/RapterBox LLC product.
 
 ### 1.1 The layered model
 ```
@@ -535,8 +542,10 @@ not authorship).
 - **Consumer:** runs the full §7.5 checklist (incl. 1a binding), §9.3 egg verification, §10 signature +
   key-discovery + tombstone checks, canonicalizes legacy ids on read (§6.3), refuses on any failure, never
   repairs/reparents/rolls back (§7.6).
-- **Router/Mirror:** invents no endpoints (§8), declares subordination to `kody-w/RAPP` (Fed. Const.
-  Art. VII), serves only provenance-stamped hash-matching mirrors (Art. VIII).
+- **Router/Mirror:** invents no endpoints (§8), declares subordination to
+  `kody-w/rapp-1` for protocol semantics, and serves only
+  provenance-stamped hash-matching mirrors. Estate-specific product scope is
+  resolved separately through that estate's signed registry and master plan.
 
 ### 11.1 Immutable Grail kernel conformance
 An estate declares a Grail kernel through the exact §13.3 `grail-kernel` entry. Its `release_scope`
@@ -661,11 +670,15 @@ the one retained exception and is not "legacy compatibility."
    the current registered genesis. Re-genesis is one-time per convergence; a repeat *of the same
    convergence* is the concurrent case (step 3, fails closed).
 
-## 13. The registry — the estate's signed root of trust (append-only)
-`rapp-map/ecosystem-spec.json` (`canonical_source` `kody-w/RAPP`) is the estate's IANA. Because §7.6 head
-resets, §10 key discovery, tombstone revocation, and ownership all resolve through it, it is the **root of
-trust** and is itself authenticated (an unsigned mutable file at the root of the trust graph would forge the
-whole estate).
+## 13. The registry — an estate's signed root of trust (append-only)
+Each estate selects an owner-controlled `canonical_source` for its
+`schema:"rapp/1-registry"` document. The kody-w reference estate may publish
+its registry through `kody-w/RAPP` or another owner-authorized location, but
+that estate instance cannot alter this protocol. Because §7.6 head resets, §10
+key discovery, tombstone revocation, and ownership all resolve through the
+selected registry, it is the **root of trust for that estate** and is itself
+authenticated (an unsigned mutable file at the root of the trust graph would
+forge that estate).
 
 ### 13.1 Trust anchor and registry authentication
 - The one bootstrap axiom is the **`estate_owner` rappid string** itself: since a keyed tail is
@@ -694,7 +707,13 @@ expressed inside the registry it signs.
 ### 13.3 Entry types (each a §4 value; document `schema:"rapp/1-registry"`)
 The registry is an I-JSON document; every entry is append-only (never removed/renamed; retirement is a
 `deprecated:true` flag). Entry types and their exact members:
-- **protocol** `{type:"protocol", name, spec_repo, spec_path, spec_hash, deprecated}`
+- **protocol** `{type:"protocol", name, spec_repo, spec_path, spec_hash, deprecated}` — an estate
+  adoption pin, never a power to redefine a protocol. An entry with `name:"rapp/1"` that is used for a
+  current-conformance claim **MUST** set `spec_repo:"https://github.com/kody-w/rapp-1"`,
+  `spec_path:"SPEC.md"`, and `spec_hash` to a normative SHA-256 published by a verified frame in this
+  repository's anchor chain. A historical RAPP/1 pin may be retained only as `deprecated:true`; it does
+  not override the current anchor. Other protocol entries are subordinate to their own canonical
+  authorities and **MUST NOT** claim the `rapp/1` name or namespace.
 - **kind** `{type:"kind", kind, family, deprecated}` (incl. the three `*.re-genesis` kinds)
 - **egg-variant** `{type:"egg-variant", variant, deprecated}` · **error-code** `{type:"error-code", code}`
   (both closed namespaces; unregistered value = not conformant)
@@ -776,6 +795,13 @@ tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.
 ---
 
 ### Revision log
+- **rev-12 (foundation/protocol boundary)** — records `kody-w/RAPP` as the
+  canonical public foundation and product home; limits `kody-w/rapp-1` to
+  protocol authority; ratifies the complete public Protocol Constitution; makes
+  registries explicit estate instances rather than protocol authorities; pins
+  the canonical foundation commit and philosophy hash; and removes any
+  implication that protocol publication transfers product, brand, company, or
+  ownership authority.
 - **rev-11 (planetary operations profiles)** — constitutionalized immutable candidate/serving lineage
   separation; defined RAPP CI/CD (`rapp-cicd/1`) and RAPP Deploy (`rapp-deploy/1`) as subordinate,
   registry-pinned production profiles; required exact-candidate qualification, production-shaped
@@ -835,4 +861,5 @@ tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.
 - **rev-2** — first last-call tightening (7 self-review defects).
 - **rev-1** — initial unified draft.
 
-*Drafted, not merged. Belongs at `kody-w/RAPP/specs/RAPP-1.md`; governed by the Federal Constitution.*
+*The canonical protocol authority is this repository. The canonical public
+RAPP foundation and product home remain at `kody-w/RAPP`.*

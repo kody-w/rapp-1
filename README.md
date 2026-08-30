@@ -3,6 +3,12 @@
 > The language is **RAPP**. Its durable programs travel under one wire tag, `rapp/1`, and its
 > executable grammar is the protocol specified by this repository.
 
+> **Scope boundary:** the public RAPP foundation, product, reference
+> implementation, organism model, and philosophy remain in
+> [`kody-w/RAPP`](https://github.com/kody-w/RAPP). This repository is the
+> interoperable protocol authority only. [`FOUNDATION.json`](FOUNDATION.json)
+> pins that relationship.
+
 **One language for agents that keep a verifiable memory and talk over one wire.** Five primitives
 — canonicalization, content addressing, identity, the frame, the egg — specified exactly enough
 that independent implementations produce bytes each other can trust. Its executable grammar is a
@@ -57,10 +63,11 @@ in chapter 10.
 
 | file | what it is |
 |------|-----------|
-| **[`SPEC.md`](SPEC.md)** | the normative RAPP standard (rev-11) — 15 sections, RFC-grounded |
+| **[`SPEC.md`](SPEC.md)** | the normative RAPP standard (rev-12) — 15 sections, RFC-grounded |
 | **[`anchor/`](anchor/README.md)** | the public pullable anchor — spec pin, kinds, and vocabulary status in `orient.json`, plus [the DOGG feed](https://github.com/kody-w/rapp-1/commits/main/anchor.atom): subscribe to anchor ticks in any feed reader |
 | **[`CONSTITUTION.md`](CONSTITUTION.md)** | the rapp/1 Protocol Constitution — the law of change: how the standard, this repo, and its claims may lawfully evolve |
-| **[`PHILOSOPHY.md`](PHILOSOPHY.md)** | why RAPP exists and why capability grows around, rather than into, the Grail |
+| **[`FOUNDATION.json`](FOUNDATION.json)** | exact pointer to the canonical public RAPP foundation and philosophy |
+| **[`PHILOSOPHY.md`](PHILOSOPHY.md)** | byte-identical public mirror of the canonical foundation philosophy, never product authority |
 | **[`protocols/`](protocols/README.md)** | RAPP CI/CD and RAPP Deploy — immutable qualification, bounded rollout, and continuous AI health |
 | **[`PROMPTS.md`](PROMPTS.md)** | the prompt book — every task as a copy-paste prompt for your brainstem or brainsurgeon; you never type code |
 | **[`rapp.py`](rapp.py)** | the reference implementation, stdlib only, ~140 lines you are meant to read |
@@ -191,7 +198,8 @@ because everyone building on it turns the same bytes into the same tree.
 
 ## Status
 
-RAPP rev-11 adds the RAPP CI/CD and RAPP Deploy operational profiles while
+RAPP rev-12 makes the foundation/protocol scope explicit while retaining
+rev-11's RAPP CI/CD and RAPP Deploy operational profiles and
 preserving rev-10's sealed-artifact and immutable-Grail closure. The reference
 profile passes 22/22 core checks plus the operational safety vectors on every
 push; the Grail rules govern release conformance without changing existing
