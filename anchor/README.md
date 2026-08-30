@@ -2,10 +2,11 @@
 
 This directory is RAPP's public, pullable anchor: an append-only chain of frames
 (`chain.jsonl`, one frame per spec revision) and a small beacon (`orient.json`) carrying the
-current spec revision and normative sha256, the philosophy hash, the registered
-kinds, operational profile pins, and the vocabulary with each term's status.
-Resolve spec and profile questions through it instead of hardcoding a moving
-branch or re-deriving rules in code.
+current spec revision and normative sha256, the ratified public Constitution
+hash, the pinned public RAPP foundation, the philosophy mirror hash, the
+registered kinds, operational profile pins, and the vocabulary with each
+term's status. Resolve spec and profile questions through it instead of
+hardcoding a moving branch or re-deriving rules in code.
 
 These files are generator-owned and never hand-edited. The anchor is unsigned on purpose —
 no authenticated registry exists yet, and signing without one would be fabrication — and the

@@ -13,10 +13,14 @@
 |---|---|
 | Reference implementation (`rapp.py`) | `https://raw.githubusercontent.com/kody-w/rapp-1/main/rapp.py` |
 | The specification (`SPEC.md`) | `https://raw.githubusercontent.com/kody-w/rapp-1/main/SPEC.md` |
+| Public Protocol Constitution | `https://raw.githubusercontent.com/kody-w/rapp-1/main/CONSTITUTION.md` |
 | The compliance linter (`rapp_check.py`) | `https://raw.githubusercontent.com/kody-w/rapp-1/main/rapp_check.py` |
-| Constitution (Articles LIII, LIV) | `https://raw.githubusercontent.com/kody-w/RAPP/main/CONSTITUTION.md` |
+| RAPP foundation/product home | `https://github.com/kody-w/RAPP` |
 
-`kody-w/rapp-1` is the single reference implementation of record. Where this Playbook and those files ever disagree, **SPEC.md + rapp.py win** — they are the standard; this document teaches it.
+`kody-w/rapp-1` is the protocol authority and reference implementation of
+record. `kody-w/RAPP` is the public foundation and product home. Where this
+Playbook and the protocol sources disagree, **SPEC.md + the public Protocol
+Constitution + rapp.py win** — they are the standard; this document teaches it.
 
 Get the whole reference in one command:
 
@@ -209,13 +213,14 @@ print("egg OK:", egg_hash)
 
 ---
 
-## 5. The schema-name ratification (Constitution Article LIV, 2026-07-15)
+## 5. The schema-name rule (RAPP/1 §12)
 
 The `rappid.json` `schema` field carries **exactly one** canonical value estate-wide: **`rapp/1`**. This is the value `rapp_check.py` (§12 check) enforces.
 
 The former names **`rapp-rappid/2.0`** and older **`rapp-rappid/1.1`** are RETIRED: read-forever (a consumer treats them as `rapp/1` on read) but **NEVER emitted** by any producer, and never left standing in a declaration.
 
-**Identity math is unchanged.** No rappid tail, frame hash, or egg byte changes under Article LIV — this is a label ratification, not a re-mint.
+**Identity math is unchanged.** No rappid tail, frame hash, or egg byte changes
+under this rule — it is a label convergence, not a re-mint.
 
 The judgment taxonomy — apply it to *every* hit of a retired name (this taxonomy is the difference between a deep pass and a destructive one):
 
@@ -229,7 +234,7 @@ The judgment taxonomy — apply it to *every* hit of a retired name (this taxono
 
 ---
 
-## 6. Mirrors and downstream (Constitution Article LIII.6)
+## 6. Mirrors and downstream (Protocol Constitution Articles 1 and 10)
 
 A **mirror** is only ever edited by **re-syncing from its declared upstream of record**. Examples: batcave agent copies re-sync from `kody-w/RAR`; a RAPP variant re-syncs canon from `kody-w/RAPP`. If your repo contains a mirror with drift, the fix is *upstream first, then re-sync* — never an independent hand-edit that diverges the mirror. If the upstream itself is drifted, report it (§9) rather than patching your copy.
 

@@ -1,0 +1,10 @@
+{
+  "schema": "rapp-foundation-pointer/1",
+  "status": "canonical-product-home",
+  "repository": "https://github.com/kody-w/RAPP",
+  "commit": "cb921ae59b5d762ce0bdd5493764cbb1c8b539fe",
+  "path": "PHILOSOPHY.md",
+  "sha256": "901826afd8be6e4b4bc24f83777b6d75ee29aabbff2a12655d2ab64a4e8e489c",
+  "size_bytes": 2633,
+  "relationship": "kody-w/RAPP is the public RAPP foundation and product home; kody-w/rapp-1 is the interoperable protocol authority"
+}
