@@ -1,18 +1,18 @@
 {
  "schema": "rapp/1-anchor",
- "generated_utc": "2026-08-30T18:33:07.718Z",
+ "generated_utc": "2026-08-30T18:48:18.785Z",
  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
  "head": {
-  "seq": 12,
-  "frame_hash": "d2bcf3a642237634025fece571187fc7db0e0a473192b03858a5a6c9735b8cc0",
-  "payload_hash": "415f2f79e285039f476baf647e0e037b52cc4ead110a5c99a44634e12ffc055a"
+  "seq": 13,
+  "frame_hash": "bbcee75ebbbf82d11d8ffd666fdda34c8233642de6d6e4f45910d43a24a001e3",
+  "payload_hash": "78a89c06509b5100494b9c7e0f551acdc6209fd90aded734321f3580b0f07051"
  },
  "spec": {
-  "revision": "rev-12",
+  "revision": "rev-13",
   "normative_path": "SPEC.md",
-  "normative_sha256": "e753f4f967ce7553fec4ba04373d06d9b10fd8b83e868ba1ce5b866f65243fa0",
+  "normative_sha256": "e5abd6a32801761fdd5c151a4f90fa4c989b545da02d3cd26dfc4765fab8409a",
   "canonical_repo": "https://github.com/kody-w/rapp-1",
-  "commit": "019ccb4b6177cb192b2383d31423874f298e4251"
+  "commit": "5e30f66396f4cd125bce5718b1fef92d8d3ddab8"
  },
  "registered_kinds": [
   "body.pulse",
