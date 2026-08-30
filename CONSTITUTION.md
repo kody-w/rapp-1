@@ -1,7 +1,9 @@
 # The rapp/1 Protocol Constitution
 
-**Status: DRAFT — pending ratification by the estate owner.** Like the standard it
-governs, this document is drafted in public and becomes law on the owner's word.
+**Status: DRAFT — pending full ratification by the estate owner.** Article
+15's permanent byte-immutability rule was explicitly owner-authorized on
+2026-08-29 and becomes binding when the pull request carrying these exact bytes
+is merged under Article 14.
 
 `SPEC.md` is the law of **bytes** — what a conformant implementation must emit and
 refuse. This Constitution is the law of **change** — how the standard, this repository,
@@ -132,6 +134,29 @@ numbers are **append-only**: an article is amended in place or deprecated by a v
 flag, never renumbered and never silently deleted — so every citation ever made
 remains resolvable. The amendment history is the git history; there is no other record.
 
+## Article 15 — The Grail Never Changes
+
+Once an estate owner authenticates a Grail kernel pin through the RAPP/1
+registry, the exact bytes identified by its domain-separated `grail_id` are
+permanent. Repository, ref, commit, path, raw SHA-256, and product name are
+provenance locators; none can redefine that identity.
+
+1. The Grail's bytes never change under that identity.
+2. Every ring and every release/deployment stage, including future or renamed
+   stages, must fail closed when the candidate bytes or resolved runtime entry
+   point differ from the pin.
+3. A pipeline may not test different bytes and substitute the Grail afterward;
+   the exact release-shaped artifact that executes the pin must earn release.
+4. Different bytes are a different Grail. They may receive a new identity and
+   explicit lineage, but never overwrite, retag, alias, or silently replace the
+   old Grail.
+
+Existing growth-by-registration and no-legacy rules determine where new
+behavior belongs. This article does not authorize unregistered protocol
+surfaces. It is entrenched: future amendments may strengthen verification but
+may not authorize mutation of an already-declared Grail under the same
+identity.
+
 ---
 
 ## Concordance — resolving SPEC.md's Federal Constitution citations
@@ -146,5 +171,7 @@ remains resolvable. The amendment history is the git history; there is no other 
 | Fed. Const. Art. IX | §12.1 — the append is the linearization point | Article 5 |
 | Fed. Const. Art. X | §1, §7.6, §12.1 — owner fork resolution, retired specs | Article 6 |
 
-*Drafted 2026-08-26 in public session. Ratification: the estate owner's word, recorded
-by merge. One spec, one canonicalizer, one mint, one frame.*
+*Drafted 2026-08-26 in public session. Article 15 owner-authorized 2026-08-29
+and recorded as ratified by the merge that introduces its exact bytes;
+full-document ratification remains the estate owner's word. One spec, one
+canonicalizer, one mint, one frame, one immutable Grail.*

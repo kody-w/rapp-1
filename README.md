@@ -54,7 +54,7 @@ in chapter 10.
 
 | file | what it is |
 |------|-----------|
-| **[`SPEC.md`](SPEC.md)** | the normative RAPP standard (rev-6) — 15 sections, RFC-grounded |
+| **[`SPEC.md`](SPEC.md)** | the normative RAPP standard (rev-7) — 15 sections, RFC-grounded |
 | **[`anchor/`](anchor/README.md)** | the public pullable anchor — spec pin, kinds, and vocabulary status in `orient.json`, plus [the DOGG feed](https://github.com/kody-w/rapp-1/commits/main/anchor.atom): subscribe to anchor ticks in any feed reader |
 | **[`CONSTITUTION.md`](CONSTITUTION.md)** | the rapp/1 Protocol Constitution — the law of change: how the standard, this repo, and its claims may lawfully evolve |
 | **[`PROMPTS.md`](PROMPTS.md)** | the prompt book — every task as a copy-paste prompt for your brainstem or brainsurgeon; you never type code |
@@ -140,7 +140,8 @@ because everyone building on it turns the same bytes into the same tree.
 
 ## Status
 
-RAPP rev-5. The reference profile passes 16/16 controlled checks on every push — CI runs the
+RAPP rev-5's executable reference profile passes 16/16 controlled checks on every push; the
+rev-7 immutable-Grail addition is a release-conformance rule, not a wire-shape change. CI runs the
 suite on Python 3.9 and 3.13, runs all six examples, and enforces byte parity between `rapp.py`
 and the SDK agent's embedded primitives (`parity_check.py`). The captured 2026-08-20 estate audit
 accepted 46/46 committed frames and four canonical identity records with zero drift; the estate
