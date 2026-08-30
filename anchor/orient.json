@@ -1,18 +1,18 @@
 {
  "schema": "rapp/1-anchor",
- "generated_utc": "2026-08-30T15:04:13.566Z",
+ "generated_utc": "2026-08-30T18:33:07.718Z",
  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
  "head": {
-  "seq": 11,
-  "frame_hash": "4a15c02725494680ee8d9ae53e342e59cee4bcc30792b8056529bbd2290d55d9",
-  "payload_hash": "1e2261c57c17db3e0a49d8576e8572115196f63312980bbdc015a628668b2be7"
+  "seq": 12,
+  "frame_hash": "d2bcf3a642237634025fece571187fc7db0e0a473192b03858a5a6c9735b8cc0",
+  "payload_hash": "415f2f79e285039f476baf647e0e037b52cc4ead110a5c99a44634e12ffc055a"
  },
  "spec": {
-  "revision": "rev-11",
+  "revision": "rev-12",
   "normative_path": "SPEC.md",
-  "normative_sha256": "2f9cc5cfc737597f152d814a4a2faaba9a30f8ff66221d2a8803a17f90ca5c8e",
+  "normative_sha256": "e753f4f967ce7553fec4ba04373d06d9b10fd8b83e868ba1ce5b866f65243fa0",
   "canonical_repo": "https://github.com/kody-w/rapp-1",
-  "commit": "177b09bffad360ed2c2b222d32fbad387cc19747"
+  "commit": "019ccb4b6177cb192b2383d31423874f298e4251"
  },
  "registered_kinds": [
   "body.pulse",
@@ -141,7 +141,26 @@
   }
  },
  "philosophy": {
+  "canonical_repository": "https://github.com/kody-w/RAPP",
+  "canonical_commit": "cb921ae59b5d762ce0bdd5493764cbb1c8b539fe",
+  "canonical_path": "PHILOSOPHY.md",
+  "canonical_sha256": "901826afd8be6e4b4bc24f83777b6d75ee29aabbff2a12655d2ab64a4e8e489c",
+  "mirror_path": "PHILOSOPHY.md",
+  "mirror_sha256": "901826afd8be6e4b4bc24f83777b6d75ee29aabbff2a12655d2ab64a4e8e489c"
+ },
+ "foundation": {
+  "schema": "rapp-foundation-pointer/1",
+  "status": "canonical-product-home",
+  "repository": "https://github.com/kody-w/RAPP",
+  "commit": "cb921ae59b5d762ce0bdd5493764cbb1c8b539fe",
   "path": "PHILOSOPHY.md",
-  "sha256": "b996127493930b5bfd601bf828a372341e0b507e5e19bee9c5bdfec2e1112c62"
+  "sha256": "901826afd8be6e4b4bc24f83777b6d75ee29aabbff2a12655d2ab64a4e8e489c",
+  "size_bytes": 2633,
+  "relationship": "kody-w/RAPP is the public RAPP foundation and product home; kody-w/rapp-1 is the interoperable protocol authority"
+ },
+ "constitution": {
+  "path": "CONSTITUTION.md",
+  "sha256": "545086b6cd241bfc4741e94c8cec3300e61d9f446f1571694f11b7ea549e5129",
+  "size_bytes": 13494
  }
 }
