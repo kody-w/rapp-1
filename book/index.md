@@ -8,7 +8,7 @@ description: A tutorial, programming workbook, and reference manual for verifiab
 ---
 
 <section class="book-title-sheet" aria-label="Book title page">
-  <p class="book-title-kicker">RAPP rev-5 · book edition</p>
+  <p class="book-title-kicker">RAPP rev-7 · book edition</p>
   <p class="book-title-words">The RAPP <span>Programming</span> Language</p>
   <div class="book-title-glyph" aria-hidden="true">R/1</div>
   <p class="book-title-subtitle">A tutorial, programming workbook, and reference manual for

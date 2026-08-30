@@ -4,7 +4,7 @@ title: RAPP Reference Manual
 book_label: Appendix A
 book_progress: 92
 book_order: 120
-description: Terse implementation reference for RAPP rev-5
+description: Terse implementation reference for RAPP rev-7
 ---
 
 [← Chapter 11: Implementing the Language](11-implementing-rapp.md) ·
@@ -98,8 +98,10 @@ current form citing the sealed head → old frames retained under `legacy/` (sea
 - Exact seven-member manifest:
   `{schema,variant,rappid,created_utc,contents,payload,sig}`.
 - JSON containers: `session`, `invite`; serialized as `canonical(manifest)`, `contents:[]`.
-- Deterministic stored-ZIP containers: `organism`, `rapplication`, `neighborhood`, `estate`;
+- Deterministic stored-ZIP containers: `organism`, `rapplication`, `neighborhood`, `estate`, `sealed`;
   `manifest.json` first, then all files in UTF-8 path order, fixed timestamps, no extra fields.
+- `sealed`: exactly `ciphertext.bin`; AES-256-GCM; signed manifest; scoped recipient-wrapped key release
+  via a `key_service_rappid`; public mirrors never carry a shared DEK.
 - File address: `Hb("rapp/1:egg", file_octets)`.
 - Egg identity: `H("rapp/1:egg-manifest", manifest∖{sig})`; signing or re-signing does not change
   this address.

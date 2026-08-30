@@ -27,6 +27,7 @@ import json
 import re
 import urllib.request
 import uuid
+from datetime import datetime
 
 # ── graceful base: use the brainstem's BasicAgent if present, else a standalone shim ──
 try:                                            # inside a brainstem
@@ -64,9 +65,10 @@ __manifest__ = {
 
 SPEC = "rapp/1"
 SRC = "https://raw.githubusercontent.com/kody-w/rapp-1/main/rapp.py"
-_HEX64 = re.compile(r"^[0-9a-f]{64}$")
-_UTC = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$")
-_RAPPID = re.compile(r"^rappid:@([a-z0-9]+(?:-[a-z0-9]+)*)/([a-z0-9]+(?:-[a-z0-9]+)*):([0-9a-f]{64})$")
+_HEX64 = re.compile(r"[0-9a-f]{64}")
+_UTC = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z")
+_LCLABEL = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
+_RAPPID = re.compile(r"rappid:@([a-z0-9]+(?:-[a-z0-9]+)*)/([a-z0-9]+(?:-[a-z0-9]+)*):([0-9a-f]{64})")
 FRAME_KEYS = {"spec", "kind", "stream_id", "seq", "utc", "payload",
               "payload_hash", "frame_hash", "prev", "prev_wave", "sig"}
 
@@ -76,6 +78,8 @@ def canonical(v):
     if v is None or isinstance(v, bool):
         return json.dumps(v)
     if isinstance(v, int):
+        if abs(v) > 2**53 - 1:
+            raise ValueError("int outside interoperable range (|n| > 2^53-1); carry it as a string")
         return json.dumps(v)
     if isinstance(v, float):
         raise ValueError("floats require full-JCS number serialization; use ints/strings")
@@ -84,7 +88,7 @@ def canonical(v):
     if isinstance(v, list):
         return "[" + ",".join(canonical(x) for x in v) + "]"
     if isinstance(v, dict):
-        keys = sorted(v.keys())
+        keys = sorted(v.keys(), key=lambda k: k.encode("utf-16-be"))
         if len(keys) != len(set(keys)):
             raise ValueError("duplicate keys")
         return "{" + ",".join(json.dumps(k, ensure_ascii=False) + ":" + canonical(v[k]) for k in keys) + "}"
@@ -100,12 +104,38 @@ def Hb(space, b):
 
 
 def mint_rappid(owner, slug, spki_der=None):
+    if (
+        not isinstance(owner, str)
+        or not _LCLABEL.fullmatch(owner)
+        or not 1 <= len(owner) <= 39
+        or not isinstance(slug, str)
+        or not _LCLABEL.fullmatch(slug)
+        or not 1 <= len(slug) <= 100
+    ):
+        raise ValueError("owner or slug violates the RAPPID grammar")
     tail = Hb("rapp/1:rappid", spki_der) if spki_der is not None else Hb("rapp/1:rappid", uuid.uuid4().bytes)
     return f"rappid:@{owner}/{slug}:{tail}"
 
 
 def rappid_valid(s):
-    return bool(_RAPPID.match(s or ""))
+    if not isinstance(s, str):
+        return False
+    match = _RAPPID.fullmatch(s)
+    return bool(
+        match
+        and 1 <= len(match.group(1)) <= 39
+        and 1 <= len(match.group(2)) <= 100
+    )
+
+
+def utc_valid(value):
+    if not isinstance(value, str) or not _UTC.fullmatch(value):
+        return False
+    try:
+        datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%fZ")
+    except ValueError:
+        return False
+    return True
 
 
 def build_frame(kind, stream_id, seq, utc, payload, prev, prev_wave=None, sig=None):
@@ -117,26 +147,26 @@ def build_frame(kind, stream_id, seq, utc, payload, prev, prev_wave=None, sig=No
     return frame
 
 
-def verify_frame(frame, head=None, stream_id_of_record=None):
+def verify_frame(frame, head=None, stream_id_of_record=None, signature_verifier=None):
     if set(frame.keys()) != FRAME_KEYS:
         return False, "1", f"key set != 11 ({sorted(frame.keys())})"
     if frame["spec"] != SPEC:
         return False, "1", "spec != rapp/1"
-    if not (isinstance(frame["kind"], str) and re.match(r"^[a-z0-9]+(-[a-z0-9]+)*\.[a-z0-9]+(-[a-z0-9]+)*$", frame["kind"])):
+    if not (isinstance(frame["kind"], str) and re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*\.[a-z0-9]+(-[a-z0-9]+)*", frame["kind"])):
         return False, "1", "kind grammar"
     if not isinstance(frame["stream_id"], str):
         return False, "1", "stream_id type"
     if not (isinstance(frame["seq"], int) and not isinstance(frame["seq"], bool) and 0 <= frame["seq"] <= 2**53 - 1):
         return False, "1", "seq not uint53"
-    if not (isinstance(frame["utc"], str) and _UTC.match(frame["utc"])):
+    if not utc_valid(frame["utc"]):
         return False, "1", "utc not fixed form"
     if not isinstance(frame["payload"], dict):
         return False, "1", "payload not object"
     for k in ("payload_hash", "frame_hash"):
-        if not (isinstance(frame[k], str) and _HEX64.match(frame[k])):
+        if not (isinstance(frame[k], str) and _HEX64.fullmatch(frame[k])):
             return False, "1", f"{k} not 64hex"
     for k in ("prev", "prev_wave"):
-        if not (frame[k] is None or (isinstance(frame[k], str) and _HEX64.match(frame[k]))):
+        if not (frame[k] is None or (isinstance(frame[k], str) and _HEX64.fullmatch(frame[k]))):
             return False, "1", f"{k} not null|64hex"
     if stream_id_of_record is not None and frame["stream_id"] != stream_id_of_record:
         return False, "1a", "stream_id mismatch (cross-stream replay)"
@@ -163,6 +193,18 @@ def verify_frame(frame, head=None, stream_id_of_record=None):
         return False, "5", "prev_wave must be null off swarm"
     if is_swarm and frame["sig"] is None:
         return False, "6", "swarm frame must be signed"
+    if frame["sig"] is not None:
+        if signature_verifier is None:
+            return False, "6", "signed frame requires a trusted signature verifier"
+        unsigned = {k: frame[k] for k in frame if k != "sig"}
+        try:
+            result = signature_verifier(unsigned, frame["sig"])
+        except Exception as exc:
+            return False, "6", f"signature verifier failed: {exc}"
+        ok = result[0] if isinstance(result, tuple) else bool(result)
+        why = result[1] if isinstance(result, tuple) and len(result) > 1 else "signature refused"
+        if not ok:
+            return False, "6", str(why)
     return True, None, "ok"
 
 
@@ -175,7 +217,7 @@ def _fetch(url, timeout=20):
 def _parse_id(s):
     """Accept '@owner/slug' or a full rappid and return (owner, slug)."""
     if s.startswith("rappid:@"):
-        m = _RAPPID.match(s)
+        m = _RAPPID.fullmatch(s)
         if m:
             return m.group(1), m.group(2)
     s = s.lstrip("@")

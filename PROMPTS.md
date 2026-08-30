@@ -19,14 +19,14 @@ Paste into your brainsurgeon:
 
 ```text
 You are my hands — I watch, you type. Clone https://github.com/kody-w/rapp-1 and prove
-RAPP to me end to end: (1) run python3 conformance.py — I expect 16/16 PASS; (2) run
+RAPP to me end to end: (1) run python3 conformance.py — I expect 22/22 PASS; (2) run
 python3 realcheck.py — the spec against the live public estate — and explain the verdict
 in plain English; (3) run python3 examples/01_hello_frame.py and walk me through the
 frame it built, one line per key. Narrate as you go, show real output, and stop on any
 red result — a red check is a finding, not something to patch around.
 ```
 
-**Expect:** `16 controlled checks | 16 PASS | 0 FAIL`, an estate verdict with zero drift
+**Expect:** `22 controlled checks | 22 PASS | 0 FAIL`, an estate verdict with zero drift
 findings, and an 11-key frame explained.
 
 ## 2 · Build me a verifiable chain
@@ -64,6 +64,23 @@ show me verify_egg refusing with the exact failing step.
 ```
 
 **Expect:** byte-identical eggs across two packs, then a §5 content-hash refusal.
+
+## 4.1 · Seal restricted bytecode for a public mirror
+
+```text
+Read RAPP/1 SPEC.md §9.2.1 and package my compiled artifact as a `sealed`
+rapp/1-egg. Use a fresh random 256-bit DEK and 12-byte AES-GCM nonce, bind the
+canonical sealed descriptor as AAD, require a signed manifest, and publish only
+ciphertext plus the manifest. Pin any GitHub Raw URL to a commit SHA. Do not put
+the DEK, password, master key, plaintext, or raw entitlement token in the egg,
+URL, logs, or source. Use the existing POST /chat wire for a scoped key-service
+organism to return only a recipient-wrapped DEK. Prove the egg passes
+verify_egg, then mutate ciphertext length, AAD hash, and add a plaintext file
+and show each is refused.
+```
+
+**Expect:** a signed `variant:"sealed"` egg whose public bytes contain only
+`ciphertext.bin`, followed by three deliberate §9.2 refusals.
 
 ## 5 · Install the RAPP toolkit into my brainstem
 

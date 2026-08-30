@@ -23,11 +23,11 @@ package an **egg**.
 The egg reuses every earlier lesson: canonical values, named hash spaces, minted identity, exact
 schemas, optional signatures, and refusal rather than repair.
 
-## 7.1 One Spec, Six Variants
+## 7.1 One Spec, Seven Variants
 
 The egg’s history is the clearest case of the drift this protocol ends. The format was once
 re-specified by several documents, each naming a slightly different archive and each believing it
-was authoritative. RAPP §9 replaces that family of dialects with one manifest and six registered
+was authoritative. RAPP §9 replaces that family of dialects with one manifest and seven registered
 variants:
 
 | Variant | Container | Packages | Minimum viability |
@@ -38,9 +38,16 @@ variants:
 | `invite` | canonical JSON | signed pointer to a space | target fields + estate-owner signature |
 | `neighborhood` | stored ZIP | a set of member organism eggs | members list and matching sub-eggs |
 | `estate` | stored ZIP | a set of neighborhood eggs | neighborhoods list and matching sub-eggs |
+| `sealed` | stored ZIP | signed public ciphertext | exactly `ciphertext.bin` plus the closed sealed payload |
 
 The `variant` member changes the viability rules, not the manifest shape. Adding a package kind is
 a registry and standard change, not permission to mint `my-new-egg/1.0`.
+
+The `sealed` variant is how a public mirror can carry restricted bytes without carrying a shared key.
+It uses AES-256-GCM with a fresh per-artifact DEK, binds the descriptor as authenticated data, requires
+a signed manifest, and names a key-service organism that releases only recipient-wrapped keys. Public
+bytecode is still inspectable after authorized decryption; encryption protects delivery, not perpetual
+control of a recipient's machine.
 
 ## 7.2 The Seven-Member Manifest
 

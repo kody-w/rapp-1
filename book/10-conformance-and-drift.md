@@ -37,12 +37,12 @@ python3 conformance.py
 The controlled section prints:
 
 ```text
-RAPP rev-5 — conformance vectors
+RAPP rev-7 — conformance vectors
   [PASS] V1  canonicalization is key-order independent
   [PASS] V1b array order IS significant
   [PASS] V2  domain tags separate the address space
   [PASS] V3  keyless mint is not sha256(owner/slug)
-  [PASS] V3  rappid matches the §6.1 grammar
+  [PASS] V3  rappid matches §6.1 grammar and length bounds
   [PASS] V3  keyed tail == Hb('rapp/1:rappid', SPKI)
   [PASS] V3  mint-once determinism for keyed identity
   [PASS] V4  genesis frame builds and verifies
@@ -52,13 +52,20 @@ RAPP rev-5 — conformance vectors
   [PASS] V6  child frame links to genesis
   [PASS] V6  broken prev caught at step 4
   [PASS] V7  cross-stream genesis replay refused at 1a
-  [PASS] V8  missing key refused at step 1 (no absent-vs-null)
-  [PASS] V9  unsigned swarm frame refused at step 6
-  ── 16 controlled checks | 16 PASS | 0 FAIL
+  [PASS] V8  missing key and impossible calendar time are refused at step 1
+  [PASS] V9  unsigned swarm and unverified frame signatures are refused at step 6
+  [PASS] V10 sealed artifact verifies and opens through crypto adapters
+  [PASS] V10b tamper, oversize, missing trust, and wrong signer are refused
+  [PASS] V10c trailing bytes, malformed manifests, and unsafe path aliases are refused
+  [PASS] V10d invite signatures bind to estate-owner authority
+  [PASS] V10e sealed authenticated-data mismatch is refused
+  [PASS] V10f sealed plaintext and packaged identity mismatches are refused
+  ── 22 controlled checks | 22 PASS | 0 FAIL
 ```
 
 Each vector maps to a promise made earlier in the book. V1/V1b is canonicalization, V2 is domain
-separation, V3 is mint-once identity, and V4–V9 exercise the frame build and verification steps.
+separation, V3 is mint-once identity, V4–V9 exercise the frame build and verification steps, and
+V10 exercises the sealed-artifact profile.
 Green here is not a generic “clean build.” It is a selected set of protocol claims exercised
 against fixed inputs.
 
