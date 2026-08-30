@@ -119,15 +119,17 @@ The book uses four recurring forms:
 - **Try it** — a small observation you can reproduce with the checked-in code.
 - **Failure mode** — the exact point at which a consumer must refuse rather than guess or repair.
 
-When prose and code disagree, stop. `SPEC.md` is normative; `rapp.py` is the executable reference
-profile; `conformance.py` is the proof surface; this book is the explanation. A useful book keeps
-all four aligned.
+When prose and code disagree, stop. `anchor/chain.jsonl` is the normative
+revision history; `SPEC.md` is its current materialized view; `rapp.py` is the
+executable reference profile; `conformance.py` is the proof surface; this book
+is the explanation. A useful book keeps all of them aligned.
 
 ## The companion shelf
 
 | Artifact | Role |
 |---|---|
-| [`SPEC.md`](../SPEC.md) | normative RAPP rev-7 standard |
+| [`anchor/chain.jsonl`](../anchor/chain.jsonl) | normative append-only specification revision history |
+| [`SPEC.md`](../SPEC.md) | byte-exact materialized view of the current chain head |
 | [`rapp.py`](../rapp.py) | small, stdlib-only reference profile |
 | [`conformance.py`](../conformance.py) | producer/consumer interoperability vectors |
 | [`realcheck.py`](../realcheck.py) | evidence from committed estate artifacts |

@@ -18,11 +18,17 @@ jobs:
         python-version: ['3.9', '3.13']
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Protocol conformance (spec floor is stdlib-only, any modern Python)
         run: python3 conformance.py
+      - name: Specification chain and materialized view
+        run: |
+          python3 -m unittest anchor.test_spec_chain
+          python3 anchor/materialize_spec.py --offline --check SPEC.md
       - name: Operational profile conformance
         run: python3 operations_conformance.py
       - name: Reference/agent primitive parity (one canonicalizer, enforced)

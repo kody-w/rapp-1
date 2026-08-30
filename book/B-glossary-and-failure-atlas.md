@@ -12,8 +12,9 @@ description: RAPP terms, address spaces, and verification failures at a glance
 
 # Appendix B — Glossary and Failure Atlas
 
-This appendix is the vocabulary of the book in one place. Definitions summarize the teaching
-text; `SPEC.md` remains normative.
+This appendix is the vocabulary of the book in one place. Definitions summarize
+the teaching text; the verified specification chain remains normative and
+`SPEC.md` is its current byte-exact materialized view.
 
 ## B.1 Core Terms
 

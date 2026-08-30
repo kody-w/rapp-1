@@ -86,7 +86,8 @@ python3 -c "import rapp_sdk_builder_agent as A; print(A.RappSdkBuilderAgent().pe
 
 - The **reference book** (`book/`) — the RAPP protocol in prose, front to back.
 - The **visual guide** (`guide/`) — the same protocol in pictures.
-- `SPEC.md` — the normative standard, when you need the exact letter.
+- `anchor/chain.jsonl` — the normative revision history and durable frame identities.
+- `SPEC.md` — the byte-exact materialized head view, when you need the exact letter.
 - `rapp.py` — the reference implementation the SDK embeds; read it, it is ~140 lines.
 
 You now hold the whole loop: a grail brainstem, an SDK that makes correct RAPP the only thing you

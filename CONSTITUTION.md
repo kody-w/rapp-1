@@ -5,29 +5,39 @@ owner-authorized on 2026-08-29 and 2026-08-30. Article 17 and full-document
 public ratification were owner-authorized on 2026-08-30 and become effective
 when the pull request carrying these exact bytes is merged under Article 14.
 
-`SPEC.md` is the law of **bytes** — what a conformant implementation must emit and
-refuse. This Constitution is the law of **change** — how the standard, this repository,
-and every claim they make may lawfully evolve. When the two disagree about bytes, the
-SPEC wins; when they disagree about process, this Constitution wins.
+The normative revision text carried by the verified head of
+`anchor/chain.jsonl` is the law of **bytes** — what a conformant implementation
+must emit and refuse. `SPEC.md` is the byte-exact materialized view of that head.
+This Constitution is the law of **change** — how the standard, this repository,
+and every claim they make may lawfully evolve. When the normative revision text
+and this Constitution disagree about bytes, the revision text wins; when they
+disagree about process, this Constitution wins.
 
 **Relation to private estate governance.** Private constitutions may govern
 estate-level product, company, or owner decisions, but they do not govern public
-RAPP/1 bytes or protocol amendment. `SPEC.md` and this public Protocol
-Constitution are final for protocol conformance and governance. Historical
-Federal-Constitution citations in `SPEC.md` resolve to the public restatements
-in Articles 2–7 and the concordance below. A conflicting private rule must be
-changed or treated as nonconformant; it cannot silently override this public
-standard.
+RAPP/1 bytes or protocol amendment. The verified specification chain and this
+public Protocol Constitution are final for protocol conformance and
+governance. Historical Federal-Constitution citations in the materialized
+`SPEC.md` resolve to the public restatements in Articles 2–7 and the
+concordance below. A conflicting private rule must be changed or treated as
+nonconformant; it cannot silently override this public standard.
 
 ---
 
-## Article 1 — One Spec of Record
+## Article 1 — One Specification Chain of Record
 
-There is exactly one normative source for rapp/1: **`SPEC.md` in this repository.**
-Mirrors (rapp-god's authority tree, rendered books, the reference manual) carry
-provenance stamps and reproduce it; they never fork it. A mirror that drifts from the
-authority file is a drift finding, not a second opinion. The books are *teaching*
-surfaces: where a book and the SPEC disagree, the SPEC is right and the book has a bug.
+There is exactly one normative history for rapp/1:
+**`anchor/chain.jsonl`, the append-only DOGG specification chain.** Every
+protocol adjustment appends one valid `rapp/1` frame extending the prior head.
+The frame hash is the durable protocol-revision identity; `rev-N` names are
+lookup labels. Historical frames remain immutable and globally resolvable.
+
+For inline specification revisions, the frame payload carries the exact
+normative UTF-8 text and its raw SHA-256 and byte length. `SPEC.md` is generated
+from that text as the current human view; it is not independent authority.
+`orient.json` is only a beacon to the head, and git is transport and provenance.
+Mirrors, rendered books, and reference manuals carry provenance and never fork
+the chain. Drift from a verified revision is a finding, not a second opinion.
 
 ## Article 2 — One Label, One Shape
 
@@ -131,10 +141,14 @@ fine-print convention — never per-mention.
 
 ## Article 14 — Amendment
 
-This Constitution changes by pull request ratified by the estate owner. Article
-numbers are **append-only**: an article is amended in place or deprecated by a visible
-flag, never renumbered and never silently deleted — so every citation ever made
-remains resolvable. The amendment history is the git history; there is no other record.
+This Constitution and the protocol change by pull request ratified by the
+estate owner and recorded by appending the corresponding valid specification
+revision frame to `anchor/chain.jsonl`. Article numbers are **append-only**: an
+article is amended in place or deprecated by a visible flag, never renumbered
+and never silently deleted — so every citation ever made remains resolvable.
+The specification chain is the amendment record. Git commits transport those
+bytes and preserve review and provenance; git history is not a second
+normative source and never substitutes for the required chain append.
 
 ## Article 15 — The Grail Never Changes
 
