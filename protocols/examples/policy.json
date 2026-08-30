@@ -1,0 +1,103 @@
+{
+  "schema": "rapp-cicd/1-policy",
+  "release_scope": "https://github.com/kody-w/rapp-installer/releases/grail",
+  "created_utc": "2026-08-30T12:54:20.000Z",
+  "stages": [
+    {
+      "id": "development",
+      "class": "development",
+      "required_checks": [
+        "unit"
+      ],
+      "minimum_soak_seconds": 0,
+      "maximum_evidence_age_seconds": 86400,
+      "approval": "automatic"
+    },
+    {
+      "id": "test",
+      "class": "test",
+      "required_checks": [
+        "integration"
+      ],
+      "minimum_soak_seconds": 0,
+      "maximum_evidence_age_seconds": 86400,
+      "approval": "automatic"
+    },
+    {
+      "id": "canary",
+      "class": "canary",
+      "required_checks": [
+        "grail-kernel",
+        "product",
+        "autonomous",
+        "security-smoke"
+      ],
+      "minimum_soak_seconds": 60,
+      "maximum_evidence_age_seconds": 3600,
+      "approval": "automatic"
+    },
+    {
+      "id": "nightly",
+      "class": "qualification",
+      "required_checks": [
+        "mirror-integrity"
+      ],
+      "minimum_soak_seconds": 60,
+      "maximum_evidence_age_seconds": 21600,
+      "approval": "automatic"
+    },
+    {
+      "id": "alpha",
+      "class": "qualification",
+      "required_checks": [
+        "cross-platform"
+      ],
+      "minimum_soak_seconds": 60,
+      "maximum_evidence_age_seconds": 21600,
+      "approval": "automatic"
+    },
+    {
+      "id": "beta",
+      "class": "qualification",
+      "required_checks": [
+        "release-candidate"
+      ],
+      "minimum_soak_seconds": 60,
+      "maximum_evidence_age_seconds": 21600,
+      "approval": "automatic"
+    },
+    {
+      "id": "preprod",
+      "class": "preprod",
+      "required_checks": [
+        "authenticated-soak",
+        "capacity",
+        "dependency-integrity",
+        "exact-candidate",
+        "failover",
+        "grail-kernel",
+        "model-behavior",
+        "privacy",
+        "restore-rehearsal",
+        "rollback-rehearsal",
+        "security",
+        "state-compatibility",
+        "supply-chain",
+        "tenant-isolation"
+      ],
+      "minimum_soak_seconds": 3600,
+      "maximum_evidence_age_seconds": 7200,
+      "approval": "automatic"
+    },
+    {
+      "id": "production",
+      "class": "production",
+      "required_checks": [
+        "owner-approval"
+      ],
+      "minimum_soak_seconds": 0,
+      "maximum_evidence_age_seconds": 3600,
+      "approval": "owner"
+    }
+  ]
+}

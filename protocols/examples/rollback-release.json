@@ -1,0 +1,64 @@
+{
+  "schema": "rapp-cicd/1-release",
+  "release_scope": "https://github.com/kody-w/rapp-installer/releases/grail",
+  "created_utc": "2026-08-29T20:00:00.000Z",
+  "source": {
+    "repository": "https://github.com/kody-w/rapp-installer",
+    "object_format": "sha1",
+    "commit": "49db80c8c6b6caa7647369beaf477d374a8f293c",
+    "tree": "94b85084b1dee1183a5c21c45e97e955cd688d8a"
+  },
+  "artifact": {
+    "sha256": "b2a7ad9e21e613aaa5bf8ce4bd22174988ff6fe3c168a63914448740989782e5",
+    "size_bytes": 1048576,
+    "media_type": "application/zip",
+    "entrypoint": "rapp_brainstem/brainstem.py"
+  },
+  "grail": {
+    "grail_id": "grail:1a501dd7a01f05698abcf5f9bbe0273ebb9d09f5d6ec444aa71edccff947c8c7",
+    "path": "rapp_brainstem/brainstem.py",
+    "sha256": "bd55a7f0bcf5efd3f7966ca39bb146da3c25fda9a0b1ce5ba587919d3c3775f4",
+    "size_bytes": 154059
+  },
+  "components": [
+    {
+      "kind": "kernel",
+      "name": "grail-brainstem",
+      "version": "v0.6.16",
+      "sha256": "bd55a7f0bcf5efd3f7966ca39bb146da3c25fda9a0b1ce5ba587919d3c3775f4",
+      "mutable": false
+    },
+    {
+      "kind": "agent",
+      "name": "release-controller",
+      "version": "0.9.0",
+      "sha256": "cee8ae9c03a31b428f6d67d6e630e3c77da22579de981bf9e331bd3646c7b78e",
+      "mutable": false
+    },
+    {
+      "kind": "model",
+      "name": "qualified-model-route",
+      "version": "2026-08-30",
+      "sha256": "a5c06a3ace77a5e20ed05a507ddca0e127c20821c4eea7a35ddc666dd1b3406c",
+      "mutable": true
+    },
+    {
+      "kind": "state-schema",
+      "name": "rapp-state",
+      "version": "0",
+      "sha256": "1aaa7e13bb76028924c8e0e766d83ed566cac41a1ac76d8e414dccec3f4f7eca",
+      "mutable": false
+    },
+    {
+      "kind": "tool",
+      "name": "runtime-tool-contract",
+      "version": "1",
+      "sha256": "47b27d981f14cb1c93a3b0774e76ac07b495a509313f465ed78c8b839f9ed746",
+      "mutable": false
+    }
+  ],
+  "lineage": {
+    "mode": "seed",
+    "parents": []
+  }
+}

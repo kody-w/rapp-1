@@ -2,8 +2,9 @@
 
 **Status: DRAFT — pending full ratification by the estate owner.** Article
 15's permanent byte-immutability rule was explicitly owner-authorized on
-2026-08-29 and becomes binding when the pull request carrying these exact bytes
-is merged under Article 14.
+2026-08-29. Article 16's production-seaworthiness rule was explicitly
+owner-authorized on 2026-08-30. Each becomes binding when the pull request
+carrying its exact bytes is merged under Article 14.
 
 `SPEC.md` is the law of **bytes** — what a conformant implementation must emit and
 refuse. This Constitution is the law of **change** — how the standard, this repository,
@@ -157,6 +158,49 @@ surfaces. It is entrenched: future amendments may strengthen verification but
 may not authorize mutation of an already-declared Grail under the same
 identity.
 
+## Article 16 — Growth Must Not Mutate the Serving AI
+
+A production AI is a versioned serving lineage, not a writable checkout.
+Capability growth occurs in an isolated candidate lineage and reaches users
+only after the exact candidate earns promotion through machine-verifiable
+evidence.
+
+1. A candidate becomes immutable when qualification begins. Every stage
+   evaluates and promotes the same content-addressed release; rebuilding,
+   patching, substituting, or restoring different bytes between gates is
+   forbidden.
+2. Preprod is a production-shaped gate, not another mutable development ring.
+   It must exercise the exact candidate, authenticated dependencies, state
+   compatibility, rollback, and restore before production approval.
+3. A serving AI must not rewrite its code, agents, prompts, models, tools,
+   policies, or state schema in place. Learning and self-improvement produce a
+   new candidate identity while acknowledged user state remains protected.
+4. User exposure is progressive, bounded, observable, and reversible.
+   Unhealthy or stale evidence freezes advancement; cell isolation,
+   quarantine, explicit degradation, or exact rollback contains failure
+   without presenting failure as success.
+5. Production health is continuously renewed. Model, tool, dependency,
+   behavior, state, security, privacy, capacity, cost, and regional health are
+   evidence-bearing release properties, not assumptions made once at deploy.
+6. **RAPP CI/CD** (`rapp-cicd/1`) and **RAPP Deploy** (`rapp-deploy/1`) are the
+   normative operational profiles for an estate claiming RAPP production
+   conformance.
+7. A portable, self-documented organism may continue growing after graduation
+   by producing a newly identified offspring. A cross of two or more organisms
+   creates another new identity with explicit typed parent addresses; it never
+   merges parent identities, authority, ownership, or history. Each concrete
+   attempt remains bounded even though the lineage may continue indefinitely.
+
+These profiles wrap RAPP/1; they do not enlarge its wire or mutate its
+primitives. Their invariant core stays deliberately small. New checks,
+component kinds, health objectives, and resilience controls are policy-defined
+extension points so the platform can innovate without weakening safety or
+forking the protocol.
+
+This article is entrenched. Future amendments may strengthen its evidence and
+recovery requirements, but may not authorize unqualified user traffic,
+in-place serving mutation, silent degradation, or bypass of a red gate.
+
 ---
 
 ## Concordance — resolving SPEC.md's Federal Constitution citations
@@ -171,7 +215,8 @@ identity.
 | Fed. Const. Art. IX | §12.1 — the append is the linearization point | Article 5 |
 | Fed. Const. Art. X | §1, §7.6, §12.1 — owner fork resolution, retired specs | Article 6 |
 
-*Drafted 2026-08-26 in public session. Article 15 owner-authorized 2026-08-29
-and recorded as ratified by the merge that introduces its exact bytes;
-full-document ratification remains the estate owner's word. One spec, one
-canonicalizer, one mint, one frame, one immutable Grail.*
+*Drafted 2026-08-26 in public session. Article 15 owner-authorized 2026-08-29;
+Article 16 owner-authorized 2026-08-30. Each is recorded as ratified by the
+merge that introduces its exact bytes; full-document ratification remains the
+estate owner's word. One spec, one canonicalizer, one mint, one frame, one
+immutable Grail, one qualified path to users.*

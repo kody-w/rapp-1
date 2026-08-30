@@ -29,6 +29,7 @@ jobs:
           set -o pipefail
           {
             python3 conformance.py
+            python3 operations_conformance.py
             python3 parity_check.py
             python3 realcheck.py
           } 2>&1 | tee watch-report.txt
