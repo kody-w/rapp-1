@@ -18,11 +18,16 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 import rapp as R
 from anchor import materialize_spec as M
+from anchor import update_anchor as U
 
 
 CHAIN = ROOT / "anchor" / "chain.jsonl"
 ORIENT = ROOT / "anchor" / "orient.json"
+INDEX = ROOT / "anchor" / "index.json"
 SPEC = ROOT / "SPEC.md"
+REPLACED_DRAFT_FRAME_HASH = (
+    "aa9af1c34eefab67d08c6fe814206d635d6a20f48a3ebbe30d0724b218d0afd9"
+)
 HISTORICAL_LINE_SHA256 = (
     "dd11f0775259cb92a2d1f02034c8dc076510b4470a9e9720cb5225802fa8dd4b",
     "a3fdef2b31d2168396ddf534ff87b7578842354e5232a2b95a77cef5cbd23ced",
@@ -44,10 +49,26 @@ HISTORICAL_LINE_SHA256 = (
 class SpecChainTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
+        cls.bootstrap_profile, cls.bootstrap_index = M.load_bootstrap()
         cls.chain_octets = CHAIN.read_bytes()
         cls.lines = cls.chain_octets.splitlines(keepends=True)
-        cls.frames = M.verify_chain(cls.chain_octets)
-        cls.orient = M.verify_orient(ORIENT.read_bytes(), cls.frames)
+        cls.frames = M.verify_chain(
+            cls.chain_octets,
+            bootstrap_profile=cls.bootstrap_profile,
+        )
+        cls.index_octets = INDEX.read_bytes()
+        cls.index = M.verify_revision_index(
+            cls.index_octets,
+            cls.frames,
+            bootstrap_index=cls.bootstrap_index,
+            bootstrap_profile=cls.bootstrap_profile,
+        )
+        cls.orient = M.verify_orient(
+            ORIENT.read_bytes(),
+            cls.frames,
+            index_octets=cls.index_octets,
+            bootstrap_index=cls.bootstrap_index,
+        )
         cls.head = cls.frames[-1]
         cls.scratch_root = ROOT / ".anchor-test-work"
         cls.scratch_root.mkdir(exist_ok=True)
@@ -89,6 +110,23 @@ class SpecChainTests(unittest.TestCase):
         self.assertEqual(len(self.lines), 15)
         actual = tuple(hashlib.sha256(line).hexdigest() for line in self.lines[:14])
         self.assertEqual(actual, HISTORICAL_LINE_SHA256)
+        for line, frame in zip(self.lines, self.frames):
+            object_path = (
+                ROOT / "anchor" / "frames" / f"{frame['frame_hash']}.json"
+            )
+            self.assertEqual(object_path.read_bytes(), line[:-1])
+        self.assertNotIn(
+            REPLACED_DRAFT_FRAME_HASH,
+            {frame["frame_hash"] for frame in self.frames},
+        )
+        self.assertFalse(
+            (
+                ROOT
+                / "anchor"
+                / "frames"
+                / f"{REPLACED_DRAFT_FRAME_HASH}.json"
+            ).exists()
+        )
 
     def test_full_chain_head_and_beacon_verify(self) -> None:
         self.assertEqual(self.head["seq"], 14)
@@ -96,6 +134,7 @@ class SpecChainTests(unittest.TestCase):
         self.assertEqual(set(self.head), R.FRAME_KEYS)
         self.assertEqual(self.head["payload"]["schema"], M.REVISION_SCHEMA)
         self.assertEqual(self.orient["head"]["frame_hash"], self.head["frame_hash"])
+        self.assertEqual(self.index["head"]["frame_hash"], self.head["frame_hash"])
         self.assertLessEqual(
             len(R.canonical(self.head).encode("utf-8")),
             R.MAX_CANONICAL_BYTES,
@@ -111,15 +150,74 @@ class SpecChainTests(unittest.TestCase):
         self.assertFalse(any(target.parent.glob(".SPEC.md.*.tmp")))
 
     def test_resolution_by_every_identifier(self) -> None:
+        selectors = [
+            {},
+            {"revision": "rev-14"},
+            {"seq": 14},
+            {"frame_hash": self.head["frame_hash"]},
+            {"payload_hash": self.head["payload_hash"]},
+        ]
         resolved = [
-            M.resolve_frame(self.frames),
-            M.resolve_frame(self.frames, revision="rev-14"),
-            M.resolve_frame(self.frames, seq=14),
-            M.resolve_frame(self.frames, frame_hash=self.head["frame_hash"]),
-            M.resolve_frame(self.frames, payload_hash=self.head["payload_hash"]),
+            M.resolve_frame_object(
+                self.frames,
+                self.index,
+                bootstrap_profile=self.bootstrap_profile,
+                **selector,
+            )
+            for selector in selectors
         ]
         self.assertTrue(all(frame == self.head for frame in resolved))
         self.assertEqual(M.resolve_frame(self.frames, revision="rev-5")["seq"], 5)
+
+    def test_bootstrap_profile_and_verifier_are_content_addressed(self) -> None:
+        profile_path = ROOT / self.bootstrap_index["profile_path"]
+        profile_octets = profile_path.read_bytes()
+        verifier_octets = (ROOT / self.bootstrap_index["verifier_path"]).read_bytes()
+        self.assertEqual(
+            hashlib.sha256(profile_octets).hexdigest(),
+            self.bootstrap_index["profile_sha256"],
+        )
+        self.assertEqual(
+            hashlib.sha256(verifier_octets).hexdigest(),
+            self.bootstrap_index["verifier_sha256"],
+        )
+        self.assertEqual(
+            profile_path.name,
+            f"sha256-{self.bootstrap_index['profile_sha256']}.json",
+        )
+        with self.assertRaisesRegex(M.ChainError, "verifier SHA-256 mismatch"):
+            M.load_bootstrap(verifier_octets=verifier_octets + b"\n")
+        with self.assertRaisesRegex(M.ChainError, "profile SHA-256 mismatch"):
+            M.load_bootstrap(profile_octets=profile_octets + b"\n")
+
+    def test_wrong_content_at_hash_path_is_refused(self) -> None:
+        wrong = (
+            ROOT
+            / "anchor"
+            / "frames"
+            / f"{self.frames[0]['frame_hash']}.json"
+        ).read_bytes()
+        with self.assertRaisesRegex(
+            M.ResolutionError,
+            "content does not match requested hash",
+        ):
+            M.resolve_frame_object(
+                self.frames,
+                self.index,
+                frame_hash=self.head["frame_hash"],
+                object_loader=lambda _path: wrong,
+                bootstrap_profile=self.bootstrap_profile,
+            )
+
+    def test_publication_metadata_separates_integrity_and_authority(self) -> None:
+        publication = self.head["payload"]["publication"]
+        self.assertEqual(publication, M.AUTHORITY_POLICY)
+        self.assertEqual(self.index["authority"], M.AUTHORITY_POLICY)
+        self.assertEqual(self.orient["authority"], M.AUTHORITY_POLICY)
+        self.assertEqual(publication["protected_ref"], "refs/heads/main")
+        self.assertIn("owner-ratified acceptance", publication["selection"])
+        self.assertEqual(publication["history_replacement"], "prohibited")
+        self.assertIsNone(publication["authenticated_registry_checkpoint"])
 
     def test_legacy_frames_retain_immutable_pointer_contract(self) -> None:
         for frame in self.frames[:14]:
@@ -293,6 +391,59 @@ class SpecChainTests(unittest.TestCase):
             self.frames[-2]["payload_hash"],
         )
         self.assert_chain_refused(self.appended(fork), "duplicate seq/fork")
+
+    def test_legacy_revision_emission_after_inline_profile_is_refused(self) -> None:
+        payload = copy.deepcopy(self.frames[13]["payload"])
+        payload["test_marker"] = "new-legacy-emission"
+        frame = R.build_frame(
+            "body.pulse",
+            self.head["stream_id"],
+            15,
+            self.head["utc"],
+            payload,
+            self.head["payload_hash"],
+        )
+        self.assert_chain_refused(
+            self.appended(frame),
+            "legacy pointer frame cannot follow",
+        )
+
+    def test_stale_competing_append_must_rebase(self) -> None:
+        payload = copy.deepcopy(self.head["payload"])
+        payload["revision"] = "rev-15"
+        payload["previous_revision"] = "rev-14"
+        payload["previous_normative_sha256"] = self.head["payload"][
+            "normative_sha256"
+        ]
+        competing = R.build_frame(
+            "body.pulse",
+            self.head["stream_id"],
+            15,
+            self.head["utc"],
+            payload,
+            self.head["payload_hash"],
+        )
+        competing_chain = self.appended(competing)
+        canonical_rev13 = b"".join(self.lines[:14])
+        with self.assertRaisesRegex(SystemExit, "stale or competing"):
+            U.select_chain_base(
+                competing_chain,
+                canonical_rev13,
+                self.bootstrap_profile,
+            )
+
+    def test_rev14_transition_wording_is_published(self) -> None:
+        constitution = (ROOT / "CONSTITUTION.md").read_text(encoding="utf-8")
+        spec = SPEC.read_text(encoding="utf-8")
+        anchor_readme = (ROOT / "anchor" / "README.md").read_text(encoding="utf-8")
+        wording = (
+            "Rev-14 is ratified under rev-13 Article 14",
+            "chain-append process",
+            "rev-15",
+        )
+        for text in (constitution, spec, anchor_readme):
+            for phrase in wording:
+                self.assertIn(phrase, text)
 
     def test_beacon_drift_is_refused(self) -> None:
         orient = copy.deepcopy(self.orient)

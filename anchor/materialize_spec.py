@@ -19,12 +19,17 @@ from typing import Callable, Dict, List, Optional, Sequence
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 import rapp as R
+from anchor import bootstrap_verify as B
 
 
 CHAIN_PATH = ROOT / "anchor" / "chain.jsonl"
 ORIENT_PATH = ROOT / "anchor" / "orient.json"
+INDEX_PATH = ROOT / "anchor" / "index.json"
+BOOTSTRAP_INDEX_PATH = ROOT / "anchor" / "bootstrap" / "index.json"
 CHAIN_URL = "https://raw.githubusercontent.com/kody-w/rapp-1/main/anchor/chain.jsonl"
 ORIENT_URL = "https://raw.githubusercontent.com/kody-w/rapp-1/main/anchor/orient.json"
+INDEX_URL = "https://raw.githubusercontent.com/kody-w/rapp-1/main/anchor/index.json"
+REPOSITORY_RAW_URL = "https://raw.githubusercontent.com/kody-w/rapp-1/main/"
 REVISION_SCHEMA = "rapp-spec-revision/1"
 NORMATIVE_MEDIA_TYPE = "text/markdown; charset=utf-8"
 MAX_FETCH_BYTES = 64 * 1024 * 1024
@@ -36,6 +41,17 @@ GITHUB_REPOSITORY = re.compile(
     r"([A-Za-z0-9](?:[A-Za-z0-9._-]{0,98}[A-Za-z0-9])?)"
 )
 Fetcher = Callable[[str], bytes]
+AUTHORITY_POLICY = {
+    "canonical_repository": "https://github.com/kody-w/rapp-1",
+    "protected_ref": "refs/heads/main",
+    "selection": "owner-ratified acceptance of the chain snapshot onto protected canonical main",
+    "linearization": "the accepted canonical-main commit containing the new frame",
+    "history_replacement": "prohibited",
+    "competing_append": "must rebase onto the accepted head and regenerate",
+    "transition": "rev-14-ratified-under-rev-13-article-14",
+    "chain_append_process": "governs-rev-15-and-later",
+    "authenticated_registry_checkpoint": None,
+}
 
 
 class ChainError(ValueError):
@@ -160,6 +176,45 @@ def _inline_normative(payload: Dict[str, object]) -> bytes:
     return octets
 
 
+def load_bootstrap(
+    *,
+    index_octets: Optional[bytes] = None,
+    profile_octets: Optional[bytes] = None,
+    verifier_octets: Optional[bytes] = None,
+) -> tuple[dict, dict]:
+    verifier_octets = (
+        (ROOT / "anchor" / "bootstrap_verify.py").read_bytes()
+        if verifier_octets is None
+        else verifier_octets
+    )
+    index_octets = (
+        BOOTSTRAP_INDEX_PATH.read_bytes()
+        if index_octets is None
+        else index_octets
+    )
+    try:
+        index = B.strict_json(index_octets)
+    except B.BootstrapError as error:
+        raise ChainError(f"invalid bootstrap index: {error}") from error
+    if not isinstance(index, dict):
+        raise ChainError("bootstrap index must be an object")
+    if profile_octets is None:
+        profile_path = index.get("profile_path")
+        if not isinstance(profile_path, str):
+            raise ChainError("bootstrap index has no profile_path")
+        candidate = (ROOT / profile_path).resolve()
+        bootstrap_root = (ROOT / "anchor" / "bootstrap").resolve()
+        if candidate.parent != bootstrap_root:
+            raise ChainError("bootstrap profile path escapes anchor/bootstrap")
+        profile_octets = candidate.read_bytes()
+    try:
+        B.verify_bootstrap_index(index_octets, profile_octets, verifier_octets)
+        profile = B.verify_profile(profile_octets, verifier_octets)
+    except B.BootstrapError as error:
+        raise ChainError(f"bootstrap verification failed: {error}") from error
+    return profile, index
+
+
 def parse_chain(chain_octets: bytes) -> List[dict]:
     if not isinstance(chain_octets, bytes):
         raise ChainError("chain input must be bytes")
@@ -185,8 +240,21 @@ def parse_chain(chain_octets: bytes) -> List[dict]:
     return frames
 
 
-def verify_chain(chain_octets: bytes) -> List[dict]:
+def verify_chain(
+    chain_octets: bytes,
+    *,
+    bootstrap_profile: Optional[dict] = None,
+    allow_unpublished_rev14_draft: bool = False,
+) -> List[dict]:
+    if bootstrap_profile is None:
+        bootstrap_profile, _ = load_bootstrap()
+    try:
+        bootstrap_frames = B.verify_chain(chain_octets, bootstrap_profile)
+    except B.BootstrapError as error:
+        raise ChainError(f"bootstrap chain verification failed: {error}") from error
     frames = parse_chain(chain_octets)
+    if frames != bootstrap_frames:
+        raise ChainError("bootstrap and reference parsers disagree")
     stream_id = frames[0].get("stream_id")
     if not R.rappid_valid(stream_id):
         raise ChainError("anchor stream_id must be a body-stream RAPPID")
@@ -247,6 +315,12 @@ def verify_chain(chain_octets: bytes) -> List[dict]:
             ):
                 raise ChainError("previous_normative_sha256 does not match the predecessor")
             _inline_normative(payload)
+            if payload.get("publication") != AUTHORITY_POLICY and not (
+                allow_unpublished_rev14_draft
+                and revision == "rev-14"
+                and line_number == len(frames)
+            ):
+                raise ChainError("revision publication/ratification metadata drift")
         elif schema_seen:
             raise ChainError("legacy pointer frame cannot follow an inline revision frame")
         elif revision in revision_frames and not (
@@ -299,6 +373,163 @@ def resolve_frame(
     if len(matches) != 1:
         raise ResolutionError("revision selector did not resolve exactly one frame")
     return matches[0]
+
+
+def _frame_entry(frame: dict) -> dict:
+    return {
+        "seq": frame["seq"],
+        "revision": frame["payload"]["revision"],
+        "frame_hash": frame["frame_hash"],
+        "payload_hash": frame["payload_hash"],
+        "object_path": f"anchor/frames/{frame['frame_hash']}.json",
+        "payload_profile": (
+            REVISION_SCHEMA
+            if frame["payload"].get("schema") == REVISION_SCHEMA
+            else "legacy-immutable-pointer"
+        ),
+    }
+
+
+def _local_object_loader(path: str) -> bytes:
+    candidate = (ROOT / path).resolve()
+    frame_root = (ROOT / "anchor" / "frames").resolve()
+    if candidate.parent != frame_root:
+        raise ChainError("frame object path escapes anchor/frames")
+    return candidate.read_bytes()
+
+
+def verify_revision_index(
+    index_octets: bytes,
+    frames: Sequence[dict],
+    *,
+    object_loader: Optional[Fetcher] = None,
+    bootstrap_index: Optional[dict] = None,
+    bootstrap_profile: Optional[dict] = None,
+) -> dict:
+    try:
+        index = R._strict_json(index_octets)
+    except (UnicodeError, ValueError, json.JSONDecodeError) as error:
+        raise ChainError(f"invalid anchor/index.json: {error}") from error
+    if not isinstance(index, dict) or set(index) != {
+        "schema",
+        "generated_utc",
+        "canonical_repository",
+        "canonical_ref",
+        "chain_path",
+        "checkpoint_url_template",
+        "frame_discovery_url_template",
+        "authority",
+        "bootstrap",
+        "head",
+        "entries",
+    }:
+        raise ChainError("anchor/index.json has an unexpected shape")
+    if index["schema"] != "rapp-spec-chain-index/1":
+        raise ChainError("anchor/index.json has the wrong schema")
+    if index["canonical_repository"] != AUTHORITY_POLICY["canonical_repository"]:
+        raise ChainError("anchor/index.json names the wrong canonical repository")
+    if index["canonical_ref"] != AUTHORITY_POLICY["protected_ref"]:
+        raise ChainError("anchor/index.json names the wrong canonical ref")
+    if index["chain_path"] != "anchor/chain.jsonl":
+        raise ChainError("anchor/index.json names the wrong chain path")
+    if index["authority"] != AUTHORITY_POLICY:
+        raise ChainError("anchor/index.json authority/ratification metadata drift")
+    head = frames[-1]
+    expected_head = {
+        "seq": head["seq"],
+        "revision": head["payload"]["revision"],
+        "frame_hash": head["frame_hash"],
+        "payload_hash": head["payload_hash"],
+        "normative_sha256": head["payload"]["normative_sha256"],
+        "normative_bytes": int(head["payload"]["normative_bytes"]),
+    }
+    if index["generated_utc"] != head["utc"] or index["head"] != expected_head:
+        raise ChainError("anchor/index.json head metadata drift")
+    if index["checkpoint_url_template"] != (
+        "https://raw.githubusercontent.com/kody-w/rapp-1/"
+        "{accepted_commit}/anchor/chain.jsonl"
+    ):
+        raise ChainError("anchor/index.json checkpoint URL template drift")
+    if index["frame_discovery_url_template"] != (
+        "https://raw.githubusercontent.com/kody-w/rapp-1/"
+        "{ref}/anchor/frames/{frame_hash}.json"
+    ):
+        raise ChainError("anchor/index.json frame URL template drift")
+    if bootstrap_index is None or bootstrap_profile is None:
+        bootstrap_profile, bootstrap_index = load_bootstrap()
+    expected_bootstrap = {
+        "index_path": "anchor/bootstrap/index.json",
+        "profile_path": bootstrap_index["profile_path"],
+        "profile_sha256": bootstrap_index["profile_sha256"],
+        "verifier_path": bootstrap_index["verifier_path"],
+        "verifier_sha256": bootstrap_index["verifier_sha256"],
+    }
+    if index["bootstrap"] != expected_bootstrap:
+        raise ChainError("anchor/index.json bootstrap pin drift")
+    expected_entries = [_frame_entry(frame) for frame in frames]
+    if index["entries"] != expected_entries:
+        raise ChainError("anchor/index.json sequence/payload index drift")
+    loader = object_loader or _local_object_loader
+    for expected_frame, entry in zip(frames, expected_entries):
+        try:
+            object_frame = B.verify_frame_object(
+                loader(entry["object_path"]),
+                entry["frame_hash"],
+                bootstrap_profile,
+            )
+        except (B.BootstrapError, ResolutionError, OSError) as error:
+            raise ChainError(
+                f"invalid content-addressed frame object {entry['object_path']}: {error}"
+            ) from error
+        if object_frame != expected_frame:
+            raise ChainError(
+                f"frame object {entry['object_path']} does not match the selected chain"
+            )
+    return index
+
+
+def resolve_frame_object(
+    frames: Sequence[dict],
+    index: dict,
+    *,
+    revision: Optional[str] = None,
+    seq: Optional[int] = None,
+    frame_hash: Optional[str] = None,
+    payload_hash: Optional[str] = None,
+    object_loader: Optional[Fetcher] = None,
+    bootstrap_profile: Optional[dict] = None,
+) -> dict:
+    selected = resolve_frame(
+        frames,
+        revision=revision,
+        seq=seq,
+        frame_hash=frame_hash,
+        payload_hash=payload_hash,
+    )
+    entry = next(
+        (
+            candidate
+            for candidate in index["entries"]
+            if candidate["frame_hash"] == selected["frame_hash"]
+        ),
+        None,
+    )
+    if entry is None:
+        raise ResolutionError("selected frame is absent from anchor/index.json")
+    if bootstrap_profile is None:
+        bootstrap_profile, _ = load_bootstrap()
+    loader = object_loader or _local_object_loader
+    try:
+        object_frame = B.verify_frame_object(
+            loader(entry["object_path"]),
+            selected["frame_hash"],
+            bootstrap_profile,
+        )
+    except (B.BootstrapError, ResolutionError, OSError) as error:
+        raise ResolutionError(f"content-addressed frame object refused: {error}") from error
+    if object_frame != selected:
+        raise ResolutionError("content-addressed frame object is not in the selected chain")
+    return object_frame
 
 
 def legacy_url(payload: Dict[str, object]) -> str:
@@ -408,7 +639,14 @@ def resolve_spec_bytes(
     return octets
 
 
-def verify_orient(orient_octets: bytes, frames: Sequence[dict]) -> dict:
+def verify_orient(
+    orient_octets: bytes,
+    frames: Sequence[dict],
+    *,
+    index_octets: Optional[bytes] = None,
+    bootstrap_index: Optional[dict] = None,
+    allow_unpublished_rev14_draft: bool = False,
+) -> dict:
     try:
         orient = R._strict_json(orient_octets)
     except (UnicodeError, ValueError, json.JSONDecodeError) as error:
@@ -454,6 +692,30 @@ def verify_orient(orient_octets: bytes, frames: Sequence[dict]) -> dict:
         }
         if spec != expected:
             raise ChainError("orient.json normative view metadata does not match the head")
+        if allow_unpublished_rev14_draft and "authority" not in orient:
+            return orient
+        if orient.get("authority") != AUTHORITY_POLICY:
+            raise ChainError("orient.json authority/ratification metadata drift")
+        if bootstrap_index is None:
+            _, bootstrap_index = load_bootstrap()
+        expected_bootstrap = {
+            "index_path": "anchor/bootstrap/index.json",
+            "profile_path": bootstrap_index["profile_path"],
+            "profile_sha256": bootstrap_index["profile_sha256"],
+            "verifier_path": bootstrap_index["verifier_path"],
+            "verifier_sha256": bootstrap_index["verifier_sha256"],
+        }
+        if orient.get("bootstrap") != expected_bootstrap:
+            raise ChainError("orient.json bootstrap pin drift")
+        if index_octets is None:
+            index_octets = INDEX_PATH.read_bytes()
+        expected_index = {
+            "path": "anchor/index.json",
+            "sha256": sha256(index_octets),
+            "bytes": len(index_octets),
+        }
+        if orient.get("index") != expected_index:
+            raise ChainError("orient.json revision index pin drift")
     return orient
 
 
@@ -473,6 +735,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--chain-url")
     parser.add_argument("--orient", type=pathlib.Path, default=ORIENT_PATH)
     parser.add_argument("--orient-url")
+    parser.add_argument("--index", type=pathlib.Path, default=INDEX_PATH)
+    parser.add_argument("--index-url")
+    parser.add_argument("--frames-url")
     selector = parser.add_mutually_exclusive_group()
     selector.add_argument("--revision")
     selector.add_argument("--seq", type=int)
@@ -488,23 +753,57 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     chain_url = args.chain_url
     orient_url = args.orient_url
+    index_url = args.index_url
+    frames_url = args.frames_url
     if chain_url and args.chain != CHAIN_PATH:
         parser.error("--chain and --chain-url are mutually exclusive")
     if orient_url and args.orient != ORIENT_PATH:
         parser.error("--orient and --orient-url are mutually exclusive")
+    if index_url and args.index != INDEX_PATH:
+        parser.error("--index and --index-url are mutually exclusive")
     if chain_url and orient_url is None:
         orient_url = ORIENT_URL
+    if chain_url and index_url is None:
+        index_url = INDEX_URL
+    if chain_url and frames_url is None:
+        frames_url = REPOSITORY_RAW_URL
 
+    bootstrap_profile, bootstrap_index = load_bootstrap()
     chain_octets = _read_source(args.chain, chain_url, args.offline)
-    frames = verify_chain(chain_octets)
-    orient_octets = _read_source(args.orient, orient_url, args.offline)
-    verify_orient(orient_octets, frames)
-    frame = resolve_frame(
+    frames = verify_chain(chain_octets, bootstrap_profile=bootstrap_profile)
+    index_octets = _read_source(args.index, index_url, args.offline)
+    if frames_url is not None:
+        if args.offline:
+            raise ResolutionError("offline mode forbids remote frame-object fetches")
+        base = frames_url.rstrip("/") + "/"
+
+        def object_loader(path: str) -> bytes:
+            return fetch_https(urllib.parse.urljoin(base, path))
+    else:
+        object_loader = _local_object_loader
+    index = verify_revision_index(
+        index_octets,
         frames,
+        object_loader=object_loader,
+        bootstrap_index=bootstrap_index,
+        bootstrap_profile=bootstrap_profile,
+    )
+    orient_octets = _read_source(args.orient, orient_url, args.offline)
+    verify_orient(
+        orient_octets,
+        frames,
+        index_octets=index_octets,
+        bootstrap_index=bootstrap_index,
+    )
+    frame = resolve_frame_object(
+        frames,
+        index,
         revision=args.revision,
         seq=args.seq,
         frame_hash=args.frame_hash,
         payload_hash=args.payload_hash,
+        object_loader=object_loader,
+        bootstrap_profile=bootstrap_profile,
     )
     octets = resolve_spec_bytes(
         frame,

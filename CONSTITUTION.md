@@ -5,18 +5,19 @@ owner-authorized on 2026-08-29 and 2026-08-30. Article 17 and full-document
 public ratification were owner-authorized on 2026-08-30 and become effective
 when the pull request carrying these exact bytes is merged under Article 14.
 
-The normative revision text carried by the verified head of
+The normative revision text carried by the selected, verified head of
 `anchor/chain.jsonl` is the law of **bytes** — what a conformant implementation
-must emit and refuse. `SPEC.md` is the byte-exact materialized view of that head.
-This Constitution is the law of **change** — how the standard, this repository,
-and every claim they make may lawfully evolve. When the normative revision text
-and this Constitution disagree about bytes, the revision text wins; when they
-disagree about process, this Constitution wins.
+must emit and refuse. `SPEC.md` is the byte-exact materialized view of that
+head. The unsigned chain proves integrity and lineage; until an authenticated
+RAPP registry/checkpoint exists, owner-ratified acceptance onto this canonical
+owner-controlled protected repository selects which verified chain is
+authoritative. This Constitution is the law of **change** — how the standard,
+this repository, and every claim they make may lawfully evolve.
 
 **Relation to private estate governance.** Private constitutions may govern
 estate-level product, company, or owner decisions, but they do not govern public
-RAPP/1 bytes or protocol amendment. The verified specification chain and this
-public Protocol Constitution are final for protocol conformance and
+RAPP/1 bytes or protocol amendment. The owner-selected verified specification
+chain and this public Protocol Constitution are final for protocol conformance and
 governance. Historical Federal-Constitution citations in the materialized
 `SPEC.md` resolve to the public restatements in Articles 2–7 and the
 concordance below. A conflicting private rule must be changed or treated as
@@ -31,6 +32,14 @@ There is exactly one normative history for rapp/1:
 protocol adjustment appends one valid `rapp/1` frame extending the prior head.
 The frame hash is the durable protocol-revision identity; `rev-N` names are
 lookup labels. Historical frames remain immutable and globally resolvable.
+
+The chain is unsigned and does not authenticate its own head. It proves that
+selected bytes form one intact history. Until an authenticated RAPP registry or
+checkpoint is ratified, the authoritative selection is the chain snapshot
+accepted by the owner onto protected `refs/heads/main` in
+`https://github.com/kody-w/rapp-1`; an out-of-band pinned immutable commit and
+head frame hash are equivalent selection evidence. A fork can be internally
+valid without being authoritative.
 
 For inline specification revisions, the frame payload carries the exact
 normative UTF-8 text and its raw SHA-256 and byte length. `SPEC.md` is generated
@@ -55,6 +64,13 @@ migration of every instance plus deletion of the old form. The single exception 
 sealed re-genesis history (SPEC §12.1) — retained bit-exact under `legacy/`, never
 served as current. Published content-addressed artifacts are immutable; the way out is
 always forward. *(Cited by SPEC §6.3, §12 as Fed. Const. Art. III.)*
+
+Immutable governance history is a separate narrow exception. The rev-5 through
+rev-13 anchor frames remain interpretable through their immutable pointer
+payloads because erasing them would destroy the amendment record. Those payload
+profiles are historical authority records, not permission to accept or emit a
+retired live protocol form. No new specification revision after rev-13 may use
+the legacy pointer-only profile.
 
 ## Article 4 — Growth by Registration, Never by Fork
 
@@ -141,14 +157,26 @@ fine-print convention — never per-mention.
 
 ## Article 14 — Amendment
 
-This Constitution and the protocol change by pull request ratified by the
-estate owner and recorded by appending the corresponding valid specification
-revision frame to `anchor/chain.jsonl`. Article numbers are **append-only**: an
-article is amended in place or deprecated by a visible flag, never renumbered
-and never silently deleted — so every citation ever made remains resolvable.
-The specification chain is the amendment record. Git commits transport those
-bytes and preserve review and provenance; git history is not a second
-normative source and never substitutes for the required chain append.
+This Constitution and the protocol change by an owner-ratified pull request
+that appends the corresponding valid specification revision frame to
+`anchor/chain.jsonl`. The linearization point is owner-ratified acceptance of
+the commit containing that frame onto protected canonical `refs/heads/main`.
+Competing work based on an older head **must** rebase onto the accepted head and
+regenerate; force-push, history replacement, or publication of a competing
+successor as authoritative is prohibited.
+
+Article numbers are **append-only**: an article is amended in place or
+deprecated by a visible flag, never renumbered and never silently deleted — so
+every citation ever made remains resolvable. The selected specification chain
+is the amendment record. Git commits transport those bytes and preserve review,
+provenance, protection, and ratification; git history is not a second normative
+content source and never substitutes for the required chain append.
+
+**Rev-14 transition.** Rev-14 is ratified under rev-13 Article 14, whose
+then-effective text made the owner-ratified pull request and git history the
+amendment mechanism. Owner acceptance of the prepared rev-14 chain snapshot onto
+canonical protected main makes its final frame effective. The chain-append
+process in this amended Article governs rev-15 and later.
 
 ## Article 15 — The Grail Never Changes
 

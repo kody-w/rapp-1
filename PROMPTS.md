@@ -52,8 +52,11 @@ anchor/materialize_spec.py to verify the full DOGG specification chain. Show me
 the head frame hash and payload hash, resolve that same revision by head, rev
 label, seq, frame hash, and payload hash, and prove every lookup materializes
 byte-identical SPEC.md. Explain why the frame hash is the durable revision
-identity, orient.json is only a beacon, and the Atom feed is discovery only.
-Do not claim the unsigned chain is authenticated.
+identity, orient.json is only a beacon, and the Atom feed and mutable main URLs
+are discovery only. Separate hash-proven integrity from authority: until an
+authenticated checkpoint exists, owner-ratified acceptance onto protected
+canonical main selects the chain. Do not claim the unsigned chain is
+authenticated.
 ```
 
 **Expect:** five lookups resolving one verified frame and one byte-identical

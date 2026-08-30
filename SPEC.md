@@ -2,11 +2,14 @@
 ### Unified normative specification of identity, canonicalization, the frame, the wire, and the egg
 
 > **Generated/materialized view.** These exact UTF-8 bytes are carried inside
-> the current verified specification-revision frame in `anchor/chain.jsonl`.
-> Change the protocol by appending a successor frame, not by treating this file
-> as independent authority.
+> the selected specification-revision frame in `anchor/chain.jsonl`. The frame
+> chain proves integrity and lineage; canonical owner-ratified publication
+> selects authority. Change the protocol by appending a successor frame, not by
+> treating this file as independent authority.
 
-**Status:** Owner-ratified RAPP/1 standard. **rev-14.** **Obsoletes / consolidates:**
+**Status:** Owner-ratified RAPP/1 **rev-14 amendment**. It is effective iff the
+prepared chain snapshot has been accepted onto canonical protected main under
+the transition in §12.2. **Obsoletes / consolidates:**
 `rapp-frame/2.0`, `rapp-frame/2.1`, `rapp-rappid-spec/2.0`, `rapp-protocol/1.0`, all scattered egg specs
 (§9 subsumes them), and `OSI.md`. This is the current materialized view of the single living standard;
 the consolidated specs are retired historical record (Protocol Constitution Article 6). Rev-14 becomes
@@ -37,10 +40,14 @@ specification governs wire-compatible bytes and conformance; it does not absorb
 the RAPP product or any downstream Rappter/RapterBox LLC product.
 
 **Specification authority.** The append-only DOGG chain at
-`anchor/chain.jsonl` is the normative revision history. `SPEC.md` is the
-byte-exact materialized human view of its current head, and `orient.json` is
-only a discovery beacon. The chain-frame hash, not a mutable path or `rev-N`
-label, is the durable identity of a protocol revision (§12.2).
+`anchor/chain.jsonl` carries the normative revision content. Its hashes prove
+integrity, not authority or ratification. Until an authenticated RAPP
+registry/checkpoint exists, the chain accepted by the owner onto protected
+canonical `kody-w/rapp-1` main is authoritative; an immutable accepted commit
+plus head frame hash is the portable checkpoint. `SPEC.md` is the byte-exact
+materialized human view, and `orient.json` is only a discovery beacon. The
+selected chain-frame hash, not a mutable path or `rev-N` label, is the durable
+identity of a protocol revision (§12.2).
 
 ### 1.1 The layered model
 ```
@@ -651,7 +658,13 @@ label **MUST NOT** ever denote two shapes (Art. II) — a shape change moves the
 content-addressed artifacts are **immutable** (SemVer/crates). Because the estate has **no uncontrolled
 userspace**, there is **no perpetual backward compatibility** (Art. III): a change to a canonical form is a
 **total migration** of every instance + **deletion** of the old form. Sealed re-genesis history (§12.1) is
-the one retained exception and is not "legacy compatibility."
+the retained live-stream exception and is not "legacy compatibility."
+
+Immutable specification-governance history is a separate narrow exception:
+rev-5 through rev-13 anchor frames retain interpretable immutable pointer
+payloads so their ratified normative bytes remain resolvable. They are
+historical authority records, not accepted live legacy protocol forms. A
+producer **MUST NOT** emit the pointer-only revision profile after rev-13.
 
 ### 12.1 Re-genesis (converging an immutable chain — one owner-authorized operation)
 1. **Terminal seal:** `seal = Hb("rapp/1:seal", head_octets)`. `head_octets` is the exact octets of the old
@@ -684,17 +697,50 @@ the one retained exception and is not "legacy compatibility."
 
 ### 12.2 DOGG specification revision chain
 
-The normative RAPP/1 revision history is the append-only JSONL stream at
-`anchor/chain.jsonl`. Every protocol adjustment **MUST** append exactly one
-valid successor frame under the existing §7 envelope:
+The RAPP/1 revision content is the append-only JSONL stream at
+`anchor/chain.jsonl`. The chain's particle, wave, and predecessor hashes prove
+byte integrity and linear history; they do **not** authenticate who selected a
+head or ratified an amendment. Until a separately authenticated RAPP
+registry/checkpoint is ratified, authority is selected by owner-ratified
+acceptance of a chain snapshot onto protected canonical
+`refs/heads/main` at `https://github.com/kody-w/rapp-1`. A consumer starting
+from an out-of-band pinned accepted commit and head frame hash has the same
+immutable selection evidence. An internally valid fork is not authoritative
+merely because its hashes verify.
+
+Every protocol adjustment **MUST** append exactly one valid successor frame:
 
 - `spec` remains `"rapp/1"`, the envelope remains exactly eleven keys, and the
-  registered kind is `body.pulse`; this revision mechanism does not create a
-  new frame kind or alter canonicalization, hashing, or kind semantics;
-- `stream_id` remains the anchor stream, `seq` is contiguous, `prev` names the
-  predecessor's `payload_hash`, and the full §7.5 checklist applies;
+  allowed registered anchor kind is `body.pulse`; this profile does not create
+  a new kind or alter canonicalization, hashing, or registered-kind semantics;
+- `stream_id` remains the bootstrap-pinned anchor stream, `seq` is contiguous,
+  `prev` names the predecessor's `payload_hash`, `prev_wave` and `sig` are
+  `null`, and the applicable §7.5 integrity checks hold;
 - the frame's `frame_hash` is the durable protocol-revision identity.
   Human names such as `rev-14` are lookup labels/views, never identities.
+
+#### 12.2.1 Immutable bootstrap boundary
+
+Verification begins from the frozen `rapp-anchor-bootstrap/1` profile published
+through `anchor/bootstrap/index.json`. The index names a
+`anchor/bootstrap/sha256-<raw-profile-sha256>.json` object and pins the exact
+stdlib verifier at `anchor/bootstrap_verify.py` by raw SHA-256 and byte length.
+The profile fixes the exact-integer JCS subset and limits, particle/wave
+domains, eleven frame keys, timestamp/sequence/predecessor rules, canonical
+repository and protected ref, anchor stream ID, genesis frame and payload
+hashes, `body.pulse` anchor profile, null signature/wave fields, and byte/depth
+limits needed to verify this chain.
+
+The content-addressed bootstrap profile is immutable. Changing it requires a
+new bootstrap schema/version and a new external ratification; mutating
+`rapp-anchor-bootstrap/1` in place is refusal. Its initial authenticity is
+necessarily external — owner-ratified protected canonical main or an
+out-of-band pinned profile hash/immutable commit — because neither a chain nor
+code fetched with that chain can circularly authenticate its own parser.
+`rapp.py` remains the complete reference implementation and is cross-checked,
+but it is not the mutable bootstrap trust pin.
+
+#### 12.2.2 Revision payloads and historical exception
 
 Frames through rev-13 retain their immutable legacy pointer fields:
 `canonical_repo`, a full 40-lowercase-hex `commit`, safe relative
@@ -703,12 +749,15 @@ Frames through rev-13 retain their immutable legacy pointer fields:
 commit-pinned GitHub Raw URL from those fields, fetch the bytes, and verify
 length and raw SHA-256 before use. A branch or tag name in `commit`, an unsafe
 path, malformed UTF-8, a byte-order mark, or a hash/length mismatch is refusal.
+These pointer payloads are immutable governance history under Article 3's
+narrow exception; they **MUST NOT** be emitted for rev-14 or later.
 
 Rev-14 and each successor using this profile carries all normative text inside
 the chain frame. Its payload **MUST** include
 `schema:"rapp-spec-revision/1"`, a unique `revision`, and both
 `previous_revision` and `previous_normative_sha256` matching the immediate
-predecessor. It preserves the useful legacy fields above and adds exactly this
+predecessor. It preserves the useful legacy fields above, carries the
+publication/ratification metadata defined below, and adds exactly this
 `normative` object:
 
 ```json
@@ -724,33 +773,88 @@ predecessor. It preserves the useful legacy fields above and adds exactly this
 `normative.sha256` and `normative.bytes` **MUST** match those exact octets and
 the corresponding legacy `normative_sha256` and `normative_bytes`. The complete
 canonical frame remains subject to §4's 1 MiB limit. Inline revisions require
-only the verified chain bytes once fetched; their commit/path fields are
-immutable provenance, not a second source for the normative text.
+only the selected, verified chain bytes once fetched; their commit/path fields
+are immutable provenance, not a second source for normative text.
 
-A consumer **MUST** verify the chain from genesis before resolving a revision
-by head, `revision`, `seq`, `frame_hash`, or `payload_hash`. It **MUST** refuse
-an invalid frame shape, particle, wave, or `prev` link; a fork or duplicate
-`seq`; duplicate frame/payload hashes; a duplicate profiled `revision`; an
-unsupported payload schema; malformed UTF-8; or any normative hash/length
-mismatch. The fixed pre-profile rev-5 anchor pulses share one historical label;
-the `rev-5` view resolves to the greatest matching `seq`, while every pulse
-remains individually resolvable by sequence and hashes. No payload declaring
-`rapp-spec-revision/1` may repeat a revision label.
+The payload's `publication` object, repeated in the beacon and revision index,
+records: canonical repository `https://github.com/kody-w/rapp-1`; protected ref
+`refs/heads/main`; selection by owner-ratified acceptance; the accepted
+canonical-main commit as linearization point; prohibition of history
+replacement; mandatory rebase/regeneration for a competing append; rev-14
+ratification under rev-13 Article 14; application of this chain-append process
+from rev-15 onward; and `authenticated_registry_checkpoint:null` until one
+actually exists. This metadata **MUST NOT** be interpreted as a signature or
+authenticated registry.
 
-`orient.json` **MUST** be treated only as a beacon to the head. Its sequence,
-frame hash, payload hash, and normative-view metadata **MUST** match the
-verified chain. `SPEC.md` **MUST** be reproducible byte-for-byte from the
-resolved head; drift is refusal. Git transports and preserves provenance for
-the chain but is not an alternate amendment record. The Atom feed is discovery
-only and neither feed entry IDs nor moving branch URLs are revision identities.
+#### 12.2.3 Content-addressed publication and resolution
 
-Verification necessarily begins outside the chain with the stable RAPP/1
-bootstrap grammar and a conforming canonicalizer/frame verifier, such as
-`rapp.py`: bytes cannot define how to parse and hash themselves before they
-are parsed. After that bootstrap, the verified chain carries the normative
-revision text. This is byte integrity and lineage, not authorship: this public
-chain and beacon are unsigned, and implementations **MUST NOT** fabricate a
-signature or authenticated registry state for them.
+Every chain frame **MUST** also be published, without a trailing line
+terminator, at:
+
+```text
+anchor/frames/<frame_hash>.json
+```
+
+A fetch through mutable main is discovery only. Given frame hash `F`, a
+stranger may fetch
+`https://raw.githubusercontent.com/kody-w/rapp-1/main/anchor/frames/F.json`,
+parse it under the pinned bootstrap, and accept the object only if its computed
+wave equals `F`. For accepted snapshot commit `C`, the immutable URL is
+`https://raw.githubusercontent.com/kody-w/rapp-1/C/anchor/frames/F.json`.
+Wrong content at the correct hash-derived path is refusal.
+
+`anchor/index.json` is a deterministic generated index from `seq`, revision
+label, frame hash, and payload hash to those objects. It carries no independent
+authority: a consumer **MUST** verify each selected object and match the index
+and beacon to the fully verified chain. Resolution by frame hash uses the path
+algorithm directly; resolution by payload hash or sequence uses the verified
+index; resolution by revision label is a view over it. The fixed pre-profile
+rev-5 pulses share one historical label, so the `rev-5` view resolves to the
+greatest matching `seq`, while every pulse remains directly resolvable by
+sequence and hashes.
+
+A consumer **MUST** verify the chain from the bootstrap-pinned genesis before
+using a revision as selected history. It **MUST** refuse an invalid frame shape,
+particle, wave, or `prev`; a fork or duplicate `seq`; duplicate frame/payload
+hashes; a duplicate profiled revision; an unsupported schema; a legacy
+pointer-only frame after rev-13; malformed UTF-8; normative hash/length drift;
+bootstrap/index/object drift; or an object absent from the selected chain.
+
+`orient.json` is only a beacon to the head. Its sequence, frame hash, payload
+hash, bootstrap/index pins, authority-selection metadata, and normative-view
+metadata **MUST** match the verified artifacts. `SPEC.md` **MUST** reproduce
+the selected head byte-for-byte. The Atom feed and mutable main URLs are
+discovery only.
+
+After acceptance, let `C` be the full 40-hex canonical-main commit containing
+the accepted snapshot. The immutable checkpoint URLs are:
+
+```text
+https://raw.githubusercontent.com/kody-w/rapp-1/C/anchor/chain.jsonl
+https://raw.githubusercontent.com/kody-w/rapp-1/C/anchor/orient.json
+https://raw.githubusercontent.com/kody-w/rapp-1/C/anchor/index.json
+```
+
+The authority linearization point is the owner-ratified acceptance of `C` onto
+protected canonical main, not creation of a local frame, a feed event, or a
+hash alone. A stale competing append **MUST** rebase onto the accepted head and
+regenerate. Force-push or history replacement of accepted authority is
+prohibited.
+
+#### 12.2.4 Rev-14 transition and draft replacement
+
+Rev-14 is ratified under rev-13 Article 14. Owner acceptance of the prepared
+change onto canonical protected main makes the final rev-14 frame effective;
+the new chain-append process governs rev-15 onward. Before that acceptance,
+rev-14 artifacts are unpublished drafts. A later commit in the same
+owner-ratified change may deterministically replace the one unpublished rev-14
+draft line/object and update dependent hashes, but **MUST** preserve every
+rev-5 through rev-13 line byte-for-byte and **MUST NOT** represent the replaced
+draft as accepted history.
+
+This chain and beacon are unsigned. They provide integrity after authority
+selection, not authorship, and implementations **MUST NOT** fabricate a
+signature or authenticated registry/checkpoint state for them.
 
 ## 13. The registry — an estate's signed root of trust (append-only)
 Each estate selects an owner-controlled `canonical_source` for its
@@ -878,12 +982,13 @@ tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.
 
 ### Revision log
 - **rev-14 (DOGG specification-chain authority)** — makes the append-only
-  `anchor/chain.jsonl` frame history the normative specification authority;
-  defines the chain frame hash as the durable revision identity; embeds the
-  byte-exact current normative Markdown in a normal `body.pulse` payload under
-  `rapp-spec-revision/1`; retains immutable rev-5–rev-13 pointer resolution;
-  makes `SPEC.md` a reproducible materialized head view and `orient.json` a
-  beacon; and states the unavoidable stable-bootstrap boundary without
+  `anchor/chain.jsonl` frame history carry normative specification content
+  while protected canonical-main acceptance selects authority; defines the
+  frame hash as durable revision identity; embeds the normative Markdown in a
+  normal `body.pulse`; retains immutable rev-5–rev-13 pointer history; freezes
+  a content-addressed bootstrap verifier profile; publishes hash-addressed
+  frame objects and a deterministic index; makes `SPEC.md` a materialized
+  selected-head view; and records the rev-13 Article 14 transition without
   inventing signatures or changing any RAPP/1 wire primitive.
 - **rev-13 (public governance closure)** — makes the ratified public Protocol
   Constitution final for protocol governance; limits private governance and
@@ -957,6 +1062,6 @@ tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.
 - **rev-2** — first last-call tightening (7 self-review defects).
 - **rev-1** — initial unified draft.
 
-*The canonical protocol authority is the verified specification chain in this
-repository. The canonical public RAPP foundation and product home remain at
-`kody-w/RAPP`.*
+*The canonical protocol authority is the owner-selected, verified
+specification chain in this repository. The canonical public RAPP foundation
+and product home remain at `kody-w/RAPP`.*

@@ -12,8 +12,11 @@
 **One language for agents that keep a verifiable memory and talk over one wire.** Five primitives
 — canonicalization, content addressing, identity, the frame, the egg — specified exactly enough
 that independent implementations produce bytes each other can trust. Its executable grammar is a
-protocol; this repository contains the normative append-only specification chain, a stdlib-only
-reference implementation and resolver, a conformance suite, and a book that teaches it end to end.
+protocol; this repository contains the append-only specification chain, its
+content-addressed bootstrap and revision objects, a stdlib-only reference
+implementation and resolver, a conformance suite, and a book that teaches it
+end to end. The unsigned chain proves integrity; owner-ratified acceptance onto
+protected canonical main currently selects authority.
 
 > Not a framework or a replacement for Python. A *protocol language*, in the sense that HTTP,
 > JSON, and git’s object model give independent programs a shared grammar.
@@ -64,7 +67,9 @@ in chapter 10.
 
 | file | what it is |
 |------|-----------|
-| **[`anchor/chain.jsonl`](anchor/chain.jsonl)** | the normative append-only DOGG specification history; each revision's frame hash is its durable identity |
+| **[`anchor/chain.jsonl`](anchor/chain.jsonl)** | append-only DOGG normative content; integrity is hash-proven and authority is selected by protected canonical-main acceptance |
+| **[`anchor/bootstrap/`](anchor/bootstrap/)** | frozen content-addressed bootstrap profile and exact verifier pin |
+| **[`anchor/frames/`](anchor/frames/)** | immutable-by-name revision frame objects, globally retrievable by durable frame hash |
 | **[`SPEC.md`](SPEC.md)** | byte-exact materialized human view of the current rev-14 chain head — 15 sections, RFC-grounded |
 | **[`anchor/`](anchor/README.md)** | chain resolver/materializer, head beacon, kinds, vocabulary, and [DOGG discovery feed](https://github.com/kody-w/rapp-1/commits/main/anchor.atom) |
 | **[`CONSTITUTION.md`](CONSTITUTION.md)** | the rapp/1 Protocol Constitution — the law of change: how the standard, this repo, and its claims may lawfully evolve |
@@ -200,10 +205,12 @@ come back, because everyone building on it turns the same bytes into the same tr
 
 ## Status
 
-RAPP rev-14 makes `anchor/chain.jsonl` the append-only specification authority,
-embeds the current normative Markdown in a normal `body.pulse` frame, and makes
-`SPEC.md` its reproducible materialized view. It changes no envelope,
-canonicalization, hash, or registered-kind semantic. Rev-13's public governance,
+RAPP rev-14 makes selected `anchor/chain.jsonl` frames carry normative content,
+while owner-ratified protected-main acceptance selects the authoritative chain.
+It freezes a content-addressed bootstrap, publishes hash-addressed frame
+objects/indexes, embeds the current normative Markdown in a normal `body.pulse`
+frame, and makes `SPEC.md` its reproducible materialized view. It changes no
+envelope, canonicalization, hash, or registered-kind semantic. Rev-13's public governance,
 rev-12's foundation/product boundary, rev-11's operational profiles, and
 rev-10's sealed-artifact and immutable-Grail closure remain intact. The
 reference profile passes 22/22 core checks plus the operational safety vectors

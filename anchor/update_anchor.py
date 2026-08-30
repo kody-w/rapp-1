@@ -16,12 +16,16 @@ from typing import Dict
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 import rapp as R
+from anchor import bootstrap_verify as B
 from anchor import materialize_spec as M
 
 
 ANCHOR = pathlib.Path(__file__).resolve().parent
 CHAIN = ANCHOR / "chain.jsonl"
 ORIENT = ANCHOR / "orient.json"
+INDEX = ANCHOR / "index.json"
+FRAMES = ANCHOR / "frames"
+BOOTSTRAP = ANCHOR / "bootstrap"
 REVISION = "rev-14"
 PREVIOUS_REVISION = "rev-13"
 INPUT_PATHS = [
@@ -36,6 +40,7 @@ INPUT_PATHS = [
     "protocols/rapp-deploy/1/SPEC.md",
     "protocols/rapp-deploy/1/schema.json",
     "anchor/materialize_spec.py",
+    "anchor/bootstrap_verify.py",
     "anchor/update_anchor.py",
 ]
 
@@ -207,6 +212,99 @@ def operational_profiles() -> Dict[str, dict]:
     return result
 
 
+def json_octets(value: object) -> bytes:
+    return (json.dumps(value, ensure_ascii=False, indent=1) + "\n").encode("utf-8")
+
+
+def bootstrap_bundle() -> tuple[dict, bytes, dict, bytes]:
+    verifier_octets = (ANCHOR / "bootstrap_verify.py").read_bytes()
+    profile = {
+        "schema": B.PROFILE_SCHEMA,
+        "version": 1,
+        "authority": {
+            "canonical_repository": "https://github.com/kody-w/rapp-1",
+            "protected_ref": "refs/heads/main",
+            "chain_path": "anchor/chain.jsonl",
+            "index_path": "anchor/index.json",
+            "frame_path_template": "anchor/frames/{frame_hash}.json",
+            "stream_id": (
+                "rappid:@kody-w/rapp-1-anchor:"
+                "a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6"
+            ),
+            "genesis_frame_hash": (
+                "a5aa6e6ba81d6b97b80ce46bc20905428d5679bb18309d176356bd194cdd005a"
+            ),
+            "genesis_payload_hash": (
+                "7d9c87b7d58ba07b22b68e8b07c0d50714fcc377c627ea9c60bec3bc6518df29"
+            ),
+        },
+        "canonicalization": {
+            "standard": "RFC 8785 JCS",
+            "encoding": "UTF-8",
+            "input": "I-JSON exact-integer subset",
+            "integer_min": B.INTEGER_MIN,
+            "integer_max": B.INTEGER_MAX,
+            "object_key_order": "UTF-16 code units",
+            "unicode_normalization": "none",
+            "floating_point": "refused",
+        },
+        "hash_domains": {
+            "particle": B.PARTICLE_DOMAIN,
+            "wave": B.WAVE_DOMAIN,
+        },
+        "frame": {
+            "spec": B.SPEC,
+            "kind": B.KIND,
+            "keys": [
+                "spec",
+                "kind",
+                "stream_id",
+                "seq",
+                "utc",
+                "payload",
+                "payload_hash",
+                "frame_hash",
+                "prev",
+                "prev_wave",
+                "sig",
+            ],
+            "sig": None,
+            "prev_wave": None,
+        },
+        "chaining": {
+            "genesis_seq": 0,
+            "genesis_prev": None,
+            "successor_seq": "predecessor.seq + 1",
+            "successor_prev": "predecessor.payload_hash",
+            "utc": "calendar-valid YYYY-MM-DDTHH:MM:SS.mmmZ, nondecreasing",
+        },
+        "limits": {
+            "canonical_frame_bytes": B.MAX_BYTES,
+            "json_input_bytes": B.MAX_BYTES,
+            "json_nesting_depth": B.MAX_DEPTH,
+        },
+        "verifier": {
+            "path": "anchor/bootstrap_verify.py",
+            "sha256": sha256(verifier_octets),
+            "bytes": len(verifier_octets),
+        },
+    }
+    profile_octets = json_octets(profile)
+    profile_sha256 = sha256(profile_octets)
+    index = {
+        "schema": B.INDEX_SCHEMA,
+        "profile_path": f"anchor/bootstrap/sha256-{profile_sha256}.json",
+        "profile_sha256": profile_sha256,
+        "profile_bytes": len(profile_octets),
+        "verifier_path": "anchor/bootstrap_verify.py",
+        "verifier_sha256": sha256(verifier_octets),
+        "verifier_bytes": len(verifier_octets),
+    }
+    index_octets = json_octets(index)
+    B.verify_bootstrap_index(index_octets, profile_octets, verifier_octets)
+    return profile, profile_octets, index, index_octets
+
+
 def revision_payload(
     previous_payload: dict,
     spec_octets: bytes,
@@ -241,6 +339,7 @@ def revision_payload(
                 "sha256": normative_sha256,
                 "bytes": len(spec_octets),
             },
+            "publication": M.AUTHORITY_POLICY,
         }
     )
     constitution_octets = (ROOT / "CONSTITUTION.md").read_bytes()
@@ -318,7 +417,93 @@ def revision_payload(
     return payload
 
 
-def orient_for(frame: dict, previous_orient: dict) -> dict:
+def select_chain_base(
+    current_chain: bytes,
+    canonical_chain: bytes,
+    bootstrap_profile: dict,
+) -> tuple[bytes, list, object]:
+    canonical_frames = M.verify_chain(
+        canonical_chain,
+        bootstrap_profile=bootstrap_profile,
+    )
+    if current_chain == canonical_chain:
+        return canonical_chain, canonical_frames, None
+    current_frames = M.verify_chain(
+        current_chain,
+        bootstrap_profile=bootstrap_profile,
+        allow_unpublished_rev14_draft=True,
+    )
+    if (
+        current_chain.startswith(canonical_chain)
+        and len(current_frames) == len(canonical_frames) + 1
+        and current_frames[-1]["payload"].get("revision") == REVISION
+        and current_frames[-1]["payload"].get("schema") == M.REVISION_SCHEMA
+    ):
+        return canonical_chain, canonical_frames, current_frames[-1]
+    raise SystemExit(
+        "stale or competing specification append: rebase onto origin/main and regenerate"
+    )
+
+
+def frame_objects(chain_octets: bytes, frames: list) -> Dict[str, bytes]:
+    lines = chain_octets.splitlines()
+    if len(lines) != len(frames):
+        raise SystemExit("chain line/frame count mismatch")
+    objects = {}
+    for line, frame in zip(lines, frames):
+        path = f"anchor/frames/{frame['frame_hash']}.json"
+        try:
+            parsed = R._strict_json(line)
+        except ValueError as error:
+            raise SystemExit(f"cannot publish invalid frame object: {error}") from error
+        if parsed != frame:
+            raise SystemExit("frame object bytes do not reproduce the chain frame")
+        objects[path] = line
+    return objects
+
+
+def revision_index_for(frames: list, bootstrap_index: dict) -> dict:
+    head = frames[-1]
+    return {
+        "schema": "rapp-spec-chain-index/1",
+        "generated_utc": head["utc"],
+        "canonical_repository": M.AUTHORITY_POLICY["canonical_repository"],
+        "canonical_ref": M.AUTHORITY_POLICY["protected_ref"],
+        "chain_path": "anchor/chain.jsonl",
+        "checkpoint_url_template": (
+            "https://raw.githubusercontent.com/kody-w/rapp-1/"
+            "{accepted_commit}/anchor/chain.jsonl"
+        ),
+        "frame_discovery_url_template": (
+            "https://raw.githubusercontent.com/kody-w/rapp-1/"
+            "{ref}/anchor/frames/{frame_hash}.json"
+        ),
+        "authority": M.AUTHORITY_POLICY,
+        "bootstrap": {
+            "index_path": "anchor/bootstrap/index.json",
+            "profile_path": bootstrap_index["profile_path"],
+            "profile_sha256": bootstrap_index["profile_sha256"],
+            "verifier_path": bootstrap_index["verifier_path"],
+            "verifier_sha256": bootstrap_index["verifier_sha256"],
+        },
+        "head": {
+            "seq": head["seq"],
+            "revision": head["payload"]["revision"],
+            "frame_hash": head["frame_hash"],
+            "payload_hash": head["payload_hash"],
+            "normative_sha256": head["payload"]["normative_sha256"],
+            "normative_bytes": int(head["payload"]["normative_bytes"]),
+        },
+        "entries": [M._frame_entry(frame) for frame in frames],
+    }
+
+
+def orient_for(
+    frame: dict,
+    previous_orient: dict,
+    bootstrap_index: dict,
+    index_octets: bytes,
+) -> dict:
     payload = frame["payload"]
     orient = json.loads(json.dumps(previous_orient))
     orient["generated_utc"] = frame["utc"]
@@ -347,36 +532,61 @@ def orient_for(frame: dict, previous_orient: dict) -> dict:
         "constitution",
     ):
         orient[key] = payload[key]
+    orient["authority"] = M.AUTHORITY_POLICY
+    orient["bootstrap"] = {
+        "index_path": "anchor/bootstrap/index.json",
+        "profile_path": bootstrap_index["profile_path"],
+        "profile_sha256": bootstrap_index["profile_sha256"],
+        "verifier_path": bootstrap_index["verifier_path"],
+        "verifier_sha256": bootstrap_index["verifier_sha256"],
+    }
+    orient["index"] = {
+        "path": "anchor/index.json",
+        "sha256": sha256(index_octets),
+        "bytes": len(index_octets),
+    }
     return orient
 
 
 def main() -> None:
     ensure_committed_inputs()
+    bootstrap_profile, profile_octets, bootstrap_index, bootstrap_index_octets = (
+        bootstrap_bundle()
+    )
     commit, commit_utc, observed_utc = spec_source()
     spec_octets = (ROOT / "SPEC.md").read_bytes()
-    chain_octets = CHAIN.read_bytes()
-    frames = M.verify_chain(chain_octets)
-    orient = M.verify_orient(ORIENT.read_bytes(), frames)
-    head = frames[-1]
-
+    current_chain = CHAIN.read_bytes()
+    canonical_chain = subprocess.check_output(
+        ["git", "show", "origin/main:anchor/chain.jsonl"],
+        cwd=ROOT,
+    )
+    base_chain, base_frames, replaced_draft = select_chain_base(
+        current_chain,
+        canonical_chain,
+        bootstrap_profile,
+    )
+    current_frames = M.verify_chain(
+        current_chain,
+        bootstrap_profile=bootstrap_profile,
+        allow_unpublished_rev14_draft=True,
+    )
+    M.verify_orient(
+        ORIENT.read_bytes(),
+        current_frames,
+        allow_unpublished_rev14_draft=True,
+    )
+    canonical_orient_octets = subprocess.check_output(
+        ["git", "show", "origin/main:anchor/orient.json"],
+        cwd=ROOT,
+    )
+    canonical_orient = M.verify_orient(canonical_orient_octets, base_frames)
+    accepted_frame = None
+    head = base_frames[-1]
     if head["payload"]["revision"] == REVISION:
-        if len(frames) < 2:
+        if len(base_frames) < 2:
             raise SystemExit("rev-14 cannot be the anchor genesis")
-        expected_payload = revision_payload(
-            frames[-2]["payload"],
-            spec_octets,
-            commit,
-            commit_utc,
-            observed_utc,
-            verify_foundation=False,
-        )
-        if head["payload"] != expected_payload:
-            raise SystemExit("existing rev-14 frame is inconsistent with committed inputs")
-        expected_orient = orient_for(head, orient)
-        if orient != expected_orient:
-            raise SystemExit("existing rev-14 beacon is inconsistent with the chain")
-        print(head["frame_hash"])
-        return
+        accepted_frame = head
+        head = base_frames[-2]
     if head["payload"]["revision"] != PREVIOUS_REVISION:
         raise SystemExit(
             f"expected {PREVIOUS_REVISION} head before {REVISION}, "
@@ -391,7 +601,7 @@ def main() -> None:
         commit,
         commit_utc,
         observed_utc,
-        verify_foundation=True,
+        verify_foundation=False,
     )
     frame = R.build_frame(
         "body.pulse",
@@ -404,26 +614,98 @@ def main() -> None:
     frame_octets = R.canonical(frame).encode("utf-8")
     if len(frame_octets) > R.MAX_CANONICAL_BYTES:
         raise SystemExit("rev-14 frame exceeds the RAPP/1 canonical-byte limit")
-    candidate_chain = chain_octets + json.dumps(frame, ensure_ascii=False).encode("utf-8") + b"\n"
-    verified = M.verify_chain(candidate_chain)
+    candidate_chain = (
+        base_chain + json.dumps(frame, ensure_ascii=False).encode("utf-8") + b"\n"
+        if accepted_frame is None
+        else canonical_chain
+    )
+    if accepted_frame is not None and frame != accepted_frame:
+        raise SystemExit("accepted rev-14 frame is inconsistent with committed inputs")
+    if candidate_chain != current_chain:
+        payload = revision_payload(
+            head["payload"],
+            spec_octets,
+            commit,
+            commit_utc,
+            observed_utc,
+            verify_foundation=True,
+        )
+        frame = R.build_frame(
+            "body.pulse",
+            head["stream_id"],
+            head["seq"] + 1,
+            observed_utc,
+            payload,
+            head["payload_hash"],
+        )
+        candidate_chain = (
+            base_chain
+            + json.dumps(frame, ensure_ascii=False).encode("utf-8")
+            + b"\n"
+        )
+    verified = M.verify_chain(
+        candidate_chain,
+        bootstrap_profile=bootstrap_profile,
+    )
     if verified[-1] != frame:
         raise SystemExit("generated frame did not survive full-chain verification")
-    candidate_orient = orient_for(frame, orient)
-    M.verify_orient(
-        (json.dumps(candidate_orient, ensure_ascii=False, indent=1) + "\n").encode(
-            "utf-8"
-        ),
+    objects = frame_objects(candidate_chain, verified)
+    candidate_index = revision_index_for(verified, bootstrap_index)
+    candidate_index_octets = json_octets(candidate_index)
+    M.verify_revision_index(
+        candidate_index_octets,
         verified,
+        object_loader=lambda path: objects[path],
+        bootstrap_index=bootstrap_index,
+        bootstrap_profile=bootstrap_profile,
     )
-    if not candidate_chain.startswith(chain_octets):
-        raise SystemExit("generator would rewrite historical chain bytes")
+    candidate_orient = orient_for(
+        frame,
+        canonical_orient,
+        bootstrap_index,
+        candidate_index_octets,
+    )
+    candidate_orient_octets = json_octets(candidate_orient)
+    M.verify_orient(
+        candidate_orient_octets,
+        verified,
+        index_octets=candidate_index_octets,
+        bootstrap_index=bootstrap_index,
+    )
+    if not candidate_chain.startswith(canonical_chain):
+        raise SystemExit("generator would rewrite accepted historical chain bytes")
+
+    BOOTSTRAP.mkdir(exist_ok=True)
+    profile_path = ROOT / bootstrap_index["profile_path"]
+    existing_profiles = set(BOOTSTRAP.glob("sha256-*.json"))
+    if existing_profiles - {profile_path}:
+        raise SystemExit(
+            "rapp-anchor-bootstrap/1 is frozen; publish a new bootstrap version"
+        )
+    if profile_path.exists() and profile_path.read_bytes() != profile_octets:
+        raise SystemExit("content-addressed bootstrap profile path has wrong bytes")
+    M.atomic_write(profile_path, profile_octets)
+    M.atomic_write(BOOTSTRAP / "index.json", bootstrap_index_octets)
+
+    FRAMES.mkdir(exist_ok=True)
+    expected_object_paths = {ROOT / path for path in objects}
+    for path, octets in objects.items():
+        target = ROOT / path
+        if target.exists() and target.read_bytes() != octets:
+            raise SystemExit(f"content-addressed frame object has wrong bytes: {path}")
+        M.atomic_write(target, octets)
+    for stale in set(FRAMES.glob("*.json")) - expected_object_paths:
+        if (
+            replaced_draft is not None
+            and stale.name == f"{replaced_draft['frame_hash']}.json"
+        ):
+            stale.unlink()
+        else:
+            raise SystemExit(f"unexpected frame object is not in the selected chain: {stale}")
+
+    M.atomic_write(INDEX, candidate_index_octets)
     M.atomic_write(CHAIN, candidate_chain)
-    M.atomic_write(
-        ORIENT,
-        (json.dumps(candidate_orient, ensure_ascii=False, indent=1) + "\n").encode(
-            "utf-8"
-        ),
-    )
+    M.atomic_write(ORIENT, candidate_orient_octets)
     print(frame["frame_hash"])
 
 

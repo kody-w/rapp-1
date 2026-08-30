@@ -29,6 +29,8 @@ jobs:
         run: |
           python3 -m unittest anchor.test_spec_chain
           python3 anchor/materialize_spec.py --offline --check SPEC.md
+          python3 anchor/update_anchor.py
+          git diff --exit-code -- anchor
       - name: Operational profile conformance
         run: python3 operations_conformance.py
       - name: Reference/agent primitive parity (one canonicalizer, enforced)
