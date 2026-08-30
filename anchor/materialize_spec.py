@@ -4,13 +4,16 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import errno
 import hashlib
 import json
 import os
 import pathlib
 import re
+import secrets
+import stat
 import sys
-import tempfile
 import urllib.parse
 import urllib.request
 from typing import Callable, Dict, List, Optional, Sequence
@@ -89,15 +92,31 @@ def _byte_length(value: object, label: str) -> int:
 
 
 def _safe_normative_path(value: object) -> str:
-    if not isinstance(value, str) or "\\" in value:
+    if (
+        not isinstance(value, str)
+        or not value
+        or value.startswith(("/", "./"))
+        or value.endswith("/")
+        or "//" in value
+        or "\\" in value
+        or "%" in value
+    ):
         raise ChainError("normative_path must be a relative POSIX path")
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError as error:
+        raise ChainError("normative_path is not valid UTF-8 text") from error
+    raw_parts = value.split("/")
+    if any(part in ("", ".", "..") for part in raw_parts):
+        raise ChainError("normative_path contains an unsafe raw component")
     candidate = pathlib.PurePosixPath(value)
     if (
         candidate.is_absolute()
         or not candidate.parts
-        or any(part in ("", ".", "..") for part in candidate.parts)
+        or list(candidate.parts) != raw_parts
+        or candidate.as_posix() != value
     ):
-        raise ChainError("normative_path must be a safe relative POSIX path")
+        raise ChainError("normative_path changes under POSIX reconstruction")
     return value
 
 
@@ -267,15 +286,35 @@ def verify_chain(
     head = None
     for line_number, frame in enumerate(frames, 1):
         seq = frame.get("seq")
+        frame_hash_value = frame.get("frame_hash")
+        payload_hash_value = frame.get("payload_hash")
+        parent = frame.get("prev")
+        if (
+            not isinstance(seq, int)
+            or isinstance(seq, bool)
+            or not 0 <= seq <= 2**53 - 1
+        ):
+            raise ChainError(f"frame at line {line_number} has invalid scalar seq")
+        for label, value in (
+            ("frame_hash", frame_hash_value),
+            ("payload_hash", payload_hash_value),
+        ):
+            if not isinstance(value, str) or not HEX64.fullmatch(value):
+                raise ChainError(
+                    f"frame at line {line_number} has invalid scalar {label}"
+                )
+        if parent is not None and (
+            not isinstance(parent, str) or not HEX64.fullmatch(parent)
+        ):
+            raise ChainError(f"frame at line {line_number} has invalid scalar prev")
         if seq in seen_seq:
             raise ChainError(
                 f"duplicate seq/fork at {seq}: lines {seen_seq[seq]} and {line_number}"
             )
-        if frame.get("frame_hash") in seen_frame_hash:
+        if frame_hash_value in seen_frame_hash:
             raise ChainError(f"duplicate frame_hash at line {line_number}")
-        if frame.get("payload_hash") in seen_payload_hash:
+        if payload_hash_value in seen_payload_hash:
             raise ChainError(f"duplicate payload_hash at line {line_number}")
-        parent = frame.get("prev")
         if parent is not None and parent in children:
             raise ChainError(
                 f"fork: payload {parent} has children at lines "
@@ -331,8 +370,8 @@ def verify_chain(
             raise ChainError(f"duplicate specification revision: {revision}")
         revision_frames.setdefault(revision, []).append(frame)
         seen_seq[seq] = line_number
-        seen_frame_hash.add(frame["frame_hash"])
-        seen_payload_hash.add(frame["payload_hash"])
+        seen_frame_hash.add(frame_hash_value)
+        seen_payload_hash.add(payload_hash_value)
         if parent is not None:
             children[parent] = line_number
         head = frame
@@ -590,26 +629,281 @@ def _verify_normative_bytes(octets: bytes, payload: Dict[str, object]) -> bytes:
     return octets
 
 
-def atomic_write(path: pathlib.Path, octets: bytes) -> None:
-    path = path.resolve()
-    if not path.parent.is_dir():
-        raise ResolutionError(f"target directory does not exist: {path.parent}")
-    descriptor, temporary_name = tempfile.mkstemp(
-        dir=str(path.parent),
-        prefix=f".{path.name}.",
-        suffix=".tmp",
-    )
-    temporary = pathlib.Path(temporary_name)
+def _absolute_path(path: pathlib.Path) -> pathlib.Path:
+    path = pathlib.Path(path)
+    if ".." in path.parts:
+        raise ResolutionError("unsafe parent traversal in destination path")
+    return pathlib.Path(os.path.abspath(os.fspath(path)))
+
+
+@contextlib.contextmanager
+def _open_safe_directory(path: pathlib.Path):
+    absolute = _absolute_path(path)
+    if os.name == "nt" or os.open not in os.supports_dir_fd:
+        current = pathlib.Path(absolute.anchor)
+        for part in absolute.parts[1:]:
+            current = current / part
+            try:
+                details = os.lstat(current)
+            except FileNotFoundError as error:
+                raise ResolutionError(f"directory does not exist: {current}") from error
+            if stat.S_ISLNK(details.st_mode) or not stat.S_ISDIR(details.st_mode):
+                raise ResolutionError(f"unsafe or non-directory path component: {current}")
+        yield None, absolute
+        return
+
+    flags = os.O_RDONLY
+    flags |= getattr(os, "O_DIRECTORY", 0)
+    flags |= getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(absolute.anchor, flags)
     try:
-        with os.fdopen(descriptor, "wb") as stream:
-            stream.write(octets)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.chmod(temporary, 0o644)
-        os.replace(temporary, path)
+        for part in absolute.parts[1:]:
+            try:
+                child = os.open(part, flags, dir_fd=descriptor)
+            except OSError as error:
+                if error.errno in (errno.ELOOP, errno.ENOTDIR):
+                    raise ResolutionError(
+                        f"unsafe or non-directory path component: {part}"
+                    ) from error
+                raise
+            os.close(descriptor)
+            descriptor = child
+        yield descriptor, absolute
     finally:
-        if temporary.exists():
-            temporary.unlink()
+        os.close(descriptor)
+
+
+def _open_leaf(
+    parent_descriptor: Optional[int],
+    parent: pathlib.Path,
+    name: str,
+    flags: int,
+    mode: int = 0o600,
+) -> int:
+    flags |= getattr(os, "O_NOFOLLOW", 0)
+    try:
+        if parent_descriptor is None:
+            return os.open(parent / name, flags, mode)
+        return os.open(name, flags, mode, dir_fd=parent_descriptor)
+    except OSError as error:
+        if error.errno in (errno.ELOOP, errno.EMLINK):
+            raise ResolutionError(f"refusing symlink leaf: {parent / name}") from error
+        raise
+
+
+def _read_descriptor(
+    descriptor: int,
+    *,
+    maximum_bytes: int,
+    expected_size: Optional[int],
+) -> bytes:
+    details = os.fstat(descriptor)
+    if not stat.S_ISREG(details.st_mode):
+        raise ResolutionError("refusing non-regular file")
+    if expected_size is not None and details.st_size != expected_size:
+        raise ResolutionError("file byte length does not match the expected size")
+    if details.st_size > maximum_bytes:
+        raise ResolutionError("file exceeds the bounded read limit")
+    chunks = []
+    remaining = maximum_bytes + 1
+    while remaining:
+        chunk = os.read(descriptor, min(65536, remaining))
+        if not chunk:
+            break
+        chunks.append(chunk)
+        remaining -= len(chunk)
+    octets = b"".join(chunks)
+    if len(octets) > maximum_bytes:
+        raise ResolutionError("file exceeds the bounded read limit")
+    final = os.fstat(descriptor)
+    if (
+        final.st_dev != details.st_dev
+        or final.st_ino != details.st_ino
+        or final.st_size != details.st_size
+    ):
+        raise ResolutionError("file changed during bounded read")
+    if expected_size is not None and len(octets) != expected_size:
+        raise ResolutionError("file byte length changed during bounded read")
+    return octets
+
+
+def read_bounded_file(
+    path: pathlib.Path,
+    *,
+    maximum_bytes: int,
+    expected_size: Optional[int] = None,
+) -> bytes:
+    path = _absolute_path(path)
+    if path.name in ("", ".", ".."):
+        raise ResolutionError("unsafe file leaf")
+    with _open_safe_directory(path.parent) as (parent_descriptor, parent):
+        descriptor = _open_leaf(
+            parent_descriptor,
+            parent,
+            path.name,
+            os.O_RDONLY,
+        )
+        try:
+            return _read_descriptor(
+                descriptor,
+                maximum_bytes=maximum_bytes,
+                expected_size=expected_size,
+            )
+        finally:
+            os.close(descriptor)
+
+
+def _leaf_details(
+    parent_descriptor: Optional[int],
+    parent: pathlib.Path,
+    name: str,
+):
+    try:
+        if parent_descriptor is None:
+            return os.lstat(parent / name)
+        return os.stat(name, dir_fd=parent_descriptor, follow_symlinks=False)
+    except FileNotFoundError:
+        return None
+
+
+def _fsync_directory(descriptor: Optional[int], path: pathlib.Path) -> None:
+    if descriptor is None:
+        if os.name == "nt":
+            return
+        descriptor = os.open(
+            path,
+            os.O_RDONLY | getattr(os, "O_DIRECTORY", 0),
+        )
+        try:
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+        return
+    try:
+        os.fsync(descriptor)
+    except OSError:
+        if os.name != "nt":
+            raise
+
+
+def atomic_write(
+    path: pathlib.Path,
+    octets: bytes,
+    *,
+    expected: Optional[bytes] = None,
+) -> None:
+    if not isinstance(octets, bytes):
+        raise ResolutionError("atomic write requires bytes")
+    path = _absolute_path(path)
+    if path.name in ("", ".", ".."):
+        raise ResolutionError("unsafe destination leaf")
+    with _open_safe_directory(path.parent) as (parent_descriptor, parent):
+        initial = _leaf_details(parent_descriptor, parent, path.name)
+        if initial is not None:
+            if stat.S_ISLNK(initial.st_mode):
+                raise ResolutionError(f"refusing symlink leaf: {path}")
+            if not stat.S_ISREG(initial.st_mode):
+                raise ResolutionError(f"refusing non-regular destination: {path}")
+        if expected is not None:
+            if initial is None:
+                raise ResolutionError("compare-and-swap destination is missing")
+            try:
+                current = read_bounded_file(
+                    path,
+                    maximum_bytes=max(len(expected), 1),
+                    expected_size=len(expected),
+                )
+            except ResolutionError as error:
+                raise ResolutionError(
+                    "compare-and-swap destination changed"
+                ) from error
+            if current != expected:
+                raise ResolutionError("compare-and-swap destination changed")
+
+        temporary_name = f".{path.name}.{secrets.token_hex(12)}.tmp"
+        descriptor = _open_leaf(
+            parent_descriptor,
+            parent,
+            temporary_name,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+        )
+        try:
+            view = memoryview(octets)
+            written = 0
+            while written < len(view):
+                written += os.write(descriptor, view[written:])
+            os.fsync(descriptor)
+            if hasattr(os, "fchmod"):
+                os.fchmod(descriptor, 0o644)
+        finally:
+            os.close(descriptor)
+        try:
+            current_details = _leaf_details(parent_descriptor, parent, path.name)
+            if current_details is not None and stat.S_ISLNK(current_details.st_mode):
+                raise ResolutionError(f"refusing raced symlink leaf: {path}")
+            if expected is not None:
+                try:
+                    current = read_bounded_file(
+                        path,
+                        maximum_bytes=max(len(expected), 1),
+                        expected_size=len(expected),
+                    )
+                except ResolutionError as error:
+                    raise ResolutionError(
+                        "compare-and-swap destination changed"
+                    ) from error
+                if current != expected:
+                    raise ResolutionError("compare-and-swap destination changed")
+            with _open_safe_directory(path.parent) as (
+                check_descriptor,
+                _check_parent,
+            ):
+                if (
+                    parent_descriptor is not None
+                    and check_descriptor is not None
+                    and (
+                        os.fstat(parent_descriptor).st_dev,
+                        os.fstat(parent_descriptor).st_ino,
+                    )
+                    != (
+                        os.fstat(check_descriptor).st_dev,
+                        os.fstat(check_descriptor).st_ino,
+                    )
+                ):
+                    raise ResolutionError("destination directory changed during write")
+            if parent_descriptor is None:
+                os.replace(parent / temporary_name, path)
+            else:
+                os.replace(
+                    temporary_name,
+                    path.name,
+                    src_dir_fd=parent_descriptor,
+                    dst_dir_fd=parent_descriptor,
+                )
+            _fsync_directory(parent_descriptor, parent)
+        finally:
+            try:
+                if parent_descriptor is None:
+                    os.unlink(parent / temporary_name)
+                else:
+                    os.unlink(temporary_name, dir_fd=parent_descriptor)
+            except FileNotFoundError:
+                pass
+
+
+def safe_unlink(path: pathlib.Path) -> None:
+    path = _absolute_path(path)
+    with _open_safe_directory(path.parent) as (parent_descriptor, parent):
+        details = _leaf_details(parent_descriptor, parent, path.name)
+        if details is None:
+            return
+        if stat.S_ISLNK(details.st_mode) or not stat.S_ISREG(details.st_mode):
+            raise ResolutionError(f"refusing unsafe unlink target: {path}")
+        if parent_descriptor is None:
+            os.unlink(path)
+        else:
+            os.unlink(path.name, dir_fd=parent_descriptor)
+        _fsync_directory(parent_descriptor, parent)
 
 
 def resolve_spec_bytes(
@@ -625,11 +919,20 @@ def resolve_spec_bytes(
     metadata = _legacy_metadata(payload)
     cache_path = None
     if cache_dir is not None:
-        cache_dir = cache_dir.resolve()
-        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_dir = _absolute_path(cache_dir)
+        with _open_safe_directory(cache_dir):
+            pass
         cache_path = cache_dir / f"{metadata['normative_sha256']}.md"
-        if cache_path.exists():
-            return _verify_normative_bytes(cache_path.read_bytes(), payload)
+        try:
+            cached = read_bounded_file(
+                cache_path,
+                maximum_bytes=metadata["normative_bytes"],
+                expected_size=metadata["normative_bytes"],
+            )
+        except FileNotFoundError:
+            cached = None
+        if cached is not None:
+            return _verify_normative_bytes(cached, payload)
     if offline:
         raise ResolutionError("legacy revision is not cached and offline mode forbids fetching")
     source = fetcher or fetch_https
@@ -654,6 +957,24 @@ def verify_orient(
     if not isinstance(orient, dict) or orient.get("schema") != "rapp/1-anchor":
         raise ChainError("orient.json has the wrong schema")
     head = frames[-1]
+    payload = head["payload"]
+    expected_keys = {
+        "schema",
+        "generated_utc",
+        "stream_id",
+        "head",
+        "spec",
+        "registered_kinds",
+        "vocabulary",
+        "operational_profiles",
+        "philosophy",
+        "foundation",
+        "constitution",
+    }
+    if payload.get("schema") == REVISION_SCHEMA:
+        expected_keys |= {"authority", "bootstrap", "index"}
+    if set(orient) != expected_keys:
+        raise ChainError("orient.json has unexpected or missing top-level fields")
     expected_head = {
         "seq": head["seq"],
         "frame_hash": head["frame_hash"],
@@ -664,7 +985,6 @@ def verify_orient(
     spec = orient.get("spec")
     if not isinstance(spec, dict):
         raise ChainError("orient.json has no spec view")
-    payload = head["payload"]
     legacy = _legacy_metadata(payload)
     for key in (
         "revision",
@@ -677,6 +997,16 @@ def verify_orient(
     path_value = spec.get("materialized_path", spec.get("normative_path"))
     if path_value != legacy["normative_path"]:
         raise ChainError("orient.json materialized path does not match the chain head")
+    for key in (
+        "registered_kinds",
+        "vocabulary",
+        "operational_profiles",
+        "philosophy",
+        "foundation",
+        "constitution",
+    ):
+        if orient.get(key) != payload.get(key):
+            raise ChainError(f"orient.json {key} mirror does not match the chain head")
     if payload.get("schema") == REVISION_SCHEMA:
         expected = {
             "revision": legacy["revision"],
@@ -684,6 +1014,7 @@ def verify_orient(
             "revision_payload_hash": head["payload_hash"],
             "schema": REVISION_SCHEMA,
             "materialized_path": legacy["normative_path"],
+            "normative_path": legacy["normative_path"],
             "media_type": NORMATIVE_MEDIA_TYPE,
             "normative_sha256": legacy["normative_sha256"],
             "normative_bytes": legacy["normative_bytes"],
@@ -813,7 +1144,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if args.stdout:
         sys.stdout.buffer.write(octets)
     elif args.check is not None:
-        if args.check.read_bytes() != octets:
+        if read_bounded_file(
+            args.check,
+            maximum_bytes=len(octets),
+            expected_size=len(octets),
+        ) != octets:
             raise ResolutionError(f"materialized view drift: {args.check}")
     else:
         atomic_write(args.output, octets)

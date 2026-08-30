@@ -6,10 +6,12 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import os
 import pathlib
 import shutil
 import subprocess
 import sys
+import time
 import unittest
 import uuid
 
@@ -219,6 +221,25 @@ class SpecChainTests(unittest.TestCase):
         self.assertEqual(publication["history_replacement"], "prohibited")
         self.assertIsNone(publication["authenticated_registry_checkpoint"])
 
+    def test_beacon_keeps_legacy_path_alias_and_all_head_mirrors(self) -> None:
+        self.assertEqual(
+            self.orient["spec"]["normative_path"],
+            self.orient["spec"]["materialized_path"],
+        )
+        self.assertEqual(
+            self.orient["registered_kinds"],
+            self.head["payload"]["registered_kinds"],
+        )
+        drift = copy.deepcopy(self.orient)
+        drift["registered_kinds"] = drift["registered_kinds"][:-1]
+        with self.assertRaisesRegex(M.ChainError, "registered_kinds mirror"):
+            M.verify_orient(
+                (json.dumps(drift) + "\n").encode("utf-8"),
+                self.frames,
+                index_octets=self.index_octets,
+                bootstrap_index=self.bootstrap_index,
+            )
+
     def test_legacy_frames_retain_immutable_pointer_contract(self) -> None:
         for frame in self.frames[:14]:
             metadata = M._legacy_metadata(frame["payload"])
@@ -285,6 +306,25 @@ class SpecChainTests(unittest.TestCase):
         with self.assertRaisesRegex(M.ChainError, "40 lowercase hex"):
             M.legacy_url(payload)
 
+    def test_legacy_path_is_validated_before_normalization(self) -> None:
+        invalid = (
+            "",
+            "/SPEC.md",
+            "./SPEC.md",
+            "SPEC.md/",
+            "a//b",
+            "a/./b",
+            "a/../b",
+            "a\\b",
+            "%2e%2e/SPEC.md",
+            "a/%2F/b",
+        )
+        for value in invalid:
+            with self.subTest(value=value):
+                with self.assertRaises(M.ChainError):
+                    M._safe_normative_path(value)
+        self.assertEqual(M._safe_normative_path("docs/SPEC.md"), "docs/SPEC.md")
+
     def test_corrupt_frame_payload_wave_and_prev_are_refused(self) -> None:
         malformed = copy.deepcopy(self.head)
         malformed["extra"] = None
@@ -340,6 +380,24 @@ class SpecChainTests(unittest.TestCase):
         payload = copy.deepcopy(self.head["payload"])
         payload["schema"] = "rapp-spec-revision/2"
         self.assert_chain_refused(self.rebuild_last(payload), "unsupported")
+
+    def test_malformed_scalar_fields_are_controlled_refusals(self) -> None:
+        cases = (
+            ("seq", []),
+            ("seq", True),
+            ("frame_hash", {}),
+            ("payload_hash", []),
+            ("prev", {}),
+        )
+        for field, value in cases:
+            with self.subTest(field=field, value=value):
+                frame = copy.deepcopy(self.head)
+                frame[field] = value
+                chain = b"".join(self.lines[:-1]) + json.dumps(
+                    frame, ensure_ascii=False
+                ).encode("utf-8") + b"\n"
+                with self.assertRaises(M.ChainError):
+                    M.verify_chain(chain)
 
     def test_duplicate_revision_seq_and_fork_are_refused(self) -> None:
         legacy_predecessor = self.frames[6]
@@ -468,6 +526,149 @@ class SpecChainTests(unittest.TestCase):
         self.assertEqual(result.stdout.strip(), self.head["frame_hash"])
         self.assertEqual(CHAIN.read_bytes(), before_chain)
         self.assertEqual(ORIENT.read_bytes(), before_orient)
+
+    def test_exclusive_lock_serializes_concurrent_writers(self) -> None:
+        lock = self.scratch() / "update.lock"
+        script = (
+            "import pathlib,sys,time;"
+            "from anchor import update_anchor as U;"
+            "p=pathlib.Path(sys.argv[1]);"
+            "\nwith U.exclusive_lock(p):"
+            "\n print('locked',flush=True);"
+            "\n time.sleep(float(sys.argv[2]))"
+        )
+        first = subprocess.Popen(
+            [sys.executable, "-c", script, str(lock), "0.7"],
+            cwd=ROOT,
+            stdout=subprocess.PIPE,
+            text=True,
+        )
+        try:
+            self.assertEqual(first.stdout.readline().strip(), "locked")
+            started = time.monotonic()
+            second = subprocess.run(
+                [sys.executable, "-c", script, str(lock), "0"],
+                cwd=ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            elapsed = time.monotonic() - started
+            self.assertEqual(second.stdout.strip(), "locked")
+            self.assertGreaterEqual(elapsed, 0.45)
+        finally:
+            first.wait(timeout=5)
+
+    def test_stale_writer_compare_and_swap_is_refused(self) -> None:
+        scratch = self.scratch()
+        chain = scratch / "chain.jsonl"
+        orient = scratch / "orient.json"
+        chain.write_bytes(b"newer")
+        orient.write_bytes(b"old beacon")
+        with self.assertRaisesRegex(M.ResolutionError, "stale writer"):
+            U.publish_chain_and_beacon(
+                chain,
+                orient,
+                expected_chain=b"older",
+                candidate_chain=b"candidate",
+                candidate_orient=b"new beacon",
+            )
+        self.assertEqual(chain.read_bytes(), b"newer")
+        self.assertEqual(orient.read_bytes(), b"old beacon")
+
+    def test_beacon_recovers_after_interrupted_chain_publication(self) -> None:
+        scratch = self.scratch()
+        chain = scratch / "chain.jsonl"
+        orient = scratch / "orient.json"
+        chain.write_bytes(b"old chain")
+        orient.write_bytes(b"stale beacon")
+
+        def interrupt() -> None:
+            raise RuntimeError("simulated crash after chain replacement")
+
+        with self.assertRaisesRegex(RuntimeError, "simulated crash"):
+            U.publish_chain_and_beacon(
+                chain,
+                orient,
+                expected_chain=b"old chain",
+                candidate_chain=b"new chain",
+                candidate_orient=b"new beacon",
+                after_chain=interrupt,
+            )
+        self.assertEqual(chain.read_bytes(), b"new chain")
+        self.assertEqual(orient.read_bytes(), b"stale beacon")
+
+        M.safe_unlink(orient)
+        U.publish_chain_and_beacon(
+            chain,
+            orient,
+            expected_chain=b"new chain",
+            candidate_chain=b"new chain",
+            candidate_orient=b"new beacon",
+        )
+        self.assertEqual(chain.read_bytes(), b"new chain")
+        self.assertEqual(orient.read_bytes(), b"new beacon")
+
+    @unittest.skipUnless(hasattr(os, "symlink"), "symlinks unavailable")
+    def test_atomic_write_refuses_symlink_leaf_and_parent(self) -> None:
+        scratch = self.scratch()
+        victim = scratch / "victim"
+        victim.write_bytes(b"victim")
+        leaf = scratch / "leaf"
+        try:
+            os.symlink(victim.name, leaf)
+        except OSError as error:
+            self.skipTest(f"cannot create symlink: {error}")
+        with self.assertRaisesRegex(M.ResolutionError, "symlink leaf"):
+            M.atomic_write(leaf, b"replacement")
+        self.assertTrue(leaf.is_symlink())
+        self.assertEqual(victim.read_bytes(), b"victim")
+
+        real_directory = scratch / "real"
+        real_directory.mkdir()
+        linked_directory = scratch / "linked"
+        os.symlink(real_directory.name, linked_directory)
+        with self.assertRaisesRegex(M.ResolutionError, "path component"):
+            M.atomic_write(linked_directory / "file", b"replacement")
+        self.assertFalse((real_directory / "file").exists())
+
+    def test_atomic_compare_and_swap_race_is_refused(self) -> None:
+        target = self.scratch() / "target"
+        target.write_bytes(b"raced")
+        with self.assertRaisesRegex(
+            M.ResolutionError,
+            "compare-and-swap destination changed",
+        ):
+            M.atomic_write(target, b"replacement", expected=b"old")
+        self.assertEqual(target.read_bytes(), b"raced")
+
+    @unittest.skipUnless(hasattr(os, "symlink"), "symlinks unavailable")
+    def test_cache_refuses_symlink_and_oversized_entries(self) -> None:
+        octets = b"legacy"
+        payload = {
+            "revision": "rev-1",
+            "canonical_repo": "https://github.com/example/spec",
+            "commit": "a" * 40,
+            "normative_path": "SPEC.md",
+            "normative_sha256": hashlib.sha256(octets).hexdigest(),
+            "normative_bytes": str(len(octets)),
+        }
+        frame = {"payload": payload}
+        cache = self.scratch()
+        cache_file = cache / f"{payload['normative_sha256']}.md"
+        cache_file.write_bytes(octets + b"x")
+        with self.assertRaisesRegex(M.ResolutionError, "expected size"):
+            M.resolve_spec_bytes(frame, cache_dir=cache, offline=True)
+
+        cache_file.unlink()
+        victim = cache / "victim"
+        victim.write_bytes(octets)
+        try:
+            os.symlink(victim.name, cache_file)
+        except OSError as error:
+            self.skipTest(f"cannot create symlink: {error}")
+        with self.assertRaisesRegex(M.ResolutionError, "symlink leaf"):
+            M.resolve_spec_bytes(frame, cache_dir=cache, offline=True)
 
 
 if __name__ == "__main__":

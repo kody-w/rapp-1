@@ -749,6 +749,10 @@ Frames through rev-13 retain their immutable legacy pointer fields:
 commit-pinned GitHub Raw URL from those fields, fetch the bytes, and verify
 length and raw SHA-256 before use. A branch or tag name in `commit`, an unsafe
 path, malformed UTF-8, a byte-order mark, or a hash/length mismatch is refusal.
+Path validation occurs on the original string before path-library
+normalization: empty, absolute, `.`/`..`, empty components, repeated slash,
+leading `./`, trailing slash, backslash, percent-encoded ambiguity, or any
+value whose reconstructed POSIX form differs is refused.
 These pointer payloads are immutable governance history under Article 3's
 narrow exception; they **MUST NOT** be emitted for rev-14 or later.
 
@@ -821,10 +825,19 @@ pointer-only frame after rev-13; malformed UTF-8; normative hash/length drift;
 bootstrap/index/object drift; or an object absent from the selected chain.
 
 `orient.json` is only a beacon to the head. Its sequence, frame hash, payload
-hash, bootstrap/index pins, authority-selection metadata, and normative-view
-metadata **MUST** match the verified artifacts. `SPEC.md` **MUST** reproduce
-the selected head byte-for-byte. The Atom feed and mutable main URLs are
-discovery only.
+hash, bootstrap/index pins, authority-selection metadata, and every retained
+head mirror — including `registered_kinds`, vocabulary, operational profiles,
+foundation, philosophy, and Constitution metadata — **MUST** be regenerated
+from and match the verified head. While the beacon schema remains
+`rapp/1-anchor`, `spec.normative_path` **MUST** remain as a compatibility alias
+equal to `spec.materialized_path`. `SPEC.md` **MUST** reproduce the selected
+head byte-for-byte. The Atom feed and mutable main URLs are discovery only.
+
+Materialization and immutable-pointer caching **MUST** use bounded reads and
+same-directory atomic replacement without following a symlink in the
+destination leaf or path. A symlink, unsafe directory component, oversized
+cache entry, content change during read/write, or compare-and-swap mismatch is
+refusal; the requested leaf is replaced, never the symlink target.
 
 After acceptance, let `C` be the full 40-hex canonical-main commit containing
 the accepted snapshot. The immutable checkpoint URLs are:
@@ -851,6 +864,18 @@ owner-ratified change may deterministically replace the one unpublished rev-14
 draft line/object and update dependent hashes, but **MUST** preserve every
 rev-5 through rev-13 line byte-for-byte and **MUST NOT** represent the replaced
 draft as accepted history.
+
+The publication generator **MUST** hold one cross-process exclusive lock across
+read, verification, generation, comparison, and publication. Immediately
+before replacing `chain.jsonl` it **MUST** re-read and verify the on-disk head
+and compare the complete expected prefix; a stale writer or changed prefix is
+refused. Supporting content-addressed artifacts are published first, the
+authority chain is compare-and-swap replaced next, and the beacon is replaced
+last, with file and parent-directory synchronization. Because the chain is
+authority content and the beacon is only a derived view, interruption after a
+valid chain replacement may leave a stale or missing beacon; the next locked
+run **MUST** deterministically regenerate it from the verified chain rather
+than refusing the valid head forever.
 
 This chain and beacon are unsigned. They provide integrity after authority
 selection, not authorship, and implementations **MUST NOT** fabricate a

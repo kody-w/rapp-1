@@ -66,7 +66,9 @@ Use `--chain-url` to fetch the public chain; the matching public beacon is then
 checked together with the index and frame objects. `--offline` permits inline
 revisions and verified cached legacy bytes but never silently reaches the
 network. Legacy fetches accept only safe HTTPS GitHub Raw URLs built from a
-full 40-hex commit, never a branch name.
+full 40-hex commit, never a branch name. Cache and materialization writes are
+bounded, symlink-refusing, same-directory atomic replacements; unsafe path
+components, oversized cache entries, and compare-and-swap races fail closed.
 
 Given only frame hash `F`, fetch
 `https://raw.githubusercontent.com/kody-w/rapp-1/main/anchor/frames/F.json` as
@@ -88,6 +90,15 @@ then run `python3 anchor/update_anchor.py`. It verifies the entire existing
 chain, bootstrap, index, objects, and beacon; preserves accepted history;
 appends at most one deterministic frame; and refuses dirty, stale, competing,
 or inconsistent inputs. A repeat run is an idempotent no-op.
+
+The generator holds a cross-process exclusive lock for the full operation and
+re-verifies the on-disk chain immediately before compare-and-swap publication.
+It publishes supporting objects/index first, the authority chain next, and the
+derived beacon last, synchronizing containing directories. If interruption
+lands the valid chain but not the beacon, the next run deterministically
+reconstructs the stale or missing beacon from the head. The unchanged
+`rapp/1-anchor` beacon keeps both `spec.materialized_path` and the compatible
+`spec.normative_path` alias.
 
 The linearization point is the owner-ratified commit accepted onto protected
 canonical main. A competing append must rebase onto that accepted head and

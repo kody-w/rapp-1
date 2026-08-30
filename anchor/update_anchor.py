@@ -3,9 +3,12 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
+import os
 import pathlib
+import stat
 import subprocess
 import sys
 import urllib.request
@@ -26,6 +29,7 @@ ORIENT = ANCHOR / "orient.json"
 INDEX = ANCHOR / "index.json"
 FRAMES = ANCHOR / "frames"
 BOOTSTRAP = ANCHOR / "bootstrap"
+LOCK = ANCHOR / ".update_anchor.lock"
 REVISION = "rev-14"
 PREVIOUS_REVISION = "rev-13"
 INPUT_PATHS = [
@@ -57,6 +61,45 @@ def fixed_utc(value: str) -> str:
 
 def git_output(*args: str) -> str:
     return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
+
+
+@contextlib.contextmanager
+def exclusive_lock(path: pathlib.Path):
+    path = M._absolute_path(path)
+    with M._open_safe_directory(path.parent) as (parent_descriptor, parent):
+        descriptor = M._open_leaf(
+            parent_descriptor,
+            parent,
+            path.name,
+            os.O_RDWR | os.O_CREAT,
+        )
+        try:
+            details = os.fstat(descriptor)
+            if not stat.S_ISREG(details.st_mode):
+                raise M.ResolutionError("anchor update lock is not a regular file")
+            if details.st_size == 0:
+                os.write(descriptor, b"\0")
+                os.fsync(descriptor)
+                M._fsync_directory(parent_descriptor, parent)
+            if os.name == "nt":
+                import msvcrt
+
+                os.lseek(descriptor, 0, os.SEEK_SET)
+                msvcrt.locking(descriptor, msvcrt.LK_LOCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(descriptor, fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                if os.name == "nt":
+                    os.lseek(descriptor, 0, os.SEEK_SET)
+                    msvcrt.locking(descriptor, msvcrt.LK_UNLCK, 1)
+                else:
+                    fcntl.flock(descriptor, fcntl.LOCK_UN)
+        finally:
+            os.close(descriptor)
 
 
 def ensure_committed_inputs() -> None:
@@ -500,62 +543,89 @@ def revision_index_for(frames: list, bootstrap_index: dict) -> dict:
 
 def orient_for(
     frame: dict,
-    previous_orient: dict,
     bootstrap_index: dict,
     index_octets: bytes,
 ) -> dict:
     payload = frame["payload"]
-    orient = json.loads(json.dumps(previous_orient))
-    orient["generated_utc"] = frame["utc"]
-    orient["head"] = {
-        "seq": frame["seq"],
-        "frame_hash": frame["frame_hash"],
-        "payload_hash": frame["payload_hash"],
+    return {
+        "schema": "rapp/1-anchor",
+        "generated_utc": frame["utc"],
+        "stream_id": frame["stream_id"],
+        "head": {
+            "seq": frame["seq"],
+            "frame_hash": frame["frame_hash"],
+            "payload_hash": frame["payload_hash"],
+        },
+        "spec": {
+            "revision": REVISION,
+            "revision_frame_hash": frame["frame_hash"],
+            "revision_payload_hash": frame["payload_hash"],
+            "schema": M.REVISION_SCHEMA,
+            "materialized_path": payload["normative_path"],
+            "normative_path": payload["normative_path"],
+            "media_type": M.NORMATIVE_MEDIA_TYPE,
+            "normative_sha256": payload["normative"]["sha256"],
+            "normative_bytes": payload["normative"]["bytes"],
+            "canonical_repo": payload["canonical_repo"],
+            "commit": payload["commit"],
+        },
+        "registered_kinds": payload["registered_kinds"],
+        "vocabulary": payload["vocabulary"],
+        "operational_profiles": payload["operational_profiles"],
+        "philosophy": payload["philosophy"],
+        "foundation": payload["foundation"],
+        "constitution": payload["constitution"],
+        "authority": M.AUTHORITY_POLICY,
+        "bootstrap": {
+            "index_path": "anchor/bootstrap/index.json",
+            "profile_path": bootstrap_index["profile_path"],
+            "profile_sha256": bootstrap_index["profile_sha256"],
+            "verifier_path": bootstrap_index["verifier_path"],
+            "verifier_sha256": bootstrap_index["verifier_sha256"],
+        },
+        "index": {
+            "path": "anchor/index.json",
+            "sha256": sha256(index_octets),
+            "bytes": len(index_octets),
+        },
     }
-    orient["spec"] = {
-        "revision": REVISION,
-        "revision_frame_hash": frame["frame_hash"],
-        "revision_payload_hash": frame["payload_hash"],
-        "schema": M.REVISION_SCHEMA,
-        "materialized_path": "SPEC.md",
-        "media_type": M.NORMATIVE_MEDIA_TYPE,
-        "normative_sha256": payload["normative"]["sha256"],
-        "normative_bytes": payload["normative"]["bytes"],
-        "canonical_repo": payload["canonical_repo"],
-        "commit": payload["commit"],
-    }
-    for key in (
-        "vocabulary",
-        "operational_profiles",
-        "foundation",
-        "philosophy",
-        "constitution",
-    ):
-        orient[key] = payload[key]
-    orient["authority"] = M.AUTHORITY_POLICY
-    orient["bootstrap"] = {
-        "index_path": "anchor/bootstrap/index.json",
-        "profile_path": bootstrap_index["profile_path"],
-        "profile_sha256": bootstrap_index["profile_sha256"],
-        "verifier_path": bootstrap_index["verifier_path"],
-        "verifier_sha256": bootstrap_index["verifier_sha256"],
-    }
-    orient["index"] = {
-        "path": "anchor/index.json",
-        "sha256": sha256(index_octets),
-        "bytes": len(index_octets),
-    }
-    return orient
 
 
-def main() -> None:
+def publish_chain_and_beacon(
+    chain_path: pathlib.Path,
+    orient_path: pathlib.Path,
+    *,
+    expected_chain: bytes,
+    candidate_chain: bytes,
+    candidate_orient: bytes,
+    after_chain=None,
+) -> None:
+    current = M.read_bounded_file(
+        chain_path,
+        maximum_bytes=M.MAX_FETCH_BYTES,
+    )
+    if current != expected_chain:
+        raise M.ResolutionError(
+            "stale writer: authority chain changed before publication"
+        )
+    if current != candidate_chain:
+        M.atomic_write(chain_path, candidate_chain, expected=current)
+    if after_chain is not None:
+        after_chain()
+    M.atomic_write(orient_path, candidate_orient)
+
+
+def _main_locked() -> None:
     ensure_committed_inputs()
     bootstrap_profile, profile_octets, bootstrap_index, bootstrap_index_octets = (
         bootstrap_bundle()
     )
     commit, commit_utc, observed_utc = spec_source()
     spec_octets = (ROOT / "SPEC.md").read_bytes()
-    current_chain = CHAIN.read_bytes()
+    current_chain = M.read_bounded_file(
+        CHAIN,
+        maximum_bytes=M.MAX_FETCH_BYTES,
+    )
     canonical_chain = subprocess.check_output(
         ["git", "show", "origin/main:anchor/chain.jsonl"],
         cwd=ROOT,
@@ -565,21 +635,6 @@ def main() -> None:
         canonical_chain,
         bootstrap_profile,
     )
-    current_frames = M.verify_chain(
-        current_chain,
-        bootstrap_profile=bootstrap_profile,
-        allow_unpublished_rev14_draft=True,
-    )
-    M.verify_orient(
-        ORIENT.read_bytes(),
-        current_frames,
-        allow_unpublished_rev14_draft=True,
-    )
-    canonical_orient_octets = subprocess.check_output(
-        ["git", "show", "origin/main:anchor/orient.json"],
-        cwd=ROOT,
-    )
-    canonical_orient = M.verify_orient(canonical_orient_octets, base_frames)
     accepted_frame = None
     head = base_frames[-1]
     if head["payload"]["revision"] == REVISION:
@@ -661,7 +716,6 @@ def main() -> None:
     )
     candidate_orient = orient_for(
         frame,
-        canonical_orient,
         bootstrap_index,
         candidate_index_octets,
     )
@@ -675,7 +729,8 @@ def main() -> None:
     if not candidate_chain.startswith(canonical_chain):
         raise SystemExit("generator would rewrite accepted historical chain bytes")
 
-    BOOTSTRAP.mkdir(exist_ok=True)
+    with M._open_safe_directory(BOOTSTRAP):
+        pass
     profile_path = ROOT / bootstrap_index["profile_path"]
     existing_profiles = set(BOOTSTRAP.glob("sha256-*.json"))
     stale_profiles = existing_profiles - {profile_path}
@@ -684,17 +739,34 @@ def main() -> None:
             "rapp-anchor-bootstrap/1 is frozen; publish a new bootstrap version"
         )
     for stale_profile in stale_profiles:
-        stale_profile.unlink()
-    if profile_path.exists() and profile_path.read_bytes() != profile_octets:
+        M.safe_unlink(stale_profile)
+    try:
+        existing_profile = M.read_bounded_file(
+            profile_path,
+            maximum_bytes=len(profile_octets),
+            expected_size=len(profile_octets),
+        )
+    except FileNotFoundError:
+        existing_profile = None
+    if existing_profile is not None and existing_profile != profile_octets:
         raise SystemExit("content-addressed bootstrap profile path has wrong bytes")
     M.atomic_write(profile_path, profile_octets)
     M.atomic_write(BOOTSTRAP / "index.json", bootstrap_index_octets)
 
-    FRAMES.mkdir(exist_ok=True)
+    with M._open_safe_directory(FRAMES):
+        pass
     expected_object_paths = {ROOT / path for path in objects}
     for path, octets in objects.items():
         target = ROOT / path
-        if target.exists() and target.read_bytes() != octets:
+        try:
+            existing_object = M.read_bounded_file(
+                target,
+                maximum_bytes=len(octets),
+                expected_size=len(octets),
+            )
+        except FileNotFoundError:
+            existing_object = None
+        if existing_object is not None and existing_object != octets:
             raise SystemExit(f"content-addressed frame object has wrong bytes: {path}")
         M.atomic_write(target, octets)
     for stale in set(FRAMES.glob("*.json")) - expected_object_paths:
@@ -702,14 +774,37 @@ def main() -> None:
             replaced_draft is not None
             and stale.name == f"{replaced_draft['frame_hash']}.json"
         ):
-            stale.unlink()
+            M.safe_unlink(stale)
         else:
             raise SystemExit(f"unexpected frame object is not in the selected chain: {stale}")
 
     M.atomic_write(INDEX, candidate_index_octets)
-    M.atomic_write(CHAIN, candidate_chain)
-    M.atomic_write(ORIENT, candidate_orient_octets)
+    latest_chain = M.read_bounded_file(
+        CHAIN,
+        maximum_bytes=M.MAX_FETCH_BYTES,
+    )
+    if latest_chain != current_chain:
+        raise M.ResolutionError(
+            "stale writer: authority chain changed during generation"
+        )
+    M.verify_chain(
+        latest_chain,
+        bootstrap_profile=bootstrap_profile,
+        allow_unpublished_rev14_draft=True,
+    )
+    publish_chain_and_beacon(
+        CHAIN,
+        ORIENT,
+        expected_chain=current_chain,
+        candidate_chain=candidate_chain,
+        candidate_orient=candidate_orient_octets,
+    )
     print(frame["frame_hash"])
+
+
+def main() -> None:
+    with exclusive_lock(LOCK):
+        _main_locked()
 
 
 if __name__ == "__main__":
