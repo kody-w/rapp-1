@@ -1,18 +1,18 @@
 {
  "schema": "rapp/1-anchor",
- "generated_utc": "2026-08-27T22:47:28.791Z",
+ "generated_utc": "2026-08-30T01:43:43.314Z",
  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
  "head": {
-  "seq": 6,
-  "frame_hash": "da8dd02d50796c57ac7f9b7b1d8fd86d8a2d10ba15d28776914e71118243ce12",
-  "payload_hash": "72402ad7f2666f634e82ceb9ada3d2f577db5100160bd88c51f9f0aafc7ffad2"
+  "seq": 7,
+  "frame_hash": "3620f45825dbf73280a1df2db3aac4de87b07297afc35e1cee3034eb3c3ea6ef",
+  "payload_hash": "c8bdac0f3f194d35f8b60d968178dbb6ed133b6422d721c9e3e34980118679d2"
  },
  "spec": {
-  "revision": "rev-6",
+  "revision": "rev-7",
   "normative_path": "SPEC.md",
-  "normative_sha256": "8212bbccaf86f2dc81bd07e2fcd5184f3a157f4eee162b13a698407684b6e134",
+  "normative_sha256": "ad116c1524c02918b9f53a508389b433cf011e1f44500ad6e315f5784e079140",
   "canonical_repo": "https://github.com/kody-w/rapp-1",
-  "commit": "2d3e50df04d5beaf40045da244493503d16f7779"
+  "commit": "9506f486b316cea84e8eaadc7b664eb4b3bcf942"
  },
  "registered_kinds": [
   "body.pulse",
@@ -98,6 +98,10 @@
   "instance": {
    "status": "live",
    "where": "\u00a79.4 instantiation \u2014 a hatched install; fresh \u00a76.2 identity, never shared"
+  },
+  "grail": {
+   "status": "live",
+   "where": "\u00a73 terminology; \u00a711.1 immutable Grail kernel conformance; Constitution Article 15"
   }
  }
 }
