@@ -63,7 +63,7 @@ in chapter 10.
 
 | file | what it is |
 |------|-----------|
-| **[`SPEC.md`](SPEC.md)** | the normative RAPP standard (rev-12) — 15 sections, RFC-grounded |
+| **[`SPEC.md`](SPEC.md)** | the normative RAPP standard (rev-13) — 15 sections, RFC-grounded |
 | **[`anchor/`](anchor/README.md)** | the public pullable anchor — spec pin, kinds, and vocabulary status in `orient.json`, plus [the DOGG feed](https://github.com/kody-w/rapp-1/commits/main/anchor.atom): subscribe to anchor ticks in any feed reader |
 | **[`CONSTITUTION.md`](CONSTITUTION.md)** | the rapp/1 Protocol Constitution — the law of change: how the standard, this repo, and its claims may lawfully evolve |
 | **[`FOUNDATION.json`](FOUNDATION.json)** | exact pointer to the canonical public RAPP foundation and philosophy |
@@ -198,8 +198,9 @@ because everyone building on it turns the same bytes into the same tree.
 
 ## Status
 
-RAPP rev-12 makes the foundation/protocol scope explicit while retaining
-rev-11's RAPP CI/CD and RAPP Deploy operational profiles and
+RAPP rev-13 closes public protocol governance and estate-registry scope while
+retaining rev-12's foundation/product boundary, rev-11's RAPP CI/CD and RAPP
+Deploy operational profiles, and
 preserving rev-10's sealed-artifact and immutable-Grail closure. The reference
 profile passes 22/22 core checks plus the operational safety vectors on every
 push; the Grail rules govern release conformance without changing existing

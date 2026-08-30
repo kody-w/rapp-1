@@ -1,7 +1,7 @@
 # The RAPP Protocol Suite
 ### Unified normative specification of identity, canonicalization, the frame, the wire, and the egg
 
-**Status:** Owner-ratified RAPP/1 standard. **rev-12.** **Obsoletes / consolidates:**
+**Status:** Owner-ratified RAPP/1 standard. **rev-13.** **Obsoletes / consolidates:**
 `rapp-frame/2.0`, `rapp-frame/2.1`, `rapp-rappid-spec/2.0`, `rapp-protocol/1.0`, all scattered egg specs
 (§9 subsumes them), and `OSI.md`. This is the single living standard; the consolidated specs are
 retired historical record (Protocol Constitution Article 6). Rev-12 becomes the published current
@@ -795,6 +795,12 @@ tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.
 ---
 
 ### Revision log
+- **rev-13 (public governance closure)** — makes the ratified public Protocol
+  Constitution final for protocol governance; limits private governance and
+  master plans to estate/product concerns; makes registry `protocol` entries
+  subordinate adoption pins; verifies the exact canonical RAPP foundation
+  object before anchoring; and aligns every public teaching surface with
+  estate-specific registry authority.
 - **rev-12 (foundation/protocol boundary)** — records `kody-w/RAPP` as the
   canonical public foundation and product home; limits `kody-w/rapp-1` to
   protocol authority; ratifies the complete public Protocol Constitution; makes
