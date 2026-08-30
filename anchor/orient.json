@@ -1,23 +1,23 @@
 {
  "schema": "rapp/1-anchor",
- "generated_utc": "2026-08-30T22:48:07.000Z",
+ "generated_utc": "2026-08-30T23:23:32.000Z",
  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
  "head": {
   "seq": 14,
-  "frame_hash": "aa9af1c34eefab67d08c6fe814206d635d6a20f48a3ebbe30d0724b218d0afd9",
-  "payload_hash": "b4f960786ad7867f60949eafd18293a636ea9f68d3d184c987d6cba00787b11c"
+  "frame_hash": "5ec6d4354f5627726d5ae73ff523d0c6555668bc826f90a52bb6d2a2467438da",
+  "payload_hash": "d93248504d196eab488ab083d63e8067b4e228bb3b552f9428e0a054a94d4b88"
  },
  "spec": {
   "revision": "rev-14",
-  "revision_frame_hash": "aa9af1c34eefab67d08c6fe814206d635d6a20f48a3ebbe30d0724b218d0afd9",
-  "revision_payload_hash": "b4f960786ad7867f60949eafd18293a636ea9f68d3d184c987d6cba00787b11c",
+  "revision_frame_hash": "5ec6d4354f5627726d5ae73ff523d0c6555668bc826f90a52bb6d2a2467438da",
+  "revision_payload_hash": "d93248504d196eab488ab083d63e8067b4e228bb3b552f9428e0a054a94d4b88",
   "schema": "rapp-spec-revision/1",
   "materialized_path": "SPEC.md",
   "media_type": "text/markdown; charset=utf-8",
-  "normative_sha256": "2daf1fd05a0b91ec7c68d56b2f7639f9d917264de9ee6ba8a229622dcd8e2824",
-  "normative_bytes": 70760,
+  "normative_sha256": "63d9ab18559e8a115538abdf3d7729d700066739c1fcc5c0217ec88bc2cd66ca",
+  "normative_bytes": 76444,
   "canonical_repo": "https://github.com/kody-w/rapp-1",
-  "commit": "fcc437263d9c464ee420302fec4675a011344348"
+  "commit": "d38391a57a0508ba2d7e71609490cbd7e5f9138d"
  },
  "registered_kinds": [
   "body.pulse",
@@ -165,7 +165,30 @@
  },
  "constitution": {
   "path": "CONSTITUTION.md",
-  "sha256": "b1d9978e29801dba8b3314825c272e3dd7c081e3205f66301e5a870ca6eb6f9f",
-  "size_bytes": 14401
+  "sha256": "c218819541c0a2caa88048f208aa28c632577bff9a8512b1d7f6d2e484a18d21",
+  "size_bytes": 16124
+ },
+ "authority": {
+  "canonical_repository": "https://github.com/kody-w/rapp-1",
+  "protected_ref": "refs/heads/main",
+  "selection": "owner-ratified acceptance of the chain snapshot onto protected canonical main",
+  "linearization": "the accepted canonical-main commit containing the new frame",
+  "history_replacement": "prohibited",
+  "competing_append": "must rebase onto the accepted head and regenerate",
+  "transition": "rev-14-ratified-under-rev-13-article-14",
+  "chain_append_process": "governs-rev-15-and-later",
+  "authenticated_registry_checkpoint": null
+ },
+ "bootstrap": {
+  "index_path": "anchor/bootstrap/index.json",
+  "profile_path": "anchor/bootstrap/sha256-1666e44acf532f854d4bf74868c9af9f9b362055692189ac858a7c8b52dcd5bb.json",
+  "profile_sha256": "1666e44acf532f854d4bf74868c9af9f9b362055692189ac858a7c8b52dcd5bb",
+  "verifier_path": "anchor/bootstrap_verify.py",
+  "verifier_sha256": "4a4c19912063d5ce15cec69b1aca0cebf5df122fb1c481f357f1cf21bc0a07ff"
+ },
+ "index": {
+  "path": "anchor/index.json",
+  "sha256": "53e480edb0bb52305f5ad0628e647b6374d4d4517650c5a686581c2c125e6f9f",
+  "bytes": 7378
  }
 }
