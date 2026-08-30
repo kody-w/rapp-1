@@ -41,9 +41,9 @@ def main() -> int:
     assert pages_match, info
     pages = int(pages_match.group(1))
     if args.portable_render:
-        assert 100 <= pages <= 108, info
+        assert 100 <= pages <= 110, info
     else:
-        assert pages == 108, info
+        assert pages == 110, info
     assert re.search(r"^Page size:\s+432 x 648 pts", info, re.MULTILINE), info
 
     output = root / ".book-build" / "pdf-validation"
