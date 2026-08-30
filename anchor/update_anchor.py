@@ -19,7 +19,7 @@ import rapp as R
 ANCHOR = pathlib.Path(__file__).resolve().parent
 CHAIN = ANCHOR / "chain.jsonl"
 ORIENT = ANCHOR / "orient.json"
-REVISION = "rev-7"
+REVISION = "rev-9"
 
 
 def utc_now() -> str:
