@@ -1,0 +1,18 @@
+{
+  "type": "grail-kernel",
+  "release_scope": "https://github.com/kody-w/rapp-installer/releases/grail",
+  "grail_id": "grail:1a501dd7a01f05698abcf5f9bbe0273ebb9d09f5d6ec444aa71edccff947c8c7",
+  "repository": "https://github.com/kody-w/rapp-installer",
+  "immutable_ref": "refs/tags/brainstem-v0.6.16",
+  "object_format": "sha1",
+  "commit": "5fbde1776a72715935c3d597a9ddfce28a04032b",
+  "path": "rapp_brainstem/brainstem.py",
+  "mode": "100644",
+  "blob": "3f7102ff508c813bb6494511fc32a421a633e418",
+  "sha256": "bd55a7f0bcf5efd3f7966ca39bb146da3c25fda9a0b1ce5ba587919d3c3775f4",
+  "size_bytes": 154059,
+  "activated_utc": "2026-08-29T20:00:00.000Z",
+  "predecessor": null,
+  "declared_by": "rappid:@kody-w/estate-owner:9999999999999999999999999999999999999999999999999999999999999999",
+  "sig": "fixture-detached-jws"
+}

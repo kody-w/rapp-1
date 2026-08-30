@@ -23,6 +23,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Protocol conformance (spec floor is stdlib-only, any modern Python)
         run: python3 conformance.py
+      - name: Operational profile conformance
+        run: python3 operations_conformance.py
       - name: Reference/agent primitive parity (one canonicalizer, enforced)
         run: python3 parity_check.py
       - name: Run every example end to end

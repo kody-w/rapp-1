@@ -155,6 +155,23 @@ that refusal prevents. RAPP treats a red check as the system working — show me
 
 **Expect:** a guided tour of every refusal in the failure atlas.
 
+## 10 · Qualify and deploy an AI without changing it under users
+
+```text
+In my clone of https://github.com/kody-w/rapp-1, read protocols/README.md,
+protocols/rapp-cicd/1/SPEC.md, and protocols/rapp-deploy/1/SPEC.md. Run
+python3 operations_conformance.py and stop if any vector is red. Then copy the
+three files under protocols/examples/ for my release, replacing fixture values
+with measured source, artifact, Grail, topology, state, data-policy, and health
+values. Validate each file with rapp_cicd.py or rapp_deploy.py. Do not allow
+in-place serving mutation, skipped stages, stale evidence, silent degradation,
+or a mutable rollback target.
+```
+
+**Expect:** a content-addressed release, an ordered qualification policy, and a
+cellular deployment plan that can prove pause, quarantine, restore, and exact
+rollback before it receives broad user traffic.
+
 ---
 
 *The interactive book edition gives every code example its own **Copy prompt** control —

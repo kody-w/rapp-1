@@ -1,0 +1,211 @@
+{
+  "schema": "rapp-deploy/1-plan",
+  "release_payload_hash": "6014f5040a79feb0f78639a66852db87fa19fff075778c70d3870b5fdbfb8b06",
+  "release_scope": "https://github.com/kody-w/rapp-installer/releases/grail",
+  "created_utc": "2026-08-30T20:00:00.000Z",
+  "deployment_class": "planetary",
+  "promotion_payload_hash": "3eadb10cdddcb142d403340a1737e9608a3876839f59e27a5ab8e1c43acf787d",
+  "serving": {
+    "candidate_isolated": true,
+    "in_place_mutation": false,
+    "current_release_payload_hash": "c0c70457c0ce87ea0794ab76de9235d2802b6e1cf61fa7991e101c286563fe59"
+  },
+  "topology": {
+    "mode": "cellular",
+    "cells": [
+      {
+        "cell_id": "us-east-a",
+        "region": "us-east",
+        "failure_domain": "us-east-1a",
+        "tenant_scope": "policy:us-east"
+      },
+      {
+        "cell_id": "us-west-a",
+        "region": "us-west",
+        "failure_domain": "us-west-2a",
+        "tenant_scope": "policy:us-west"
+      },
+      {
+        "cell_id": "eu-west-a",
+        "region": "eu-west",
+        "failure_domain": "eu-west-1a",
+        "tenant_scope": "policy:eu-west"
+      }
+    ]
+  },
+  "waves": [
+    {
+      "id": "shadow",
+      "traffic_basis_points": 0,
+      "minimum_observation_seconds": 60,
+      "minimum_healthy_windows": 1,
+      "cell_ids": [
+        "us-east-a"
+      ]
+    },
+    {
+      "id": "canary",
+      "traffic_basis_points": 100,
+      "minimum_observation_seconds": 300,
+      "minimum_healthy_windows": 2,
+      "cell_ids": [
+        "us-east-a"
+      ]
+    },
+    {
+      "id": "regional",
+      "traffic_basis_points": 2500,
+      "minimum_observation_seconds": 900,
+      "minimum_healthy_windows": 3,
+      "cell_ids": [
+        "us-east-a",
+        "us-west-a"
+      ]
+    },
+    {
+      "id": "global",
+      "traffic_basis_points": 10000,
+      "minimum_observation_seconds": 1800,
+      "minimum_healthy_windows": 3,
+      "cell_ids": [
+        "us-east-a",
+        "us-west-a",
+        "eu-west-a"
+      ]
+    }
+  ],
+  "health_contract": {
+    "max_evidence_age_seconds": 900,
+    "objectives": [
+      {
+        "id": "artifact-match",
+        "unit": "boolean",
+        "operator": "eq",
+        "threshold": 1
+      },
+      {
+        "id": "grail-match",
+        "unit": "boolean",
+        "operator": "eq",
+        "threshold": 1
+      },
+      {
+        "id": "state-integrity",
+        "unit": "boolean",
+        "operator": "eq",
+        "threshold": 1
+      },
+      {
+        "id": "model-identity",
+        "unit": "boolean",
+        "operator": "eq",
+        "threshold": 1
+      },
+      {
+        "id": "behavior-baseline",
+        "unit": "boolean",
+        "operator": "eq",
+        "threshold": 1
+      },
+      {
+        "id": "tool-contract",
+        "unit": "boolean",
+        "operator": "eq",
+        "threshold": 1
+      },
+      {
+        "id": "serving-mutated",
+        "unit": "boolean",
+        "operator": "eq",
+        "threshold": 0
+      },
+      {
+        "id": "availability",
+        "unit": "ppm",
+        "operator": "gte",
+        "threshold": 999000
+      },
+      {
+        "id": "error-rate",
+        "unit": "ppm",
+        "operator": "lte",
+        "threshold": 1000
+      },
+      {
+        "id": "latency-p95",
+        "unit": "milliseconds",
+        "operator": "lte",
+        "threshold": 2000
+      },
+      {
+        "id": "quality",
+        "unit": "ppm",
+        "operator": "gte",
+        "threshold": 950000
+      },
+      {
+        "id": "safety-violations",
+        "unit": "ppm",
+        "operator": "lte",
+        "threshold": 0
+      },
+      {
+        "id": "tool-success",
+        "unit": "ppm",
+        "operator": "gte",
+        "threshold": 990000
+      },
+      {
+        "id": "cost-per-request",
+        "unit": "microunits",
+        "operator": "lte",
+        "threshold": 50000
+      },
+      {
+        "id": "saturation",
+        "unit": "ppm",
+        "operator": "lte",
+        "threshold": 800000
+      },
+      {
+        "id": "knowledge-age",
+        "unit": "seconds",
+        "operator": "lte",
+        "threshold": 86400
+      }
+    ]
+  },
+  "state": {
+    "schema": "rapp-state/1",
+    "schema_sha256": "7e02a1756a9fcb1e4f5b7f79a9b4deed408dbc418d90fd2af1282939affb3378",
+    "previous_schema_sha256": "1aaa7e13bb76028924c8e0e766d83ed566cac41a1ac76d8e414dccec3f4f7eca",
+    "compatibility_evidence_sha256": "4e161b69ab6a45993c1713dd20c5aaf871eb71e48b48940cbd0deff728133ce7",
+    "migration": "expand-contract",
+    "backward_compatible": true,
+    "rollback_snapshot_sha256": "99bbbbce3c3c419ddcefb1d7f4507e6a578ad3b51fc8353b08cde30b04b92f9a",
+    "rollback_evidence_sha256": "009fe0de72c5fcdfd49d0956b48c109890383acf8f8e944df24575ddf3d128bd",
+    "restore_evidence_sha256": "52b13f52b661f4c1672e4efde1669a4f4b378dce888f41d65cde2b0bba9daa9c",
+    "recovery_point_objective_seconds": 60,
+    "recovery_time_objective_seconds": 300
+  },
+  "data": {
+    "tenant_isolation": true,
+    "residency_policy_sha256": "50c31a7085689013fdea1656ac9a63e1913d17ba09129bf531983e4699513162",
+    "retention_policy_sha256": "3aa9bfcf86aa0785c39f2d999ee56a9242096f78fac3e930cc99b156cda85255",
+    "deletion_policy_sha256": "4d78fc60c80d1baa6fc0af29c39308f31df3c3c864f692098a414a519105abf3",
+    "backup_policy_sha256": "52f990816e16759a10f367d4b1accc6268f398d71ae7eb60b73acc162a1f1e27"
+  },
+  "resilience": {
+    "controls": [
+      "circuit-breaker",
+      "kill-switch",
+      "load-shedding",
+      "rate-limit",
+      "regional-failover"
+    ],
+    "provider_failure_mode": "degrade-explicitly"
+  },
+  "rollback_release_payload_hash": "c0c70457c0ce87ea0794ab76de9235d2802b6e1cf61fa7991e101c286563fe59",
+  "automatic_pause": true,
+  "automatic_rollback": true
+}

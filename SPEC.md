@@ -1,7 +1,7 @@
 # The RAPP Protocol Suite
 ### Unified normative specification of identity, canonicalization, the frame, the wire, and the egg
 
-**Status:** Draft standard for ratification (Kody, estate owner). **rev-10.** **Obsoletes / consolidates:**
+**Status:** Draft standard for ratification (Kody, estate owner). **rev-11.** **Obsoletes / consolidates:**
 `rapp-frame/2.0`, `rapp-frame/2.1`, `rapp-rappid-spec/2.0`, `rapp-protocol/1.0`, all scattered egg specs
 (§9 subsumes them), and `OSI.md`. On ratification this is the single living standard; the consolidated
 specs become retired historical record (Federal Constitution Art. X).
@@ -49,6 +49,11 @@ payload-hash / whole-frame-hash (§7.3). **canonical form** — the one [RFC 878
 `"grail:" || Hb("rapp/1:grail", kernel_bytes)`; repository, immutable ref, commit, path, raw SHA-256,
 and byte length are provenance and verification data, not alternate identities. Once activated through
 §13.3, those bytes are permanent (Protocol Constitution Art. 15); capabilities evolve outside them.
+**release capsule** — the canonical `rapp-cicd/1-release` payload identifying one immutable candidate.
+**serving lineage** — the sequence of qualified release identities that have received user traffic;
+the currently served release is immutable even while a separate candidate lineage grows.
+**deployment cell** — an independently observable and isolatable runtime failure domain governed by
+`rapp-deploy/1`.
 
 ## 4. Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **[RFC 8785] JCS** for the value `v`, defined **only**
@@ -487,6 +492,14 @@ that missing word.
 - `grown_from` is **lineage, not inheritance**: it confers no authority, no trust, and no §10 key
   material. A reader **MUST** treat it as an unverified assertion unless the named egg is available and
   its address recomputes per §9.1/§5.
+- A newly authored artifact produced from one or more existing RAPP objects **MAY** record
+  `crossed_from` in its packaged `rappid.json`. The value is a sorted, duplicate-free array of typed
+  addresses `{space, hash}`, where `space` is `"rapp/1:particle"` or `"rapp/1:egg-manifest"` and `hash`
+  is 64 lowercase hex. One parent denotes an **offspring**; two or more denote a **cross**. The new
+  artifact **MUST** mint its own §6.2 rappid; parent artifacts and identities remain unchanged.
+  `crossed_from` is lineage only: it transfers no signature authority, ownership, entitlement, secret,
+  or trust. A verifier treats each parent as unverified until the addressed object is available and
+  recomputes in its declared space.
 
 ## 10. Trust and signatures (L2)
 `sig` is OPTIONAL on memory/body streams and REQUIRED on swarm streams (§8). Chain integrity comes from the
@@ -578,6 +591,38 @@ activated, the pin is a permanent compatibility anchor, not a moving release cha
 
 This rule governs release topology rather than the §8 wire shape, so it does not add a frame member,
 endpoint, compatibility shim, or alternate `rapp/1` encoding.
+
+### 11.2 Operational conformance profiles
+RAPP/1 defines the substrate. Two subordinate operational profiles define how a production AI changes
+without mutating that substrate or the serving system underneath users:
+
+- **RAPP CI/CD** (`rapp-cicd/1`) — `protocols/rapp-cicd/1/SPEC.md`; immutable release capsules,
+  ordered qualification evidence, exact-candidate promotion, Preprod, and rollback/restore proof.
+- **RAPP Deploy** (`rapp-deploy/1`) — `protocols/rapp-deploy/1/SPEC.md`; isolated serving/candidate
+  lineages, cellular rollout, progressive exposure, expiring AI-health evidence, quarantine, and exact
+  rollback.
+
+The profiles are RAPP/1 applications, not alternate wire versions:
+
+1. Their payloads **MUST** be §4 canonical I-JSON and are identified by
+   `H("rapp/1:particle", payload)`.
+2. Authoritative profile payloads **MUST** travel in signed RAPP/1 frames using a registered compatible
+   kind. Local unsigned files are drafts, fixtures, or caches and cannot authorize promotion or traffic.
+3. They **MUST NOT** add a transport endpoint beside §8 `POST /chat`, redefine any RAPP/1 primitive, or
+   weaken §11.1.
+4. An estate activates a profile through an authenticated §13.3 `protocol` entry pinning its exact
+   repository, path, and SHA-256. A moving branch is discovery, never authority.
+5. A claim of **RAPP production conformance** requires both profiles. Core Producer, Consumer, and
+   Router/Mirror implementations remain conformant without implementing production operations.
+6. Fixed envelope keys carry the safety invariants. Policy-defined check identifiers, component kinds,
+   health objectives, and resilience controls are extension points; adding one does not change the
+   profile token or the RAPP/1 wire.
+7. A consumer **MUST** refuse unknown required policy semantics. It may preserve and relay unknown
+   optional evidence, but may not treat it as satisfying a requirement it does not implement.
+
+The executable reference validators are `rapp_cicd.py` and `rapp_deploy.py`; controlled profile vectors
+are in `operations_conformance.py`. JSON Schemas define structural shape, while the reference validators
+enforce ordering, identity, temporal, and cross-document rules that JSON Schema cannot express.
 
 ## 12. Versioning, evolution, no-legacy
 RAPP is a **living standard** (WHATWG): revised in place, never forked into parallel versions; a `name/X.Y`
@@ -731,6 +776,12 @@ tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.
 ---
 
 ### Revision log
+- **rev-11 (planetary operations profiles)** — constitutionalized immutable candidate/serving lineage
+  separation; defined RAPP CI/CD (`rapp-cicd/1`) and RAPP Deploy (`rapp-deploy/1`) as subordinate,
+  registry-pinned production profiles; required exact-candidate qualification, production-shaped
+  Preprod, cellular progressive exposure, expiring AI-health evidence, state/data continuity,
+  automatic containment, and exact rollback while retaining policy-defined extension points; and
+  defined typed, non-authoritative offspring/cross lineage without changing the egg or frame envelopes.
 - **rev-10 (sealed artifact + Grail execution closure)** — registered the `sealed` egg variant for
   globally mirrorable public ciphertext with signed manifests and scoped recipient key release (§9.2.1);
   added the `rapp/1:sealed-aad` and `rapp/1:sealed-key-request` address spaces; retained rev-9's exclusive
