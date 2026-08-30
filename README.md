@@ -65,6 +65,17 @@ in chapter 10.
 | **`examples/`** | six runnable, tutorial-paced programs from first frame through typed addresses, failure steps, and deterministic eggs |
 | **[`book/`](book/README.md)** | *The RAPP Programming Language* — tutorial, workbook, and reference; use the [interactive edition with Copy code and Copy prompt controls](https://kody-w.github.io/rapp-1/book/), [print the complete volume](https://kody-w.github.io/rapp-1/book/print.html), or [download the 6×9 PDF](https://kody-w.github.io/rapp-1/book/the-rapp-programming-language.pdf) |
 
+## License
+
+The RAPP/1 specification, reference implementation, conformance suite,
+examples, and documentation in this repository are available under the
+[MIT License](LICENSE).
+
+That license permits independent implementations of the protocol. It does not
+grant rights to third-party product names, certification marks, organism
+content, customer data, or proprietary services merely because those products
+use RAPP/1.
+
 ## Build with it: the SDK Builder agent
 
 Drop one file into any RAPP brainstem's `agents/` directory (no restart) and it gains a working
