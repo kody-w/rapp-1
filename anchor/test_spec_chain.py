@@ -558,6 +558,8 @@ class SpecChainTests(unittest.TestCase):
             self.assertGreaterEqual(elapsed, 0.45)
         finally:
             first.wait(timeout=5)
+            if first.stdout is not None:
+                first.stdout.close()
 
     def test_stale_writer_compare_and_swap_is_refused(self) -> None:
         scratch = self.scratch()
