@@ -750,7 +750,8 @@ def _main_locked() -> None:
         existing_profile = None
     if existing_profile is not None and existing_profile != profile_octets:
         raise SystemExit("content-addressed bootstrap profile path has wrong bytes")
-    M.atomic_write(profile_path, profile_octets)
+    if existing_profile is None:
+        M.atomic_write(profile_path, profile_octets)
     M.atomic_write(BOOTSTRAP / "index.json", bootstrap_index_octets)
 
     with M._open_safe_directory(FRAMES):
@@ -768,7 +769,8 @@ def _main_locked() -> None:
             existing_object = None
         if existing_object is not None and existing_object != octets:
             raise SystemExit(f"content-addressed frame object has wrong bytes: {path}")
-        M.atomic_write(target, octets)
+        if existing_object is None:
+            M.atomic_write(target, octets)
     for stale in set(FRAMES.glob("*.json")) - expected_object_paths:
         if (
             replaced_draft is not None
