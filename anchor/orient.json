@@ -1,40 +1,44 @@
 {
  "schema": "rapp/1-anchor",
- "generated_utc": "2026-08-30T23:40:07.000Z",
+ "generated_utc": "2026-08-31T17:44:16.000Z",
  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
  "head": {
-  "seq": 14,
-  "frame_hash": "59629adab4e26d156f3d66ecfb766e08705919ea1d2adc92ba0ad2b17337dfc2",
-  "payload_hash": "c7549bbd3e133b833930e24e008817ea295734b870f41706455d3f45821aba3a"
+  "seq": 15,
+  "frame_hash": "4d59e9451e1aefabfee46031be457f746c26159d0be184c9547843b448a21d62",
+  "payload_hash": "0950e5df2188404181e708e95716654355f50833f43fc5db4f09dd2160d047e6"
  },
  "spec": {
-  "revision": "rev-14",
-  "revision_frame_hash": "59629adab4e26d156f3d66ecfb766e08705919ea1d2adc92ba0ad2b17337dfc2",
-  "revision_payload_hash": "c7549bbd3e133b833930e24e008817ea295734b870f41706455d3f45821aba3a",
+  "revision": "rev-15",
+  "revision_frame_hash": "4d59e9451e1aefabfee46031be457f746c26159d0be184c9547843b448a21d62",
+  "revision_payload_hash": "0950e5df2188404181e708e95716654355f50833f43fc5db4f09dd2160d047e6",
   "schema": "rapp-spec-revision/1",
   "materialized_path": "SPEC.md",
   "normative_path": "SPEC.md",
   "media_type": "text/markdown; charset=utf-8",
-  "normative_sha256": "d345235be5bc698d78c5893285abd09f2e62a398f781123d1de8da313a01c7de",
-  "normative_bytes": 78183,
+  "normative_sha256": "f0db45e546ec363893861f9b369798a5518fb3b9d1469779730677ea1a5264f7",
+  "normative_bytes": 101037,
   "canonical_repo": "https://github.com/kody-w/rapp-1",
-  "commit": "1a27d11eec48a7f9ebda4208916a67ffd3a24b7f"
+  "commit": "fc5d83b231dce6518c79df71bc8c1a694591b932"
  },
  "registered_kinds": [
+  "body.lens",
   "body.pulse",
   "body.re-genesis",
   "body.reconstructed",
+  "body.tile",
   "body.twin-pulse",
   "memory.chat-turn",
   "memory.re-genesis",
   "memory.reconstructed",
   "memory.save",
+  "memory.tile",
   "memory.tool-call",
   "swarm.echo",
   "swarm.guidance",
   "swarm.re-genesis",
   "swarm.reconstructed",
-  "swarm.telemetry"
+  "swarm.telemetry",
+  "swarm.tile"
  ],
  "vocabulary": {
   "body": {
@@ -128,6 +132,74 @@
   "cross": {
    "status": "live",
    "where": "§9.4 typed multi-parent lineage and PHILOSOPHY.md"
+  },
+  "lens": {
+   "status": "live",
+   "where": "§3 and §7.7 signed immutable body.lens used by a crack"
+  },
+  "tile": {
+   "status": "live",
+   "where": "§3 and §7.7 worn frame output by one crack invocation"
+  },
+  "clean-frame": {
+   "status": "live",
+   "where": "§3 and §7.7 fresh/source non-tile frame contributing generation 0"
+  },
+  "worn-frame": {
+   "status": "live",
+   "where": "§3 and §7.7 tile at generation >=1"
+  },
+  "crack": {
+   "status": "live",
+   "where": "§3 and §7.7 immutable lens derivation relation"
+  },
+  "generation": {
+   "status": "live",
+   "where": "§3 and §7.7 one plus max parent tile generation; non-tile contributes 0"
+  },
+  "fan-out": {
+   "status": "live",
+   "where": "§7.7.4 sibling worn frames sharing one parent or crack invocation"
+  },
+  "fan-in": {
+   "status": "live",
+   "where": "§7.7.4 multi-parent crack preserving every parent identity"
+  },
+  "dream-caught": {
+   "status": "live",
+   "where": "§7.7.4 deterministic fan-in using (utc,frame_hash) order"
+  },
+  "facet": {
+   "status": "live",
+   "where": "§7.7 signed lens output slot producing one sibling tile"
+  },
+  "marble": {
+   "status": "live",
+   "where": "§7.7 fresh generation-0 frame before a crack"
+  },
+  "environment": {
+   "status": "live",
+   "where": "§7.7.3 exact verified parent frame or explicit replay parameter"
+  },
+  "facet-claim": {
+   "status": "live",
+   "where": "§7.7.2 atomic persisted (crack_id,tile_index) binding"
+  },
+  "registered-genesis": {
+   "status": "live",
+   "where": "§7.7.2 authenticated authority for every lineage era"
+  },
+  "signature-isolation": {
+   "status": "live",
+   "where": "§10 deep-copy or immutable-byte external verifier boundary"
+  },
+  "container-depth": {
+   "status": "live",
+   "where": "§4 root container depth 1; only nested containers increment"
+  },
+  "acyclic-json": {
+   "status": "live",
+   "where": "§4 active object-identity cycle refusal for in-memory values"
   }
  },
  "operational_profiles": {
@@ -189,7 +261,7 @@
  },
  "index": {
   "path": "anchor/index.json",
-  "sha256": "f409e495ba93034b6b145d9aec73d6b67ea72014480c3c0fbd18420b1b2b1ebf",
-  "bytes": 7378
+  "sha256": "ffb59b18a4e32fa0c5c83e333a2ece19d173e60e6ed77f293fd93a0c15a6bb2a",
+  "bytes": 7749
  }
 }

@@ -719,9 +719,14 @@ class SpecChainTests(unittest.TestCase):
             "same invocation",
             "byte-identical canonical payload",
         )
+        normalized_spec = " ".join(spec.split())
+        normalized_payload = " ".join(
+            self.head["payload"]["normative"]["text"].split()
+        )
         for phrase in phrases:
-            self.assertIn(phrase, spec)
-            self.assertIn(phrase, self.head["payload"]["normative"]["text"])
+            normalized_phrase = " ".join(phrase.split())
+            self.assertIn(normalized_phrase, normalized_spec)
+            self.assertIn(normalized_phrase, normalized_payload)
 
     def test_rev14_transition_wording_is_published(self) -> None:
         constitution = (ROOT / "CONSTITUTION.md").read_text(encoding="utf-8")
