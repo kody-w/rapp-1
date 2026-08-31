@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Append the deterministic rev-14 RAPP/1 specification-chain frame."""
+"""Append the deterministic rev-15 RAPP/1 specification-chain frame."""
 
 from __future__ import annotations
 
@@ -32,8 +32,8 @@ INDEX = ANCHOR / "index.json"
 FRAMES = ANCHOR / "frames"
 BOOTSTRAP = ANCHOR / "bootstrap"
 LOCK = ANCHOR / ".update_anchor.lock"
-REVISION = "rev-14"
-PREVIOUS_REVISION = "rev-13"
+REVISION = "rev-15"
+PREVIOUS_REVISION = "rev-14"
 INPUT_PATHS = [
     "SPEC.md",
     "CONSTITUTION.md",
@@ -621,6 +621,18 @@ def revision_payload(
     payload["foundation"] = foundation
     payload["philosophy"] = philosophy
     payload["operational_profiles"] = operational_profiles()
+    registered_kinds = [
+        "body.lens",
+        "body.tile",
+        "memory.tile",
+        "swarm.tile",
+    ]
+    if len(payload["registered_kinds"]) != len(set(payload["registered_kinds"])):
+        raise SystemExit("previous revision contains duplicate registered kinds")
+    for kind in registered_kinds:
+        if kind not in payload["registered_kinds"]:
+            payload["registered_kinds"].append(kind)
+    payload["registered_kinds"].sort()
     payload["vocabulary"]["sealed"] = {
         "status": "live",
         "where": "§9.2 sealed egg variant and §9.2.1 profile",
@@ -640,6 +652,74 @@ def revision_payload(
     payload["vocabulary"]["cross"] = {
         "status": "live",
         "where": "§9.4 typed multi-parent lineage and PHILOSOPHY.md",
+    }
+    payload["vocabulary"]["lens"] = {
+        "status": "live",
+        "where": "§3 and §7.7 signed immutable body.lens used by a crack",
+    }
+    payload["vocabulary"]["tile"] = {
+        "status": "live",
+        "where": "§3 and §7.7 worn frame output by one crack invocation",
+    }
+    payload["vocabulary"]["clean-frame"] = {
+        "status": "live",
+        "where": "§3 and §7.7 fresh/source non-tile frame contributing generation 0",
+    }
+    payload["vocabulary"]["worn-frame"] = {
+        "status": "live",
+        "where": "§3 and §7.7 tile at generation >=1",
+    }
+    payload["vocabulary"]["crack"] = {
+        "status": "live",
+        "where": "§3 and §7.7 immutable lens derivation relation",
+    }
+    payload["vocabulary"]["generation"] = {
+        "status": "live",
+        "where": "§3 and §7.7 one plus max parent tile generation; non-tile contributes 0",
+    }
+    payload["vocabulary"]["fan-out"] = {
+        "status": "live",
+        "where": "§7.7.4 sibling worn frames sharing one parent or crack invocation",
+    }
+    payload["vocabulary"]["fan-in"] = {
+        "status": "live",
+        "where": "§7.7.4 multi-parent crack preserving every parent identity",
+    }
+    payload["vocabulary"]["dream-caught"] = {
+        "status": "live",
+        "where": "§7.7.4 deterministic fan-in using (utc,frame_hash) order",
+    }
+    payload["vocabulary"]["facet"] = {
+        "status": "live",
+        "where": "§7.7 signed lens output slot producing one sibling tile",
+    }
+    payload["vocabulary"]["marble"] = {
+        "status": "live",
+        "where": "§7.7 fresh generation-0 frame before a crack",
+    }
+    payload["vocabulary"]["environment"] = {
+        "status": "live",
+        "where": "§7.7.3 exact verified parent frame or explicit replay parameter",
+    }
+    payload["vocabulary"]["facet-claim"] = {
+        "status": "live",
+        "where": "§7.7.2 atomic persisted (crack_id,tile_index) binding",
+    }
+    payload["vocabulary"]["registered-genesis"] = {
+        "status": "live",
+        "where": "§7.7.2 authenticated authority for every lineage era",
+    }
+    payload["vocabulary"]["signature-isolation"] = {
+        "status": "live",
+        "where": "§10 deep-copy or immutable-byte external verifier boundary",
+    }
+    payload["vocabulary"]["container-depth"] = {
+        "status": "live",
+        "where": "§4 root container depth 1; only nested containers increment",
+    }
+    payload["vocabulary"]["acyclic-json"] = {
+        "status": "live",
+        "where": "§4 active object-identity cycle refusal for in-memory values",
     }
     rules = [
         {
@@ -679,6 +759,111 @@ def revision_payload(
                 "kody-w/rapp-1 defines the interoperable protocol only."
             ),
         },
+        {
+            "t": "fact",
+            "c": (
+                "A fresh frame is generation 0 only for lens lineage; one signed "
+                "body.lens invocation cracks ordered verified input frames without "
+                "changing them and appends a tile/worn frame at 1 + the maximum "
+                "parent contribution."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "frame.prev names the actual output-stream predecessor payload; "
+                "lens parents use ordered {frame_hash,era} references and are never "
+                "inferred from prev."
+            ),
+        },
+        {
+            "t": "pattern",
+            "c": (
+                "Persist every intermediate tile before lineage crosses an invocation "
+                "or authorizes an effect; persisted replay must reproduce byte-identical "
+                "canonical payload bytes, with every stochastic input recorded."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
+                "Fan-out lineage siblings are not stream forks: parent edges live in "
+                "tile payloads while frame.prev remains the actual stream predecessor."
+            ),
+        },
+        {
+            "t": "pattern",
+            "c": (
+                "Dream-Catcher fan-in consumes persisted worn frames in deterministic "
+                "slot order, preserves every exact parent and cumulative root union, "
+                "and emits generation 1 + max(parent tile generations)."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "The fresh frame is marble: both the exact signed lens and every "
+                "environment/status value determine the facets, so each influence "
+                "must be a verified parent frame or explicit replay parameter; "
+                "ambient process state is never authority."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "A supplied chain cannot authorize its own era: every lineage "
+                "(stream_id,era) must match an accepted registered genesis, and "
+                "every semantic kind must match its exact registered family."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
+                "Stateless tile verification does not reserve a facet; persisted "
+                "acceptance atomically claims (crack_id,tile_index) to one frame hash, "
+                "with only same-hash retry idempotent."
+            ),
+        },
+        {
+            "t": "pattern",
+            "c": (
+                "Dream-Catcher producers normalize caller order before crack identity "
+                "and replay; consumers refuse noncanonical stored order, enforce "
+                "1 MiB/depth-64 limits, and traverse deep lineage iteratively."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "External signature callbacks receive immutable canonical bytes or "
+                "a deep JSON copy; shallow nested payload sharing lets a verifier "
+                "mutate bytes after hash checks."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
+                "Every frame from registered era genesis through a lineage target "
+                "must have an exact registered kind/family; a bad intermediate "
+                "invalidates the resolution."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
+                "JSON depth counts the root container as one and increments only for "
+                "nested objects/arrays; non-string object keys and malformed runner "
+                "outputs are controlled refusals."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "A self-referential dict/list is not a JSON tree; iterative depth "
+                "walkers must track active object identities and refuse the cycle "
+                "instead of looping."
+            ),
+        },
     ]
     for rule in rules:
         if rule not in payload["rules"]:
@@ -700,7 +885,6 @@ def select_chain_base(
     current_frames = M.verify_chain(
         current_chain,
         bootstrap_profile=bootstrap_profile,
-        allow_unpublished_rev14_draft=True,
     )
     if (
         current_chain.startswith(canonical_chain)
@@ -879,7 +1063,7 @@ def _main_locked(accepted_ref: str) -> None:
     head = base_frames[-1]
     if head["payload"]["revision"] == REVISION:
         if len(base_frames) < 2:
-            raise SystemExit("rev-14 cannot be the anchor genesis")
+            raise SystemExit("rev-15 cannot be the anchor genesis")
         accepted_frame = head
         head = base_frames[-2]
     if head["payload"]["revision"] != PREVIOUS_REVISION:
@@ -908,14 +1092,14 @@ def _main_locked(accepted_ref: str) -> None:
     )
     frame_octets = R.canonical(frame).encode("utf-8")
     if len(frame_octets) > R.MAX_CANONICAL_BYTES:
-        raise SystemExit("rev-14 frame exceeds the RAPP/1 canonical-byte limit")
+        raise SystemExit("rev-15 frame exceeds the RAPP/1 canonical-byte limit")
     candidate_chain = (
         base_chain + json.dumps(frame, ensure_ascii=False).encode("utf-8") + b"\n"
         if accepted_frame is None
         else canonical_chain
     )
     if accepted_frame is not None and frame != accepted_frame:
-        raise SystemExit("accepted rev-14 frame is inconsistent with committed inputs")
+        raise SystemExit("accepted rev-15 frame is inconsistent with committed inputs")
     if candidate_chain != current_chain:
         payload = revision_payload(
             head["payload"],
@@ -1032,7 +1216,6 @@ def _main_locked(accepted_ref: str) -> None:
     M.verify_chain(
         latest_chain,
         bootstrap_profile=bootstrap_profile,
-        allow_unpublished_rev14_draft=True,
     )
     publish_chain_and_beacon(
         CHAIN,

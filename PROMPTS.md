@@ -19,7 +19,7 @@ Paste into your brainsurgeon:
 
 ```text
 You are my hands — I watch, you type. Clone https://github.com/kody-w/rapp-1 and prove
-RAPP to me end to end: (1) run python3 conformance.py — I expect 22/22 PASS; (2) run
+RAPP to me end to end: (1) run python3 conformance.py — I expect 49/49 PASS; (2) run
 python3 anchor/materialize_spec.py --check SPEC.md and show that the checked-in view
 matches the verified specification-chain head; (3) run python3 realcheck.py — the spec
 against the live public estate — and explain the verdict in plain English; (4) run
@@ -28,7 +28,7 @@ key. Narrate as you go, show real output, and stop on any red result — a red c
 finding, not something to patch around.
 ```
 
-**Expect:** `22 controlled checks | 22 PASS | 0 FAIL`, a JSON revision identity
+**Expect:** `49 controlled checks | 49 PASS | 0 FAIL`, a JSON revision identity
 for the byte-exact materialized chain head, an estate verdict with zero drift
 findings, and an 11-key frame explained.
 
@@ -61,6 +61,87 @@ authenticated.
 
 **Expect:** five lookups resolving one verified frame and one byte-identical
 normative Markdown file.
+
+## 2.2 · Crack a fresh frame through two lens generations
+
+```text
+In my clone of https://github.com/kody-w/rapp-1, read SPEC.md §7.7 and use only
+the stdlib helpers in rapp.py. Build one verified fresh body.pulse at generation
+0 and one signed body.lens. Run crack(frame, lens) without changing the fresh
+frame's bytes; append its output as tile/worn body.tile frame T1 at generation
+1. Crack T1 through the lens and append next-generation tile/worn frame T2 at
+generation 2. Show the ordered input-frame parents and generation-0
+root_sources, prove frame.prev still names the actual stream predecessor
+payload_hash rather than a crack input, and replay both persisted tile payloads
+byte-identically with an injected runner/resolver. Then attempt to omit T1,
+lower generation, substitute the lens, add provenance_class, and use a
+transient candidate for an actionable result; show each controlled §7.7
+refusal.
+```
+
+**Expect:** fresh frame (0) → crack → append tile/worn T1 (1) → crack T1 →
+append next tile/worn T2 (2), with all earlier frame bytes unchanged, roots preserved,
+deterministic replay green, and every laundering or transient-side-effect
+attempt refused.
+
+## 2.3 · Fan one fresh frame out and Dream-Catch it back in
+
+```text
+Using SPEC.md §7.7.4 and rapp.py, crack one fresh generation-0 frame into two
+generation-1 sibling facet tiles as ordered outputs of one exact lens
+invocation. Show their shared crack.crack_id, signed facet names, distinct
+tile_index values, common tile_count, exact
+common parent, and independent frame.prev stream links. Prove this is lineage
+fan-out, not a RAPP stream fork. Persist both siblings, then use a signed
+Dream-Catcher lens to consume them as an unordered cross-stream input vector
+sorted by (utc, frame_hash). Emit one generation-2 tile that retains both exact
+parent references and the cumulative root-source union. Reverse the inputs and
+reuse an occupied output slot to show deterministic-order and duplicate-slot
+refusals.
+```
+
+**Expect:** one fresh frame → two distinct sibling worn frames → one
+Dream-Caught next-generation tile, with no parent identity or history lost.
+
+## 2.4 · Prove the marble environment is explicit
+
+```text
+Treat one fresh frame as marble. Crack it through the same signed lens twice:
+once with a verified glass-half-full environment frame and once with a
+verified glass-half-empty environment frame. Show that exact parent references
+produce different crack.crack_id values and different facet tiles while the
+marble and environment frame bytes remain unchanged. Repeat using an explicit
+declared replay status parameter. Then omit the environment/status entirely
+and show §7.7 refusing the persisted tile rather than consulting ambient
+process state, globals, environment variables, files, clocks, or network data.
+```
+
+**Expect:** exact lens + exact recorded environment determines the facet;
+ambient environment never does.
+
+## 2.5 · Prove hardened tile acceptance
+
+```text
+Run the rev-15 V11 hardening vectors. Show that a rapp-tile/1 payload relabeled
+under a non-tile kind cannot contribute generation 0; lineage resolution fails
+without the exact registered (stream_id, era) genesis and kind-family binding;
+stateless verification cannot stand in for persisted acceptance; and persisted
+acceptance requires one atomic idempotent (crack_id, tile_index) claim. Race two
+different frames for one facet slot and show exactly one winner. Build the same
+Dream-Catcher tile from forward and reversed caller inputs and prove identical
+normalized bytes without caller mutation. Finally refuse >1 MiB/depth-64 lens,
+replay, frame, and runner outputs, then verify a 1200-generation lineage without
+using recursive traversal. Also prove a malicious signature callback cannot
+mutate nested frame payloads, every intermediate era-chain kind/family is
+checked, depth 64 passes while 65 fails, and runner output with a non-string
+object key is a controlled refusal. Return a self-referential dict and list
+from the runner and prove both terminate promptly with controlled non-I-JSON
+refusals rather than hanging traversal.
+```
+
+**Expect:** laundering, false genesis authority, omitted/racing claims,
+noncanonical stored order, oversize, and excessive nesting are refused; deep
+valid lineage remains green.
 
 ## 3 · Mint my identity the lawful way
 

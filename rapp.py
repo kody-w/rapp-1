@@ -1,4 +1,4 @@
-"""rapp.py — reference implementation of the RAPP protocol suite (rev-14).
+"""rapp.py — reference implementation of the RAPP protocol suite (rev-15).
 
 Stdlib only (json, hashlib, uuid, re, base64). Implements the primitives that the
 spec claims are byte-for-byte interoperable, so the conformance suite can PROVE the
@@ -34,6 +34,42 @@ _B64URL = re.compile(r"^[A-Za-z0-9_-]*$")
 FRAME_KEYS = {"spec", "kind", "stream_id", "seq", "utc", "payload",
               "payload_hash", "frame_hash", "prev", "prev_wave", "sig"}
 
+LENS_KIND = "body.lens"
+TILE_KINDS = {
+    "body.tile": "body",
+    "memory.tile": "memory",
+    "swarm.tile": "swarm",
+}
+REGENESIS_KINDS = {
+    "body.re-genesis",
+    "memory.re-genesis",
+    "swarm.re-genesis",
+}
+LENS_SCHEMA = "rapp-lens/1"
+TILE_SCHEMA = "rapp-tile/1"
+LINEAGE_REF_KEYS = {"frame_hash", "era"}
+LINEAGE_RESOLUTION_KEYS = {"frames", "persisted", "invocation_id"}
+LENS_PAYLOAD_KEYS = {
+    "schema",
+    "runner",
+    "mutation",
+    "inputs",
+    "stochastic_inputs",
+    "facets",
+}
+TILE_PAYLOAD_KEYS = {
+    "schema",
+    "crack",
+    "lens",
+    "parents",
+    "root_sources",
+    "generation",
+    "replay",
+    "output",
+}
+CRACK_KEYS = {"crack_id", "facet", "tile_index", "tile_count"}
+_LINEAGE_NAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
+
 
 # ---------- §4 canonicalization ----------
 def canonical(v):
@@ -55,6 +91,8 @@ def canonical(v):
     if isinstance(v, list):
         return "[" + ",".join(canonical(x) for x in v) + "]"
     if isinstance(v, dict):
+        if not all(isinstance(k, str) for k in v):
+            raise ValueError("object member names MUST be strings")
         # RFC 8785 orders member names by UTF-16 code units; plain sorted()
         # is code-POINT order and diverges for non-BMP keys.
         keys = sorted(v.keys(), key=lambda k: k.encode("utf-16-be"))
@@ -299,6 +337,1294 @@ def verify_frame(
         if not ok:
             return False, "6", why
     return True, None, "ok"
+
+
+# ---------- §7.7 lens cracking and tile lineage ----------
+class _LensTileRefusal(ValueError):
+    pass
+
+
+def _json_copy(value):
+    try:
+        return json.loads(canonical(value))
+    except (AttributeError, RecursionError, TypeError, ValueError) as exc:
+        raise _LensTileRefusal(
+            f"value is not canonical I-JSON: {exc}"
+        ) from exc
+
+
+def _uint53(value):
+    return (
+        isinstance(value, int)
+        and not isinstance(value, bool)
+        and 0 <= value <= 2**53 - 1
+    )
+
+
+def _json_depth(value):
+    if not isinstance(value, (dict, list)):
+        return 1
+    maximum = 1
+    active = set()
+    stack = [(value, 1, False)]
+    while stack:
+        current, depth, exiting = stack.pop()
+        identity = id(current)
+        if exiting:
+            active.remove(identity)
+            continue
+        if identity in active:
+            raise _LensTileRefusal(
+                "cyclic Python object graph is not a JSON tree"
+            )
+        active.add(identity)
+        maximum = max(maximum, depth)
+        stack.append((current, depth, True))
+        if isinstance(current, dict):
+            stack.extend(
+                (item, depth + 1, False)
+                for item in current.values()
+                if isinstance(item, (dict, list))
+            )
+        elif isinstance(current, list):
+            stack.extend(
+                (item, depth + 1, False)
+                for item in current
+                if isinstance(item, (dict, list))
+            )
+    return maximum
+
+
+def _semantic_value_limits(value, label):
+    depth = _json_depth(value)
+    if depth > 64:
+        raise _LensTileRefusal(f"{label} exceeds JSON nesting depth 64")
+    try:
+        octets = canonical(value).encode("utf-8")
+    except RecursionError as exc:
+        raise _LensTileRefusal(f"{label} exceeds safe canonical depth") from exc
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise _LensTileRefusal(f"{label} is not canonical I-JSON: {exc}")
+    if len(octets) > MAX_CANONICAL_BYTES:
+        raise _LensTileRefusal(
+            f"{label} exceeds the 1 MiB canonical-byte limit"
+        )
+    return octets
+
+
+def _stream_family(stream_id):
+    if rappid_valid(stream_id):
+        return "body"
+    if isinstance(stream_id, str) and stream_id.startswith("net:"):
+        label = stream_id[4:]
+        if 1 <= len(label) <= 64 and _LCLABEL.fullmatch(label):
+            return "swarm"
+        return None
+    if isinstance(stream_id, str):
+        body_stream, separator, instance = stream_id.rpartition(":")
+        if (
+            separator
+            and rappid_valid(body_stream)
+            and 1 <= len(instance) <= 64
+            and _LCLABEL.fullmatch(instance)
+        ):
+            return "memory"
+    return None
+
+
+def _registered_kind_family(kind, expected_family, kind_family_resolver):
+    if kind_family_resolver is None:
+        raise _LensTileRefusal(
+            "semantic verification requires an injected registered-kind resolver"
+        )
+    try:
+        family = kind_family_resolver(kind)
+    except Exception as exc:
+        raise _LensTileRefusal(f"registered-kind resolver failed: {exc}")
+    if family != expected_family:
+        raise _LensTileRefusal(
+            f"registered kind {kind} is not bound to family {expected_family}"
+        )
+
+
+def _signature_verifier_for(frame, signature_verifier):
+    if frame.get("kind") != LENS_KIND or signature_verifier is None:
+        return signature_verifier
+    expected_signer = frame.get("stream_id")
+
+    def bound(unsigned, sig):
+        return signature_verifier(unsigned, sig, expected_signer)
+
+    return bound
+
+
+def _ordinary_frame_result(
+    frame,
+    *,
+    head,
+    stream_id_of_record,
+    signature_verifier,
+):
+    try:
+        return verify_frame(
+            frame,
+            head=head,
+            stream_id_of_record=stream_id_of_record,
+            signature_verifier=_signature_verifier_for(
+                frame,
+                signature_verifier,
+            ),
+        )
+    except (
+        AttributeError,
+        IndexError,
+        KeyError,
+        RecursionError,
+        TypeError,
+        ValueError,
+    ) as exc:
+        return False, "1", f"invalid canonical frame value: {exc}"
+
+
+def _validate_names(values, label, *, nonempty=False):
+    if (
+        not isinstance(values, list)
+        or (nonempty and not values)
+        or any(
+            not isinstance(value, str)
+            or not 1 <= len(value) <= 64
+            or not _LINEAGE_NAME.fullmatch(value)
+            for value in values
+        )
+        or len(values) != len(set(values))
+    ):
+        raise _LensTileRefusal(
+            f"lens {label} MUST be an ordered "
+            f"{'non-empty ' if nonempty else ''}duplicate-free lclabel array"
+        )
+
+
+def _validate_lens_payload(payload):
+    if not isinstance(payload, dict) or set(payload) != LENS_PAYLOAD_KEYS:
+        raise _LensTileRefusal(
+            "lens payload MUST have exactly schema,runner,mutation,inputs,"
+            "stochastic_inputs,facets"
+        )
+    if payload["schema"] != LENS_SCHEMA:
+        raise _LensTileRefusal(f"lens schema MUST be {LENS_SCHEMA}")
+    runner = payload["runner"]
+    if (
+        not isinstance(runner, str)
+        or not 1 <= len(runner) <= 200
+        or runner != runner.strip()
+        or unicodedata.normalize("NFC", runner) != runner
+    ):
+        raise _LensTileRefusal("lens runner MUST be bounded NFC text")
+    if not isinstance(payload["mutation"], dict):
+        raise _LensTileRefusal("lens mutation MUST be an object")
+    if payload["mutation"].get("parent_order") not in {
+        "declared",
+        "dream-catcher",
+    }:
+        raise _LensTileRefusal(
+            "lens mutation.parent_order MUST be declared or dream-catcher"
+        )
+    _validate_names(payload["inputs"], "inputs")
+    _validate_names(payload["stochastic_inputs"], "stochastic_inputs")
+    _validate_names(payload["facets"], "facets", nonempty=True)
+    if set(payload["inputs"]) & set(payload["stochastic_inputs"]):
+        raise _LensTileRefusal(
+            "lens inputs and stochastic_inputs MUST be disjoint"
+        )
+    _semantic_value_limits(payload, "lens payload")
+
+
+def verify_lens_frame(
+    frame,
+    head=None,
+    stream_id_of_record=None,
+    signature_verifier=None,
+    kind_family_resolver=None,
+):
+    """Verify one immutable signed body.lens frame.
+
+    signature_verifier(unsigned_frame, sig, expected_signer) must bind the
+    signature to the lens's body-stream RAPPID.
+    """
+    ok, step, why = _ordinary_frame_result(
+        frame,
+        head=head,
+        stream_id_of_record=stream_id_of_record,
+        signature_verifier=signature_verifier,
+    )
+    if not ok:
+        return False, step, why
+    try:
+        if frame["kind"] != LENS_KIND:
+            raise _LensTileRefusal("lens kind MUST be exactly body.lens")
+        if _stream_family(frame["stream_id"]) != "body":
+            raise _LensTileRefusal("body.lens MUST use a body stream")
+        _registered_kind_family(
+            frame["kind"],
+            "body",
+            kind_family_resolver,
+        )
+        if not isinstance(frame["sig"], str) or not frame["sig"]:
+            raise _LensTileRefusal("body.lens MUST carry a signature")
+        _validate_lens_payload(frame["payload"])
+        _semantic_value_limits(frame, "lens frame")
+    except _LensTileRefusal as exc:
+        return False, "§7.7", str(exc)
+    return True, None, "ok"
+
+
+def build_lens_frame(
+    stream_id,
+    seq,
+    utc,
+    *,
+    runner,
+    mutation,
+    inputs,
+    stochastic_inputs,
+    facets,
+    prev,
+    sig,
+):
+    """Build a closed body.lens frame; signature verification is separate."""
+    try:
+        if (
+            not isinstance(inputs, list)
+            or not isinstance(stochastic_inputs, list)
+            or not isinstance(facets, list)
+        ):
+            raise _LensTileRefusal(
+                "lens inputs, stochastic_inputs, and facets MUST be arrays"
+            )
+        payload = {
+            "schema": LENS_SCHEMA,
+            "runner": runner,
+            "mutation": _json_copy(mutation),
+            "inputs": _json_copy(inputs),
+            "stochastic_inputs": _json_copy(stochastic_inputs),
+            "facets": _json_copy(facets),
+        }
+        _validate_lens_payload(payload)
+        if _stream_family(stream_id) != "body":
+            raise _LensTileRefusal("body.lens MUST use a body stream")
+        if not isinstance(sig, str) or not sig:
+            raise _LensTileRefusal("body.lens MUST carry a signature")
+        frame = build_frame(
+            LENS_KIND,
+            stream_id,
+            seq,
+            utc,
+            payload,
+            prev,
+            sig=sig,
+        )
+        _semantic_value_limits(frame, "lens frame")
+        return frame
+    except (RecursionError, _LensTileRefusal) as exc:
+        raise ValueError(str(exc)) from exc
+
+
+def make_lineage_ref(frame, era):
+    """Return the exact frame-hash/era reference used by §7.7."""
+    ref = {"frame_hash": frame.get("frame_hash"), "era": era}
+    _validate_lineage_ref(ref, "lineage reference")
+    return ref
+
+
+def _validate_lineage_ref(ref, label):
+    if (
+        not isinstance(ref, dict)
+        or set(ref) != LINEAGE_REF_KEYS
+        or not isinstance(ref.get("frame_hash"), str)
+        or not _HEX64.fullmatch(ref["frame_hash"])
+        or not isinstance(ref.get("era"), str)
+        or not _HEX64.fullmatch(ref["era"])
+    ):
+        raise _LensTileRefusal(
+            f"{label} MUST be exactly {{frame_hash,era}} with 64hex values"
+        )
+    return (ref["frame_hash"], ref["era"])
+
+
+def _validate_ref_list(refs, label, *, nonempty):
+    if not isinstance(refs, list) or (nonempty and not refs):
+        qualifier = "non-empty " if nonempty else ""
+        raise _LensTileRefusal(f"{label} MUST be a {qualifier}array")
+    keys = [_validate_lineage_ref(ref, label) for ref in refs]
+    if len(keys) != len(set(keys)):
+        raise _LensTileRefusal(f"{label} MUST NOT contain duplicate references")
+    return keys
+
+
+def _resolve_lineage_ref(
+    ref,
+    resolver,
+    signature_verifier,
+    genesis_verifier,
+    kind_family_resolver,
+    *,
+    require_persisted,
+    invocation_id,
+):
+    key = _validate_lineage_ref(ref, "lineage reference")
+    if resolver is None:
+        raise _LensTileRefusal("lineage resolution requires an injected resolver")
+    try:
+        resolved = resolver(ref["frame_hash"], ref["era"])
+    except Exception as exc:
+        raise _LensTileRefusal(f"lineage resolver failed: {exc}")
+    if not isinstance(resolved, dict) or set(resolved) != LINEAGE_RESOLUTION_KEYS:
+        raise _LensTileRefusal(
+            "lineage resolver result MUST be exactly "
+            "{frames,persisted,invocation_id}"
+        )
+    frames = resolved["frames"]
+    persisted = resolved["persisted"]
+    resolved_invocation = resolved["invocation_id"]
+    if not isinstance(frames, list) or not frames or not all(
+        isinstance(item, dict) for item in frames
+    ):
+        raise _LensTileRefusal("resolved lineage MUST be a non-empty frame array")
+    if not isinstance(persisted, bool):
+        raise _LensTileRefusal("resolved persisted flag MUST be boolean")
+    if persisted:
+        if resolved_invocation is not None:
+            raise _LensTileRefusal(
+                "persisted lineage resolution MUST have invocation_id null"
+            )
+    elif (
+        not isinstance(resolved_invocation, str)
+        or not resolved_invocation
+        or resolved_invocation != invocation_id
+    ):
+        raise _LensTileRefusal(
+            "transient lineage is usable only in the same invocation"
+        )
+    if require_persisted and not persisted:
+        raise _LensTileRefusal(
+            "durable or actionable lineage requires every intermediate tile persisted"
+        )
+    stream_id = frames[0].get("stream_id")
+    if kind_family_resolver is None:
+        kind_family_resolver = getattr(
+            resolver,
+            "kind_family_resolver",
+            None,
+        )
+    previous = None
+    for candidate in frames:
+        ok, step, why = _ordinary_frame_result(
+            candidate,
+            head=previous,
+            stream_id_of_record=stream_id,
+            signature_verifier=signature_verifier,
+        )
+        if not ok:
+            raise _LensTileRefusal(
+                f"resolved lineage frame refused at {step}: {why}"
+            )
+        family = _stream_family(candidate["stream_id"])
+        if family is None:
+            raise _LensTileRefusal(
+                "resolved lineage frame has an invalid stream family"
+            )
+        _registered_kind_family(
+            candidate["kind"],
+            family,
+            kind_family_resolver,
+        )
+        previous = candidate
+    if frames[0]["frame_hash"] != ref["era"]:
+        raise _LensTileRefusal("lineage era does not name the resolved genesis")
+    if genesis_verifier is None:
+        genesis_verifier = getattr(resolver, "genesis_verifier", None)
+    if genesis_verifier is None:
+        raise _LensTileRefusal(
+            "lineage resolution requires registered genesis authority"
+        )
+    try:
+        genesis_result = genesis_verifier(stream_id, ref["era"])
+    except Exception as exc:
+        raise _LensTileRefusal(f"registered genesis verifier failed: {exc}")
+    genesis_ok = (
+        bool(genesis_result[0])
+        if isinstance(genesis_result, tuple) and genesis_result
+        else genesis_result is True
+    )
+    if not genesis_ok:
+        raise _LensTileRefusal(
+            "lineage era is not the accepted registered genesis"
+        )
+    if frames[-1]["frame_hash"] != ref["frame_hash"]:
+        raise _LensTileRefusal("lineage frame_hash resolved to the wrong frame")
+    return frames[-1], (frames[-2] if len(frames) > 1 else None), persisted, key
+
+
+def _validate_replay(replay, lens_payload):
+    if not isinstance(replay, dict):
+        raise _LensTileRefusal("tile replay MUST be an object")
+    mode = replay.get("mode")
+    if mode == "deterministic":
+        if set(replay) != {"mode", "inputs"}:
+            raise _LensTileRefusal(
+                "deterministic replay MUST be exactly {mode,inputs}"
+            )
+        if lens_payload["stochastic_inputs"]:
+            raise _LensTileRefusal(
+                "a lens declaring stochastic inputs requires seeded replay"
+            )
+    elif mode == "seeded":
+        if set(replay) != {"mode", "inputs", "stochastic_inputs"}:
+            raise _LensTileRefusal(
+                "seeded replay MUST be exactly "
+                "{mode,inputs,stochastic_inputs}"
+            )
+        if not lens_payload["stochastic_inputs"]:
+            raise _LensTileRefusal(
+                "seeded replay requires declared stochastic inputs"
+            )
+        stochastic = replay["stochastic_inputs"]
+        if not isinstance(stochastic, dict) or set(stochastic) != set(
+            lens_payload["stochastic_inputs"]
+        ):
+            raise _LensTileRefusal(
+                "seeded replay MUST record every declared stochastic input"
+            )
+    else:
+        raise _LensTileRefusal(
+            "persisted tile replay mode MUST be deterministic or seeded"
+        )
+    inputs = replay.get("inputs")
+    if not isinstance(inputs, dict) or set(inputs) != set(lens_payload["inputs"]):
+        raise _LensTileRefusal(
+            "tile replay inputs MUST exactly match the lens declaration"
+        )
+    _semantic_value_limits(replay, "tile replay")
+
+
+def crack_id(lens, parents, replay):
+    """Identify one exact lens invocation in the existing particle space."""
+    invocation = {
+        "schema": "rapp-crack/1",
+        "lens": lens,
+        "parents": parents,
+        "replay": replay,
+    }
+    _semantic_value_limits(invocation, "crack invocation")
+    return H("rapp/1:particle", invocation)
+
+
+def verify_clean_frame(
+    frame,
+    head=None,
+    stream_id_of_record=None,
+    signature_verifier=None,
+    kind_family_resolver=None,
+):
+    """Verify a fresh/source frame that contributes lineage generation 0."""
+    ok, step, why = _ordinary_frame_result(
+        frame,
+        head=head,
+        stream_id_of_record=stream_id_of_record,
+        signature_verifier=signature_verifier,
+    )
+    if not ok:
+        return False, step, why
+    try:
+        _semantic_value_limits(frame, "source frame")
+    except _LensTileRefusal as exc:
+        return False, "§7.7", str(exc)
+    if frame["payload"].get("schema") == TILE_SCHEMA:
+        return (
+            False,
+            "§7.7",
+            "rapp-tile/1 payload cannot be relabeled as a generation-0 source",
+        )
+    family = _stream_family(frame["stream_id"])
+    if family is None:
+        return False, "§7.7", "source frame stream family is invalid"
+    try:
+        _registered_kind_family(
+            frame["kind"],
+            family,
+            kind_family_resolver,
+        )
+    except _LensTileRefusal as exc:
+        return False, "§7.7", str(exc)
+    if frame["kind"] == LENS_KIND:
+        return False, "§7.7", "a lens is an operation, not a source frame"
+    if frame["kind"] in TILE_KINDS:
+        return (
+            False,
+            "§7.7",
+            "a tile/worn frame is not a generation-0 fresh source",
+        )
+    if frame["kind"] in REGENESIS_KINDS:
+        return False, "§7.7", "re-genesis is not a source frame"
+    return True, None, "ok"
+
+
+def _tile_shape(frame, kind_family_resolver):
+    payload = frame["payload"]
+    if not isinstance(payload, dict) or set(payload) != TILE_PAYLOAD_KEYS:
+        raise _LensTileRefusal(
+            "tile payload MUST have exactly schema,crack,lens,parents,"
+            "root_sources,generation,replay,output"
+        )
+    if payload["schema"] != TILE_SCHEMA:
+        raise _LensTileRefusal(f"tile schema MUST be {TILE_SCHEMA}")
+    expected_family = TILE_KINDS.get(frame["kind"])
+    if expected_family is None:
+        raise _LensTileRefusal(
+            "tile kind MUST be exactly body.tile, memory.tile, or swarm.tile"
+        )
+    if _stream_family(frame["stream_id"]) != expected_family:
+        raise _LensTileRefusal("tile kind is incompatible with its stream family")
+    _registered_kind_family(
+        frame["kind"],
+        expected_family,
+        kind_family_resolver,
+    )
+    crack = payload["crack"]
+    if (
+        not isinstance(crack, dict)
+        or set(crack) != CRACK_KEYS
+        or not isinstance(crack.get("crack_id"), str)
+        or not _HEX64.fullmatch(crack["crack_id"])
+        or not isinstance(crack.get("facet"), str)
+        or not _LINEAGE_NAME.fullmatch(crack["facet"])
+        or not _uint53(crack.get("tile_index"))
+        or not _uint53(crack.get("tile_count"))
+        or crack["tile_count"] < 1
+        or crack["tile_index"] >= crack["tile_count"]
+    ):
+        raise _LensTileRefusal(
+            "tile crack MUST be exactly "
+            "{crack_id,facet,tile_index,tile_count} with a valid facet slot"
+        )
+    _validate_lineage_ref(payload["lens"], "tile lens")
+    _validate_ref_list(payload["parents"], "tile parents", nonempty=True)
+    _validate_ref_list(
+        payload["root_sources"],
+        "tile root_sources",
+        nonempty=True,
+    )
+    if not _uint53(payload["generation"]) or payload["generation"] < 1:
+        raise _LensTileRefusal("tile generation MUST be a uint53 >= 1")
+    if not isinstance(payload["output"], dict):
+        raise _LensTileRefusal("tile output MUST be an object")
+    _semantic_value_limits(payload["output"], "tile output")
+    _semantic_value_limits(frame, "tile frame")
+    lineage_hashes = {
+        payload["lens"]["frame_hash"],
+        *(ref["frame_hash"] for ref in payload["parents"]),
+    }
+    if frame["prev"] in lineage_hashes:
+        raise _LensTileRefusal(
+            "frame.prev is the stream predecessor payload hash, not a lineage pointer"
+        )
+
+
+def verify_lineage_dag(edges):
+    """Iteratively refuse duplicate edges and cycles in a hash-addressed DAG."""
+    try:
+        if not isinstance(edges, dict):
+            raise _LensTileRefusal("lineage edges MUST be an object")
+        graph = {}
+        for node, parents in edges.items():
+            if not isinstance(node, str) or not _HEX64.fullmatch(node):
+                raise _LensTileRefusal("lineage node MUST be 64hex")
+            if (
+                not isinstance(parents, list)
+                or any(
+                    not isinstance(parent, str)
+                    or not _HEX64.fullmatch(parent)
+                    for parent in parents
+                )
+                or len(parents) != len(set(parents))
+            ):
+                raise _LensTileRefusal(
+                    "lineage parent edges MUST be duplicate-free 64hex arrays"
+                )
+            graph[node] = parents
+        done = set()
+        active = set()
+        for start in graph:
+            if start in done:
+                continue
+            stack = [(start, 0)]
+            while stack:
+                node, index = stack[-1]
+                if index == 0:
+                    if node in active:
+                        raise _LensTileRefusal(
+                            "lens/tile lineage DAG contains a cycle"
+                        )
+                    if node in done:
+                        stack.pop()
+                        continue
+                    active.add(node)
+                parents = graph.get(node, [])
+                if index < len(parents):
+                    parent = parents[index]
+                    stack[-1] = (node, index + 1)
+                    if parent in active:
+                        raise _LensTileRefusal(
+                            "lens/tile lineage DAG contains a cycle"
+                        )
+                    if parent not in done:
+                        stack.append((parent, 0))
+                    continue
+                active.remove(node)
+                done.add(node)
+                stack.pop()
+    except (RecursionError, _LensTileRefusal) as exc:
+        return False, "§7.7", str(exc)
+    return True, None, "ok"
+
+
+def _prepare_tile_node(
+    frame,
+    *,
+    resolver,
+    runner,
+    signature_verifier,
+    genesis_verifier,
+    kind_family_resolver,
+    require_persisted,
+    invocation_id,
+):
+    if kind_family_resolver is None:
+        kind_family_resolver = getattr(
+            resolver,
+            "kind_family_resolver",
+            None,
+        )
+    _tile_shape(frame, kind_family_resolver)
+    payload = frame["payload"]
+    lens, lens_head, _, _ = _resolve_lineage_ref(
+        payload["lens"],
+        resolver,
+        signature_verifier,
+        genesis_verifier,
+        kind_family_resolver,
+        require_persisted=True,
+        invocation_id=invocation_id,
+    )
+    lens_ok, lens_step, lens_why = verify_lens_frame(
+        lens,
+        head=lens_head,
+        stream_id_of_record=lens["stream_id"],
+        signature_verifier=signature_verifier,
+        kind_family_resolver=kind_family_resolver,
+    )
+    if not lens_ok:
+        raise _LensTileRefusal(
+            f"referenced lens refused at {lens_step}: {lens_why}"
+        )
+    _validate_replay(payload["replay"], lens["payload"])
+    if payload["crack"]["crack_id"] != crack_id(
+        payload["lens"],
+        payload["parents"],
+        payload["replay"],
+    ):
+        raise _LensTileRefusal(
+            "tile crack.crack_id does not match the invocation"
+        )
+    parents = []
+    for ref in payload["parents"]:
+        target, target_head, _persisted, key = _resolve_lineage_ref(
+            ref,
+            resolver,
+            signature_verifier,
+            genesis_verifier,
+            kind_family_resolver,
+            require_persisted=require_persisted,
+            invocation_id=invocation_id,
+        )
+        if target["kind"] == LENS_KIND:
+            raise _LensTileRefusal("a lens frame cannot be a tile parent")
+        if target["kind"] in TILE_KINDS:
+            parents.append(
+                {
+                    "ref": _json_copy(ref),
+                    "key": key,
+                    "frame": target,
+                    "head": target_head,
+                }
+            )
+        else:
+            ok, step, why = verify_clean_frame(
+                target,
+                head=target_head,
+                stream_id_of_record=target["stream_id"],
+                signature_verifier=signature_verifier,
+                kind_family_resolver=kind_family_resolver,
+            )
+            if not ok:
+                raise _LensTileRefusal(
+                    f"fresh parent refused at {step}: {why}"
+                )
+            parents.append(
+                {
+                    "ref": _json_copy(ref),
+                    "summary": (
+                        0,
+                        [_json_copy(ref)],
+                        _json_copy(target),
+                    ),
+                }
+            )
+    return {"lens": lens, "parents": parents, "runner": runner}
+
+
+def _finalize_tile_node(frame, prepared, memo):
+    payload = frame["payload"]
+    parent_generations = []
+    expected_roots = []
+    seen_roots = set()
+    parent_frames = []
+    for parent in prepared["parents"]:
+        summary = (
+            parent["summary"]
+            if "summary" in parent
+            else memo[parent["key"]]
+        )
+        generation, roots, parent_frame = summary
+        parent_generations.append(generation)
+        parent_frames.append(_json_copy(parent_frame))
+        for root in roots:
+            root_key = _validate_lineage_ref(root, "computed root source")
+            if root_key not in seen_roots:
+                seen_roots.add(root_key)
+                expected_roots.append(_json_copy(root))
+    lens = prepared["lens"]
+    if lens["payload"]["mutation"]["parent_order"] == "dream-catcher":
+        order = [
+            (parent["utc"], parent["frame_hash"])
+            for parent in parent_frames
+        ]
+        if order != sorted(order):
+            raise _LensTileRefusal(
+                "unordered crack inputs MUST use Dream-Catcher "
+                "(utc,frame_hash) order"
+            )
+    expected_generation = 1 + max(parent_generations)
+    if payload["generation"] != expected_generation:
+        raise _LensTileRefusal(
+            "tile generation MUST equal 1 + max(parent tile generation; "
+            "non-tile parent = 0)"
+        )
+    if payload["root_sources"] != expected_roots:
+        raise _LensTileRefusal(
+            "tile root_sources do not exactly match ordered root closure"
+        )
+    if prepared["runner"] is None:
+        raise _LensTileRefusal(
+            "tile replay requires an injected deterministic runner"
+        )
+    try:
+        replayed_outputs = prepared["runner"](
+            _json_copy(lens["payload"]),
+            parent_frames,
+            _json_copy(payload["replay"]),
+        )
+    except RecursionError as exc:
+        raise _LensTileRefusal("tile replay runner exceeded safe depth") from exc
+    except Exception as exc:
+        raise _LensTileRefusal(f"tile replay runner failed: {exc}")
+    if (
+        not isinstance(replayed_outputs, list)
+        or not replayed_outputs
+        or not all(isinstance(item, dict) for item in replayed_outputs)
+    ):
+        raise _LensTileRefusal(
+            "tile replay runner MUST return a non-empty ordered object array"
+        )
+    _semantic_value_limits(replayed_outputs, "tile runner outputs")
+    if len(replayed_outputs) != payload["crack"]["tile_count"]:
+        raise _LensTileRefusal(
+            "tile crack.tile_count does not match replayed outputs"
+        )
+    if len(lens["payload"]["facets"]) != payload["crack"]["tile_count"]:
+        raise _LensTileRefusal(
+            "tile crack.tile_count does not match lens facets"
+        )
+    tile_index = payload["crack"]["tile_index"]
+    if payload["crack"]["facet"] != lens["payload"]["facets"][tile_index]:
+        raise _LensTileRefusal(
+            "tile crack.facet does not match the signed lens slot"
+        )
+    replayed_payload = {
+        "schema": payload["schema"],
+        "crack": _json_copy(payload["crack"]),
+        "lens": _json_copy(payload["lens"]),
+        "parents": _json_copy(payload["parents"]),
+        "root_sources": _json_copy(payload["root_sources"]),
+        "generation": payload["generation"],
+        "replay": _json_copy(payload["replay"]),
+        "output": replayed_outputs[tile_index],
+    }
+    replayed_bytes = _semantic_value_limits(
+        replayed_payload,
+        "replayed tile payload",
+    )
+    stored_bytes = _semantic_value_limits(payload, "stored tile payload")
+    if replayed_bytes != stored_bytes:
+        raise _LensTileRefusal(
+            "tile replay did not reproduce byte-identical canonical payload"
+        )
+    return (
+        payload["generation"],
+        _json_copy(payload["root_sources"]),
+        _json_copy(frame),
+    )
+
+
+def _verify_tile_graph(
+    frame,
+    *,
+    head,
+    stream_id_of_record,
+    resolver,
+    runner,
+    signature_verifier,
+    genesis_verifier,
+    kind_family_resolver,
+    require_persisted,
+    invocation_id,
+    root_key=None,
+    memo=None,
+):
+    ok, step, why = _ordinary_frame_result(
+        frame,
+        head=head,
+        stream_id_of_record=stream_id_of_record,
+        signature_verifier=signature_verifier,
+    )
+    if not ok:
+        return False, step, why, None, None, None
+    memo = {} if memo is None else memo
+    root_key = (
+        (frame["frame_hash"], None)
+        if root_key is None
+        else root_key
+    )
+    if root_key in memo:
+        generation, roots, output_frame = memo[root_key]
+        return True, None, "ok", generation, roots, output_frame
+    active = set()
+    stack = [
+        {
+            "key": root_key,
+            "frame": frame,
+            "head": head,
+            "prepared": None,
+            "next_parent": 0,
+        }
+    ]
+    try:
+        while stack:
+            node = stack[-1]
+            node_hash = node["frame"]["frame_hash"]
+            if node["prepared"] is None:
+                if node_hash in active:
+                    raise _LensTileRefusal(
+                        "lens/tile lineage DAG contains a cycle"
+                    )
+                active.add(node_hash)
+                node["prepared"] = _prepare_tile_node(
+                    node["frame"],
+                    resolver=resolver,
+                    runner=runner,
+                    signature_verifier=signature_verifier,
+                    genesis_verifier=genesis_verifier,
+                    kind_family_resolver=kind_family_resolver,
+                    require_persisted=require_persisted,
+                    invocation_id=invocation_id,
+                )
+            parents = node["prepared"]["parents"]
+            pushed = False
+            while node["next_parent"] < len(parents):
+                parent = parents[node["next_parent"]]
+                node["next_parent"] += 1
+                if "key" not in parent or parent["key"] in memo:
+                    continue
+                parent_hash = parent["frame"]["frame_hash"]
+                if parent_hash in active:
+                    raise _LensTileRefusal(
+                        "lens/tile lineage DAG contains a cycle"
+                    )
+                stack.append(
+                    {
+                        "key": parent["key"],
+                        "frame": parent["frame"],
+                        "head": parent["head"],
+                        "prepared": None,
+                        "next_parent": 0,
+                    }
+                )
+                pushed = True
+                break
+            if pushed:
+                continue
+            summary = _finalize_tile_node(
+                node["frame"],
+                node["prepared"],
+                memo,
+            )
+            memo[node["key"]] = summary
+            active.remove(node_hash)
+            stack.pop()
+        generation, roots, output_frame = memo[root_key]
+        return True, None, "ok", generation, roots, output_frame
+    except (RecursionError, _LensTileRefusal) as exc:
+        return False, "§7.7", str(exc), None, None, None
+
+
+def _summarize_parent_refs(
+    refs,
+    *,
+    resolver,
+    runner,
+    signature_verifier,
+    genesis_verifier,
+    kind_family_resolver,
+    require_persisted,
+    invocation_id,
+):
+    if kind_family_resolver is None:
+        kind_family_resolver = getattr(
+            resolver,
+            "kind_family_resolver",
+            None,
+        )
+    summaries = []
+    memo = {}
+    for ref in refs:
+        target, target_head, _persisted, key = _resolve_lineage_ref(
+            ref,
+            resolver,
+            signature_verifier,
+            genesis_verifier,
+            kind_family_resolver,
+            require_persisted=require_persisted,
+            invocation_id=invocation_id,
+        )
+        if target["kind"] == LENS_KIND:
+            raise _LensTileRefusal("a lens frame cannot be a tile parent")
+        if target["kind"] in TILE_KINDS:
+            result = _verify_tile_graph(
+                target,
+                head=target_head,
+                stream_id_of_record=target["stream_id"],
+                resolver=resolver,
+                runner=runner,
+                signature_verifier=signature_verifier,
+                genesis_verifier=genesis_verifier,
+                kind_family_resolver=kind_family_resolver,
+                require_persisted=require_persisted,
+                invocation_id=invocation_id,
+                root_key=key,
+                memo=memo,
+            )
+            if not result[0]:
+                raise _LensTileRefusal(
+                    f"tile parent refused at {result[1]}: {result[2]}"
+                )
+            summary = (result[3], result[4], _json_copy(target))
+        else:
+            ok, step, why = verify_clean_frame(
+                target,
+                head=target_head,
+                stream_id_of_record=target["stream_id"],
+                signature_verifier=signature_verifier,
+                kind_family_resolver=kind_family_resolver,
+            )
+            if not ok:
+                raise _LensTileRefusal(
+                    f"fresh parent refused at {step}: {why}"
+                )
+            summary = (0, [_json_copy(ref)], _json_copy(target))
+        summaries.append({"ref": _json_copy(ref), "summary": summary})
+    return summaries
+
+
+def verify_tile_frame(
+    frame,
+    head=None,
+    stream_id_of_record=None,
+    *,
+    resolver=None,
+    runner=None,
+    signature_verifier=None,
+    genesis_verifier=None,
+    kind_family_resolver=None,
+    invocation_id=None,
+):
+    """Statelessly verify tile shape, lineage, ordering, limits, and replay.
+
+    resolver(frame_hash, era) returns exactly
+    {"frames": [genesis,...,target], "persisted": bool,
+     "invocation_id": str|null}. genesis_verifier(stream_id, era) must prove
+    the accepted registered genesis; kind_family_resolver(kind) returns the
+    exact registered family. These callbacks may instead be attributes on the
+    resolver. Stateless verification never reserves a persisted facet slot.
+    """
+    result = _verify_tile_graph(
+        frame,
+        head=head,
+        stream_id_of_record=stream_id_of_record,
+        resolver=resolver,
+        runner=runner,
+        signature_verifier=signature_verifier,
+        genesis_verifier=genesis_verifier,
+        kind_family_resolver=kind_family_resolver,
+        require_persisted=False,
+        invocation_id=invocation_id,
+    )
+    return result[:3]
+
+
+def accept_tile_frame(
+    frame,
+    head=None,
+    stream_id_of_record=None,
+    *,
+    resolver=None,
+    runner=None,
+    signature_verifier=None,
+    genesis_verifier=None,
+    kind_family_resolver=None,
+    facet_claim=None,
+):
+    """Verify persisted ancestry, then atomically claim its crack facet slot.
+
+    facet_claim(crack_id, tile_index, frame_hash) performs compare-and-set and
+    returns the hash bound after the claim. Only the same hash is accepted.
+    """
+    result = _verify_tile_graph(
+        frame,
+        head=head,
+        stream_id_of_record=stream_id_of_record,
+        resolver=resolver,
+        runner=runner,
+        signature_verifier=signature_verifier,
+        genesis_verifier=genesis_verifier,
+        kind_family_resolver=kind_family_resolver,
+        require_persisted=True,
+        invocation_id=None,
+    )
+    if not result[0]:
+        return result[:3]
+    if facet_claim is None:
+        return False, "§7.7", "persisted tile acceptance requires atomic facet claim"
+    crack = frame["payload"]["crack"]
+    try:
+        bound = facet_claim(
+            crack["crack_id"],
+            crack["tile_index"],
+            frame["frame_hash"],
+        )
+    except Exception as exc:
+        return False, "§7.7", f"atomic facet claim failed: {exc}"
+    if (
+        not isinstance(bound, str)
+        or not _HEX64.fullmatch(bound)
+    ):
+        return False, "§7.7", "atomic facet claim MUST return the bound 64hex"
+    if bound != frame["frame_hash"]:
+        return (
+            False,
+            "§7.7",
+            "crack facet slot is already bound to another frame",
+        )
+    return True, None, "ok"
+
+
+def build_tile_frame(
+    kind,
+    stream_id,
+    seq,
+    utc,
+    *,
+    lens,
+    parents,
+    replay,
+    resolver,
+    runner,
+    prev,
+    head=None,
+    prev_wave=None,
+    sig=None,
+    signature_verifier=None,
+    genesis_verifier=None,
+    kind_family_resolver=None,
+    persisted=True,
+    invocation_id=None,
+    actionable=False,
+    tile_index=0,
+):
+    """Build one crack result, deriving generation, roots, facets, and output.
+
+    Dream-Catcher input parents are normalized on copies before identity,
+    lineage, and runner evaluation; caller inputs are never mutated.
+    """
+    try:
+        if kind_family_resolver is None:
+            kind_family_resolver = getattr(
+                resolver,
+                "kind_family_resolver",
+                None,
+            )
+        if not isinstance(persisted, bool) or not isinstance(actionable, bool):
+            raise _LensTileRefusal(
+                "persisted and actionable flags MUST be boolean"
+            )
+        if not persisted and (
+            not isinstance(invocation_id, str) or not invocation_id
+        ):
+            raise _LensTileRefusal(
+                "a transient candidate requires its invocation_id"
+            )
+        if not persisted and actionable:
+            raise _LensTileRefusal(
+                "a transient candidate cannot authorize side effects"
+            )
+        _validate_lineage_ref(lens, "tile lens")
+        _validate_ref_list(parents, "tile parents", nonempty=True)
+        lens_frame, lens_head, _, _ = _resolve_lineage_ref(
+            lens,
+            resolver,
+            signature_verifier,
+            genesis_verifier,
+            kind_family_resolver,
+            require_persisted=True,
+            invocation_id=invocation_id,
+        )
+        ok, step, why = verify_lens_frame(
+            lens_frame,
+            head=lens_head,
+            stream_id_of_record=lens_frame["stream_id"],
+            signature_verifier=signature_verifier,
+            kind_family_resolver=kind_family_resolver,
+        )
+        if not ok:
+            raise _LensTileRefusal(
+                f"referenced lens refused at {step}: {why}"
+            )
+        _validate_replay(replay, lens_frame["payload"])
+        parent_records = _summarize_parent_refs(
+            _json_copy(parents),
+            resolver=resolver,
+            runner=runner,
+            signature_verifier=signature_verifier,
+            genesis_verifier=genesis_verifier,
+            kind_family_resolver=kind_family_resolver,
+            require_persisted=persisted,
+            invocation_id=invocation_id,
+        )
+        if lens_frame["payload"]["mutation"]["parent_order"] == "dream-catcher":
+            parent_records.sort(
+                key=lambda record: (
+                    record["summary"][2]["utc"],
+                    record["summary"][2]["frame_hash"],
+                )
+            )
+        ordered_parents = [record["ref"] for record in parent_records]
+        generations = []
+        roots = []
+        seen_roots = set()
+        parent_frames = []
+        for record in parent_records:
+            generation, parent_roots, parent_frame = record["summary"]
+            generations.append(generation)
+            parent_frames.append(_json_copy(parent_frame))
+            for root in parent_roots:
+                key = _validate_lineage_ref(root, "computed root source")
+                if key not in seen_roots:
+                    seen_roots.add(key)
+                    roots.append(_json_copy(root))
+        if runner is None:
+            raise _LensTileRefusal(
+                "tile construction requires an injected deterministic runner"
+            )
+        try:
+            outputs = runner(
+                _json_copy(lens_frame["payload"]),
+                parent_frames,
+                _json_copy(replay),
+            )
+        except RecursionError as exc:
+            raise _LensTileRefusal(
+                "tile construction runner exceeded safe depth"
+            ) from exc
+        except Exception as exc:
+            raise _LensTileRefusal(f"tile construction runner failed: {exc}")
+        if (
+            not isinstance(outputs, list)
+            or not outputs
+            or not all(isinstance(item, dict) for item in outputs)
+        ):
+            raise _LensTileRefusal(
+                "tile runner MUST return a non-empty ordered object array"
+            )
+        _semantic_value_limits(outputs, "tile runner outputs")
+        if len(outputs) != len(lens_frame["payload"]["facets"]):
+            raise _LensTileRefusal(
+                "tile runner output count MUST match signed lens facets"
+            )
+        if not _uint53(tile_index) or tile_index >= len(outputs):
+            raise _LensTileRefusal(
+                "tile_index MUST select one replayed facet output"
+            )
+        payload = {
+            "schema": TILE_SCHEMA,
+            "crack": {
+                "crack_id": crack_id(lens, ordered_parents, replay),
+                "facet": lens_frame["payload"]["facets"][tile_index],
+                "tile_index": tile_index,
+                "tile_count": len(outputs),
+            },
+            "lens": _json_copy(lens),
+            "parents": _json_copy(ordered_parents),
+            "root_sources": roots,
+            "generation": 1 + max(generations),
+            "replay": _json_copy(replay),
+            "output": _json_copy(outputs[tile_index]),
+        }
+        frame = build_frame(
+            kind,
+            stream_id,
+            seq,
+            utc,
+            payload,
+            prev,
+            prev_wave=prev_wave,
+            sig=sig,
+        )
+        _semantic_value_limits(frame, "tile frame")
+        ok, step, why = verify_tile_frame(
+            frame,
+            head=head,
+            stream_id_of_record=stream_id,
+            resolver=resolver,
+            runner=runner,
+            signature_verifier=signature_verifier,
+            genesis_verifier=genesis_verifier,
+            kind_family_resolver=kind_family_resolver,
+            invocation_id=invocation_id,
+        )
+        if not ok:
+            raise _LensTileRefusal(f"built tile refused at {step}: {why}")
+        return frame
+    except (RecursionError, _LensTileRefusal) as exc:
+        raise ValueError(str(exc)) from exc
 
 
 # ---------- §9 the egg (L5) — the one egg spec of record ----------
@@ -737,8 +2063,10 @@ def _https_chat_url_valid(value):
 def _signature_ok(manifest, signature_verifier, expected_signer=None):
     if signature_verifier is None:
         return False, "trusted signature verifier is required"
-    unsigned = {k: v for k, v in manifest.items() if k != "sig"}
     try:
+        unsigned = _json_copy(
+            {k: v for k, v in manifest.items() if k != "sig"}
+        )
         if expected_signer is None:
             result = signature_verifier(unsigned, manifest["sig"])
         else:
