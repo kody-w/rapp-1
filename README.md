@@ -12,8 +12,11 @@
 **One language for agents that keep a verifiable memory and talk over one wire.** Five primitives
 — canonicalization, content addressing, identity, the frame, the egg — specified exactly enough
 that independent implementations produce bytes each other can trust. Its executable grammar is a
-protocol; this repository contains the normative standard, a stdlib-only reference implementation,
-a conformance suite, and a book that teaches it end to end.
+protocol; this repository contains the append-only specification chain, its
+content-addressed bootstrap and revision objects, a stdlib-only reference
+implementation and resolver, a conformance suite, and a book that teaches it
+end to end. The unsigned chain proves integrity; owner-ratified acceptance onto
+protected canonical main currently selects authority.
 
 > Not a framework or a replacement for Python. A *protocol language*, in the sense that HTTP,
 > JSON, and git’s object model give independent programs a shared grammar.
@@ -46,6 +49,7 @@ cd rapp-1
 
 python3 conformance.py     # 22/22 — controlled protocol vectors
 python3 operations_conformance.py  # CI/CD + deployment safety vectors
+python3 anchor/materialize_spec.py --check SPEC.md  # current view == verified chain head
 python3 realcheck.py       # the spec run against the REAL committed estate
 python3 examples/01_hello_frame.py   # build and verify your first frame
 ```
@@ -63,8 +67,11 @@ in chapter 10.
 
 | file | what it is |
 |------|-----------|
-| **[`SPEC.md`](SPEC.md)** | the normative RAPP standard (rev-13) — 15 sections, RFC-grounded |
-| **[`anchor/`](anchor/README.md)** | the public pullable anchor — spec pin, kinds, and vocabulary status in `orient.json`, plus [the DOGG feed](https://github.com/kody-w/rapp-1/commits/main/anchor.atom): subscribe to anchor ticks in any feed reader |
+| **[`anchor/chain.jsonl`](anchor/chain.jsonl)** | append-only DOGG normative content; integrity is hash-proven and authority is selected by protected canonical-main acceptance |
+| **[`anchor/bootstrap/`](anchor/bootstrap/)** | frozen content-addressed bootstrap profile and exact verifier pin |
+| **[`anchor/frames/`](anchor/frames/)** | immutable-by-name revision frame objects, globally retrievable by durable frame hash |
+| **[`SPEC.md`](SPEC.md)** | byte-exact materialized human view of the current rev-14 chain head — 15 sections, RFC-grounded |
+| **[`anchor/`](anchor/README.md)** | chain resolver/materializer, head beacon, kinds, vocabulary, and [DOGG discovery feed](https://github.com/kody-w/rapp-1/commits/main/anchor.atom) |
 | **[`CONSTITUTION.md`](CONSTITUTION.md)** | the rapp/1 Protocol Constitution — the law of change: how the standard, this repo, and its claims may lawfully evolve |
 | **[`FOUNDATION.json`](FOUNDATION.json)** | exact pointer to the canonical public RAPP foundation and philosophy |
 | **[`PHILOSOPHY.md`](PHILOSOPHY.md)** | byte-identical public mirror of the canonical foundation philosophy, never product authority |
@@ -192,21 +199,25 @@ more than once, in incompatible ways, each copy claiming the same name. A frame 
 under one version string with two different hash rules; an identity was computed three ways in
 production, one of them the cardinal sin of hashing a *name* into an address. This is the oldest
 failure in distributed systems, and it was solved before — by Linux's one mainline, the Web's
-single living standard, git making the hash the name. **RAPP is the convergence: one spec, one
-canonicalizer, one mint, one frame** — specified so completely that the drift cannot come back,
-because everyone building on it turns the same bytes into the same tree.
+single living standard, git making the hash the name. **RAPP is the convergence: one specification
+chain, one canonicalizer, one mint, one frame** — specified so completely that the drift cannot
+come back, because everyone building on it turns the same bytes into the same tree.
 
 ## Status
 
-RAPP rev-13 closes public protocol governance and estate-registry scope while
-retaining rev-12's foundation/product boundary, rev-11's RAPP CI/CD and RAPP
-Deploy operational profiles, and
-preserving rev-10's sealed-artifact and immutable-Grail closure. The reference
-profile passes 22/22 core checks plus the operational safety vectors on every
-push; the Grail rules govern release conformance without changing existing
-frame envelopes. CI runs the suite on Python 3.9 and 3.13, runs all six examples,
-and enforces byte parity between `rapp.py` and the SDK agent's embedded
-primitives (`parity_check.py`). The captured 2026-08-20 estate audit accepted
+RAPP rev-14 makes selected `anchor/chain.jsonl` frames carry normative content,
+while owner-ratified protected-main acceptance selects the authoritative chain.
+It freezes a content-addressed bootstrap, publishes hash-addressed frame
+objects/indexes, embeds the current normative Markdown in a normal `body.pulse`
+frame, and makes `SPEC.md` its reproducible materialized view. It changes no
+envelope, canonicalization, hash, or registered-kind semantic. Rev-13's public governance,
+rev-12's foundation/product boundary, rev-11's operational profiles, and
+rev-10's sealed-artifact and immutable-Grail closure remain intact. The
+reference profile passes 22/22 core checks plus the operational safety vectors
+on every push. CI runs the suite on Python 3.9 and 3.13, verifies the
+specification chain/materialized view, runs all six examples, and enforces byte
+parity between `rapp.py` and the SDK agent's embedded primitives
+(`parity_check.py`). The captured 2026-08-20 estate audit accepted
 46/46 committed frames and four canonical identity records with zero drift; the
 estate is live and re-audited weekly (the 2026-08-26 observation accepted
 50/50). See [`REAL-WORLD-REPORT.txt`](REAL-WORLD-REPORT.txt) for the captured

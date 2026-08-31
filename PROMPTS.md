@@ -20,13 +20,16 @@ Paste into your brainsurgeon:
 ```text
 You are my hands — I watch, you type. Clone https://github.com/kody-w/rapp-1 and prove
 RAPP to me end to end: (1) run python3 conformance.py — I expect 22/22 PASS; (2) run
-python3 realcheck.py — the spec against the live public estate — and explain the verdict
-in plain English; (3) run python3 examples/01_hello_frame.py and walk me through the
-frame it built, one line per key. Narrate as you go, show real output, and stop on any
-red result — a red check is a finding, not something to patch around.
+python3 anchor/materialize_spec.py --check SPEC.md and show that the checked-in view
+matches the verified specification-chain head; (3) run python3 realcheck.py — the spec
+against the live public estate — and explain the verdict in plain English; (4) run
+python3 examples/01_hello_frame.py and walk me through the frame it built, one line per
+key. Narrate as you go, show real output, and stop on any red result — a red check is a
+finding, not something to patch around.
 ```
 
-**Expect:** `22 controlled checks | 22 PASS | 0 FAIL`, an estate verdict with zero drift
+**Expect:** `22 controlled checks | 22 PASS | 0 FAIL`, a JSON revision identity
+for the byte-exact materialized chain head, an estate verdict with zero drift
 findings, and an 11-key frame explained.
 
 ## 2 · Build me a verifiable chain
@@ -40,6 +43,24 @@ verification step (§7.5) refuses and why.
 ```
 
 **Expect:** a green chain, then a deliberate refusal at step 2 or 4 with the reason.
+
+## 2.1 · Resolve a protocol revision by its durable identity
+
+```text
+In my clone of https://github.com/kody-w/rapp-1, read anchor/README.md and use
+anchor/materialize_spec.py to verify the full DOGG specification chain. Show me
+the head frame hash and payload hash, resolve that same revision by head, rev
+label, seq, frame hash, and payload hash, and prove every lookup materializes
+byte-identical SPEC.md. Explain why the frame hash is the durable revision
+identity, orient.json is only a beacon, and the Atom feed and mutable main URLs
+are discovery only. Separate hash-proven integrity from authority: until an
+authenticated checkpoint exists, owner-ratified acceptance onto protected
+canonical main selects the chain. Do not claim the unsigned chain is
+authenticated.
+```
+
+**Expect:** five lookups resolving one verified frame and one byte-identical
+normative Markdown file.
 
 ## 3 · Mint my identity the lawful way
 

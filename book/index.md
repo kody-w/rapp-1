@@ -89,6 +89,8 @@ python3 examples/06_pack_an_egg.py
 python3 conformance.py
 ```
 
-The implementation is deliberately small enough to read beside the prose. `SPEC.md` is normative;
-this book explains it; `rapp.py` makes the core executable; `conformance.py` makes selected claims
-falsifiable.
+The implementation is deliberately small enough to read beside the prose. The
+owner-selected, hash-verified `anchor/chain.jsonl` carries normative revision
+content; `SPEC.md` is its current byte-exact materialized view; this book
+explains it; `rapp.py` makes the core executable; `conformance.py` makes
+selected claims falsifiable.

@@ -1,18 +1,24 @@
 {
  "schema": "rapp/1-anchor",
- "generated_utc": "2026-08-30T18:48:18.785Z",
+ "generated_utc": "2026-08-30T23:40:07.000Z",
  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
  "head": {
-  "seq": 13,
-  "frame_hash": "bbcee75ebbbf82d11d8ffd666fdda34c8233642de6d6e4f45910d43a24a001e3",
-  "payload_hash": "78a89c06509b5100494b9c7e0f551acdc6209fd90aded734321f3580b0f07051"
+  "seq": 14,
+  "frame_hash": "59629adab4e26d156f3d66ecfb766e08705919ea1d2adc92ba0ad2b17337dfc2",
+  "payload_hash": "c7549bbd3e133b833930e24e008817ea295734b870f41706455d3f45821aba3a"
  },
  "spec": {
-  "revision": "rev-13",
+  "revision": "rev-14",
+  "revision_frame_hash": "59629adab4e26d156f3d66ecfb766e08705919ea1d2adc92ba0ad2b17337dfc2",
+  "revision_payload_hash": "c7549bbd3e133b833930e24e008817ea295734b870f41706455d3f45821aba3a",
+  "schema": "rapp-spec-revision/1",
+  "materialized_path": "SPEC.md",
   "normative_path": "SPEC.md",
-  "normative_sha256": "e5abd6a32801761fdd5c151a4f90fa4c989b545da02d3cd26dfc4765fab8409a",
+  "media_type": "text/markdown; charset=utf-8",
+  "normative_sha256": "d345235be5bc698d78c5893285abd09f2e62a398f781123d1de8da313a01c7de",
+  "normative_bytes": 78183,
   "canonical_repo": "https://github.com/kody-w/rapp-1",
-  "commit": "5e30f66396f4cd125bce5718b1fef92d8d3ddab8"
+  "commit": "1a27d11eec48a7f9ebda4208916a67ffd3a24b7f"
  },
  "registered_kinds": [
   "body.pulse",
@@ -160,7 +166,30 @@
  },
  "constitution": {
   "path": "CONSTITUTION.md",
-  "sha256": "545086b6cd241bfc4741e94c8cec3300e61d9f446f1571694f11b7ea549e5129",
-  "size_bytes": 13494
+  "sha256": "c218819541c0a2caa88048f208aa28c632577bff9a8512b1d7f6d2e484a18d21",
+  "size_bytes": 16124
+ },
+ "authority": {
+  "canonical_repository": "https://github.com/kody-w/rapp-1",
+  "protected_ref": "refs/heads/main",
+  "selection": "owner-ratified acceptance of the chain snapshot onto protected canonical main",
+  "linearization": "the accepted canonical-main commit containing the new frame",
+  "history_replacement": "prohibited",
+  "competing_append": "must rebase onto the accepted head and regenerate",
+  "transition": "rev-14-ratified-under-rev-13-article-14",
+  "chain_append_process": "governs-rev-15-and-later",
+  "authenticated_registry_checkpoint": null
+ },
+ "bootstrap": {
+  "index_path": "anchor/bootstrap/index.json",
+  "profile_path": "anchor/bootstrap/sha256-1666e44acf532f854d4bf74868c9af9f9b362055692189ac858a7c8b52dcd5bb.json",
+  "profile_sha256": "1666e44acf532f854d4bf74868c9af9f9b362055692189ac858a7c8b52dcd5bb",
+  "verifier_path": "anchor/bootstrap_verify.py",
+  "verifier_sha256": "4a4c19912063d5ce15cec69b1aca0cebf5df122fb1c481f357f1cf21bc0a07ff"
+ },
+ "index": {
+  "path": "anchor/index.json",
+  "sha256": "f409e495ba93034b6b145d9aec73d6b67ea72014480c3c0fbd18420b1b2b1ebf",
+  "bytes": 7378
  }
 }

@@ -2,3 +2,4 @@ estate/
 .book-build/
 __pycache__/
 *.pyc
+anchor/.update_anchor.lock

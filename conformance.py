@@ -1,4 +1,4 @@
-"""conformance.py — executable proof that RAPP (rev-13) is implementable and
+"""conformance.py — executable proof that RAPP (rev-14) is implementable and
 self-consistent, plus a non-gating observation of one live estate artifact.
 
 Run: python3 conformance.py
@@ -19,7 +19,7 @@ def check(name, ok, detail=""):
     print(f"  [{PASS if ok else FAIL}] {name}" + (f"  — {detail}" if detail and not ok else ""))
 
 print("=" * 70)
-print("RAPP rev-13 — conformance vectors")
+print("RAPP rev-14 — conformance vectors")
 print("=" * 70)
 
 # V1 canonicalization determinism (key order independence)
