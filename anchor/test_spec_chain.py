@@ -45,6 +45,7 @@ HISTORICAL_LINE_SHA256 = (
     "9a6f3773b1206e1e72dcb9cd67ade6a5d6d442c5af868c7b4d248f010c4d774f",
     "e9877cd1f1fe9e9c657065e7c06fc5a5cac1befa6d1ef903de4e7c0dfa1bbe88",
     "329390a26d0f270afb3357420d919c6046c8d47ace80c590ccac5371eec061e7",
+    "f168e0e37d845c63f2a12f842b486f20c5abfc9236263c8cf2aad53928f72acb",
 )
 
 
@@ -108,9 +109,16 @@ class SpecChainTests(unittest.TestCase):
         with self.assertRaisesRegex(M.ChainError, contains):
             M.verify_chain(chain_octets)
 
+    def assert_rev15_head(self) -> None:
+        self.assertEqual(
+            (self.head["seq"], self.head["payload"]["revision"]),
+            (15, "rev-15"),
+            "rev-15 anchor generation has not run",
+        )
+
     def test_historical_lines_are_byte_exact(self) -> None:
-        self.assertEqual(len(self.lines), 15)
-        actual = tuple(hashlib.sha256(line).hexdigest() for line in self.lines[:14])
+        self.assertEqual(len(self.lines), 16)
+        actual = tuple(hashlib.sha256(line).hexdigest() for line in self.lines[:15])
         self.assertEqual(actual, HISTORICAL_LINE_SHA256)
         for line, frame in zip(self.lines, self.frames):
             object_path = (
@@ -131,10 +139,12 @@ class SpecChainTests(unittest.TestCase):
         )
 
     def test_full_chain_head_and_beacon_verify(self) -> None:
-        self.assertEqual(self.head["seq"], 14)
+        self.assert_rev15_head()
+        self.assertEqual(self.head["seq"], 15)
         self.assertEqual(self.head["kind"], "body.pulse")
         self.assertEqual(set(self.head), R.FRAME_KEYS)
         self.assertEqual(self.head["payload"]["schema"], M.REVISION_SCHEMA)
+        self.assertEqual(self.head["payload"]["revision"], "rev-15")
         self.assertEqual(self.orient["head"]["frame_hash"], self.head["frame_hash"])
         self.assertEqual(self.index["head"]["frame_hash"], self.head["frame_hash"])
         self.assertLessEqual(
@@ -143,6 +153,7 @@ class SpecChainTests(unittest.TestCase):
         )
 
     def test_spec_roundtrip_is_byte_exact_and_atomic(self) -> None:
+        self.assert_rev15_head()
         materialized = M.resolve_spec_bytes(self.head, offline=True)
         self.assertEqual(materialized, SPEC.read_bytes())
         target = self.scratch() / "SPEC.md"
@@ -152,10 +163,11 @@ class SpecChainTests(unittest.TestCase):
         self.assertFalse(any(target.parent.glob(".SPEC.md.*.tmp")))
 
     def test_resolution_by_every_identifier(self) -> None:
+        self.assert_rev15_head()
         selectors = [
             {},
-            {"revision": "rev-14"},
-            {"seq": 14},
+            {"revision": "rev-15"},
+            {"seq": 15},
             {"frame_hash": self.head["frame_hash"]},
             {"payload_hash": self.head["payload_hash"]},
         ]
@@ -358,6 +370,7 @@ class SpecChainTests(unittest.TestCase):
         self.assertIsNone(publication["authenticated_registry_checkpoint"])
 
     def test_beacon_keeps_legacy_path_alias_and_all_head_mirrors(self) -> None:
+        self.assert_rev15_head()
         self.assertEqual(
             self.orient["spec"]["normative_path"],
             self.orient["spec"]["materialized_path"],
@@ -366,11 +379,60 @@ class SpecChainTests(unittest.TestCase):
             self.orient["registered_kinds"],
             self.head["payload"]["registered_kinds"],
         )
+        expected_kinds = {
+            "body.lens",
+            "body.tile",
+            "memory.tile",
+            "swarm.tile",
+        }
+        self.assertTrue(
+            expected_kinds <= set(self.head["payload"]["registered_kinds"])
+        )
+        self.assertEqual(
+            self.head["payload"]["registered_kinds"],
+            sorted(self.head["payload"]["registered_kinds"]),
+        )
+        expected_vocabulary = {
+            "lens",
+            "tile",
+            "crack",
+            "clean-frame",
+            "worn-frame",
+            "generation",
+            "fan-out",
+            "fan-in",
+            "dream-caught",
+            "facet",
+            "marble",
+            "environment",
+            "facet-claim",
+            "registered-genesis",
+            "signature-isolation",
+            "container-depth",
+            "acyclic-json",
+        }
+        self.assertTrue(
+            expected_vocabulary <= set(self.head["payload"]["vocabulary"])
+        )
+        self.assertEqual(
+            self.orient["vocabulary"],
+            self.head["payload"]["vocabulary"],
+        )
         drift = copy.deepcopy(self.orient)
         drift["registered_kinds"] = drift["registered_kinds"][:-1]
         with self.assertRaisesRegex(M.ChainError, "registered_kinds mirror"):
             M.verify_orient(
                 (json.dumps(drift) + "\n").encode("utf-8"),
+                self.frames,
+                index_octets=self.index_octets,
+                bootstrap_index=self.bootstrap_index,
+            )
+
+        vocabulary_drift = copy.deepcopy(self.orient)
+        del vocabulary_drift["vocabulary"]["generation"]
+        with self.assertRaisesRegex(M.ChainError, "vocabulary mirror"):
+            M.verify_orient(
+                (json.dumps(vocabulary_drift) + "\n").encode("utf-8"),
                 self.frames,
                 index_octets=self.index_octets,
                 bootstrap_index=self.bootstrap_index,
@@ -432,6 +494,7 @@ class SpecChainTests(unittest.TestCase):
             )
 
     def test_offline_inline_and_legacy_behavior(self) -> None:
+        self.assert_rev15_head()
         self.assertEqual(M.resolve_spec_bytes(self.head, offline=True), SPEC.read_bytes())
         with self.assertRaisesRegex(M.ResolutionError, "offline mode"):
             M.resolve_spec_bytes(self.frames[13], offline=True)
@@ -536,6 +599,7 @@ class SpecChainTests(unittest.TestCase):
                     M.verify_chain(chain)
 
     def test_duplicate_revision_seq_and_fork_are_refused(self) -> None:
+        self.assert_rev15_head()
         legacy_predecessor = self.frames[6]
         legacy_payload = copy.deepcopy(legacy_predecessor["payload"])
         legacy_payload["test_marker"] = True
@@ -553,14 +617,14 @@ class SpecChainTests(unittest.TestCase):
         )
 
         duplicate_revision_payload = copy.deepcopy(self.head["payload"])
-        duplicate_revision_payload["previous_revision"] = "rev-14"
+        duplicate_revision_payload["previous_revision"] = "rev-15"
         duplicate_revision_payload["previous_normative_sha256"] = self.head[
             "payload"
         ]["normative_sha256"]
         duplicate_revision = R.build_frame(
             "body.pulse",
             self.head["stream_id"],
-            15,
+            16,
             self.head["utc"],
             duplicate_revision_payload,
             self.head["payload_hash"],
@@ -571,15 +635,15 @@ class SpecChainTests(unittest.TestCase):
         )
 
         fork_payload = copy.deepcopy(self.head["payload"])
-        fork_payload["revision"] = "rev-15"
-        fork_payload["previous_revision"] = "rev-13"
+        fork_payload["revision"] = "rev-16"
+        fork_payload["previous_revision"] = "rev-14"
         fork_payload["previous_normative_sha256"] = self.frames[-2]["payload"][
             "normative_sha256"
         ]
         fork = R.build_frame(
             "body.pulse",
             self.head["stream_id"],
-            14,
+            15,
             self.head["utc"],
             fork_payload,
             self.frames[-2]["payload_hash"],
@@ -587,12 +651,13 @@ class SpecChainTests(unittest.TestCase):
         self.assert_chain_refused(self.appended(fork), "duplicate seq/fork")
 
     def test_legacy_revision_emission_after_inline_profile_is_refused(self) -> None:
+        self.assert_rev15_head()
         payload = copy.deepcopy(self.frames[13]["payload"])
         payload["test_marker"] = "new-legacy-emission"
         frame = R.build_frame(
             "body.pulse",
             self.head["stream_id"],
-            15,
+            16,
             self.head["utc"],
             payload,
             self.head["payload_hash"],
@@ -603,28 +668,60 @@ class SpecChainTests(unittest.TestCase):
         )
 
     def test_stale_competing_append_must_rebase(self) -> None:
+        self.assert_rev15_head()
         payload = copy.deepcopy(self.head["payload"])
-        payload["revision"] = "rev-15"
-        payload["previous_revision"] = "rev-14"
+        payload["revision"] = "rev-16"
+        payload["previous_revision"] = "rev-15"
         payload["previous_normative_sha256"] = self.head["payload"][
             "normative_sha256"
         ]
         competing = R.build_frame(
             "body.pulse",
             self.head["stream_id"],
-            15,
+            16,
             self.head["utc"],
             payload,
             self.head["payload_hash"],
         )
         competing_chain = self.appended(competing)
-        canonical_rev13 = b"".join(self.lines[:14])
+        canonical_rev14 = b"".join(self.lines[:15])
         with self.assertRaisesRegex(SystemExit, "stale or competing"):
             U.select_chain_base(
                 competing_chain,
-                canonical_rev13,
+                canonical_rev14,
                 self.bootstrap_profile,
             )
+
+    def test_rev15_lens_tile_terminology_and_lineage_are_published(self) -> None:
+        self.assert_rev15_head()
+        spec = SPEC.read_text(encoding="utf-8")
+        phrases = (
+            "### 7.7 Lens cracking and tile lineage",
+            '"schema": "rapp-lens/1"',
+            '"facets": ["<lclabel>", "..."]',
+            '"schema": "rapp-tile/1"',
+            '"crack": {"crack_id": "<64hex>", "facet": "<lclabel>", "tile_index": 0, "tile_count": 1}',
+            "Rev-15 registers exactly `body.lens`→`body`",
+            "**tile / worn frame**",
+            "1 + max(parent contribution)",
+            "The tile schema contains no `provenance_class`",
+            "#### 7.7.4 Fan-out, sibling tiles, and Dream-Catcher fan-in",
+            "(crack.crack_id, tile_index)",
+            "The fresh frame is the marble",
+            "Stateless tile verification",
+            "atomic compare-and-set claim",
+            "Lineage depth is not limited by the host language's call stack",
+            "Scalar leaves do not add a depth level",
+            "frame from era genesis through target",
+            "immutable canonical bytes or a deep",
+            "An in-memory cyclic object/list graph is not a JSON tree",
+            "frame.prev",
+            "same invocation",
+            "byte-identical canonical payload",
+        )
+        for phrase in phrases:
+            self.assertIn(phrase, spec)
+            self.assertIn(phrase, self.head["payload"]["normative"]["text"])
 
     def test_rev14_transition_wording_is_published(self) -> None:
         constitution = (ROOT / "CONSTITUTION.md").read_text(encoding="utf-8")
@@ -650,6 +747,7 @@ class SpecChainTests(unittest.TestCase):
             )
 
     def test_generator_rerun_is_deterministic_and_idempotent(self) -> None:
+        self.assert_rev15_head()
         before_chain = CHAIN.read_bytes()
         before_orient = ORIENT.read_bytes()
         result = subprocess.run(

@@ -7,12 +7,12 @@
 > selects authority. Change the protocol by appending a successor frame, not by
 > treating this file as independent authority.
 
-**Status:** Owner-ratified RAPP/1 **rev-14 amendment**. It is effective iff the
+**Status:** Owner-ratified RAPP/1 **rev-15 amendment**. It is effective iff the
 prepared chain snapshot has been accepted onto canonical protected main under
 the transition in §12.2. **Obsoletes / consolidates:**
 `rapp-frame/2.0`, `rapp-frame/2.1`, `rapp-rappid-spec/2.0`, `rapp-protocol/1.0`, all scattered egg specs
 (§9 subsumes them), and `OSI.md`. This is the current materialized view of the single living standard;
-the consolidated specs are retired historical record (Protocol Constitution Article 6). Rev-14 becomes
+the consolidated specs are retired historical record (Protocol Constitution Article 6). Rev-15 becomes
 the published current revision when the source merge and append-only anchor update carrying these exact
 bytes complete.
 
@@ -80,6 +80,18 @@ and byte length are provenance and verification data, not alternate identities. 
 the currently served release is immutable even while a separate candidate lineage grows.
 **deployment cell** — an independently observable and isolatable runtime failure domain governed by
 `rapp-deploy/1`.
+**fresh frame / source frame / clean frame** — a verified non-lens, non-tile output frame; it is generation
+0 for §7.7 lens lineage only, not a reset of `seq`, an era number, or a claim about other lineage systems.
+**lens** — one immutable, signed `body.lens` frame describing a mutation and its complete replay inputs.
+**crack(frame, lens)** — the mutation operation/immutable derivation relation that applies one exact lens
+invocation to a verified input frame (or ordered input frames for a multi-parent crack) and recorded replay
+values; every input frame's bytes remain unchanged. **tile / worn frame** — the new immutable
+`body.tile`, `memory.tile`, or `swarm.tile` frame output by a crack, carrying a closed `rapp-tile/1` payload
+at generation ≥1. **generation** — wear depth: a fresh/non-tile parent contributes 0, while a tile/worn
+parent contributes its payload's generation; the new tile records one plus their maximum. **sibling
+tiles** — distinct worn frames sharing a direct parent or one multi-output `crack.crack_id`; lineage siblings are
+not stream forks. **Dream-Caught** — fan-in by a new crack that retains every exact tile parent and uses
+deterministic §7.4 order for an unordered cross-stream input vector.
 
 ## 4. Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **[RFC 8785] JCS** for the value `v`, defined **only**
@@ -89,13 +101,15 @@ byte-order mark.
 
 **RAPP input-domain profile (parse-side interoperability — this is a RAPP rule, not a JCS mandate).** An
 implementation **MUST** refuse (never repair) any JSON value that, at any depth, contains: (a) duplicate
-member names in one object; (b) an unpaired UTF-16 surrogate in any string; (c) a number token that does
+member names in one object (and any in-memory object API value with a non-string member name); (b) an
+unpaired UTF-16 surrogate in any string; (c) a number token that does
 not survive the binary64 round-trip — let `d` be the token's nearest binary64 value under `roundTiesToEven`
 (the IEEE-754 default; ±∞ are admissible results); the token is refused iff `d` is not finite, or the
 [RFC 8785] serialization of `d` (ECMA-262 `Number::toString`) denotes a different mathematical value than
 the token (so `0.1` is accepted — it round-trips — while `9007199254740993` and `1e999` (→ +∞) are refused); (d) canonical form exceeding 1 MiB or JSON nesting depth
 exceeding 64 (the root value is depth 1; each nested object/array adds 1). Refusal is whole (§7.5-style),
-never partial.
+never partial. Scalar leaves do not add a depth level. An in-memory cyclic object/list graph is not a JSON
+tree and **MUST** be refused; traversal **MUST** detect active object-identity revisits rather than loop.
 
 **No normalization.** RAPP applies **no** Unicode normalization when hashing, storing, or re-emitting an
 existing value; strings are code-point sequences preserved verbatim and equality everywhere is code-point
@@ -221,13 +235,17 @@ Each mints one fresh tail. The **estate_owner's own** re-anchor record **MUST** 
 ### 7.2 Kind families (one envelope, registry-bound families)
 | family | example registered kinds | `stream_id` form | logs |
 |---|---|---|---|
-| `memory` | `memory.chat-turn`, `memory.tool-call`, `memory.save`, `memory.reconstructed` | memory-stream | one organism's life |
-| `swarm`  | `swarm.guidance`, `swarm.echo`, `swarm.telemetry`, `swarm.reconstructed` | swarm-stream | the planetary wire |
-| `body`   | `body.pulse`, `body.twin-pulse`, `body.reconstructed`, `body.re-genesis` | body-stream | an organism's biography |
+| `memory` | `memory.chat-turn`, `memory.tool-call`, `memory.save`, `memory.reconstructed`, `memory.tile` | memory-stream | one organism's life |
+| `swarm`  | `swarm.guidance`, `swarm.echo`, `swarm.telemetry`, `swarm.reconstructed`, `swarm.tile` | swarm-stream | the planetary wire |
+| `body`   | `body.pulse`, `body.twin-pulse`, `body.reconstructed`, `body.lens`, `body.tile`, `body.re-genesis` | body-stream | an organism's biography |
 Each family also has a `*.re-genesis` kind (`memory.re-genesis`, `swarm.re-genesis`, `body.re-genesis`)
 used only by §12.1. The family is **not** the kind's prefix — it is the §13 registry binding (so
 `body.twin-pulse` is family `body`). Adding a family or event is a new registered `kind` on the **same** envelope (Art. IV), never a
 new frame type. A frame's `kind` family **MUST** be compatible with its `stream_id` form (table column 3).
+Rev-15 registers exactly `body.lens`→`body`, `body.tile`→`body`, `memory.tile`→`memory`, and
+`swarm.tile`→`swarm`. A consumer **MUST** recognize those strings only by exact §13 lookup; suffix or
+prefix inference (`*.lens`, `*.tile`, or `body.*`) remains forbidden. `swarm.tile` is a normal swarm
+frame and therefore **MUST** be signed under §§7.5, 8, and 10.
 
 ### 7.3 Particle and wave (the unification)
 A frame carries **both** of its domain-separated addresses; a reader collapses it to whichever it needs.
@@ -288,6 +306,219 @@ legitimate §12.1 re-genesis presents a new genesis at `seq`=0. When (and only w
 `stream_id` to a new genesis `frame_hash` (§12.1 step 3), a consumer **MUST** verify that registered
 genesis (§7.5) and then **reset** its persisted head for that `stream_id` to it. Only a registry-published
 genesis authorizes a reset; any other lower-`seq` head remains a refused rollback.
+
+### 7.7 Lens cracking and tile lineage
+
+Lenses and tile/worn frames use the unchanged §7.1 envelope, §4 canonicalization, §5 particle/wave domains,
+§7.4 stream chain, §8 wire, and §10 signatures. This section adds registered payload semantics only: it
+adds no envelope member, endpoint, canonical form, or hash space.
+
+#### 7.7.1 Closed lens payload
+
+A lens is exactly a `body.lens` frame on a body-stream. Its `sig` is REQUIRED and **MUST** verify under
+the keyed rappid byte-equal to that body-stream's `stream_id`; a valid signature by any other registry key
+is refusal. Its payload has exactly these members:
+
+```json
+{
+  "schema": "rapp-lens/1",
+  "runner": "<NFC text>",
+  "mutation": {"parent_order": "declared"},
+  "inputs": ["<lclabel>", "..."],
+  "stochastic_inputs": ["<lclabel>", "..."],
+  "facets": ["<lclabel>", "..."]
+}
+```
+
+`runner` is 1–200 Unicode characters, NFC, with no leading or trailing whitespace. `mutation` is a §4
+object containing the immutable mutation configuration and the REQUIRED `parent_order`, exactly
+`"declared"` or `"dream-catcher"`. `inputs` and `stochastic_inputs` are ordered, duplicate-free, mutually
+disjoint arrays of 1–64-character §6.1.1 `lclabel`s. They declare every replay input name; the values are
+recorded by the tile (§7.7.3). `facets` is a non-empty ordered duplicate-free array of the same labels and
+names every tile slot the lens can emit. The lens frame, payload, declaration order, facet order, and
+signature are immutable. A tile identifies its one lens by the lens frame's wave address, never by runner
+name, mutable location, payload hash, or equivalent-looking substituted body.
+
+#### 7.7.2 Closed tile payload and exact references
+
+A tile is a worn frame: the new frame output by one crack. It has exactly one of the kinds `body.tile`,
+`memory.tile`, or `swarm.tile` on the corresponding §7.2 stream family, and its complete payload has this
+exact shape:
+
+```json
+{
+  "schema": "rapp-tile/1",
+  "crack": {"crack_id": "<64hex>", "facet": "<lclabel>", "tile_index": 0, "tile_count": 1},
+  "lens": {"frame_hash": "<64hex>", "era": "<64hex>"},
+  "parents": [{"frame_hash": "<64hex>", "era": "<64hex>"}],
+  "root_sources": [{"frame_hash": "<64hex>", "era": "<64hex>"}],
+  "generation": 1,
+  "replay": {},
+  "output": {}
+}
+```
+
+The tile schema contains no `provenance_class` or other status label; the exact key set above is closed.
+Its worn status is expressed only by `generation` and the verified `crack`/`lens`/`parents`/`root_sources`
+lineage. Any extra status member, including `provenance_class`, is refusal.
+
+`crack.crack_id` identifies the exact invocation without creating a hash space:
+
+```text
+invocation = {"schema":"rapp-crack/1","lens":lens,"parents":parents,"replay":replay}
+crack.crack_id = H("rapp/1:particle", invocation)
+```
+
+The invocation uses the existing particle domain and §4 bytes. `tile_count` is the non-zero number of
+ordered outputs reproduced by the runner and **MUST** equal the signed lens's `facets` length.
+`tile_index` is a `uint53` less than `tile_count`; `facet` **MUST** byte-equal
+`lens.payload.facets[tile_index]`. `(crack.crack_id, tile_index)` is the stable facet/output-slot
+identifier. The tile frame's `frame_hash` remains the durable identity of the actual worn frame. A
+consumer **MUST** persist each accepted slot binding and refuse a different frame for an already-bound
+`(crack.crack_id, tile_index)`. All frames sharing one `crack.crack_id` **MUST** agree on lens, parents,
+replay, tile_count, and signed facet order, and their tile indexes **MUST** be unique. A single-facet crack
+uses one declared facet, index 0, and count 1.
+
+Stateless tile verification checks shape, ordinary frame validity, exact registry/genesis authority,
+lineage, ordering, limits, and replay but does not publish or reserve a facet slot. Persisted acceptance is
+a separate operation and **MUST** perform one atomic compare-and-set claim of
+`(crack.crack_id,tile_index) → frame_hash`. Omission of that atomic claim is refusal. If the slot is empty,
+the claim binds it; if it already contains the same `frame_hash`, acceptance is idempotent; any different
+hash loses the race and is refused. A read followed by a non-atomic write is nonconformant.
+
+Every reference object has exactly `frame_hash` and `era`. `frame_hash` is the referenced frame's §7.3
+wave address. `era` is the `frame_hash` of the registered genesis from which that referenced frame
+descends, including an owner-authorized re-genesis. A resolver **MUST** obtain the complete same-stream
+chain from that exact era genesis through the target, run ordinary §7.5 verification from genesis to
+target, apply exact registered-kind/family verification to **every** frame from era genesis through target,
+require each kind's family to match that stream, require the first wave to equal `era`, and require the
+final wave to equal `frame_hash`. An unregistered or wrong-family intermediate is refusal even when the
+target itself is registered. A missing object, wrong era, wrong hash, broken stream chain, or substituted
+lens/source is refusal. Hash equality without era resolution is insufficient across re-genesis. The
+resolver **MUST** additionally prove through the authenticated §13 genesis registry (or an injected
+verifier over an exact accepted snapshot) that `(target.stream_id, era)` is an accepted registered genesis
+binding. Merely making the supplied chain's first frame hash equal `era` is not authority and is refusal
+when no registry/genesis proof is available.
+
+`parents` is a non-empty ordered array of unique direct-input-frame references: these are the frames passed
+to this exact crack invocation. Each is either a fresh/source non-tile frame (generation contribution 0)
+or a verified tile/worn frame (generation contribution equal to its payload's generation); a `body.lens`
+frame and a `*.re-genesis` marker are not input frames. The crack leaves every input frame byte-for-byte
+unchanged. `root_sources` is a non-empty ordered array of unique fresh generation-0 frame references. A
+consumer computes it exactly by walking `parents` left-to-right: a non-tile parent contributes its own
+reference; a tile/worn parent contributes its already-verified payload's `root_sources` left-to-right; the
+first occurrence of a reference is retained and later occurrences are omitted. The declared array **MUST**
+byte-for-byte equal that computed order. The directed parent graph **MUST** be acyclic.
+
+Semantic source acceptance requires an exact §13 registered-kind lookup and family/stream match; prefix
+inference or an unknown kind cannot contribute generation 0. A frame carrying
+`payload.schema:"rapp-tile/1"` under any non-tile kind is generation laundering and **MUST** be refused as
+a fresh/source frame even when its ordinary envelope hashes verify.
+
+Parent order is part of the signed lens invocation, never a set accidentally reordered by a transport. For
+`parent_order:"declared"`, array position is the deterministic semantic slot/order and the runner consumes
+that exact order. For `parent_order:"dream-catcher"`, the complete parent vector is an unordered
+cross-stream input slot and **MUST** be normalized by ascending `(utc, frame_hash)` under §7.4 before the
+crack is identified, roots/generation are computed, the runner is invoked, or the tile is stored. A
+producer accepts either caller order but emits one normalized result without mutating the caller's input
+array. A verifier **MUST** refuse a stored Dream-Catcher parent vector in any other order. Duplicate parent
+references are always refusal.
+
+`generation` is a §7.4 `uint53` ≥1 and **MUST** equal `1 + max(parent contribution)`, where a fresh/non-tile
+parent contributes 0 and a tile/worn parent contributes its payload's generation. The crack therefore
+records exactly one additional lens invocation. Each worn generation is a newly appended immutable frame.
+That tile/worn frame may be cracked through another lens to append the next-generation tile, without
+mutating any earlier frame. A producer **MUST NOT** lower, omit, reset, or relabel generation, serialize a
+worn generation under a non-tile kind, or use re-genesis to erase lineage. Re-genesis changes a stream era
+only; a referenced tile/worn frame continues to contribute the generation recorded in its payload.
+
+The §7.4 stream chain and this lineage DAG are separate. A tile/worn frame's `frame.prev` is always the
+actual output-stream predecessor's **payload hash**. Lens and crack-input references always use
+`{frame_hash,era}`. `prev` **MUST NOT** be populated with a lens/input frame hash, and a consumer **MUST
+NOT** infer crack inputs from `prev`. The same prior frame may be both stream predecessor and crack input
+only through those two distinct, independently verified addresses.
+
+#### 7.7.3 Replay and persistence boundary
+
+`output` is a §4 object. `replay` is exactly one of:
+
+```json
+{"mode":"deterministic","inputs":{"<declared-input>":<I-JSON value>}}
+```
+
+```json
+{"mode":"seeded","inputs":{"<declared-input>":<I-JSON value>},
+ "stochastic_inputs":{"<declared-stochastic-input>":<I-JSON value>}}
+```
+
+For `deterministic`, the lens's `stochastic_inputs` declaration **MUST** be empty and `inputs` has exactly
+the lens-declared input keys. For `seeded`, the lens's `stochastic_inputs` declaration **MUST** be
+non-empty, `inputs` has exactly the deterministic declaration, and `stochastic_inputs` has exactly every
+declared stochastic key. Seeds, sampled values, clock readings, random choices, and any other stochastic
+input consumed by the runner are values in that complete map; an undeclared, omitted, or ambient source
+of variation is nonconformant.
+
+The fresh frame is the marble; the exact lens and exact environment/status together determine where and
+how it fractures. Any environment, status, audience, policy, clock sample, model choice, or other value
+that can affect the runner **MUST** be represented either by an exact verified frame in `parents` or by an
+exact declared value in `replay.inputs`/`replay.stochastic_inputs`. Ambient process state, mutable globals,
+implicit current status, unrecorded environment variables, and live network/filesystem reads are
+non-authoritative and **MUST NOT** affect a persisted tile. Thus the same fresh frame may lawfully produce
+different tiles under different exact lenses or different recorded environments, while an identical
+invocation must replay identically.
+
+A persisted tile/worn-frame verifier supplies the resolved immutable lens, ordered complete verified input
+frames, and recorded replay object to a maintained deterministic runner. The runner receives copies, not
+mutable source objects, so every crack input remains byte-identical; the runner **MUST NOT** obtain
+replay-affecting values from ambient I/O. Its result **MUST** be a non-empty ordered array of §4 objects.
+The array length **MUST** equal `crack.tile_count`; `crack.tile_index` and `crack.facet` select this tile's
+`output`.
+The verifier replaces `output` with that selected result while retaining the declared schema, crack,
+lens, parents, roots, generation, and replay values; the reconstructed `canonical(tile payload)` bytes
+**MUST** be byte-identical to the persisted `canonical(payload)` bytes. Runner failure, unavailable
+runner, different bytes, incomplete seeded inputs, or a non-replayable result is refusal.
+
+The §4 1 MiB canonical-byte and depth-64 limits apply to the complete lens frame, complete tile frame,
+lens payload, replay object, runner output array and each selected output, both during construction and
+verification. Oversize, excessive depth, or a canonicalizer recursion failure is a controlled whole-frame
+refusal, never an exception that escapes a public API. A self-referential dict/list returned by a runner
+is likewise a controlled non-I-JSON refusal and **MUST NOT** hang depth validation.
+
+An unappended crack result is a transient candidate, not a durable tile/worn frame. It **MAY** feed another
+crack only inside the same invocation through an invocation-local frame candidate/reference that cannot
+escape that call. It **MUST NOT** authorize a write, release, deployment, payment, message, entitlement,
+registry update, or any other side effect. A durable, cross-process, cross-host, cached, resumed, or
+otherwise actionable descendant **MUST** resolve every intermediate worn generation as a persisted
+tile-kind frame; it may not skip a transient candidate and cite only its source roots. Non-replayable
+output is transient/read-only only and **MUST NOT** be emitted under any tile kind.
+
+#### 7.7.4 Fan-out, sibling tiles, and Dream-Catcher fan-in
+
+One verified frame **MAY** appear as a direct parent in any number of cracks. Each crack appends a new
+tile/worn frame and leaves the shared parent bytes unchanged. The resulting tiles are **siblings** by
+lineage, not a §7.6 stream fork: sibling edges live in `payload.parents`, while `frame.prev` continues to
+name only the actual predecessor in each output stream. Siblings may therefore occupy one stream at
+successive `seq` values or different compatible streams without competing at one stream position.
+
+Separate sibling cracks have different `crack.crack_id` values whenever their exact lens, parent vector, replay
+parameters, status/audience context, or other declared invocation input differs. One crack may instead
+emit several ordered facet siblings: they share the exact invocation and `crack.crack_id`, carry one
+common `tile_count`, and use distinct contiguous `tile_index` slots whose `facet` names come from the
+signed lens. The `(crack.crack_id, tile_index)` binding prevents duplicate or substituted siblings without
+replacing the tile frame's normal `frame_hash` identity.
+
+Sibling tiles may later be **Dream-Caught** into one next-generation tile. That crack consumes multiple
+persisted tile/worn frames as exact parents. Declared semantic slots retain their signed array order; an
+unordered cross-stream input vector uses `parent_order:"dream-catcher"` and the §7.4 ascending
+`(utc, frame_hash)` order. The output tile **MUST** preserve every exact parent reference, compute the
+first-seen cumulative union of all parent `root_sources`, and set generation to
+`1 + max(parent tile generations)`. Fan-in never replaces, aliases, coalesces, or merges away any parent
+identity or history.
+
+Lineage depth is not limited by the host language's call stack. Consumers **MUST** traverse the parent DAG
+iteratively (or by an equivalent non-recursive topological algorithm), maintain explicit active and memo
+sets, refuse an active-node revisit as a cycle, and reuse completed summaries. A deep valid lineage remains
+valid; an implementation **MUST NOT** turn host recursion depth into an undocumented protocol limit.
 
 ## 8. The Wire (L3)
 All interaction rides one of exactly two forms:
@@ -539,6 +770,10 @@ unencoded payload** ([RFC 7515] App. F + [RFC 7797]):
 - `alg`: `EdDSA`/Ed25519 [RFC 8037] or `ES256` [RFC 7518]; ES256 signers **SHOULD** sign deterministically
   [RFC 6979] (Ed25519 is deterministic by construction) so signed frame files stay byte-reproducible.
 
+An implementation calling an external signature adapter **MUST** pass immutable canonical bytes or a deep
+JSON copy of the unsigned value. It **MUST NOT** expose nested objects shared with the frame/manifest being
+verified; adapter mutation cannot alter the accepted artifact, its stored hashes, or later checks.
+
 **Key discovery.** A keyed rappid's tail is one-way (`Hb("rapp/1:rappid",SPKI)`). A verifier resolves the
 signer's SPKI (DER) **from the §13 registry** entry (`rappid` → `spki_der_b64`); the door-of-record
 `rappid.json` is the publication venue the registry entry is generated from, not itself a verification
@@ -557,14 +792,32 @@ not authorship).
 
 ## 11. Conformance classes
 - **Producer:** emits only §4 JCS/I-JSON bytes, §5 domain-separated full-SHA-256 addresses, §6 rappids
-  minted per §6.2, §7.1 eleven-key frames, §9 `rapp/1-egg` variants — and **no legacy form**.
+  minted per §6.2, §7.1 eleven-key frames, §9 `rapp/1-egg` variants — and **no legacy form**. A lens/tile
+  producer also enforces the closed §7.7 schemas, exact kind-family bindings, signature-bound immutable
+  lens, exact ordered DAG/generation/root closure, persisted-intermediate boundary, and complete replay
+  inputs; it never mutates a crack input or serializes a worn generation as a fresh/source frame. For
+  fan-out it assigns deterministic crack/facet slots; for Dream-Catcher fan-in it preserves every parent
+  and normalizes unordered cross-stream inputs by `(utc,frame_hash)`. It enforces depth/size limits before
+  and after runner execution and emits one normalized result independent of caller order.
 - **Consumer:** runs the full §7.5 checklist (incl. 1a binding), §9.3 egg verification, §10 signature +
   key-discovery + tombstone checks, canonicalizes legacy ids on read (§6.3), refuses on any failure, never
-  repairs/reparents/rolls back (§7.6).
+  repairs/reparents/rolls back (§7.6), and isolates accepted values from external signature-callback
+  mutation. For §7.7 it runs ordinary frame verification first, resolves exact lens/parent hashes in their
+  declared eras, verifies every resolved frame's registered kind/family and exact genesis authority,
+  rejects cycles/duplicates/substitution/transient durable ancestry, recomputes generation and ordered
+  roots, enforces depth/size limits, and replays through an injected maintained runner. Stateless
+  verification never reserves a facet; persisted acceptance requires the atomic
+  `(crack.crack_id,tile_index)→frame_hash` claim. The consumer traverses deep lineage iteratively with
+  active/memo sets, distinguishes lineage siblings from §7.6 forks, and refuses duplicate facet slots or
+  non-deterministic Dream-Catcher parent order.
 - **Router/Mirror:** invents no endpoints (§8), declares subordination to
   `kody-w/rapp-1` for protocol semantics, and serves only
   provenance-stamped hash-matching mirrors. Estate-specific product scope is
-  resolved separately through that estate's signed registry and master plan.
+  resolved separately through that estate's signed registry and master plan. It preserves lens/tile bytes
+  and every persisted intermediate needed by the DAG, dispatches the four new kinds only by exact registry
+  match, never infers a family from a prefix, and never advertises an invocation-local candidate as a
+  durable tile. It relays every sibling and fan-in parent unchanged; it never collapses lineage edges into
+  a stream fork or drops a parent during Dream-Catcher fan-in.
 
 ### 11.1 Immutable Grail kernel conformance
 An estate declares a Grail kernel through the exact §13.3 `grail-kernel` entry. Its `release_scope`
@@ -717,7 +970,7 @@ Every protocol adjustment **MUST** append exactly one valid successor frame:
   `prev` names the predecessor's `payload_hash`, `prev_wave` and `sig` are
   `null`, and the applicable §7.5 integrity checks hold;
 - the frame's `frame_hash` is the durable protocol-revision identity.
-  Human names such as `rev-14` are lookup labels/views, never identities.
+  Human names such as `rev-15` are lookup labels/views, never identities.
 
 #### 12.2.1 Immutable bootstrap boundary
 
@@ -925,7 +1178,9 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   repository's anchor chain. A historical RAPP/1 pin may be retained only as `deprecated:true`; it does
   not override the current anchor. Other protocol entries are subordinate to their own canonical
   authorities and **MUST NOT** claim the `rapp/1` name or namespace.
-- **kind** `{type:"kind", kind, family, deprecated}` (incl. the three `*.re-genesis` kinds)
+- **kind** `{type:"kind", kind, family, deprecated}` (incl. the three `*.re-genesis` kinds and the exact
+  rev-15 bindings `body.lens`→`body`, `body.tile`→`body`, `memory.tile`→`memory`,
+  `swarm.tile`→`swarm`; names are never prefix-inferred)
 - **egg-variant** `{type:"egg-variant", variant, deprecated}` · **error-code** `{type:"error-code", code}`
   (both closed namespaces; unregistered value = not conformant)
 - **genesis** `{type:"genesis", stream_id, frame_hash, deprecated, old_stream_id?, new_stream_id?}` — **every**
@@ -995,6 +1250,36 @@ tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.
 - **Kernel registry rollback/rebinding:** persisting only `registry_seq` does not preserve an activated
   Grail declaration across a malicious higher-sequence registry. Consumers also persist every activated
   canonical `grail-kernel` entry and reject its later removal, mutation, or duplication (§11.1).
+- **Lens substitution and lineage laundering:** naming a runner, payload hash, current path, or
+  equivalent-looking lens is not naming the signed lens frame. §7.7 binds the exact lens wave and era,
+  resolves every direct parent, rejects cycles/duplicates/missing intermediates, and recomputes generation
+  plus ordered source roots so a tile/worn frame cannot be presented as generation 0 or washed by re-genesis.
+- **Verifier callback mutation:** an untrusted or buggy signature callback given a shallow unsigned copy can
+  mutate nested payload state after hashes were checked. §10 requires immutable canonical bytes or a deep
+  copy at every external signature boundary.
+- **False era/genesis authority:** a self-consistent chain beginning at an attacker-chosen frame can satisfy
+  local hashes while lying about its era. §7.7 requires the exact `(stream_id,era)` binding from the
+  authenticated genesis registry; the supplied chain cannot authorize its own first frame.
+- **Stream/lineage confusion:** treating `prev` as a parent pointer confuses the particle stream chain
+  with the wave-addressed lineage DAG and can silently select the wrong object. §7.7 keeps the two
+  addresses and traversals separate.
+- **Fan-out/fan-in equivocation:** treating sibling lineage edges as a stream fork, reusing one crack output
+  slot for different frames, accepting transport-dependent parent order, or collapsing two parents into
+  one loses identity/history. §7.7 binds exact crack/facet slots, separates `parents` from `prev`, applies
+  Dream-Catcher ordering to unordered cross-stream input vectors, retains every parent reference, and
+  requires atomic facet claims so concurrent writers cannot both win one slot.
+- **Replay, ambient environment, and transient side effects:** unrecorded status, audience, environment
+  variables, randomness, clocks, network/filesystem responses, runner drift, or omitted seeds can make a
+  claimed tile unreproducible or let ambient state impersonate authority. Every fracture-affecting value is
+  an exact parent frame or replay parameter, and a persisted tile is accepted only when injected replay
+  reproduces byte-identical canonical payload bytes. Invocation-local candidates are read-only and cannot
+  authorize effects; every intermediate must be persisted before ancestry crosses a boundary or becomes
+  actionable.
+- **Resource exhaustion:** deeply nested payloads, oversized runner results, and long valid lineage can
+  exhaust naïve implementations; a cyclic in-memory runner value can loop forever in a naïve iterative
+  walker. §7.7 applies §4's depth/byte limits and active object-identity cycle detection at every lens/tile
+  boundary, and requires iterative lineage DAG traversal so host recursion depth is neither a crash vector
+  nor a hidden protocol limit.
 
 ## 15. References
 [RFC 2119] [RFC 8174] requirement terms · [RFC 8259] JSON · [RFC 7493] I-JSON · [RFC 8785] JCS ·
@@ -1006,6 +1291,16 @@ tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.
 ---
 
 ### Revision log
+- **rev-15 (generic public lens cracking and tile lineage)** — registers the exact `body.lens`, `body.tile`,
+  `memory.tile`, and `swarm.tile` kinds on the unchanged eleven-key envelope; defines signed immutable
+  lenses, marble-style cracks bound to exact recorded environment/status, multi-generation tile/worn
+  frames, deterministic fan-out/facet slots, Dream-Catcher fan-in, and exact ordered acyclic parent/root
+  lineage with registered era/genesis authority, stream-versus-lineage separation, stateless verification
+  plus atomic persisted acceptance, normalized producer order, exact container depth, non-string-key
+  refusal, cyclic in-memory JSON refusal, isolated signature callbacks, every-frame chain kind validation,
+  depth/size enforcement, iterative deep-DAG traversal, deterministic/seeded replay, and the
+  same-invocation transient boundary; and adds stdlib reference helpers and V11 refusal vectors without a
+  new endpoint, canonicalization rule, or hash space.
 - **rev-14 (DOGG specification-chain authority)** — makes the append-only
   `anchor/chain.jsonl` frame history carry normative specification content
   while protected canonical-main acceptance selects authority; defines the
