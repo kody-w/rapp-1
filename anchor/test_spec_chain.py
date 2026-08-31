@@ -192,6 +192,142 @@ class SpecChainTests(unittest.TestCase):
         with self.assertRaisesRegex(M.ChainError, "profile SHA-256 mismatch"):
             M.load_bootstrap(profile_octets=profile_octets + b"\n")
 
+    def test_accepted_bootstrap_v1_cannot_be_deleted_or_replaced(self) -> None:
+        profile_path = self.bootstrap_index["profile_path"]
+        verifier_path = self.bootstrap_index["verifier_path"]
+        accepted_index = (ROOT / "anchor" / "bootstrap" / "index.json").read_bytes()
+        accepted_profile = (ROOT / profile_path).read_bytes()
+        accepted_verifier = (ROOT / verifier_path).read_bytes()
+        accepted_v2_verifier_path = "anchor/bootstrap_verify_v2.py"
+        accepted_v2_verifier = b"# accepted bootstrap v2 verifier\n"
+        accepted_v2 = json.loads(accepted_profile)
+        accepted_v2["schema"] = "rapp-anchor-bootstrap/2"
+        accepted_v2["version"] = 2
+        accepted_v2["verifier"] = {
+            "path": accepted_v2_verifier_path,
+            "sha256": hashlib.sha256(accepted_v2_verifier).hexdigest(),
+            "bytes": len(accepted_v2_verifier),
+        }
+        accepted_v2_profile = U.json_octets(accepted_v2)
+        accepted_v2_path = (
+            "anchor/bootstrap/sha256-"
+            + hashlib.sha256(accepted_v2_profile).hexdigest()
+            + ".json"
+        )
+        accepted_files = {
+            "anchor/bootstrap/index.json": accepted_index,
+            profile_path: accepted_profile,
+            verifier_path: accepted_verifier,
+            accepted_v2_path: accepted_v2_profile,
+            accepted_v2_verifier_path: accepted_v2_verifier,
+        }
+        snapshot = U.accepted_bootstrap_snapshot(
+            blob_reader=lambda _ref, path: accepted_files.get(path),
+            tree_paths=[
+                "anchor/bootstrap/index.json",
+                profile_path,
+                accepted_v2_path,
+            ],
+        )
+        self.assertIsNotNone(snapshot)
+        files = {
+            **accepted_files,
+        }
+
+        def reader(path: str) -> bytes:
+            if path not in files:
+                raise FileNotFoundError(path)
+            return files[path]
+
+        U.preserve_accepted_bootstraps(
+            snapshot,
+            local_reader=reader,
+            candidate_index_octets=accepted_index,
+        )
+        mutations = (
+            ("anchor/bootstrap/index.json", None, "index was deleted"),
+            ("anchor/bootstrap/index.json", b"changed", "index was changed"),
+            (profile_path, None, "profile was deleted"),
+            (profile_path, b"changed", "profile was changed"),
+            (verifier_path, None, "verifier was deleted"),
+            (verifier_path, b"changed", "verifier was changed"),
+            (accepted_v2_path, None, "profile was deleted"),
+            (accepted_v2_verifier_path, None, "verifier was deleted"),
+        )
+        for path, replacement, message in mutations:
+            with self.subTest(path=path, replacement=replacement):
+                original = files.get(path)
+                if replacement is None:
+                    files.pop(path, None)
+                else:
+                    files[path] = replacement
+                try:
+                    with self.assertRaisesRegex(M.ChainError, message):
+                        U.preserve_accepted_bootstraps(
+                            snapshot,
+                            local_reader=reader,
+                            candidate_index_octets=accepted_index,
+                        )
+                finally:
+                    files[path] = original
+
+    def test_v2_requires_explicit_external_transition_without_reselection(self) -> None:
+        profile_path = ROOT / self.bootstrap_index["profile_path"]
+        accepted_octets = profile_path.read_bytes()
+        candidate = json.loads(accepted_octets)
+        candidate["schema"] = "rapp-anchor-bootstrap/2"
+        candidate["version"] = 2
+        candidate["verifier"] = {
+            "path": "anchor/bootstrap_verify_v2.py",
+            "sha256": "0" * 64,
+            "bytes": 1,
+        }
+        candidate_octets = U.json_octets(candidate)
+        transition = U.build_bootstrap_transition(
+            accepted_octets,
+            candidate_octets,
+        )
+        self.assertEqual(
+            transition["schema"],
+            "rapp-anchor-bootstrap-transition/1",
+        )
+        self.assertEqual(
+            transition["status"],
+            "draft-external-ratification-required",
+        )
+        self.assertFalse(transition["selection_changed"])
+        self.assertIsNone(transition["external_ratification"])
+
+        snapshot = {
+            "ref": "accepted-commit",
+            "index": (ROOT / "anchor" / "bootstrap" / "index.json").read_bytes(),
+            "profiles": {str(profile_path.relative_to(ROOT)): accepted_octets},
+            "verifiers": {
+                self.bootstrap_index["verifier_path"]: (
+                    ROOT / self.bootstrap_index["verifier_path"]
+                ).read_bytes()
+            },
+        }
+        files = {
+            "anchor/bootstrap/index.json": snapshot["index"],
+            **snapshot["profiles"],
+            **snapshot["verifiers"],
+        }
+        with self.assertRaisesRegex(M.ChainError, "silently replace"):
+            U.preserve_accepted_bootstraps(
+                snapshot,
+                local_reader=lambda path: files[path],
+                candidate_index_octets=b"candidate-v2-index",
+            )
+
+        mutated_v1 = json.loads(accepted_octets)
+        mutated_v1["limits"]["json_nesting_depth"] -= 1
+        with self.assertRaisesRegex(M.ChainError, "advance exactly one version"):
+            U.build_bootstrap_transition(
+                accepted_octets,
+                U.json_octets(mutated_v1),
+            )
+
     def test_wrong_content_at_hash_path_is_refused(self) -> None:
         wrong = (
             ROOT

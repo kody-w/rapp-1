@@ -3,17 +3,19 @@
 
 from __future__ import annotations
 
+import argparse
 import contextlib
 import hashlib
 import json
 import os
 import pathlib
+import re
 import stat
 import subprocess
 import sys
 import urllib.request
 from datetime import datetime, timezone
-from typing import Dict
+from typing import Callable, Dict, Optional
 
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -348,6 +350,230 @@ def bootstrap_bundle() -> tuple[dict, bytes, dict, bytes]:
     return profile, profile_octets, index, index_octets
 
 
+def _bootstrap_repo_path(value: object, prefix: str) -> str:
+    if not isinstance(value, str) or "\\" in value or "%" in value:
+        raise M.ChainError("accepted bootstrap path is not safe repository text")
+    candidate = pathlib.PurePosixPath(value)
+    if (
+        candidate.is_absolute()
+        or any(part in ("", ".", "..") for part in value.split("/"))
+        or candidate.as_posix() != value
+        or not value.startswith(prefix)
+    ):
+        raise M.ChainError("accepted bootstrap path escapes its repository prefix")
+    return value
+
+
+def _git_blob(ref: str, path: str) -> Optional[bytes]:
+    result = subprocess.run(
+        ["git", "show", f"{ref}:{path}"],
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    )
+    return result.stdout if result.returncode == 0 else None
+
+
+def accepted_bootstrap_snapshot(
+    ref: str = "origin/main",
+    *,
+    blob_reader=None,
+    tree_paths=None,
+) -> Optional[dict]:
+    if ref != "origin/main" and not M.HEX40.fullmatch(ref):
+        raise M.ChainError(
+            "accepted bootstrap ref must be origin/main or an immutable 40-hex commit"
+        )
+    reader = _git_blob if blob_reader is None else blob_reader
+    index_octets = reader(ref, "anchor/bootstrap/index.json")
+    tree = (
+        subprocess.check_output(
+            ["git", "ls-tree", "-r", "--name-only", ref, "--", "anchor/bootstrap"],
+            cwd=ROOT,
+            text=True,
+        ).splitlines()
+        if tree_paths is None
+        else list(tree_paths)
+    )
+    profile_paths = sorted(
+        path
+        for path in tree
+        if re.fullmatch(r"anchor/bootstrap/sha256-[0-9a-f]{64}\.json", path)
+    )
+    if index_octets is None:
+        if profile_paths:
+            raise M.ChainError("accepted bootstrap profiles exist without an index")
+        return None
+    try:
+        index = R._strict_json(index_octets)
+    except (UnicodeError, ValueError) as error:
+        raise M.ChainError(f"accepted bootstrap index is invalid: {error}") from error
+    if not isinstance(index, dict) or set(index) != {
+        "schema",
+        "profile_path",
+        "profile_sha256",
+        "profile_bytes",
+        "verifier_path",
+        "verifier_sha256",
+        "verifier_bytes",
+    }:
+        raise M.ChainError("accepted bootstrap index has an unexpected shape")
+    if not re.fullmatch(r"rapp-anchor-bootstrap-index/[1-9][0-9]*", index["schema"]):
+        raise M.ChainError("accepted bootstrap index has an invalid versioned schema")
+    selected_profile_path = _bootstrap_repo_path(
+        index["profile_path"],
+        "anchor/bootstrap/",
+    )
+    selected_verifier_path = _bootstrap_repo_path(
+        index["verifier_path"],
+        "anchor/",
+    )
+    profiles = {}
+    verifiers = {}
+    versions = {}
+    for path in profile_paths:
+        octets = reader(ref, path)
+        if octets is None:
+            raise M.ChainError(f"accepted bootstrap profile disappeared: {path}")
+        if sha256(octets) != pathlib.PurePosixPath(path).name[7:-5]:
+            raise M.ChainError(f"accepted bootstrap profile filename/hash mismatch: {path}")
+        try:
+            profile = R._strict_json(octets)
+        except (UnicodeError, ValueError) as error:
+            raise M.ChainError(f"accepted bootstrap profile is invalid: {path}") from error
+        if not isinstance(profile, dict):
+            raise M.ChainError(f"accepted bootstrap profile is not an object: {path}")
+        schema = profile.get("schema")
+        match = re.fullmatch(r"rapp-anchor-bootstrap/([1-9][0-9]*)", schema or "")
+        if match is None or profile.get("version") != int(match.group(1)):
+            raise M.ChainError(f"accepted bootstrap profile version mismatch: {path}")
+        version = int(match.group(1))
+        if version in versions:
+            raise M.ChainError(f"accepted bootstrap version {version} is duplicated")
+        versions[version] = path
+        verifier = profile.get("verifier")
+        if not isinstance(verifier, dict) or set(verifier) != {
+            "path",
+            "sha256",
+            "bytes",
+        }:
+            raise M.ChainError(f"accepted bootstrap verifier pin is invalid: {path}")
+        verifier_path = _bootstrap_repo_path(verifier["path"], "anchor/")
+        verifier_octets = reader(ref, verifier_path)
+        if verifier_octets is None:
+            raise M.ChainError(
+                f"accepted bootstrap verifier disappeared: {verifier_path}"
+            )
+        if (
+            verifier.get("sha256") != sha256(verifier_octets)
+            or verifier.get("bytes") != len(verifier_octets)
+        ):
+            raise M.ChainError(
+                f"accepted bootstrap verifier hash/length mismatch: {verifier_path}"
+            )
+        profiles[path] = octets
+        verifiers[verifier_path] = verifier_octets
+    if selected_profile_path not in profiles:
+        raise M.ChainError("accepted bootstrap index selects a missing profile")
+    selected_profile = profiles[selected_profile_path]
+    if (
+        index.get("profile_sha256") != sha256(selected_profile)
+        or index.get("profile_bytes") != len(selected_profile)
+        or index.get("verifier_path") != selected_verifier_path
+    ):
+        raise M.ChainError("accepted bootstrap index/profile binding mismatch")
+    selected_verifier = verifiers.get(selected_verifier_path)
+    if selected_verifier is None or (
+        index.get("verifier_sha256") != sha256(selected_verifier)
+        or index.get("verifier_bytes") != len(selected_verifier)
+    ):
+        raise M.ChainError("accepted bootstrap index/verifier binding mismatch")
+    return {
+        "ref": ref,
+        "index": index_octets,
+        "profiles": profiles,
+        "verifiers": verifiers,
+    }
+
+
+def preserve_accepted_bootstraps(
+    snapshot: Optional[dict],
+    *,
+    local_reader: Callable[[str], bytes],
+    candidate_index_octets: bytes,
+) -> None:
+    if snapshot is None:
+        return
+    try:
+        local_index = local_reader("anchor/bootstrap/index.json")
+    except (FileNotFoundError, M.ResolutionError) as error:
+        raise M.ChainError("accepted bootstrap index was deleted") from error
+    if local_index != snapshot["index"]:
+        raise M.ChainError("accepted bootstrap index was changed or replaced")
+    if candidate_index_octets != snapshot["index"]:
+        raise M.ChainError(
+            "generator would silently replace the accepted bootstrap selection"
+        )
+    for path, accepted in snapshot["profiles"].items():
+        try:
+            local = local_reader(path)
+        except (FileNotFoundError, M.ResolutionError) as error:
+            raise M.ChainError(f"accepted bootstrap profile was deleted: {path}") from error
+        if local != accepted:
+            raise M.ChainError(f"accepted bootstrap profile was changed: {path}")
+    for path, accepted in snapshot["verifiers"].items():
+        try:
+            local = local_reader(path)
+        except (FileNotFoundError, M.ResolutionError) as error:
+            raise M.ChainError(f"accepted bootstrap verifier was deleted: {path}") from error
+        if local != accepted:
+            raise M.ChainError(f"accepted bootstrap verifier was changed: {path}")
+
+
+def build_bootstrap_transition(
+    accepted_profile_octets: bytes,
+    candidate_profile_octets: bytes,
+) -> dict:
+    accepted = R._strict_json(accepted_profile_octets)
+    candidate = R._strict_json(candidate_profile_octets)
+    accepted_match = re.fullmatch(
+        r"rapp-anchor-bootstrap/([1-9][0-9]*)",
+        accepted.get("schema", "") if isinstance(accepted, dict) else "",
+    )
+    candidate_match = re.fullmatch(
+        r"rapp-anchor-bootstrap/([1-9][0-9]*)",
+        candidate.get("schema", "") if isinstance(candidate, dict) else "",
+    )
+    if (
+        accepted_match is None
+        or candidate_match is None
+        or accepted.get("version") != int(accepted_match.group(1))
+        or candidate.get("version") != int(candidate_match.group(1))
+        or int(candidate_match.group(1)) != int(accepted_match.group(1)) + 1
+    ):
+        raise M.ChainError("bootstrap transition must advance exactly one version")
+    accepted_verifier = accepted.get("verifier")
+    candidate_verifier = candidate.get("verifier")
+    if (
+        not isinstance(accepted_verifier, dict)
+        or not isinstance(candidate_verifier, dict)
+        or candidate_verifier.get("path") == accepted_verifier.get("path")
+    ):
+        raise M.ChainError(
+            "new bootstrap version must use a distinct versioned verifier artifact"
+        )
+    return {
+        "schema": "rapp-anchor-bootstrap-transition/1",
+        "status": "draft-external-ratification-required",
+        "from_version": int(accepted_match.group(1)),
+        "from_profile_sha256": sha256(accepted_profile_octets),
+        "to_version": int(candidate_match.group(1)),
+        "to_profile_sha256": sha256(candidate_profile_octets),
+        "selection_changed": False,
+        "external_ratification": None,
+    }
+
+
 def revision_payload(
     previous_payload: dict,
     spec_octets: bytes,
@@ -615,10 +841,24 @@ def publish_chain_and_beacon(
     M.atomic_write(orient_path, candidate_orient)
 
 
-def _main_locked() -> None:
+def _main_locked(accepted_ref: str) -> None:
     ensure_committed_inputs()
     bootstrap_profile, profile_octets, bootstrap_index, bootstrap_index_octets = (
         bootstrap_bundle()
+    )
+    accepted_bootstrap = accepted_bootstrap_snapshot(accepted_ref)
+
+    def local_reader(path: str) -> bytes:
+        safe_path = _bootstrap_repo_path(path, "anchor/")
+        return M.read_bounded_file(
+            ROOT / safe_path,
+            maximum_bytes=M.MAX_FETCH_BYTES,
+        )
+
+    preserve_accepted_bootstraps(
+        accepted_bootstrap,
+        local_reader=local_reader,
+        candidate_index_octets=bootstrap_index_octets,
     )
     commit, commit_utc, observed_utc = spec_source()
     spec_octets = (ROOT / "SPEC.md").read_bytes()
@@ -627,7 +867,7 @@ def _main_locked() -> None:
         maximum_bytes=M.MAX_FETCH_BYTES,
     )
     canonical_chain = subprocess.check_output(
-        ["git", "show", "origin/main:anchor/chain.jsonl"],
+        ["git", "show", f"{accepted_ref}:anchor/chain.jsonl"],
         cwd=ROOT,
     )
     base_chain, base_frames, replaced_draft = select_chain_base(
@@ -804,9 +1044,18 @@ def _main_locked() -> None:
     print(frame["frame_hash"])
 
 
-def main() -> None:
+def main(argv=None) -> None:
+    parser = argparse.ArgumentParser(
+        description="Generate and publish the deterministic RAPP/1 anchor revision."
+    )
+    parser.add_argument(
+        "--accepted-ref",
+        default="origin/main",
+        help="origin/main or an externally selected immutable 40-hex accepted commit",
+    )
+    args = parser.parse_args(argv)
     with exclusive_lock(LOCK):
-        _main_locked()
+        _main_locked(args.accepted_ref)
 
 
 if __name__ == "__main__":
