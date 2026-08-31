@@ -88,6 +88,8 @@ def canonical(v):
     if isinstance(v, list):
         return "[" + ",".join(canonical(x) for x in v) + "]"
     if isinstance(v, dict):
+        if not all(isinstance(k, str) for k in v):
+            raise ValueError("object member names MUST be strings")
         keys = sorted(v.keys(), key=lambda k: k.encode("utf-16-be"))
         if len(keys) != len(set(keys)):
             raise ValueError("duplicate keys")
