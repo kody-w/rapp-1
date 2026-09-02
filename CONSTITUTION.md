@@ -264,6 +264,28 @@ protocol-level profiles.
 
 This article changes repository scope, not RAPP/1 bytes or wire semantics.
 
+## Article 18 — The Wire Is Frozen
+
+The forms a `rapp/1` artifact is verified by — canonicalization, the hash and its
+tags, the rappid grammar and mint, the eleven-key envelope and its addresses, the
+consumer checklist, the two wire forms, and the egg container and address (SPEC
+§4, §5, §6.1–6.2, §7.1, §7.3, §7.5, §8, §9.1) — **never change under the `rapp/1`
+token.** A change to any of them is a new token, `rapp/2`, specified beside this
+one; `rapp/1` artifacts verify forever, and no consumer may refuse one because a
+later token exists.
+
+Article 3 governs an estate's own artifacts and retired legacy encodings. It does
+not reach the frozen wire. Article 4 is how `rapp/1` keeps growing: registration,
+vocabulary, profiles, and the registry.
+
+*Why:* an independent implementation must be finishable. Linux never broke
+userspace and outlived every competitor that did. A protocol that can revise the
+bytes a stranger already wrote code for is a protocol that stranger cannot bet
+on. Freezing the wire is the estate giving up the right to be wrong in one place
+so that everyone else can rely on it in every other.
+
+This article changes no `rapp/1` bytes; it binds every future revision.
+
 ---
 
 ## Concordance — resolving SPEC.md's Federal Constitution citations
@@ -280,6 +302,6 @@ This article changes repository scope, not RAPP/1 bytes or wire semantics.
 
 *Drafted 2026-08-26 in public session. Article 15 owner-authorized 2026-08-29;
 Articles 16–17 and the complete public Protocol Constitution owner-ratified
-2026-08-30. The merge introducing these exact bytes is the public ratification
+2026-08-30. Article 18 drafted 2026-09-01; ratified by the merge carrying rev-15. The merge introducing these exact bytes is the public ratification
 record. One spec, one canonicalizer, one mint, one frame, one immutable Grail,
 one qualified path to users.*
