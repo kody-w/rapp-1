@@ -87,6 +87,23 @@ in chapter 10.
 | **`examples/`** | six runnable, tutorial-paced programs from first frame through typed addresses, failure steps, and deterministic eggs |
 | **[`book/`](book/README.md)** | *The RAPP Programming Language* — tutorial, workbook, and reference; use the [interactive edition with Copy code and Copy prompt controls](https://kody-w.github.io/rapp-1/book/), [print the complete volume](https://kody-w.github.io/rapp-1/book/print.html), or [download the 6×9 PDF](https://kody-w.github.io/rapp-1/book/the-rapp-programming-language.pdf) |
 
+## Trust anchor (out-of-band publication, §13.1)
+
+The kody-w reference estate's owner rappid — the one bootstrap axiom every consumer of
+this estate's registry needs — is:
+
+```
+rappid:@kody-w/estate-owner:b5814e45e9988df835dfd58d152a6fb05b6510a087a35c24374a1c4ab833c122
+```
+
+Its registry of record (`schema:"rapp/1-registry"`, owner-signed, append-only) is
+`kody-w/rapp-map/ecosystem-spec.json`; first signed publication at commit `6883563e94054981925866a61600378ee3a7e5c3`
+(registry_seq 1). It pins `rapp/1` by the anchor head's normative hash, registers the
+anchor stream's genesis, and binds the fourteen reference kinds. Verify it with
+`rapp_registry.load_document(doc, entries_member="entries")` — it reports `verified` only
+after the §10 signature checks against that rappid. This repository stays the protocol
+authority; the registry is the estate's, and the two are deliberately separate.
+
 ## License
 
 The RAPP/1 specification, reference implementation, conformance suite,
