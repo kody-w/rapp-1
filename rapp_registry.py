@@ -23,8 +23,9 @@ What §13 does NOT yet specify, and this module therefore refuses to guess:
     out-of-band agreement on that one name. Entries themselves are fully portable.
 
 Nothing here can make an unsigned registry authoritative. `load_document` reports
-"verified" only after a §10 signature by the estate owner verifies; an unsigned
-document is at most a "draft".
+"verified" only after a §10 signature by the estate owner verifies AND that owner is the
+rappid the caller obtained out of band (the trust anchor); an unsigned document is at most
+a "draft", and a registry that names any other owner is refused outright.
 """
 import base64
 import re
@@ -371,13 +372,19 @@ class Registry:
         return None
 
 
-def load_document(doc, *, entries_member, allow_unsigned=False, persisted_seq=None):
+def load_document(doc, *, entries_member, trust_anchor, allow_unsigned=False, persisted_seq=None):
     """Load a `rapp/1-registry` document. Returns (status, registry, reason) where status is
-    "verified" (owner signature verified), "draft" (unsigned and allow_unsigned), or "refused".
+    "verified" (owner signature verified AGAINST THE TRUST ANCHOR), "draft" (unsigned and
+    allow_unsigned), or "refused".
 
-    `entries_member` is REQUIRED because §13 does not yet name the member that holds the
-    entries; naming it is the caller's out-of-band agreement, never this module's guess.
-    `persisted_seq` implements §13.1 no-rollback: a lower `registry_seq` is refused."""
+    `trust_anchor` is REQUIRED: the estate-owner rappid you obtained out of band (§13.1 — the
+    one bootstrap axiom). A document whose `estate_owner` entry names any other rappid is
+    refused before its signature is even checked; without this, a registry signed by a
+    self-minted key would verify against itself. `entries_member` is REQUIRED because §13
+    does not yet name the member that holds the entries. `persisted_seq` implements §13.1
+    no-rollback: a lower `registry_seq` is refused."""
+    if not R.rappid_valid(trust_anchor):
+        return "refused", None, "trust_anchor must be the out-of-band estate-owner rappid"
     if not isinstance(doc, dict) or doc.get("schema") != "rapp/1-registry":
         return "refused", None, 'document schema must be "rapp/1-registry"'
     seq = doc.get("registry_seq")
@@ -392,6 +399,8 @@ def load_document(doc, *, entries_member, allow_unsigned=False, persisted_seq=No
         reg = Registry(doc[entries_member])
     except (RegistryError, ValueError) as why:
         return "refused", None, str(why)
+    if reg.estate_owner != trust_anchor:
+        return "refused", None, "estate_owner does not match the out-of-band trust anchor (§13.1)"
     sig = doc.get("sig")
     if sig is None:
         if allow_unsigned:

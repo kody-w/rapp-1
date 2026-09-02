@@ -33,7 +33,9 @@ disagreeing on everything else. That is the point.
    frame. New capability is a new agent behind `/chat` or a new registered kind (§8, Art. 4).
 4. **Unsigned is a draft.** A registry without the owner's §10 signature can be
    published, reviewed, and rehearsed, and it authorizes nothing (§13.1). The reference
-   (`rapp_registry.load_document`) reports it as `draft`, never `verified`.
+   (`rapp_registry.load_document`) reports it as `draft`, never `verified`. The loader also
+   requires the caller's out-of-band trust anchor (the estate-owner rappid) and refuses a
+   registry that names any other owner before it looks at the signature.
 5. **Pin through the anchor, not by hand.** Read `spec.normative_sha256` from
    `anchor/orient.json` (or a commit-pinned copy of it) when you write your `protocol`
    entry. A hand-typed hash rots silently; `examples/07_your_own_estate.py` shows the
