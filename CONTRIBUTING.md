@@ -6,6 +6,13 @@ judged by whether they keep that true — not by size or ambition. Everything be
 the mechanical contract; the CI oracles enforce most of it, and a red oracle is the
 system working, not an obstacle to route around.
 
+## Do you need this repository at all?
+
+Most extension does not happen here. Your own kinds, egg variants, error codes, signers,
+subordinate profiles, and tooling belong to **your estate** and its signed §13 registry.
+Read [`EXTENDING.md`](EXTENDING.md) first; `examples/07_your_own_estate.py` is a complete
+estate that needed nothing from rapp-1 but the pin.
+
 ## The one thing to know
 
 **`SPEC.md` is generated.** Since rev-14 the normative text lives in the append-only
@@ -24,7 +31,7 @@ merged by review consensus.
 
 | Rule | Why | Enforced by |
 |---|---|---|
-| `rapp.py`, the checks, and the examples are **stdlib-only**, Python 3.9 and later | the spec floor is "any modern Python, no install" | `protocol (3.9)` / `protocol (3.13)` jobs |
+| `rapp.py`, the checks, and the examples are **stdlib-only**, Python 3.9 and later; the one exception is the optional `cryptography` import *inside* `rapp.verify_detached_jws`, which must stay optional and must refuse (never assume) when absent | the spec floor is "any modern Python, no install"; signing needs a real library, so it lives with the signer | `protocol (3.9)` / `protocol (3.13)` jobs |
 | one canonicalizer: the SDK agent's embedded primitives AST-match `rapp.py` | two canonicalizers are two protocols | `parity_check.py` |
 | the anchor regenerates to itself (`update_anchor.py` is an idempotent no-op on main) | proves nothing under `anchor/` was hand-edited | `git diff --exit-code -- anchor` |
 | committed RAPP artifacts (rappid, frames, eggs) pass the reference linter | the repo must obey its own standard | `rapp_check.py .` |
@@ -36,7 +43,8 @@ merged by review consensus.
 - Present a `kind`, egg variant, error code, or trust entry as **registered**. §13 has no
   authenticated registry yet; proposals are proposals and say so in their text.
 - Add a dependency to make signing, verification, or hashing "easier". Signing tooling
-  that needs a third-party library belongs in a separate repository that pins this one.
+  that needs a third-party library belongs with the estate that signs, in a repository
+  that pins this one and imports `rapp.py`'s canonicalizer rather than re-typing it.
 - Rename this repository or move a published URL. Printed editions bake in
   `kody-w.github.io/rapp-1` paths; `anchor/README.md` pins raw URLs by commit.
 - Carry content from an employer, a customer, or a private estate. This is a public

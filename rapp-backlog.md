@@ -25,6 +25,23 @@ internals, customer content and anything a reader here has no business seeing.
       The refusal behaviour (never silently fall back from a private theme to this default)
       is implemented and tested locally, not against a real private repo.
 
+- [ ] **§13 registry document: name the container (rev-N+1 candidate, blocks every extender).**
+      §13.1 names `schema`, `registry_seq`, `sig`; §13.3 names every entry's exact members;
+      nothing names the member that holds the entries, nor how `canonical_source` travels in
+      the document. No estate — this one included — has ever published a `rapp/1-registry`,
+      and a stranger who tries (PR #15 did) has to invent the shape. Until closed,
+      `rapp_registry.load_document` requires the caller to name the entries member.
+
+- [ ] **Kind ownership across estates (rev-N+1 candidate).** Each estate binds kinds in its own
+      registry, so on a `net:` swarm stream two estates can bind the same kind string to
+      different families. Candidate rule: the first label of a kind is a namespace owned by one
+      estate; the convention exists (`acme.*`, `ms-rapp.*`), the rule does not.
+
+- [ ] **Egg variants — closed at the protocol or estate-registered?** §9.2 calls the seven
+      variants "the ratified set" and `rapp.py` hard-codes `EGG_VARIANTS`; §13.3 defines an
+      `egg-variant` registry entry. Both cannot be the rule. A vendor variant is registrable but
+      not packable by the reference until one is chosen.
+
 ## Known limit
 
 `raw.githubusercontent.com/.../main/...` is CDN-cached for several minutes and ignores
