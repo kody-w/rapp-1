@@ -48,7 +48,9 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it.
+is a stable, archival rendering of it: revision rev-15, chain frame 83ca275f35cca96e43d75c99d338326c1a39b2240eabf57eb7c29ac96cc90818, normative
+SHA-256 348e7d5baa94aaf2ce4c5354f3cb261f389298a04af65e271a686d3b62f7c384. Any later revision supersedes this rendering; the chain, not
+this document, says which is current.
 
 --- middle
 
@@ -682,10 +684,21 @@ enforce ordering, identity, temporal, and cross-document rules that JSON Schema 
 # Versioning, evolution, no-legacy
 RAPP is a **living standard** (WHATWG): revised in place, never forked into parallel versions; a `name/X.Y`
 label **MUST NOT** ever denote two shapes (Art. II) — a shape change moves the token (§7.1). Published
-content-addressed artifacts are **immutable** (SemVer/crates). Because the estate has **no uncontrolled
-userspace**, there is **no perpetual backward compatibility** (Art. III): a change to a canonical form is a
-**total migration** of every instance + **deletion** of the old form. Sealed re-genesis history (§12.1) is
-the retained live-stream exception and is not "legacy compatibility."
+content-addressed artifacts are **immutable** (SemVer/crates). Within an estate there is **no perpetual
+backward compatibility** for the estate's own artifacts and retired legacy encodings (Art. III): a change
+to such a form is a **total migration** of every instance + **deletion** of the old form. Sealed re-genesis
+history (§12.1) is the retained live-stream exception and is not "legacy compatibility."
+
+**The `rapp/1` wire is frozen (rev-15, Art. 18).** No revision of this standard may change a form a
+`rapp/1` artifact is verified by: canonicalization (§4), the hash function and its tags (§5), the rappid
+grammar and mint (§6.1, §6.2), the eleven-key envelope and its two addresses (§7.1, §7.3), the consumer
+checklist (§7.5), the two wire forms and the `/chat` shapes (§8), or the egg container and address (§9.1).
+A change to any of those is not a revision; it moves the token to `rapp/2`, specified beside this
+document, and `rapp/1` artifacts keep verifying under this document forever. A consumer **MUST NOT**
+refuse a `rapp/1` artifact because a later token exists. Everything Art. IV names still grows under
+`rapp/1`: registered kinds, egg variants, error codes, registry entry types, vocabulary, subordinate
+profiles, and the registry itself. The frozen forms are what a stranger's implementation, written once
+and never updated, relies on; they are the reason an independent implementation can be finished.
 
 Immutable specification-governance history is a separate narrow exception:
 rev-5 through rev-13 anchor frames retain interpretable immutable pointer

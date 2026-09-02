@@ -1,0 +1,2847 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>RAPP/1: The RAPP Protocol Suite</title>
+<meta content="Kody Wildfeuer" name="author">
+<meta content="
+       RAPP/1 is a profile over existing standards that lets independent programs exchange
+verifiable, content-addressed records about agents: one canonicalization (JCS), one
+domain-separated hash, one mint-once identity, one eleven-key event envelope, one wire,
+and one package format. Two independent implementations that follow this document
+produce byte-identical artifacts with no out-of-band agreement. The normative text of
+record is the append-only specification chain published by the author; this document
+is a stable, archival rendering of it: revision rev-15, chain frame 83ca275f35cca96e43d75c99d338326c1a39b2240eabf57eb7c29ac96cc90818, normative
+SHA-256 348e7d5baa94aaf2ce4c5354f3cb261f389298a04af65e271a686d3b62f7c384. Any later revision supersedes this rendering; the chain, not
+this document, says which is current. 
+    " name="description">
+<meta content="xml2rfc 3.34.0" name="generator">
+<meta content="agents" name="keyword">
+<meta content="content-addressing" name="keyword">
+<meta content="canonicalization" name="keyword">
+<meta content="JCS" name="keyword">
+<meta content="provenance" name="keyword">
+<meta content="draft-wildfeuer-rapp-1-00" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.34.0
+    Python 3.14.4
+    ConfigArgParse 1.7.5
+    google-i18n-address 3.1.1
+    intervaltree 3.2.1
+    Jinja2 3.1.6
+    lxml 6.1.2
+    natsort 8.4.0
+    platformdirs 4.11.4
+    pycountry 26.2.16
+    PyYAML 6.0.3
+    requests 2.34.2
+    wcwidth 0.8.2
+-->
+<link href="draft-wildfeuer-rapp-1-00.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">/*
+
+  NOTE: Changes at the bottom of this file overrides some earlier settings.
+
+  Once the style has stabilized and has been adopted as an official RFC style,
+  this can be consolidated so that style settings occur only in one place, but
+  for now the contents of this file consists first of the initial CSS work as
+  provided to the RFC Formatter (xml2rfc) work, followed by itemized and
+  commented changes found necessary during the development of the v3
+  formatters.
+
+*/
+
+/* fonts */
+@import url('https://static.ietf.org/fonts/noto-sans/import.css'); /* Sans-serif */
+@import url('https://static.ietf.org/fonts/noto-serif/import.css'); /* Serif (print) */
+@import url('https://static.ietf.org/fonts/roboto-mono/import.css'); /* Monospace */
+
+:root {
+  --font-sans: 'Noto Sans', Arial, Helvetica, sans-serif;
+  --font-serif: 'Noto Serif', 'Times', 'Times New Roman', serif;
+  --font-mono: 'Roboto Mono', Courier, 'Courier New', monospace;
+}
+
+@viewport {
+  zoom: 1.0;
+}
+@-ms-viewport {
+  width: extend-to-zoom;
+  zoom: 1.0;
+}
+/* general and mobile first */
+html {
+}
+body {
+  max-width: 90%;
+  margin: 1.5em auto;
+  color: #222;
+  background-color: #fff;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  scroll-behavior: smooth;
+  overflow-wrap: break-word;
+}
+.ears {
+  display: none;
+}
+
+/* headings */
+#title, h1, h2, h3, h4, h5, h6 {
+  margin: 1em 0 0.5em;
+  font-weight: bold;
+  line-height: 1.3;
+}
+#title {
+  clear: both;
+  border-bottom: 1px solid #ddd;
+  margin: 0 0 0.5em 0;
+  padding: 1em 0 0.5em;
+}
+.author {
+  padding-bottom: 4px;
+}
+h1 {
+  font-size: 26px;
+  margin: 1em 0;
+}
+h2 {
+  font-size: 22px;
+  margin-top: -20px;  /* provide offset for in-page anchors */
+  padding-top: 33px;
+}
+h3 {
+  font-size: 18px;
+  margin-top: -36px;  /* provide offset for in-page anchors */
+  padding-top: 42px;
+}
+h4 {
+  font-size: 16px;
+  margin-top: -36px;  /* provide offset for in-page anchors */
+  padding-top: 42px;
+}
+h5, h6 {
+  font-size: 14px;
+}
+#n-copyright-notice {
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 1em;
+  margin-bottom: 1em;
+}
+/* general structure */
+p {
+  padding: 0;
+  margin: 0 0 1em 0;
+  text-align: left;
+}
+div, span {
+  position: relative;
+}
+div {
+  margin: 0;
+}
+.alignRight.art-text {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 3px;
+  padding: 1em 1em 0;
+  margin-bottom: 1.5em;
+}
+.alignRight.art-text pre {
+  padding: 0;
+}
+.alignRight {
+  margin: 1em 0;
+}
+.alignRight > *:first-child {
+  border: none;
+  margin: 0;
+  float: right;
+  clear: both;
+}
+.alignRight > *:nth-child(2) {
+  clear: both;
+  display: block;
+  border: none;
+}
+svg {
+  display: block;
+}
+@media print {
+  svg {
+    max-height: 850px;
+    max-width: 660px;
+  }
+}
+svg[font-family~="serif" i], svg [font-family~="serif" i] {
+  font-family: var(--font-serif);
+}
+svg[font-family~="sans-serif" i], svg [font-family~="sans-serif" i] {
+  font-family: var(--font-sans);
+}
+svg[font-family~="monospace" i], svg [font-family~="monospace" i] {
+  font-family: var(--font-mono);
+}
+.alignCenter.art-text {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 3px;
+  padding: 1em 1em 0;
+  margin-bottom: 1.5em;
+}
+.alignCenter.art-text pre {
+  padding: 0;
+}
+.alignCenter {
+  margin: 1em 0;
+}
+.alignCenter > *:first-child {
+  display: table;
+  border: none;
+  margin: 0 auto;
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 1em 2em;
+}
+ol ol, ul ul, ol ul, ul ol {
+  margin-left: 1em;
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+.ulCompact li {
+  margin: 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+}
+ul.empty li, .ulEmpty li {
+  margin-top: 0.5em;
+}
+ul.ulBare, li.ulBare {
+  margin-left: 0em !important;
+}
+ul.compact, .ulCompact,
+ol.compact, .olCompact {
+  line-height: 100%;
+  margin: 0 0 0 2em;
+}
+
+/* definition lists */
+dl {
+}
+dl > dt {
+  float: left;
+  margin-right: 1em;
+}
+/* 
+dl.nohang > dt {
+  float: none;
+}
+*/
+dl > dd {
+  margin-bottom: .8em;
+  min-height: 1.3em;
+}
+dl.compact > dd, .dlCompact > dd {
+  margin-bottom: 0em;
+}
+dl > dd > dl {
+  margin-top: 0.5em;
+  margin-bottom: 0em;
+}
+
+/* links */
+a {
+  text-decoration: none;
+}
+a[href] {
+  color: #22e; /* Arlen: WCAG 2019 */
+}
+a[href]:hover {
+  background-color: #f2f2f2;
+}
+figcaption a[href],
+a[href].selfRef {
+  color: #222;
+}
+/* XXX probably not this:
+a.selfRef:hover {
+  background-color: transparent;
+  cursor: default;
+} */
+
+/* Figures */
+tt, code, pre {
+  background-color: #f9f9f9;
+  font-family: var(--font-mono);
+}
+pre {
+  border: 1px solid #eee;
+  margin: 0;
+  padding: 1em;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0;
+}
+figure blockquote {
+  margin: 0.8em 0.4em 0.4em;
+}
+figcaption {
+  font-style: italic;
+  margin: 0 0 1em 0;
+}
+@media screen {
+  pre {
+    overflow-x: auto;
+    max-width: 100%;
+    max-width: calc(100% - 22px);
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 1.2em 2em;
+}
+blockquote {
+  background-color: #f9f9f9;
+  color: #111; /* Arlen: WCAG 2019 */
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  margin: 1em 0;
+}
+blockquote > *:last-child {
+  margin-bottom: 0;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+.xref {
+  overflow-wrap: normal;
+}
+
+/* tables */
+table {
+  width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+  border: 1px solid #eee;
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.5em 0.75em;
+}
+th {
+  text-align: left;
+  background-color: #e9e9e9;
+}
+tr:nth-child(2n+1) > td {
+  background-color: #f5f5f5;
+}
+table caption {
+  font-style: italic;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+table p {
+  /* XXX to avoid bottom margin on table row signifiers. If paragraphs should
+     be allowed within tables more generally, it would be far better to select on a class. */
+  margin: 0;
+}
+
+/* pilcrow */
+a.pilcrow {
+  color: #666; /* Arlen: AHDJ 2019 */
+  text-decoration: none;
+  visibility: hidden;
+  user-select: none;
+  -ms-user-select: none;
+  -o-user-select:none;
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+@media screen {
+  aside:hover > a.pilcrow,
+  p:hover > a.pilcrow,
+  blockquote:hover > a.pilcrow,
+  div:hover > a.pilcrow,
+  li:hover > a.pilcrow,
+  pre:hover > a.pilcrow {
+    visibility: visible;
+  }
+  a.pilcrow:hover {
+    background-color: transparent;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid #eee;
+}
+.bcp14 {
+  font-variant: small-caps;
+}
+
+.role {
+  font-variant: all-small-caps;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: 0.9em;
+}
+#identifiers dt {
+  width: 3em;
+  clear: left;
+}
+#identifiers dd {
+  float: left;
+  margin-bottom: 0;
+}
+/* Fix PDF info block run off issue */
+@media print {
+  #identifiers dd {
+    max-width: 100%;
+  }
+}
+#identifiers .authors .author {
+  display: inline-block;
+  margin-right: 1.5em;
+}
+#identifiers .authors .org {
+  font-style: italic;
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #666; /* Arlen: WCAG 2019 */
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+}
+.docInfo .prepared {
+  float: left;
+}
+.docInfo .prepared {
+  float: right;
+}
+
+/* table of contents */
+#toc  {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+}
+nav.toc ul {
+  margin: 0 0.5em 0 0;
+  padding: 0;
+  list-style: none;
+}
+nav.toc li {
+  line-height: 1.3em;
+  margin: 0.75em 0;
+  padding-left: 1.2em;
+  text-indent: -1.2em;
+}
+/* references */
+.references dt {
+  text-align: right;
+  font-weight: bold;
+  min-width: 7em;
+}
+.references dd {
+  margin-left: 8em;
+  overflow: auto;
+}
+
+.refInstance {
+  margin-bottom: 1.25em;
+}
+
+.refSubseries {
+  margin-bottom: 1.25em;
+}
+
+.references .ascii {
+  margin-bottom: 0.25em;
+}
+
+/* index */
+.index ul {
+  margin: 0 0 0 1em;
+  padding: 0;
+  list-style: none;
+}
+.index ul ul {
+  margin: 0;
+}
+.index li {
+  margin: 0;
+  text-indent: -2em;
+  padding-left: 2em;
+  padding-bottom: 5px;
+}
+.indexIndex {
+  margin: 0.5em 0 1em;
+}
+.index a {
+  font-weight: 700;
+}
+/* make the index two-column on all but the smallest screens */
+@media (min-width: 600px) {
+  .index ul {
+    -moz-column-count: 2;
+    -moz-column-gap: 20px;
+  }
+  .index ul ul {
+    -moz-column-count: 1;
+    -moz-column-gap: 0;
+  }
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  margin: 1em 0;
+}
+
+address.vcard .nameRole {
+  font-weight: 700;
+  margin-left: 0;
+}
+address.vcard .label {
+  font-family: var(--font-sans);
+  margin: 0.5em 0;
+}
+address.vcard .type {
+  display: none;
+}
+.alternative-contact {
+  margin: 1.5em 0 1em;
+}
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+
+/* temporary notes */
+.rfcEditorRemove::before {
+  position: absolute;
+  top: 0.2em;
+  right: 0.2em;
+  padding: 0.2em;
+  content: "The RFC Editor will remove this note";
+  color: #9e2a00; /* Arlen: WCAG 2019 */
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+}
+.rfcEditorRemove {
+  position: relative;
+  padding-top: 1.8em;
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+  border-radius: 3px;
+}
+.cref {
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+/* alternative layout for smaller screens */
+@media screen and (max-width: 1023px) {
+  body {
+    padding-top: 2em;
+  }
+  #title {
+    padding: 1em 0;
+  }
+  h1 {
+    font-size: 24px;
+  }
+  h2 {
+    font-size: 20px;
+    margin-top: -18px;  /* provide offset for in-page anchors */
+    padding-top: 38px;
+  }
+  #identifiers dd {
+    max-width: 60%;
+  }
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 0;
+    margin: 0;
+    background-color: inherit;
+    border-bottom: 1px solid #ccc;
+  }
+  #toc h2 {
+    margin: -1px 0 0 0;
+    padding: 4px 0 4px 6px;
+    padding-right: 1em;
+    min-width: 190px;
+    font-size: 1.1em;
+    text-align: right;
+    background-color: #444;
+    color: white;
+    cursor: pointer;
+  }
+  #toc h2::before { /* css hamburger */
+    float: right;
+    position: relative;
+    width: 1em;
+    height: 1px;
+    left: -164px;
+    margin: 6px 0 0 0;
+    background: white none repeat scroll 0 0;
+    box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+    content: "";
+  }
+  #toc nav {
+    display: none;
+    padding: 0.5em 1em 1em;
+    overflow: auto;
+    height: calc(100vh - 48px);
+    border-left: 1px solid #ddd;
+  }
+}
+
+/* alternative layout for wide screens */
+@media screen and (min-width: 1024px) {
+  body {
+    max-width: 724px;
+    margin: 42px auto;
+    padding-left: 1.5em;
+    padding-right: 29em;
+  }
+  #toc {
+    position: fixed;
+    top: 42px;
+    right: 42px;
+    width: 25%;
+    margin: 0;
+    padding: 0 1em;
+    z-index: 1;
+  }
+  #toc h2 {
+    border-top: none;
+    border-bottom: 1px solid #ddd;
+    font-size: 1em;
+    font-weight: normal;
+    margin: 0;
+    padding: 0.25em 1em 1em 0;
+  }
+  #toc nav {
+    display: block;
+    height: calc(90vh - 84px);
+    bottom: 0;
+    padding: 0.5em 0 0;
+    overflow: auto;
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc, #n-introduction {
+    page-break-before: always;
+  }
+  #toc {
+    border-top: none;
+    padding-top: 0;
+  }
+  figure, pre {
+    page-break-inside: avoid;
+  }
+  figure {
+    overflow: scroll;
+  }
+  .breakable pre {
+    break-inside: auto;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  h2+*, h3+*, h4+*, h5+*, h6+* {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+/* This is commented out here, as the string-set: doesn't
+   pass W3C validation currently */
+/*
+.ears thead .left {
+  string-set: ears-top-left content();
+}
+
+.ears thead .center {
+  string-set: ears-top-center content();
+}
+
+.ears thead .right {
+  string-set: ears-top-right content();
+}
+
+.ears tfoot .left {
+  string-set: ears-bottom-left content();
+}
+
+.ears tfoot .center {
+  string-set: ears-bottom-center content();
+}
+
+.ears tfoot .right {
+  string-set: ears-bottom-right content();
+}
+*/
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+  /* The following is commented out here, but set appropriately by in code, as
+     the content depends on the document */
+  /*
+  @top-left {
+    content: 'Internet-Draft';
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-left {
+    content: string(ears-top-left);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-center {
+    content: string(ears-top-center);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-right {
+    content: string(ears-top-right);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @bottom-left {
+    content: string(ears-bottom-left);
+    vertical-align: top;
+    border-top: solid 1px #ccc;
+  }
+  @bottom-center {
+    content: string(ears-bottom-center);
+    vertical-align: top;
+    border-top: solid 1px #ccc;
+  }
+  @bottom-right {
+      content: '[Page ' counter(page) ']';
+      vertical-align: top;
+      border-top: solid 1px #ccc;
+  }
+  */
+
+}
+
+/* Changes introduced to fix issues found during implementation */
+/* Make sure links are clickable even if overlapped by following H* */
+a {
+  z-index: 2;
+}
+/* Separate body from document info even without intervening H1 */
+section {
+  clear: both;
+}
+
+
+/* Top align author divs, to avoid names without organization dropping level with org names */
+.author {
+  vertical-align: top;
+}
+
+/* Leave room in document info to show Internet-Draft on one line */
+#identifiers dt {
+  width: 8em;
+}
+
+/* Don't waste quite as much whitespace between label and value in doc info */
+#identifiers dd {
+  margin-left: 1em;
+}
+
+/* Give floating toc a background color (needed when it's a div inside section */
+#toc {
+  background-color: white;
+}
+
+/* Make the collapsed ToC header render white on gray also when it's a link */
+@media screen and (max-width: 1023px) {
+  #toc h2 a,
+  #toc h2 a:link,
+  #toc h2 a:focus,
+  #toc h2 a:hover,
+  #toc a.toplink,
+  #toc a.toplink:hover {
+    color: white;
+    background-color: #444;
+    text-decoration: none;
+  }
+}
+
+/* Give the bottom of the ToC some whitespace */
+@media screen and (min-width: 1024px) {
+  #toc {
+    padding: 0 0 1em 1em;
+  }
+}
+
+/* Style section numbers with more space between number and title */
+.section-number {
+  padding-right: 0.5em;
+}
+
+/* prevent monospace from becoming overly large */
+tt, code, pre {
+  font-size: 95%;
+}
+
+/* Fix the height/width aspect for ascii art*/
+.sourcecode pre,
+.art-text pre {
+  line-height: 1.12;
+}
+
+
+/* Add styling for a link in the ToC that points to the top of the document */
+a.toplink {
+  float: right;
+  margin-right: 0.5em;
+}
+
+/* Fix the dl styling to match the RFC 7992 attributes */
+dl > dt,
+dl.dlParallel > dt {
+  float: left;
+  margin-right: 1em;
+}
+dl.dlNewline > dt {
+  float: none;
+}
+
+/* Provide styling for table cell text alignment */
+table td.text-left,
+table th.text-left {
+  text-align: left;
+}
+table td.text-center,
+table th.text-center {
+  text-align: center;
+}
+table td.text-right,
+table th.text-right {
+  text-align: right;
+}
+
+/* Make the alternative author contact information look less like just another
+   author, and group it closer with the primary author contact information */
+.alternative-contact {
+  margin: 0.5em 0 0.25em 0;
+}
+address .non-ascii {
+  margin: 0 0 0 2em;
+}
+
+/* With it being possible to set tables with alignment
+  left, center, and right, { width: 100%; } does not make sense */
+table {
+  width: auto;
+}
+
+/* Avoid reference text that sits in a block with very wide left margin,
+   because of a long floating dt label.*/
+.references dd {
+  overflow: visible;
+}
+
+/* Control caption placement */
+caption {
+  caption-side: bottom;
+}
+
+/* Limit the width of the author address vcard, so names in right-to-left
+   script don't end up on the other side of the page. */
+
+address.vcard {
+  max-width: 30em;
+  margin-right: auto;
+}
+
+/* For address alignment dependent on LTR or RTL scripts */
+address div.left {
+  text-align: left;
+}
+address div.right {
+  text-align: right;
+}
+
+/* Provide table alignment support.  We can't use the alignX classes above
+   since they do unwanted things with caption and other styling. */
+table.right {
+ margin-left: auto;
+ margin-right: 0;
+}
+table.center {
+ margin-left: auto;
+ margin-right: auto;
+}
+table.left {
+ margin-left: 0;
+ margin-right: auto;
+}
+
+/* Give the table caption label the same styling as the figcaption */
+caption a[href] {
+  color: #222;
+}
+
+@media print {
+  .toplink {
+    display: none;
+  }
+
+  /* avoid overwriting the top border line with the ToC header */
+  #toc {
+    padding-top: 1px;
+  }
+
+  /* Avoid page breaks inside dl and author address entries */
+  .vcard {
+    page-break-inside: avoid;
+  }
+
+}
+/* Tweak the bcp14 keyword presentation */
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+/* Tweak the invisible space above H* in order not to overlay links in text above */
+ h2 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 31px;
+ }
+ h3 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 24px;
+ }
+ h4 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 24px;
+ }
+/* Float artwork pilcrow to the right */
+@media screen {
+  .artwork a.pilcrow {
+    display: block;
+    line-height: 0.7;
+    margin-top: 0.15em;
+  }
+}
+/* Make pilcrows on dd visible */
+@media screen {
+  dd:hover > a.pilcrow {
+    visibility: visible;
+  }
+}
+/* Make the placement of figcaption match that of a table's caption
+   by removing the figure's added bottom margin */
+.alignLeft.art-text,
+.alignCenter.art-text,
+.alignRight.art-text {
+   margin-bottom: 0;
+}
+.alignLeft,
+.alignCenter,
+.alignRight {
+  margin: 1em 0 0 0;
+}
+/* In print, the pilcrow won't show on hover, so prevent it from taking up space,
+   possibly even requiring a new line */
+@media print {
+  a.pilcrow {
+    display: none;
+  }
+}
+/* Styling for the external metadata */
+div#external-metadata {
+  background-color: #eee;
+  padding: 0.5em;
+  margin-bottom: 0.5em;
+  display: none;
+}
+div#internal-metadata {
+  padding: 0.5em;                       /* to match the external-metadata padding */
+}
+/* Styling for title RFC Number */
+h1#rfcnum {
+  clear: both;
+  margin: 0 0 -1em;
+  padding: 1em 0 0 0;
+}
+/* Make .olPercent look the same as <ol><li> */
+dl.olPercent > dd {
+  margin-bottom: 0.25em;
+  min-height: initial;
+}
+/* Give aside some styling to set it apart */
+aside {
+  border-left: 1px solid #ddd;
+  margin: 1em 0 1em 2em;
+  padding: 0.2em 2em;
+}
+aside > dl,
+aside > ol,
+aside > ul,
+aside > table,
+aside > p {
+  margin-bottom: 0.5em;
+}
+/* Additional page break settings */
+@media print {
+  figcaption, table caption {
+    page-break-before: avoid;
+  }
+}
+/* Font size adjustments for print */
+@media print {
+  body  { font-size: 10pt;      line-height: normal; max-width: 96%; }
+  h1    { font-size: 1.72em;    padding-top: 1.5em; } /* 1*1.2*1.2*1.2 */
+  h2    { font-size: 1.44em;    padding-top: 1.5em; } /* 1*1.2*1.2 */
+  h3    { font-size: 1.2em;     padding-top: 1.5em; } /* 1*1.2 */
+  h4    { font-size: 1em;       padding-top: 1.5em; }
+  h5, h6 { font-size: 1em;      margin: initial; padding: 0.5em 0 0.3em; }
+}
+/* Sourcecode margin in print, when there's no pilcrow */
+@media print {
+  .artwork,
+  .artwork > pre,
+  .sourcecode {
+    margin-bottom: 1em;
+  }
+}
+/* Avoid narrow tables forcing too narrow table captions, which may render badly */
+table {
+  min-width: 20em;
+}
+/* ol type a */
+ol.type-a { list-style-type: lower-alpha; }
+ol.type-A { list-style-type: upper-alpha; }
+ol.type-i { list-style-type: lower-roman; }
+ol.type-I { list-style-type: upper-roman; }
+/* Apply the print table and row borders in general, on request from the RPC,
+and increase the contrast between border and odd row background slightly */
+table {
+  border: 1px solid #ddd;
+}
+td {
+  border-top: 1px solid #ddd;
+}
+tr {
+  break-inside: avoid;
+}
+tr:nth-child(2n+1) > td {
+  background-color: #f8f8f8;
+}
+/* Use style rules to govern display of the TOC. */
+@media screen and (max-width: 1023px) {
+  #toc nav { display: none; }
+  #toc.active nav { display: block; }
+}
+/* Add support for keepWithNext */
+.keepWithNext {
+  break-after: avoid-page;
+  break-after: avoid-page;
+}
+/* Add support for keepWithPrevious */
+.keepWithPrevious {
+  break-before: avoid-page;
+}
+/* Change the approach to avoiding breaks inside artwork etc. */
+figure, pre, table, .artwork, .sourcecode  {
+  break-before: auto;
+  break-after: auto;
+}
+/* Avoid breaks between <dt> and <dd> */
+dl {
+  break-before: auto;
+  break-inside: auto;
+}
+dt {
+  break-before: auto;
+  break-after: avoid-page;
+}
+dd {
+  break-before: avoid-page;
+  break-after: auto;
+  orphans: 3;
+  widows: 3
+}
+span.break, dd.break {
+  margin-bottom: 0;
+  min-height: 0;
+  break-before: auto;
+  break-inside: auto;
+  break-after: auto;
+}
+/* Undo break-before ToC */
+@media print {
+  #toc {
+    break-before: auto;
+  }
+}
+/* Text in compact lists should not get extra bottom margin space,
+   since that would makes the list not compact */
+ul.compact p, .ulCompact p,
+ol.compact p, .olCompact p {
+ margin: 0;
+}
+/* But the list as a whole needs the extra space at the end */
+section ul.compact,
+section .ulCompact,
+section ol.compact,
+section .olCompact {
+  margin-bottom: 1em;                    /* same as p not within ul.compact etc. */
+}
+/* The tt and code background above interferes with for instance table cell
+   backgrounds.  Changed to something a bit more selective. */
+tt, code {
+  background-color: transparent;
+}
+p tt, p code, li tt, li code, dt tt, dt code {
+  background-color: #f8f8f8;
+}
+/* Tweak the pre margin -- 0px doesn't come out well */
+pre {
+   margin-top: 0.5px;
+}
+/* Tweak the compact list text */
+ul.compact, .ulCompact,
+ol.compact, .olCompact,
+dl.compact, .dlCompact {
+  line-height: normal;
+}
+/* Don't add top margin for nested lists */
+li > ul, li > ol, li > dl,
+dd > ul, dd > ol, dd > dl,
+dl > dd > dl {
+  margin-top: initial;
+}
+/* Elements that should not be rendered on the same line as a <dt> */
+/* This should match the element list in writer.text.TextWriter.render_dl() */
+dd > div.artwork:first-child,
+dd > aside:first-child,
+dd > blockquote:first-child,
+dd > figure:first-child,
+dd > ol:first-child,
+dd > div.sourcecode:first-child,
+dd > table:first-child,
+dd > ul:first-child {
+  clear: left;
+}
+/* fix for weird browser behaviour when <dd/> is empty */
+dt+dd:empty::before{
+  content: "\00a0";
+}
+/* Make paragraph spacing inside <li> smaller than in body text, to fit better within the list */
+li > p {
+  margin-bottom: 0.5em
+}
+/* Don't let p margin spill out from inside list items */
+li > p:last-of-type:only-child {
+  margin-bottom: 0;
+}
+</style>
+<link href="rfc-local.css" rel="stylesheet" type="text/css">
+<script type="application/javascript">async function addMetadata(){try{const e=document.styleSheets[0].cssRules;for(let t=0;t<e.length;t++)if(/#identifiers/.exec(e[t].selectorText)){const a=e[t].cssText.replace("#identifiers","#external-updates");document.styleSheets[0].insertRule(a,document.styleSheets[0].cssRules.length)}}catch(e){console.log(e)}const e=document.getElementById("external-metadata");if(e)try{var t,a="",o=function(e){const t=document.getElementsByTagName("meta");for(let a=0;a<t.length;a++)if(t[a].getAttribute("name")===e)return t[a].getAttribute("content");return""}("rfc.number");if(o){t="https://www.rfc-editor.org/rfc/rfc"+o+".json";try{const e=await fetch(t);a=await e.json()}catch(e){t=document.URL.indexOf("html")>=0?document.URL.replace(/html$/,"json"):document.URL+".json";const o=await fetch(t);a=await o.json()}}if(!a)return;e.style.display="block";const s="",d="https://datatracker.ietf.org/doc",n="https://datatracker.ietf.org/ipr/search",c="https://www.rfc-editor.org/info",l=a.doc_id.toLowerCase(),i=a.doc_id.slice(0,3).toLowerCase(),f=a.doc_id.slice(3).replace(/^0+/,""),u={status:"Status",obsoletes:"Obsoletes",obsoleted_by:"Obsoleted By",updates:"Updates",updated_by:"Updated By",see_also:"See Also",errata_url:"Errata"};let h="<dl style='overflow:hidden' id='external-updates'>";["status","obsoletes","obsoleted_by","updates","updated_by","see_also","errata_url"].forEach(e=>{if("status"==e){a[e]=a[e].toLowerCase();var t=a[e].split(" "),o=t.length,w="",p=1;for(let e=0;e<o;e++)p<o?w=w+r(t[e])+" ":w+=r(t[e]),p++;a[e]=w}else if("obsoletes"==e||"obsoleted_by"==e||"updates"==e||"updated_by"==e){var g,m="",b=1;g=a[e].length;for(let t=0;t<g;t++)a[e][t]&&(a[e][t]=String(a[e][t]).toLowerCase(),m=b<g?m+"<a href='"+s+"/rfc/".concat(a[e][t])+"'>"+a[e][t].slice(3)+"</a>, ":m+"<a href='"+s+"/rfc/".concat(a[e][t])+"'>"+a[e][t].slice(3)+"</a>",b++);a[e]=m}else if("see_also"==e){var y,L="",C=1;y=a[e].length;for(let t=0;t<y;t++)if(a[e][t]){a[e][t]=String(a[e][t]);var _=a[e][t].slice(0,3),v=a[e][t].slice(3).replace(/^0+/,"");L=C<y?"RFC"!=_?L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+_+" "+v+"</a>, ":L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+v+"</a>, ":"RFC"!=_?L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+_+" "+v+"</a>":L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+v+"</a>",C++}a[e]=L}else if("errata_url"==e){var R="";R=a[e]?R+"<a href='"+a[e]+"'>Errata exist</a> | <a href='"+d+"/"+l+"'>Datatracker</a>| <a href='"+n+"/?"+i+"="+f+"&submit="+i+"'>IPR</a> | <a href='"+c+"/"+l+"'>Info page</a>":"<a href='"+d+"/"+l+"'>Datatracker</a> | <a href='"+n+"/?"+i+"="+f+"&submit="+i+"'>IPR</a> | <a href='"+c+"/"+l+"'>Info page</a>",a[e]=R}""!=a[e]?"Errata"==u[e]?h+=`<dt>More info:</dt><dd>${a[e]}</dd>`:h+=`<dt>${u[e]}:</dt><dd>${a[e]}</dd>`:"Errata"==u[e]&&(h+=`<dt>More info:</dt><dd>${a[e]}</dd>`)}),h+="</dl>",e.innerHTML=h}catch(e){console.log(e)}else console.log("Could not locate metadata <div> element");function r(e){return e.charAt(0).toUpperCase()+e.slice(1)}}window.removeEventListener("load",addMetadata),window.addEventListener("load",addMetadata);</script>
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">RAPP/1</td>
+<td class="right">September 2026</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">Wildfeuer</td>
+<td class="center">Expires 6 March 2027</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">Network Working Group</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-wildfeuer-rapp-1-00</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2026-09-02" class="published">2 September 2026</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Informational</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2027-03-06">6 March 2027</time></dd>
+<dt class="label-authors">Author:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">K. Wildfeuer</div>
+<div class="org">Wildhaven Homes LLC</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">RAPP/1: The RAPP Protocol Suite</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">RAPP/1 is a profile over existing standards that lets independent programs exchange
+verifiable, content-addressed records about agents: one canonicalization (JCS), one
+domain-separated hash, one mint-once identity, one eleven-key event envelope, one wire,
+and one package format. Two independent implementations that follow this document
+produce byte-identical artifacts with no out-of-band agreement. The normative text of
+record is the append-only specification chain published by the author; this document
+is a stable, archival rendering of it: revision rev-15, chain frame 83ca275f35cca96e43d75c99d338326c1a39b2240eabf57eb7c29ac96cc90818, normative
+SHA-256 348e7d5baa94aaf2ce4c5354f3cb261f389298a04af65e271a686d3b62f7c384. Any later revision supersedes this rendering; the chain, not
+this document, says which is current.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 6 March 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2026 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.1">
+                <p id="section-toc.1-1.1.2.1.1" class="keepWithNext"><a href="#section-1.1" class="auto internal xref">1.1</a>.  <a href="#name-the-layered-model" class="internal xref">The layered model</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1" class="keepWithNext"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-requirements-language" class="internal xref">Requirements language</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-terminology" class="internal xref">Terminology</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-canonicalization-l1" class="internal xref">Canonicalization (L1)</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-content-addressing-l1-domai" class="internal xref">Content addressing (L1) — domain-separated</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-identity-the-rappid-l2" class="internal xref">Identity — the rappid (L2)</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.1">
+                <p id="section-toc.1-1.6.2.1.1"><a href="#section-6.1" class="auto internal xref">6.1</a>.  <a href="#name-stream_id-and-kind-grammar" class="internal xref">stream_id and kind grammar</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.2">
+                <p id="section-toc.1-1.6.2.2.1"><a href="#section-6.2" class="auto internal xref">6.2</a>.  <a href="#name-minting-mint-once" class="internal xref">Minting (mint-once)</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3">
+                <p id="section-toc.1-1.6.2.3.1"><a href="#section-6.3" class="auto internal xref">6.3</a>.  <a href="#name-canonicalization-on-read-pr" class="internal xref">Canonicalization on read; provisional identifiers</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-the-frame-l4" class="internal xref">The Frame (L4)</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.1">
+                <p id="section-toc.1-1.7.2.1.1"><a href="#section-7.1" class="auto internal xref">7.1</a>.  <a href="#name-kind-families-one-envelope-" class="internal xref">Kind families (one envelope, registry-bound families)</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.2">
+                <p id="section-toc.1-1.7.2.2.1"><a href="#section-7.2" class="auto internal xref">7.2</a>.  <a href="#name-particle-and-wave-the-unifi" class="internal xref">Particle and wave (the unification)</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.3">
+                <p id="section-toc.1-1.7.2.3.1"><a href="#section-7.3" class="auto internal xref">7.3</a>.  <a href="#name-chaining-time-and-merge-ord" class="internal xref">Chaining, time, and merge order</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.4">
+                <p id="section-toc.1-1.7.2.4.1"><a href="#section-7.4" class="auto internal xref">7.4</a>.  <a href="#name-verification-the-complete-c" class="internal xref">Verification (the complete consumer checklist)</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.5">
+                <p id="section-toc.1-1.7.2.5.1"><a href="#section-7.5" class="auto internal xref">7.5</a>.  <a href="#name-heads-and-forks" class="internal xref">Heads and forks</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-the-wire-l3" class="internal xref">The Wire (L3)</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-the-egg-l5-the-single-egg-s" class="internal xref">The Egg (L5) — the single egg spec of record</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.1">
+                <p id="section-toc.1-1.9.2.1.1"><a href="#section-9.1" class="auto internal xref">9.1</a>.  <a href="#name-container-manifest-and-egg-" class="internal xref">Container, manifest, and egg address</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.2">
+                <p id="section-toc.1-1.9.2.2.1"><a href="#section-9.2" class="auto internal xref">9.2</a>.  <a href="#name-variants-the-ratified-set-c" class="internal xref">Variants (the ratified set — closes EGG-01)</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.3">
+                <p id="section-toc.1-1.9.2.3.1"><a href="#section-9.3" class="auto internal xref">9.3</a>.  <a href="#name-sealed-artifact-profile" class="internal xref">Sealed artifact profile</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.4">
+                <p id="section-toc.1-1.9.2.4.1"><a href="#section-9.4" class="auto internal xref">9.4</a>.  <a href="#name-conformance" class="internal xref">Conformance</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.5">
+                <p id="section-toc.1-1.9.2.5.1"><a href="#section-9.5" class="auto internal xref">9.5</a>.  <a href="#name-instantiation-instance-iden" class="internal xref">Instantiation — instance identity and <code>grown_from</code> lineage (rev-6; closes the hatch seam)</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-trust-and-signatures-l2" class="internal xref">Trust and signatures (L2)</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-conformance-classes" class="internal xref">Conformance classes</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.1">
+                <p id="section-toc.1-1.11.2.1.1"><a href="#section-11.1" class="auto internal xref">11.1</a>.  <a href="#name-immutable-grail-kernel-conf" class="internal xref">Immutable Grail kernel conformance</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.2">
+                <p id="section-toc.1-1.11.2.2.1"><a href="#section-11.2" class="auto internal xref">11.2</a>.  <a href="#name-operational-conformance-pro" class="internal xref">Operational conformance profiles</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#section-12" class="auto internal xref">12</a>. <a href="#name-versioning-evolution-no-leg" class="internal xref">Versioning, evolution, no-legacy</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.1">
+                <p id="section-toc.1-1.12.2.1.1"><a href="#section-12.1" class="auto internal xref">12.1</a>.  <a href="#name-re-genesis-converging-an-im" class="internal xref">Re-genesis (converging an immutable chain — one owner-authorized operation)</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.2">
+                <p id="section-toc.1-1.12.2.2.1"><a href="#section-12.2" class="auto internal xref">12.2</a>.  <a href="#name-dogg-specification-revision" class="internal xref">DOGG specification revision chain</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.2.2.1">
+                    <p id="section-toc.1-1.12.2.2.2.1.1"><a href="#section-12.2.1" class="auto internal xref">12.2.1</a>.  <a href="#name-immutable-bootstrap-boundar" class="internal xref">Immutable bootstrap boundary</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.2.2.2">
+                    <p id="section-toc.1-1.12.2.2.2.2.1"><a href="#section-12.2.2" class="auto internal xref">12.2.2</a>.  <a href="#name-revision-payloads-and-histo" class="internal xref">Revision payloads and historical exception</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.2.2.3">
+                    <p id="section-toc.1-1.12.2.2.2.3.1"><a href="#section-12.2.3" class="auto internal xref">12.2.3</a>.  <a href="#name-content-addressed-publicati" class="internal xref">Content-addressed publication and resolution</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.2.2.4">
+                    <p id="section-toc.1-1.12.2.2.2.4.1"><a href="#section-12.2.4" class="auto internal xref">12.2.4</a>.  <a href="#name-rev-14-transition-and-draft" class="internal xref">Rev-14 transition and draft replacement</a></p>
+</li>
+                </ul>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
+            <p id="section-toc.1-1.13.1"><a href="#section-13" class="auto internal xref">13</a>. <a href="#name-the-registry-an-estates-sig" class="internal xref">The registry — an estate's signed root of trust (append-only)</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.1">
+                <p id="section-toc.1-1.13.2.1.1"><a href="#section-13.1" class="auto internal xref">13.1</a>.  <a href="#name-trust-anchor-and-registry-a" class="internal xref">Trust anchor and registry authentication</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.2">
+                <p id="section-toc.1-1.13.2.2.1"><a href="#section-13.2" class="auto internal xref">13.2</a>.  <a href="#name-owner-succession-time-scope" class="internal xref">Owner succession (time-scoped authority)</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.3">
+                <p id="section-toc.1-1.13.2.3.1"><a href="#section-13.3" class="auto internal xref">13.3</a>.  <a href="#name-entry-types-each-a-4-value-" class="internal xref">Entry types (each a §4 value; document <code>schema:"rapp/1-registry"</code>)</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
+            <p id="section-toc.1-1.14.1"><a href="#section-14" class="auto internal xref">14</a>. <a href="#name-security-considerations" class="internal xref">Security considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
+            <p id="section-toc.1-1.15.1"><a href="#section-15" class="auto internal xref">15</a>. <a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.1">
+                <p id="section-toc.1-1.15.2.1.1"><a href="#section-15.1" class="auto internal xref">15.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.2">
+                <p id="section-toc.1-1.15.2.2.1"><a href="#section-15.2" class="auto internal xref">15.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.16">
+            <p id="section-toc.1-1.16.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-acknowledgements" class="internal xref">Acknowledgements</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.17">
+            <p id="section-toc.1-1.17.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">RAPP is a content-addressed distributed organism. Its integrity rests on one invariant: <strong>the same
+concept has the same bytes everywhere.</strong> This document specifies, normatively and completely, five
+load-bearing primitives so any two independent implementations interoperate <strong>byte-for-byte with no
+out-of-band agreement</strong>: canonicalization (§4), content addressing (§5), identity (§6), the frame (§7),
+the egg (§9) — all riding one wire (§8): <code>POST /chat</code>, or a signed append-only frame. Implementations add
+agents, cartridges, and registered <code>kind</code>s — never new endpoints, never new envelopes.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2"><strong>Repository scope.</strong> <code>kody-w/RAPP</code> is the canonical public RAPP foundation,
+product home, reference implementation, organism model, and philosophy.
+<code>kody-w/rapp-1</code> is the canonical interoperable protocol authority. This
+specification governs wire-compatible bytes and conformance; it does not absorb
+the RAPP product or any downstream Rappter/RapterBox LLC product.<a href="#section-1-2" class="pilcrow">¶</a></p>
+<p id="section-1-3"><strong>Specification authority.</strong> The append-only DOGG chain at
+<code>anchor/chain.jsonl</code> carries the normative revision content. Its hashes prove
+integrity, not authority or ratification. Until an authenticated RAPP
+registry/checkpoint exists, the chain accepted by the owner onto protected
+canonical <code>kody-w/rapp-1</code> main is authoritative; an immutable accepted commit
+plus head frame hash is the portable checkpoint. <code>SPEC.md</code> is the byte-exact
+materialized human view, and <code>orient.json</code> is only a discovery beacon. The
+selected chain-frame hash, not a mutable path or <code>rev-N</code> label, is the durable
+identity of a protocol revision (§12.2).<a href="#section-1-3" class="pilcrow">¶</a></p>
+<div id="the-layered-model">
+<section id="section-1.1">
+        <h3 id="name-the-layered-model">
+<a href="#section-1.1" class="section-number selfRef">1.1. </a><a href="#name-the-layered-model" class="section-name selfRef">The layered model</a>
+        </h3>
+<p id="section-1.1-1"><code>
+  L5  EGG        cartridge packaging (§9)          — MIME-multipart analogue
+  L4  FRAME      universal event envelope (§7)     — the IP packet of RAPP
+  L3  WIRE       transport: /chat + frames (§8)    — HTTP-analogue single method
+  L2  IDENTITY   rappid namespace + trust (§6,§10) — URI + PKI analogue
+  L1  ADDRESS    canonicalization + hash (§4,§5)   — the git object model
+</code>
+A higher layer <strong>MUST NOT</strong> redefine a lower one. Every layer names exactly one canonical form.<a href="#section-1.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="requirements-language">
+<section id="section-2">
+      <h2 id="name-requirements-language">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-requirements-language" class="section-name selfRef">Requirements language</a>
+      </h2>
+<p id="section-2-1">The key words <strong>MUST</strong>, <strong>MUST NOT</strong>, <strong>REQUIRED</strong>, <strong>SHALL</strong>, <strong>SHOULD</strong>, <strong>MAY</strong> are as in <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span>/
+<span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when in <strong>bold caps</strong>. (The Federal Constitution adopts the same clause.)<a href="#section-2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="terminology">
+<section id="section-3">
+      <h2 id="name-terminology">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-terminology" class="section-name selfRef">Terminology</a>
+      </h2>
+<p id="section-3-1"><strong>organism</strong> — a running brainstem with persistent identity. <strong>rappid</strong> — the eternal, mint-once name of an
+organism/door/object (§6): minted once from a UUIDv4 or a public key, never derived from content or name.
+<strong>frame</strong> — one immutable content-addressed event (§7). <strong>stream</strong> — an append-only hash-chained frame
+sequence sharing one <code>stream_id</code>. <strong>particle / wave</strong> — a frame's two domain-separated addresses:
+payload-hash / whole-frame-hash (§7.3). <strong>canonical form</strong> — the one <span>[<a href="#RFC8785" class="cite xref">RFC8785</a>]</span> byte string for a value
+(§4). <strong>legacy form</strong> — any other historical encoding; legacy is drift and <strong>MUST</strong> be migrated out
+(Fed. Const. Art. III), except sealed re-genesis history (§12.1).
+<strong>Grail kernel</strong> — an estate-declared, byte-pinned runtime substrate. Its <code>grail_id</code> is
+<code>"grail:" || Hb("rapp/1:grail", kernel_bytes)</code>; repository, immutable ref, commit, path, raw SHA-256,
+and byte length are provenance and verification data, not alternate identities. Once activated through
+§13.3, those bytes are permanent (Protocol Constitution Art. 15); capabilities evolve outside them.
+<strong>release capsule</strong> — the canonical <code>rapp-cicd/1-release</code> payload identifying one immutable candidate.
+<strong>serving lineage</strong> — the sequence of qualified release identities that have received user traffic;
+the currently served release is immutable even while a separate candidate lineage grows.
+<strong>deployment cell</strong> — an independently observable and isolatable runtime failure domain governed by
+<code>rapp-deploy/1</code>.<a href="#section-3-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="canonicalization-l1">
+<section id="section-4">
+      <h2 id="name-canonicalization-l1">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-canonicalization-l1" class="section-name selfRef">Canonicalization (L1)</a>
+      </h2>
+<p id="section-4-1"><code>canonical(v)</code> is the UTF-8 byte string produced by <strong><span>[<a href="#RFC8785" class="cite xref">RFC8785</a>]</span> JCS</strong> for the value <code>v</code>, defined <strong>only</strong>
+over I-JSON <span>[<a href="#RFC7493" class="cite xref">RFC7493</a>]</span>. JCS fixes member-name ordering (UTF-16 code-unit), string escaping, and number
+serialization (ECMAScript <code>Number::toString</code>, ECMA-262); there is no insignificant whitespace and no
+byte-order mark.<a href="#section-4-1" class="pilcrow">¶</a></p>
+<p id="section-4-2"><strong>RAPP input-domain profile (parse-side interoperability — this is a RAPP rule, not a JCS mandate).</strong> An
+implementation <strong>MUST</strong> refuse (never repair) any JSON value that, at any depth, contains: (a) duplicate
+member names in one object; (b) an unpaired UTF-16 surrogate in any string; (c) a number token that does
+not survive the binary64 round-trip — let <code>d</code> be the token's nearest binary64 value under <code>roundTiesToEven</code>
+(the IEEE-754 default; ±∞ are admissible results); the token is refused iff <code>d</code> is not finite, or the
+<span>[<a href="#RFC8785" class="cite xref">RFC8785</a>]</span> serialization of <code>d</code> (ECMA-262 <code>Number::toString</code>) denotes a different mathematical value than
+the token (so <code>0.1</code> is accepted — it round-trips — while <code>9007199254740993</code> and <code>1e999</code> (→ +∞) are refused); (d) canonical form exceeding 1 MiB or JSON nesting depth
+exceeding 64 (the root value is depth 1; each nested object/array adds 1). Refusal is whole (§7.5-style),
+never partial.<a href="#section-4-2" class="pilcrow">¶</a></p>
+<p id="section-4-3"><strong>No normalization.</strong> RAPP applies <strong>no</strong> Unicode normalization when hashing, storing, or re-emitting an
+existing value; strings are code-point sequences preserved verbatim and equality everywhere is code-point
+equality (no canonical-equivalence matching). A producer creating a <strong>new</strong> human-or-identifier string
+(slug, kind, label, <code>payload</code> object key) <strong>MUST</strong> emit it in Unicode NFC.<a href="#section-4-3" class="pilcrow">¶</a></p>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="section-4-4.1">
+          <p id="section-4-4.1.1"><strong>Migration note (drift C4):</strong> the <code>twin</code>/<code>rapp-body</code> <code>_frame.mjs::canonicalize()</code> (sorted-key
+<code>JSON.stringify</code>) coincides with JCS only for string-only payloads; it <strong>MUST</strong> be replaced by the JCS
+implementation of record, imported (not re-typed) by every repo that content-addresses.<a href="#section-4-4.1.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+</section>
+</div>
+<div id="content-addressing-l1-domain-separated">
+<section id="section-5">
+      <h2 id="name-content-addressing-l1-domai">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-content-addressing-l1-domai" class="section-name selfRef">Content addressing (L1) — domain-separated</a>
+      </h2>
+<p id="section-5-1">Every hash is <strong>domain-separated</strong> (git's <code>type\0</code>, Nix's tagged store — collisions across address spaces
+are made unconstructible):
+<code>
+H(space, v) = lowercase_hex( SHA-256( utf8(space) || 0x0A || canonical(v) ) )     ; v a value (§4)
+Hb(space, b) = lowercase_hex( SHA-256( utf8(space) || 0x0A || b ) )                ; b raw octets
+</code>
+        <code>space</code> is an exact ASCII tag, none containing <code>0x0A</code>: <code>"rapp/1:particle"</code>, <code>"rapp/1:wave"</code>, <code>"rapp/1:egg"</code>,
+<code>"rapp/1:egg-manifest"</code>, <code>"rapp/1:rappid"</code>, <code>"rapp/1:grail"</code>, <code>"rapp/1:seal"</code>,
+<code>"rapp/1:sealed-aad"</code>, <code>"rapp/1:sealed-key-request"</code>. A tag is used by either <code>H</code> or <code>Hb</code>, never
+both. Output is always exactly 64 lowercase hex, <strong>never truncated or uppercased</strong>. Two values
+are treated as the same object iff their same-space hashes are equal; SHA-256 collision resistance
+FIPS 180-4 is a security assumption of this standard (§14). A <code>name/X.Y</code> label is never identity — only
+a hash is. A bare 64-hex is meaningful <strong>only</strong> within its space; an implementation <strong>MUST NOT</strong> dereference
+a hash from one space as an object of another, and content-addressed stores <strong>MUST</strong> key by <code>(space, hash)</code>.<a href="#section-5-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="identity-the-rappid-l2">
+<section id="section-6">
+      <h2 id="name-identity-the-rappid-l2">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-identity-the-rappid-l2" class="section-name selfRef">Identity — the rappid (L2)</a>
+      </h2>
+<p id="section-6-1">## Grammar (case-sensitive, <span>[<a href="#RFC7405" class="cite xref">RFC7405</a>]</span>)
+<code>abnf
+rappid    = %s"rappid:@" owner "/" slug ":" hash
+owner     = lclabel                       ; the lowercase GitHub login (1-39 chars)
+slug      = lclabel                        ; 1-100 chars
+lclabel   = lcalnum *( ["-"] lcalnum )     ; no leading/trailing/adjacent hyphen
+lcalnum   = LCALPHA / DIGIT
+LCALPHA   = %x61-7A                         ; a-z
+hash      = 64HEXDIGLC
+HEXDIGLC  = DIGIT / %x61-66                 ; 0-9 a-f
+</code>
+        <code>owner</code> <strong>MUST</strong> be the lowercase form of the GitHub login (logins are case-insensitive; display casing is
+presentation, never identity). Lengths are normative: <code>owner</code> 1–39, <code>slug</code> 1–100; an implementation
+<strong>MUST</strong> refuse longer. This self-locating form is the <strong>only</strong> conformant rappid; <code>rappid:&lt;slug&gt;:&lt;hash&gt;</code>,
+<code>rappid:v2:…</code>, bare UUIDs, <code>moment:</code>/name-hash derivations are legacy and <strong>MUST</strong> be migrated out
+(Art. III), not read forever.<a href="#section-6-1" class="pilcrow">¶</a></p>
+<div id="streamid-and-kind-grammar">
+<section id="section-6.1">
+        <h3 id="name-stream_id-and-kind-grammar">
+<a href="#section-6.1" class="section-number selfRef">6.1. </a><a href="#name-stream_id-and-kind-grammar" class="section-name selfRef">stream_id and kind grammar</a>
+        </h3>
+<p id="section-6.1-1"><code>abnf
+stream_id   = memory-stream / body-stream / swarm-stream
+memory-stream = rappid ":" instance      ; one organism instance's memory
+body-stream   = rappid                    ; an organism's biography
+swarm-stream  = %s"net:" lclabel          ; a planetary-wire stream
+instance      = lclabel                   ; 1-64 chars
+kind          = lclabel "." lclabel       ; each label 1-64 chars
+</code>
+A <code>kind</code> string carries <strong>no intrinsic family</strong>; the §13 registry binds each registered <code>kind</code> to exactly
+one family. Membership is tested by exact-match against the registry — never prefix inference, never wildcards.<a href="#section-6.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="minting-mint-once">
+<section id="section-6.2">
+        <h3 id="name-minting-mint-once">
+<a href="#section-6.2" class="section-number selfRef">6.2. </a><a href="#name-minting-mint-once" class="section-name selfRef">Minting (mint-once)</a>
+        </h3>
+<p id="section-6.2-1">The 64-hex tail is minted <strong>exactly once</strong> per identity, then immutable:
+- <strong>keyless:</strong> <code>tail = Hb("rapp/1:rappid", uuid4_octets)</code>, where <code>uuid4_octets</code> is the 16-octet binary
+  UUIDv4 <span>[<a href="#RFC9562" class="cite xref">RFC9562</a>]</span> §5.4 (field/byte order per §4 of that RFC).
+- <strong>keyed:</strong> <code>tail = Hb("rapp/1:rappid", SPKI_DER)</code>, the DER <code>SubjectPublicKeyInfo</code> <span>[<a href="#RFC5280" class="cite xref">RFC5280</a>]</span> of the master key.<a href="#section-6.2-1" class="pilcrow">¶</a></p>
+<p id="section-6.2-2">A producer <strong>MUST NOT</strong> derive the tail from owner/slug or any name (<code>sha256("owner/slug")</code> is prohibited —
+drift ID-01/C3). On read of an existing <code>rappid.json</code> an implementation <strong>MUST</strong> reuse the stored tail
+(canonicalize-on-read) and <strong>MUST NOT</strong> re-mint — with exactly one mechanism: the owner-authorized
+<strong>re-anchor</strong> (§6.3), which mints a fresh 64-hex tail once per authorization and records the superseded id
+in <code>_migrated_from</code>. Re-anchor is lawful in exactly three cases: (a) a 128→256-bit provisional upgrade
+(§6.3); (b) §10 key rotation or compromise; (c) migrating a pre-rev-3 keyed tail minted with the un-tagged
+<code>sha256(SPKI)</code> formula (which fails §10 discovery and <strong>MUST</strong> be re-anchored like a provisional identity).<a href="#section-6.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="canonicalization-on-read-provisional-identifiers">
+<section id="section-6.3">
+        <h3 id="name-canonicalization-on-read-pr">
+<a href="#section-6.3" class="section-number selfRef">6.3. </a><a href="#name-canonicalization-on-read-pr" class="section-name selfRef">Canonicalization on read; provisional identifiers</a>
+        </h3>
+<p id="section-6.3-1"><code>canonicalize_rappid(s)</code> restructures any legacy form into §6.1, <strong>preserving the existing hash</strong> (never
+inventing one). A restructured identifier whose tail is not exactly 64 lowercase hex (e.g. a legacy 32-hex
+tail) is <strong>provisional</strong>: it exists only inside the reading process and <strong>MUST NOT</strong> appear in any emitted
+frame, <code>stream_id</code>, egg, or registry entry. The one-time owner-authorized 128→256-bit re-anchor mints a
+fresh 64-hex, records the old id in <code>_migrated_from</code>, and is the only way a provisional identity becomes
+usable. A provisional identifier found in a stored artifact is a drift finding (Art. III). Re-anchor is the
+single re-mint mechanism (§6.2), lawful only in the enumerated cases: provisional 128→256-bit upgrade,
+§10 key rotation/compromise, and pre-rev-3 un-tagged-<code>sha256(SPKI)</code> keyed-tail migration.<a href="#section-6.3-1" class="pilcrow">¶</a></p>
+<p id="section-6.3-2"><strong>A re-anchor is valid only with a verifiable authorization</strong> — a self-asserted <code>_migrated_from</code> is
+insufficient (it would let anyone hijack an identity). A re-anchor <strong>MUST</strong> be recorded as an owner-signed
+§13.3 <strong>re-anchor record</strong> <code>{old_rappid, new_rappid, case, utc, sig, old_key_sig?}</code>; a consumer <strong>MUST</strong>
+refuse a <code>new_rappid</code> (and treat <code>_migrated_from</code> as drift) unless that record is present and:
+- <code>case:"rotation"</code> (uncompromised): <code>old_key_sig</code> (a §10 JWS by the <strong>old</strong> key) verifies — proof of
+  continuity;
+- <code>case:"compromise"</code>: <code>old_key_sig</code> is waived but a §10 <strong>tombstone</strong> for <code>old_rappid</code> is registered in the
+  same append;
+- <code>case:"tag-migrate"</code> (pre-rev-3 keyed tail): the verifier checks <code>lowercase_hex(SHA-256(SPKI_DER_old))</code> ==
+  the old tail;
+- <code>case:"upgrade"</code> (provisional 128→256): the old provisional id resolved to this owner at read time.
+Each mints one fresh tail. The <strong>estate_owner's own</strong> re-anchor record <strong>MUST</strong> be signed by the outgoing
+<code>estate_owner</code> key (§13.2); root-key compromise is recovered only by out-of-band re-anchoring (§13.1).<a href="#section-6.3-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="the-frame-l4">
+<section id="section-7">
+      <h2 id="name-the-frame-l4">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-the-frame-l4" class="section-name selfRef">The Frame (L4)</a>
+      </h2>
+<p id="section-7-1">## The envelope — exactly eleven keys
+<code>json
+{
+  "spec":         "rapp/1",
+  "kind":         "&lt;klabel.klabel&gt;",
+  "stream_id":    "&lt;stream_id&gt;",
+  "seq":          &lt;uint53&gt;,
+  "utc":          "YYYY-MM-DDTHH:MM:SS.mmmZ",
+  "payload":      { },
+  "payload_hash": "&lt;64hex&gt;",
+  "frame_hash":   "&lt;64hex&gt;",
+  "prev":         "&lt;64hex|null&gt;",
+  "prev_wave":    "&lt;64hex|null&gt;",
+  "sig":          "&lt;jws|null&gt;"
+}
+</code>
+- <strong><code>spec</code> MUST be the exact string <code>"rapp/1"</code></strong> in every frame. <code>rapp-frame/2.0</code>/<code>2.1</code> are legacy tokens
+  and <strong>MUST NOT</strong> be emitted. Any revision changing the key set, any field's grammar, or either hash rule
+  <strong>MUST</strong> change this token and land an Art. III total migration; revisions adding only new registered
+  <code>kind</code>s/registry entries keep the token (Fed. Const. Art. II).
+- <strong>Exactly these eleven keys, always present</strong>, none missing, none extra. A field that does not apply is
+  present with value <code>null</code> (<code>prev</code>/<code>prev_wave</code> at genesis and on non-swarm streams; <code>sig</code> when unsigned) — never omitted,
+  because <span>[<a href="#RFC8785" class="cite xref">RFC8785</a>]</span> hashes <code>null</code> and an absent key differently. Extra or missing keys are refused (§7.5).
+- <strong><code>payload</code> MUST be a JSON object</strong> (possibly empty <code>{}</code>); never <code>null</code>, array, string, number, or bool.
+- <code>seq</code> is <code>uint53</code> (§7.4). A producer <strong>MUST NOT</strong> emit a frame whose canonical form exceeds 1 MiB or
+  nesting depth 64 (§4).<a href="#section-7-1" class="pilcrow">¶</a></p>
+<div id="kind-families-one-envelope-registry-bound-families">
+<section id="section-7.1">
+        <h3 id="name-kind-families-one-envelope-">
+<a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-kind-families-one-envelope-" class="section-name selfRef">Kind families (one envelope, registry-bound families)</a>
+        </h3>
+<p id="section-7.1-1">| family | example registered kinds | <code>stream_id</code> form | logs |
+|---|---|---|---|
+| <code>memory</code> | <code>memory.chat-turn</code>, <code>memory.tool-call</code>, <code>memory.save</code>, <code>memory.reconstructed</code> | memory-stream | one organism's life |
+| <code>swarm</code>  | <code>swarm.guidance</code>, <code>swarm.echo</code>, <code>swarm.telemetry</code>, <code>swarm.reconstructed</code> | swarm-stream | the planetary wire |
+| <code>body</code>   | <code>body.pulse</code>, <code>body.twin-pulse</code>, <code>body.reconstructed</code>, <code>body.re-genesis</code> | body-stream | an organism's biography |
+Each family also has a <code>*.re-genesis</code> kind (<code>memory.re-genesis</code>, <code>swarm.re-genesis</code>, <code>body.re-genesis</code>)
+used only by §12.1. The family is <strong>not</strong> the kind's prefix — it is the §13 registry binding (so
+<code>body.twin-pulse</code> is family <code>body</code>). Adding a family or event is a new registered <code>kind</code> on the <strong>same</strong> envelope (Art. IV), never a
+new frame type. A frame's <code>kind</code> family <strong>MUST</strong> be compatible with its <code>stream_id</code> form (table column 3).<a href="#section-7.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="particle-and-wave-the-unification">
+<section id="section-7.2">
+        <h3 id="name-particle-and-wave-the-unifi">
+<a href="#section-7.2" class="section-number selfRef">7.2. </a><a href="#name-particle-and-wave-the-unifi" class="section-name selfRef">Particle and wave (the unification)</a>
+        </h3>
+<p id="section-7.2-1">A frame carries <strong>both</strong> of its domain-separated addresses; a reader collapses it to whichever it needs.
+Computed in order:
+- <strong>particle</strong> — <code>payload_hash = H("rapp/1:particle", payload)</code>. The <strong>worldline identity and chain link</strong>.
+- <strong>wave</strong> — <code>frame_hash = H("rapp/1:wave", frame \ {frame_hash, sig})</code> — the frame with <strong>exactly</strong> the
+  <code>frame_hash</code> and <code>sig</code> keys removed, all nine remaining keys (including <code>payload_hash</code>) present.
+Because <code>payload_hash</code> is in the wave pre-image, <code>frame_hash</code> attests the particle; because only
+<code>frame_hash</code> (cannot hash itself) and <code>sig</code> (signs the result) are removed, the pre-image is unambiguous
+and non-circular. Both hashes are always present (never <code>null</code>).<a href="#section-7.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="chaining-time-and-merge-order">
+<section id="section-7.3">
+        <h3 id="name-chaining-time-and-merge-ord">
+<a href="#section-7.3" class="section-number selfRef">7.3. </a><a href="#name-chaining-time-and-merge-ord" class="section-name selfRef">Chaining, time, and merge order</a>
+        </h3>
+<ul class="normal">
+<li class="normal" id="section-7.3-1.1">
+            <p id="section-7.3-1.1.1"><strong><code>utc</code></strong> <strong>MUST</strong> be exactly the 24-byte form <code>YYYY-MM-DDTHH:MM:SS.mmmZ</code> — uppercase <code>T</code>/<code>Z</code>, exactly
+three fractional digits, no numeric offset; the seconds field <strong>MUST NOT</strong> be <code>60</code> (a leap second clamps
+to <code>59.999</code>). All <code>utc</code> comparisons are <strong>bytewise</strong> over this fixed form (identical to chronological order).<a href="#section-7.3-1.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.3-1.2">
+            <p id="section-7.3-1.2.1"><strong>Worldline chain (particle):</strong> the <strong>genesis</strong> frame has <code>seq</code>=0 and <code>prev</code>=null; every later frame has
+<code>seq</code> = predecessor's <code>seq</code>+1 (contiguous) and <code>prev</code> = predecessor's <code>payload_hash</code>. <code>seq</code> is <code>uint53</code>
+(JSON integer, 0 ≤ seq ≤ 2^53−1, no fraction/exponent; a stream nearing 2^53−1 converges by re-genesis).<a href="#section-7.3-1.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.3-1.3">
+            <p id="section-7.3-1.3.1"><strong>Wire chain (wave):</strong> <code>prev_wave</code> <strong>MUST</strong> be non-null <strong>iff</strong> <code>stream_id</code> is a swarm-stream <strong>and</strong>
+              <code>seq</code> &gt; 0, in which case it equals the predecessor's <code>frame_hash</code>; in every other frame (all memory/body
+streams, every genesis) it <strong>MUST</strong> be <code>null</code>. (Presence is a function of stream family, not transport.)<a href="#section-7.3-1.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.3-1.4">
+            <p id="section-7.3-1.4.1">A frame is <strong>immutable</strong>: a new state is a new frame at a new hash; the head pointer (§7.6) re-points.<a href="#section-7.3-1.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.3-1.5">
+            <p id="section-7.3-1.5.1"><strong>Cross-stream merge order</strong> (Dream-Catcher) is the total order: ascending <code>utc</code> (bytewise), ties broken
+by ascending <code>frame_hash</code> (bytewise); no further ties are possible (§5).<a href="#section-7.3-1.5.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="verification-the-complete-consumer-checklist">
+<section id="section-7.4">
+        <h3 id="name-verification-the-complete-c">
+<a href="#section-7.4" class="section-number selfRef">7.4. </a><a href="#name-verification-the-complete-c" class="section-name selfRef">Verification (the complete consumer checklist)</a>
+        </h3>
+<p id="section-7.4-1">Before accepting a frame, a consumer <strong>MUST</strong>, in order, <strong>refuse</strong> (never repair/reparent) on any failure:
+1. <strong>Shape &amp; types:</strong> exactly the eleven §7.1 keys; <code>spec</code>==<code>"rapp/1"</code>; <code>kind</code> a string matching §6.1.1
+   ABNF and registered (§13); <code>stream_id</code> a string matching §6.1.1; <code>seq</code> a <code>uint53</code>; <code>utc</code> matching the
+   §7.4 fixed form <strong>and</strong> a calendar-valid <span>[<a href="#RFC3339" class="cite xref">RFC3339</a>]</span> <code>date-time</code> (so <code>2026-13-45T25:61:61.999Z</code> is
+   refused); <code>payload</code> a JSON object; <code>payload_hash</code>/<code>frame_hash</code> <code>64HEXDIGLC</code>; <code>prev</code>/<code>prev_wave</code> each
+   <code>null</code> or <code>64HEXDIGLC</code>; <code>sig</code> <code>null</code> or a §10 JWS string.
+1a. <strong>Stream binding:</strong> <code>frame.stream_id</code> <strong>MUST</strong> byte-equal the identifier of the stream being extended
+   or read (its declared <code>stream_id</code> at the head pointer / repo path of record). A genesis frame is
+   accepted only for the stream it names. (Defeats cross-stream genesis/segment replay — §14.)
+2. <strong>Particle:</strong> <code>payload_hash</code> == <code>H("rapp/1:particle", payload)</code>.
+3. <strong>Wave:</strong> <code>frame_hash</code> == <code>H("rapp/1:wave", frame \ {frame_hash, sig})</code>.
+4. <strong>Chain:</strong> <code>seq</code>==head.<code>seq</code>+1 and <code>prev</code>==head.<code>payload_hash</code> (or <code>seq</code>==0 ∧ <code>prev</code>==null at genesis);
+   <code>utc</code> ≥ head.<code>utc</code> (bytewise).
+5. <strong>Wire:</strong> if <code>stream_id</code> is a swarm-stream and <code>seq</code>&gt;0, <code>prev_wave</code>==head.<code>frame_hash</code>; else
+   <code>prev_wave</code>==null.
+6. <strong>Signature:</strong> if <code>sig</code>≠null, verify per §10 (present-but-invalid is refusal); a swarm-stream frame with
+   <code>sig</code>==null is refused (§8/§10).
+Steps 1–5 are <strong>time-independent</strong> (kind lookups only append, §13), so a frame passing them passes forever;
+step 6 alone may flip pass→fail when a §10 tombstone with <code>revoked_utc</code> ≤ the frame's <code>utc</code> is later
+registered — the one time-dependent check.<a href="#section-7.4-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="heads-and-forks">
+<section id="section-7.5">
+        <h3 id="name-heads-and-forks">
+<a href="#section-7.5" class="section-number selfRef">7.5. </a><a href="#name-heads-and-forks" class="section-name selfRef">Heads and forks</a>
+        </h3>
+<p id="section-7.5-1">A stream's <strong>head</strong> is the frame with the greatest verified <code>seq</code> descending from its registered genesis
+(§13). A consumer <strong>MUST</strong> persist, per stream, the highest <code>(seq, frame_hash)</code> it verified and <strong>MUST</strong>
+refuse any presented head with lower <code>seq</code>, or a different <code>frame_hash</code> at an already-verified <code>seq</code> (no
+rollback, no silent reorg). Two distinct valid frames with equal <code>stream_id</code>, <code>seq</code>, and <code>prev</code> are a
+<strong>fork</strong>: a consumer <strong>MUST</strong> refuse both branches past the fork point and surface a drift finding; only
+the owner resolves a fork (Art. X), by re-genesis (§12.1) if needed.<a href="#section-7.5-1" class="pilcrow">¶</a></p>
+<p id="section-7.5-2"><strong>Exception (re-genesis head reset).</strong> The no-rollback rule above refuses a lower-<code>seq</code> head — but a
+legitimate §12.1 re-genesis presents a new genesis at <code>seq</code>=0. When (and only when) the §13 registry maps a
+<code>stream_id</code> to a new genesis <code>frame_hash</code> (§12.1 step 3), a consumer <strong>MUST</strong> verify that registered
+genesis (§7.5) and then <strong>reset</strong> its persisted head for that <code>stream_id</code> to it. Only a registry-published
+genesis authorizes a reset; any other lower-<code>seq</code> head remains a refused rollback.<a href="#section-7.5-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="the-wire-l3">
+<section id="section-8">
+      <h2 id="name-the-wire-l3">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-the-wire-l3" class="section-name selfRef">The Wire (L3)</a>
+      </h2>
+<p id="section-8-1">All interaction rides one of exactly two forms:
+1. <strong>Synchronous — <code>POST /chat</code>, <code>application/json</code> both ways.</strong> Request: <code>user_input</code> (string, REQUIRED);
+   <code>session_id</code> (string, OPTIONAL — omit to start a session); <code>idempotency_key</code> (string, OPTIONAL — a repeat
+   with the same key returns the original response, not a new turn or duplicate session; scoped to
+   <code>session_id</code> when present, else to the key alone so session-creation is also de-duplicated); unrecognized members <strong>MUST</strong> be
+   ignored, never refused. Success: HTTP 200 with <strong>exactly</strong> <code>{response:string, agent_logs:[string],
+   session_id:string}</code> (no extra members). An unknown <code>session_id</code>, a refusal, or a malformed request
+   <strong>MUST</strong> be HTTP 422, <code>{error:{code:string, step:string|null}}</code> where <code>code</code> is a §13-registered error
+   code (e.g. <code>"unknown-session"</code>) and <code>step</code> is the failing §7.5 step as a string — one of
+   <code>"1","1a","2","3","4","5","6"</code> — or <code>null</code>. No other shape is conformant. New capability is a new agent
+   behind <code>/chat</code>, never a sibling REST route.
+2. <strong>Asynchronous — an append-only frame (§7) published to a stream</strong> (a repo path, an <code>events/</code> log). A
+   frame on a <strong>swarm-stream MUST</strong> carry <code>sig</code>≠null (§10); memory/body-stream frames <strong>MAY</strong> be unsigned.
+   Any <em>history</em> is safe to read given a trusted head (§14); the hash chain (§5) makes tampering
+   detectable.<a href="#section-8-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="the-egg-l5-the-single-egg-spec-of-record">
+<section id="section-9">
+      <h2 id="name-the-egg-l5-the-single-egg-s">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-the-egg-l5-the-single-egg-s" class="section-name selfRef">The Egg (L5) — the single egg spec of record</a>
+      </h2>
+<p id="section-9-1">An <strong>egg</strong> is a cartridge packing a unit of the estate. <strong>RAPP §9 is the one egg spec of record</strong> (it
+subsumes and retires <code>EGG_FAMILY.md</code>, <code>NEIGHBORHOOD_EGG_SPEC.md</code>, <code>ESTATE_SPEC.md</code>, <code>rappterbook/EGG_SPEC.md</code>,
+and the rest — drift C7). No other document may re-specify eggs; they cite this section.<a href="#section-9-1" class="pilcrow">¶</a></p>
+<div id="container-manifest-and-egg-address">
+<section id="section-9.1">
+        <h3 id="name-container-manifest-and-egg-">
+<a href="#section-9.1" class="section-number selfRef">9.1. </a><a href="#name-container-manifest-and-egg-" class="section-name selfRef">Container, manifest, and egg address</a>
+        </h3>
+<p id="section-9.1-1">An egg is either a JSON object (<code>invite</code>/<code>session</code> variants) or a ZIP whose root is <code>manifest.json</code> (tree
+variants). The manifest is a §4 value with exactly these members:
+<code>json
+{ "schema": "rapp/1-egg", "variant": "&lt;variant&gt;", "rappid": "&lt;§6.1 rappid&gt;",
+  "created_utc": "&lt;§7.4 utc&gt;", "contents": [ {"path":"&lt;rel&gt;","hash":"&lt;64hex&gt;"}, … ], "payload": { },
+  "sig": "&lt;jws|null&gt;" }
+</code>
+- <code>contents</code> <strong>MUST</strong> list every packed file <strong>except <code>manifest.json</code> itself</strong>, exactly once each, with
+  <code>hash = Hb("rapp/1:egg", file_octets)</code> (§5) over the raw stored octets. <code>contents</code> is <strong>always present</strong>;
+  for JSON (pointer/session) variants it <strong>MUST</strong> be exactly <code>[]</code>.
+- <code>path</code> <strong>MUST</strong> be a relative POSIX path: <code>/</code>-separated NFC UTF-8 segments, no <code>.</code>/<code>..</code> segment, no
+  leading <code>/</code>, no backslash, no Windows drive-qualified first segment (<code>ALPHA ":"</code>), no duplicate <code>path</code>
+  in one manifest. A segment <strong>MUST NOT</strong> end in a period/space, contain <code>:</code>, contain a C0 control, or have
+  a case-insensitive basename equal to <code>CON</code>, <code>PRN</code>, <code>AUX</code>, <code>NUL</code>, <code>COM1</code>–<code>COM9</code>, or <code>LPT1</code>–<code>LPT9</code>.
+  <code>contents</code> <strong>MUST</strong> be sorted ascending
+  by the UTF-8 bytes of <code>path</code>.
+- <code>payload</code> is a §4 object (variant-specific). <code>sig</code> is a §10 JWS over <code>canonical(manifest \ {sig})</code>, or
+  <code>null</code>. For the <code>invite</code> variant <code>sig</code> is REQUIRED and <strong>MUST</strong> verify with <code>kid</code> in the §13.2 estate-owner
+  succession (invites are estate-issued; a <code>sig</code> by any other key, even a validly registered one, is
+  refused — otherwise an attacker mints a fresh rappid and forges invites). For other variants a non-null
+  <code>sig</code> <strong>MUST</strong> verify per §10 with <code>kid</code> == a keyed rappid the consumer resolves via §13; a consumer
+  presented a signed egg <strong>MUST</strong> verify it.
+- <strong>The egg's one §5 address is</strong> <code>egg_hash = H("rapp/1:egg-manifest", manifest \ {sig})</code> — the manifest with
+  exactly the <code>sig</code> key removed (mirroring §7.3's wave rule: <code>sig</code> authenticates the egg, <code>egg_hash</code> names
+  it, so re-signing never changes identity). Stores key eggs by <code>("rapp/1:egg-manifest", egg_hash)</code>.
+  (<code>"rapp/1:egg"</code> addresses file octets; <code>"rapp/1:egg-manifest"</code> addresses the egg as a whole.)
+- <strong>Container determinism.</strong> A ZIP variant <strong>MUST</strong> use compression method <code>stored</code> (0) for <strong>every</strong> entry
+  — no deflate in any variant (deflate is library-dependent, so it cannot be byte-reproducible; transport
+  compression, if any, wraps the egg and is not the egg). Entries appear in <code>contents</code> order with
+  <code>manifest.json</code> first; the <code>manifest.json</code> entry's octets <strong>MUST</strong> be exactly <code>canonical(manifest)</code>; all
+  timestamps <code>1980-01-01 00:00:00</code>; no extra fields; UTF-8 filename flag set; <code>contents[].hash</code> is over the
+  file octets (identical to the archive octets under method 0). A JSON-variant egg's serialized form
+  <strong>MUST</strong> be exactly <code>canonical(manifest)</code>. Two conformant packers of the <strong>same manifest value</strong> thus emit
+  byte-identical eggs.<a href="#section-9.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="variants-the-ratified-set-closes-egg-01">
+<section id="section-9.2">
+        <h3 id="name-variants-the-ratified-set-c">
+<a href="#section-9.2" class="section-number selfRef">9.2. </a><a href="#name-variants-the-ratified-set-c" class="section-name selfRef">Variants (the ratified set — closes EGG-01)</a>
+        </h3>
+<p id="section-9.2-1">| variant | container | packs | required members |
+|---|---|---|---|
+| <code>organism</code> | ZIP | a full brainstem instance | contents (sorted) MUST include <code>rappid.json</code>, <code>soul.md</code>; MAY include <code>agents/*</code>, <code>organs/*</code>, memory files |
+| <code>rapplication</code> | ZIP | one rapp | contents MUST include <code>rappid.json</code> and exactly one <code>agent.py</code> at the root (the agent of record); MAY include one <code>ui.html</code> and files under <code>state/</code> |
+| <code>session</code> | JSON | one runtime + transcript | <code>payload</code> = <code>{runtime:&lt;string&gt;, transcript:[&lt;object&gt;]}</code>; contents <code>[]</code> |
+| <code>invite</code> | JSON | a QR-sized pointer (<strong>no packed files</strong>) | <code>payload</code> = <code>{target_rappid:&lt;rappid&gt;, target_url:&lt;string&gt;, target_kind:("neighborhood" / "estate")}</code>; contents <code>[]</code>; <code>sig</code> REQUIRED |
+| <code>neighborhood</code> | ZIP | several organisms meant to live together | <code>payload</code> = <code>{members:[&lt;rappid&gt;,…]}</code>; contents = one sub-egg per member, named <code>&lt;owner&gt;--&lt;slug&gt;.egg</code> at the root, matched by the sub-egg manifest's <code>rappid</code> == the <code>payload.members[]</code> entry |
+| <code>estate</code> | ZIP | several neighborhoods | <code>payload</code> = <code>{neighborhoods:[&lt;rappid&gt;,…]}</code>; contents = one sub-egg per neighborhood, named <code>&lt;owner&gt;--&lt;slug&gt;.egg</code> at root, matched by sub-egg <code>rappid</code> |
+| <code>sealed</code> | ZIP | publicly mirrorable ciphertext with scoped key release | contents MUST be exactly <code>ciphertext.bin</code>; payload is the closed <code>rapp-sealed-artifact/1</code> profile in §9.2.1; <code>sig</code> REQUIRED |<a href="#section-9.2-1" class="pilcrow">¶</a></p>
+<p id="section-9.2-2">The QR-sized invite that caused EGG-01 is the <strong><code>invite</code></strong> variant: a signed pointer object, not a
+member-packing <code>neighborhood</code> egg. The banned legacy stamps (<code>brainstem-egg/2.3-neighborhood</code>,
+<code>neighborhood-egg/1.0</code>) migrate to <code>{schema:"rapp/1-egg", variant:"invite" / "neighborhood"}</code> (Art. III).<a href="#section-9.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sealed-artifact-profile">
+<section id="section-9.3">
+        <h3 id="name-sealed-artifact-profile">
+<a href="#section-9.3" class="section-number selfRef">9.3. </a><a href="#name-sealed-artifact-profile" class="section-name selfRef">Sealed artifact profile</a>
+        </h3>
+<p id="section-9.3-1">The <code>sealed</code> variant lets any unauthenticated mirror, including a commit-pinned
+<code>raw.githubusercontent.com</code> URL, distribute an encrypted artifact globally without distributing its
+decryption key.<a href="#section-9.3-1" class="pilcrow">¶</a></p>
+<p id="section-9.3-2">The public bytes are <strong>ciphertext, not access control</strong>. Bytecode or obfuscation alone provides no
+confidentiality. A conformant producer <strong>MUST</strong> use a random 256-bit data-encryption key (DEK) per artifact,
+<strong>MUST NOT</strong> embed that DEK or a shared master key in the egg/client/URL, and <strong>MUST NOT</strong> place a password
+in a URL. A password, passkey, device assertion, or account credential may authenticate to the key service;
+it is not the artifact encryption key.<a href="#section-9.3-2" class="pilcrow">¶</a></p>
+<p id="section-9.3-3">The ZIP contents are exactly one file:<a href="#section-9.3-3" class="pilcrow">¶</a></p>
+<p id="section-9.3-4"><code>text
+ciphertext.bin = AES-256-GCM ciphertext || 16-byte authentication tag
+</code><a href="#section-9.3-4" class="pilcrow">¶</a></p>
+<p id="section-9.3-5">The manifest <code>payload</code> has exactly:<a href="#section-9.3-5" class="pilcrow">¶</a></p>
+<p id="section-9.3-6"><code>json
+{
+  "schema": "rapp-sealed-artifact/1",
+  "cipher": "A256GCM",
+  "nonce": "&lt;12 bytes, unpadded base64url&gt;",
+  "plaintext_commitment": "&lt;64hex&gt;",
+  "plaintext_bytes": 1234,
+  "media_type": "application/wasm",
+  "key_id": "&lt;64hex&gt;",
+  "key_service_rappid": "rappid:@owner/key-service:64hex",
+  "key_service_url": "https://keys.example.com/chat",
+  "access": "scoped-key-release",
+  "aad_hash": "&lt;64hex&gt;"
+}
+</code><a href="#section-9.3-6" class="pilcrow">¶</a></p>
+<p id="section-9.3-7"><code>plaintext_commitment</code> is a keyed commitment that cannot be tested without the DEK:<a href="#section-9.3-7" class="pilcrow">¶</a></p>
+<p id="section-9.3-8"><code>text
+prk = HMAC-SHA-256(32 zero octets, DEK)
+commitment_key = HMAC-SHA-256(prk, utf8("rapp/1:sealed-commitment") || 0x01)
+plaintext_commitment = lowercase_hex(HMAC-SHA-256(commitment_key, plaintext_octets))
+</code><a href="#section-9.3-8" class="pilcrow">¶</a></p>
+<p id="section-9.3-9">This is the <span>[<a href="#RFC5869" class="cite xref">RFC5869</a>]</span> HKDF-Extract/HKDF-Expand construction with an empty salt, one 32-byte output block,
+and the exact info string <code>rapp/1:sealed-commitment</code>. The commitment is public but does not permit an
+offline dictionary attack without the random 256-bit DEK.<a href="#section-9.3-9" class="pilcrow">¶</a></p>
+<p id="section-9.3-10">The exact authenticated-data descriptor is:<a href="#section-9.3-10" class="pilcrow">¶</a></p>
+<p id="section-9.3-11"><code>json
+{
+  "schema": "rapp-sealed-artifact/1",
+  "artifact_rappid": "&lt;manifest.rappid&gt;",
+  "created_utc": "&lt;manifest.created_utc&gt;",
+  "key_id": "&lt;payload.key_id&gt;",
+  "plaintext_commitment": "&lt;payload.plaintext_commitment&gt;",
+  "plaintext_bytes": 1234,
+  "media_type": "&lt;payload.media_type&gt;"
+}
+</code><a href="#section-9.3-11" class="pilcrow">¶</a></p>
+<p id="section-9.3-12"><code>aad_hash = H("rapp/1:sealed-aad", descriptor)</code>, and <code>canonical(descriptor)</code> is supplied as AES-GCM
+additional authenticated data. <code>nonce</code> decodes to exactly 12 bytes. <code>plaintext_bytes</code> is an integer from
+zero through <code>2^30</code> (1 GiB), a RAPP safety ceiling below both the NIST SP 800-38D per-invocation limit
+and the deterministic non-ZIP64 container boundary.
+<code>ciphertext.bin</code> length is exactly <code>plaintext_bytes + 16</code>. The sealed egg's manifest signature is REQUIRED
+and verifies per §10 with <code>kid</code> exactly equal to <code>manifest.rappid</code>. A sealed artifact therefore uses a
+keyed §6.2 rappid controlled by its authorized publisher; another valid registry key cannot sign on its
+behalf.<a href="#section-9.3-12" class="pilcrow">¶</a></p>
+<p id="section-9.3-13"><code>key_service_rappid</code> identifies the RAPP organism authorizing key release. <code>key_service_url</code> is its absolute
+HTTPS §8 <code>POST /chat</code> URL and <strong>MUST</strong> end in <code>/chat</code>. The URL is location, not authority: the service
+response is accepted only when its signatures and identifiers bind to <code>key_service_rappid</code>.<a href="#section-9.3-13" class="pilcrow">¶</a></p>
+<p id="section-9.3-14">The caller sends the following canonical JSON object as the <code>user_input</code> string:<a href="#section-9.3-14" class="pilcrow">¶</a></p>
+<p id="section-9.3-15"><code>json
+{
+  "schema": "rapp-sealed-key-request/1",
+  "egg_hash": "&lt;64hex&gt;",
+  "key_id": "&lt;64hex&gt;",
+  "recipient_rappid": "rappid:@owner/device:64hex",
+  "recipient_spki_der_b64": "&lt;standard base64&gt;",
+  "request_nonce": "&lt;64hex&gt;",
+  "expires_utc": "YYYY-MM-DDTHH:MM:SS.mmmZ",
+  "sig": "&lt;recipient detached JWS&gt;"
+}
+</code><a href="#section-9.3-15" class="pilcrow">¶</a></p>
+<p id="section-9.3-16"><code>sig</code> is over <code>canonical(request \ {sig})</code> and verifies under <code>recipient_rappid</code>; <code>egg_hash</code> is the §9.1
+sealed egg address. The key service verifies entitlement, exact <code>(egg_hash,key_id)</code>, request expiry,
+recipient key binding, and nonce non-reuse.<a href="#section-9.3-16" class="pilcrow">¶</a></p>
+<p id="section-9.3-17">The §8 <code>response</code> string is canonical JSON:<a href="#section-9.3-17" class="pilcrow">¶</a></p>
+<p id="section-9.3-18"><code>json
+{
+  "schema": "rapp-sealed-key-release/1",
+  "egg_hash": "&lt;request.egg_hash&gt;",
+  "key_id": "&lt;request.key_id&gt;",
+  "recipient_rappid": "&lt;request.recipient_rappid&gt;",
+  "request_hash": "&lt;H('rapp/1:sealed-key-request', request without sig)&gt;",
+  "wrap_alg": "ECDH-ES+A256KW",
+  "wrapped_key_jwe": "&lt;JWE Compact Serialization&gt;",
+  "issued_utc": "YYYY-MM-DDTHH:MM:SS.mmmZ",
+  "expires_utc": "YYYY-MM-DDTHH:MM:SS.mmmZ",
+  "service_sig": "&lt;key-service detached JWS&gt;"
+}
+</code><a href="#section-9.3-18" class="pilcrow">¶</a></p>
+<p id="section-9.3-19"><code>service_sig</code> is over <code>canonical(release \ {service_sig})</code> and verifies under <code>key_service_rappid</code>.
+<code>wrapped_key_jwe</code> uses <span>[<a href="#RFC7516" class="cite xref">RFC7516</a>]</span> with <code>alg:"ECDH-ES+A256KW"</code> and <code>enc:"A256GCM"</code> for the declared
+recipient SPKI. The service <strong>MUST NOT</strong> return a global raw DEK. Authorization, expiry, device scope, and
+key rotation are service policy recorded in signed frames, not fields that alter the sealed egg's content
+address.<a href="#section-9.3-19" class="pilcrow">¶</a></p>
+<p id="section-9.3-20">A mirror URL <strong>SHOULD</strong> be immutable (for GitHub Raw, pin a commit SHA rather than a moving branch). URL
+secrecy is never assumed: integrity comes from the egg address and signature, confidentiality from
+AES-GCM, and use authorization from scoped key release.<a href="#section-9.3-20" class="pilcrow">¶</a></p>
+<p id="section-9.3-21">Revocation prevents future key release. It cannot erase ciphertext or plaintext already downloaded and
+decrypted by an authorized recipient. A conformant product <strong>MUST</strong> state this limit plainly. It also
+<strong>MUST NOT</strong> claim that encrypted bytecode cannot be inspected after decryption; legal/license controls and
+bounded server authority remain separate from cryptographic confidentiality.<a href="#section-9.3-21" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="conformance">
+<section id="section-9.4">
+        <h3 id="name-conformance">
+<a href="#section-9.4" class="section-number selfRef">9.4. </a><a href="#name-conformance" class="section-name selfRef">Conformance</a>
+        </h3>
+<ul class="normal">
+<li class="normal" id="section-9.4-1.1">
+            <p id="section-9.4-1.1.1"><strong>Producer</strong> <strong>MUST</strong> emit only <code>schema:"rapp/1-egg"</code> with a variant from §9.2, a §6.1 rappid, and, for
+ZIP variants, a <code>contents</code> list whose every hash verifies. It <strong>MUST NOT</strong> emit any legacy egg schema.<a href="#section-9.4-1.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.4-1.2">
+            <p id="section-9.4-1.2.1"><strong>Consumer</strong> <strong>MUST</strong> read every §9.2 variant, dispatch on <code>variant</code>, verify <strong>integrity then viability</strong> —
+(0) the manifest is a §4 value satisfying <strong>every §9.1 rule</strong> — exact member set, <code>path</code> grammar (no <code>..</code>,
+no leading <code>/</code>, no backslash), no duplicate paths, sort order, and for ZIP variants the archive entry set
+equals <code>contents</code> ∪ {<code>manifest.json</code>} in the §9.1 deterministic order (this is the zip-slip defense; an
+unenforced path grammar defends nothing); (1) every <code>contents[].hash</code> recomputes per §5; (2) the variant's
+§9.2 structural requirements hold — and refuse whole on any failure; it <strong>MUST NOT</strong> reparent on transport.<a href="#section-9.4-1.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="instantiation-instance-identity-and-grownfrom-lineage-rev-6-closes-the-hatch-seam">
+<section id="section-9.5">
+        <h3 id="name-instantiation-instance-iden">
+<a href="#section-9.5" class="section-number selfRef">9.5. </a><a href="#name-instantiation-instance-iden" class="section-name selfRef">Instantiation — instance identity and <code>grown_from</code> lineage (rev-6; closes the hatch seam)</a>
+        </h3>
+<p id="section-9.5-1">An egg names an <strong>artifact</strong>; a hatch creates an <strong>instance</strong>. Rev-5 specified packing and reading but
+left instantiation identity unwritten, so every implementation had to invent its own — this section is
+that missing word.<a href="#section-9.5-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-9.5-2.1">
+            <p id="section-9.5-2.1.1">The <code>rappid</code> in a packed egg's <code>rappid.json</code> (§9.2) names the <strong>artifact</strong>. Every hatch of the same
+egg reads the <strong>same</strong> artifact identity (§6.2 canonicalize-on-read); re-minting it on hatch is
+prohibited (§6.2).<a href="#section-9.5-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.5-2.2">
+            <p id="section-9.5-2.2.1">A consumer that instantiates an egg into a live installation <strong>MUST</strong> mint a <strong>fresh §6.2 identity
+for the instance</strong>, exactly once, at first boot — from entropy, never derived from the artifact
+identity, host name, or path. Two instances of one egg share the artifact identity and <strong>MUST NOT</strong>
+share an instance identity.<a href="#section-9.5-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.5-2.3">
+            <p id="section-9.5-2.3.1">The instance's identity document <strong>SHOULD</strong> record <strong><code>grown_from</code></strong>: the §9.1 egg address
+(64 lowercase hex) of the egg it was instantiated from. <code>grown_from</code> is written at mint time and is
+<strong>immutable</strong> thereafter; it is <code>null</code> when the source is unknown; a producer <strong>MUST NOT</strong> fabricate
+it — lineage is a fact about a birth, never a claim to invent. An instance that cannot say where it
+came from says <code>null</code>.<a href="#section-9.5-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.5-2.4">
+            <p id="section-9.5-2.4.1"><code>grown_from</code> is <strong>lineage, not inheritance</strong>: it confers no authority, no trust, and no §10 key
+material. A reader <strong>MUST</strong> treat it as an unverified assertion unless the named egg is available and
+its address recomputes per §9.1/§5.<a href="#section-9.5-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.5-2.5">
+            <p id="section-9.5-2.5.1">A newly authored artifact produced from one or more existing RAPP objects <strong>MAY</strong> record
+<code>crossed_from</code> in its packaged <code>rappid.json</code>. The value is a sorted, duplicate-free array of typed
+addresses <code>{space, hash}</code>, where <code>space</code> is <code>"rapp/1:particle"</code> or <code>"rapp/1:egg-manifest"</code> and <code>hash</code>
+is 64 lowercase hex. One parent denotes an <strong>offspring</strong>; two or more denote a <strong>cross</strong>. The new
+artifact <strong>MUST</strong> mint its own §6.2 rappid; parent artifacts and identities remain unchanged.
+<code>crossed_from</code> is lineage only: it transfers no signature authority, ownership, entitlement, secret,
+or trust. A verifier treats each parent as unverified until the addressed object is available and
+recomputes in its declared space.<a href="#section-9.5-2.5.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+</section>
+</div>
+<div id="trust-and-signatures-l2">
+<section id="section-10">
+      <h2 id="name-trust-and-signatures-l2">
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-trust-and-signatures-l2" class="section-name selfRef">Trust and signatures (L2)</a>
+      </h2>
+<p id="section-10-1"><code>sig</code> is OPTIONAL on memory/body streams and REQUIRED on swarm streams (§8). Chain integrity comes from the
+hash links (§5), not signatures. When present, <code>sig</code> <strong>MUST</strong> be JWS Compact Serialization with <strong>detached,
+unencoded payload</strong> (<span>[<a href="#RFC7515" class="cite xref">RFC7515</a>]</span> App. F + <span>[<a href="#RFC7797" class="cite xref">RFC7797</a>]</span>):
+- protected header members are <strong>exactly</strong> <code>alg</code> (<code>"EdDSA"</code> or <code>"ES256"</code>), <code>b64</code> (<code>false</code>), <code>crit</code>
+  (<code>["b64"]</code>), <code>kid</code> (signer's §6.1 rappid), no others; the header octets <strong>MUST</strong> be <code>canonical(header)</code>
+  (§4 — JCS orders them <code>alg</code>, <code>b64</code>, <code>crit</code>, <code>kid</code>, no whitespace);
+- the <code>sig</code> string is the detached compact form <code>BASE64URL(canonical(header)) || ".." || BASE64URL(signature)</code>;
+- JWS signing input = <code>BASE64URL(canonical(header)) || "." || canonical(frame \ {sig})</code>;
+- <code>alg</code>: <code>EdDSA</code>/Ed25519 <span>[<a href="#RFC8037" class="cite xref">RFC8037</a>]</span> or <code>ES256</code> <span>[<a href="#RFC7518" class="cite xref">RFC7518</a>]</span>; ES256 signers <strong>SHOULD</strong> sign deterministically
+  <span>[<a href="#RFC6979" class="cite xref">RFC6979</a>]</span> (Ed25519 is deterministic by construction) so signed frame files stay byte-reproducible.<a href="#section-10-1" class="pilcrow">¶</a></p>
+<p id="section-10-2"><strong>Key discovery.</strong> A keyed rappid's tail is one-way (<code>Hb("rapp/1:rappid",SPKI)</code>). A verifier resolves the
+signer's SPKI (DER) <strong>from the §13 registry</strong> entry (<code>rappid</code> → <code>spki_der_b64</code>); the door-of-record
+<code>rappid.json</code> is the publication venue the registry entry is generated from, not itself a verification
+source. The verifier <strong>MUST</strong> check <code>Hb("rapp/1:rappid", SPKI_DER)</code> == the rappid's tail and refuse on
+mismatch or registry absence.<a href="#section-10-2" class="pilcrow">¶</a></p>
+<p id="section-10-3"><strong>Key lifecycle.</strong> Rotation is an identity re-anchor (§6.3, case <code>rotation</code>) with new <code>tail =
+Hb("rapp/1:rappid", newSPKI)</code> and a §13.3 re-anchor record. A re-anchor <strong>deprecates</strong> the superseded
+rappid's §13 <code>spki</code> entry: a verifier <strong>MUST</strong> refuse a <code>sig</code> whose <code>kid</code> is a superseded rappid on any
+frame with <code>utc</code> ≥ the re-anchor record's <code>utc</code> (rotation gives forward security; earlier frames verify as
+before). Compromise is declared by an owner-signed <strong>tombstone</strong> in the §13 registry <code>{rappid, revoked_utc}</code>; a verifier <strong>MUST</strong> refuse any <code>sig</code> by a
+tombstoned key on a frame whose <code>utc</code> ≥ <code>revoked_utc</code>, checking tombstones at verification time (§7.5 step
+6). "Owner-signed" means a <code>sig</code> verifying with <code>kid</code> == the registry's designated <code>estate_owner</code> rappid
+(§13). A consumer <strong>MUST NOT</strong> infer authorship from an unsigned frame (keyless rappids assert location,
+not authorship).<a href="#section-10-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="conformance-classes">
+<section id="section-11">
+      <h2 id="name-conformance-classes">
+<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-conformance-classes" class="section-name selfRef">Conformance classes</a>
+      </h2>
+<ul class="normal">
+<li class="normal" id="section-11-1.1">
+          <p id="section-11-1.1.1"><strong>Producer:</strong> emits only §4 JCS/I-JSON bytes, §5 domain-separated full-SHA-256 addresses, §6 rappids
+minted per §6.2, §7.1 eleven-key frames, §9 <code>rapp/1-egg</code> variants — and <strong>no legacy form</strong>.<a href="#section-11-1.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-11-1.2">
+          <p id="section-11-1.2.1"><strong>Consumer:</strong> runs the full §7.5 checklist (incl. 1a binding), §9.3 egg verification, §10 signature +
+key-discovery + tombstone checks, canonicalizes legacy ids on read (§6.3), refuses on any failure, never
+repairs/reparents/rolls back (§7.6).<a href="#section-11-1.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-11-1.3">
+          <p id="section-11-1.3.1"><strong>Router/Mirror:</strong> invents no endpoints (§8), declares subordination to
+<code>kody-w/rapp-1</code> for protocol semantics, and serves only
+provenance-stamped hash-matching mirrors. Estate-specific product scope is
+resolved separately through that estate's signed registry and master plan.<a href="#section-11-1.3.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<div id="immutable-grail-kernel-conformance">
+<section id="section-11.1">
+        <h3 id="name-immutable-grail-kernel-conf">
+<a href="#section-11.1" class="section-number selfRef">11.1. </a><a href="#name-immutable-grail-kernel-conf" class="section-name selfRef">Immutable Grail kernel conformance</a>
+        </h3>
+<p id="section-11.1-1">An estate declares a Grail kernel through the exact §13.3 <code>grail-kernel</code> entry. Its <code>release_scope</code>
+selects the release family to which the pin applies; a registry <strong>MUST</strong> contain at most one
+<code>grail-kernel</code> entry for any release scope. Its entry-level <code>sig</code>
+          <strong>MUST</strong> verify under <code>declared_by</code>, which <strong>MUST</strong> be the estate owner in effect at <code>activated_utc</code>
+(§13.2); <code>activated_utc</code> <strong>MUST NOT</strong> be more than 300 seconds after the verifier's first-seen time for
+that entry. The pin activates locally when a consumer first accepts an authenticated, non-rollback
+registry containing that valid declaration. Until then it is structural evidence only. The Grail is
+identified by <code>grail_id</code>, never by a mutable branch, tag, repository name, or product label. Once
+activated, the pin is a permanent compatibility anchor, not a moving release channel:<a href="#section-11.1-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-11.1-2">
+<li id="section-11.1-2.1">
+            <p id="section-11.1-2.1.1">Every conformance evaluation <strong>MUST</strong> receive <code>release_scope</code> from an authenticated owner-controlled
+release policy, never from candidate bytes or candidate-controlled configuration, then resolve its
+one <code>grail_id</code> exclusively from the activated, persisted §13.3 binding. If the policy repeats
+<code>grail_id</code>, that value is only a consistency assertion and <strong>MUST</strong> byte-equal the registry result; it
+cannot select or rebind the pin. Every ring and release/deployment stage, including development,
+qualification, Preprod, installation, and production verification, <strong>MUST</strong> compare the candidate's
+Grail path to that exact binding, SHA-256, and byte length.<a href="#section-11.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-11.1-2.2">
+            <p id="section-11.1-2.2.1">A missing, changed, substituted, or unmeasured Grail byte is <code>kernel-drift</code> and <strong>MUST</strong> fail closed.
+Approval, urgency, compatibility claims, and semantic equivalence cannot waive byte inequality.<a href="#section-11.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-11.1-2.3">
+            <p id="section-11.1-2.3.1">A pipeline <strong>MUST NOT</strong> silently restore the pinned file after testing a different file. The exact
+release-shaped artifact containing the immutable Grail bytes <strong>MUST</strong> itself pass the release gates.<a href="#section-11.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-11.1-2.4">
+            <p id="section-11.1-2.4.1">Every gate <strong>MUST</strong> resolve every archive, container, wrapper, environment override, symlink, and
+filesystem indirection to one regular runtime entry-point file under the immutable release root;
+refuse links and ambiguous alternatives; verify its bytes; and bind the release digest, resolved
+entry-point path, <code>release_scope</code>, <code>grail_id</code>, raw SHA-256, and byte length into its evidence.<a href="#section-11.1-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-11.1-2.5">
+            <p id="section-11.1-2.5.1">Every gate that executes the kernel <strong>MUST</strong> bind verification atomically to execution from a sealed
+immutable object or snapshot. An already-open descriptor is sufficient only when its backing bytes
+are under platform-enforced write exclusion for the entire verification-through-consumption interval
+and the interpreter/loader consumes that exact descriptor without reopening a pathname. An immutable
+content-addressed release root is sufficient only when no concurrent principal can modify it. A
+hash-then-path-launch without one of those guarantees is nonconformant. At least one execution gate for
+every supported production platform <strong>MUST</strong> perform this proof before release approval. Merely
+carrying an unused matching file is insufficient. A stored transpiled, bundled, generated, or patched
+derivative is different kernel bytes and requires a new <code>grail_id</code>; ordinary interpreter/JIT
+compilation directly from the pinned bytes is permitted when no alternate stored kernel is selected.<a href="#section-11.1-2.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-11.1-2.6">
+            <p id="section-11.1-2.6.1">New implementation behavior <strong>MUST</strong> live outside the Grail kernel and <strong>MUST NOT</strong> alter any
+RAPP-visible canonical form or wire semantic except through the registration and evolution rules of
+§§7, 9, 12, and 13.<a href="#section-11.1-2.6.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-11.1-2.7">
+            <p id="section-11.1-2.7.1">If required behavior cannot be expressed outside the pin, the implementation <strong>MUST</strong> report an
+incompatibility. It <strong>MUST NOT</strong> edit the Grail and continue under the same identity.<a href="#section-11.1-2.7.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-11.1-2.8">
+            <p id="section-11.1-2.8.1">Different kernel bytes produce a different <code>grail_id</code> and therefore are a different Grail. A new
+<code>grail-kernel</code> entry may coexist and may name the old <code>grail_id</code> as <code>predecessor</code>, but it <strong>MUST NOT</strong>
+overwrite, retag, alias, or redefine the prior Grail. A successor uses a new <code>release_scope</code>; an
+existing scope is never rebound. A non-null <code>predecessor</code> <strong>MUST</strong> name an earlier accepted
+<code>grail-kernel</code> entry and <strong>MUST NOT</strong> form a cycle. A registry <strong>MUST</strong> contain at most one
+<code>grail-kernel</code> entry for each <code>grail_id</code>.<a href="#section-11.1-2.8.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-11.1-2.9">
+            <p id="section-11.1-2.9.1">On first activation a consumer <strong>MUST</strong> persist the full canonical <code>grail-kernel</code> entry. Every later
+accepted registry <strong>MUST</strong> retain that entry byte-for-byte. Removal, mutation, or a second entry for
+the same <code>grail_id</code> is a permanent <code>kernel-drift</code> refusal even when <code>registry_seq</code> increased.<a href="#section-11.1-2.9.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="section-11.1-3">This rule governs release topology rather than the §8 wire shape, so it does not add a frame member,
+endpoint, compatibility shim, or alternate <code>rapp/1</code> encoding.<a href="#section-11.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="operational-conformance-profiles">
+<section id="section-11.2">
+        <h3 id="name-operational-conformance-pro">
+<a href="#section-11.2" class="section-number selfRef">11.2. </a><a href="#name-operational-conformance-pro" class="section-name selfRef">Operational conformance profiles</a>
+        </h3>
+<p id="section-11.2-1">RAPP/1 defines the substrate. Two subordinate operational profiles define how a production AI changes
+without mutating that substrate or the serving system underneath users:<a href="#section-11.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-11.2-2.1">
+            <p id="section-11.2-2.1.1"><strong>RAPP CI/CD</strong> (<code>rapp-cicd/1</code>) — <code>protocols/rapp-cicd/1/SPEC.md</code>; immutable release capsules,
+ordered qualification evidence, exact-candidate promotion, Preprod, and rollback/restore proof.<a href="#section-11.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-11.2-2.2">
+            <p id="section-11.2-2.2.1"><strong>RAPP Deploy</strong> (<code>rapp-deploy/1</code>) — <code>protocols/rapp-deploy/1/SPEC.md</code>; isolated serving/candidate
+lineages, cellular rollout, progressive exposure, expiring AI-health evidence, quarantine, and exact
+rollback.<a href="#section-11.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-11.2-3">The profiles are RAPP/1 applications, not alternate wire versions:<a href="#section-11.2-3" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-11.2-4">
+<li id="section-11.2-4.1">
+            <p id="section-11.2-4.1.1">Their payloads <strong>MUST</strong> be §4 canonical I-JSON and are identified by
+<code>H("rapp/1:particle", payload)</code>.<a href="#section-11.2-4.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-11.2-4.2">
+            <p id="section-11.2-4.2.1">Authoritative profile payloads <strong>MUST</strong> travel in signed RAPP/1 frames using a registered compatible
+kind. Local unsigned files are drafts, fixtures, or caches and cannot authorize promotion or traffic.<a href="#section-11.2-4.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-11.2-4.3">
+            <p id="section-11.2-4.3.1">They <strong>MUST NOT</strong> add a transport endpoint beside §8 <code>POST /chat</code>, redefine any RAPP/1 primitive, or
+weaken §11.1.<a href="#section-11.2-4.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-11.2-4.4">
+            <p id="section-11.2-4.4.1">An estate activates a profile through an authenticated §13.3 <code>protocol</code> entry pinning its exact
+repository, path, and SHA-256. A moving branch is discovery, never authority.<a href="#section-11.2-4.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-11.2-4.5">
+            <p id="section-11.2-4.5.1">A claim of <strong>RAPP production conformance</strong> requires both profiles. Core Producer, Consumer, and
+Router/Mirror implementations remain conformant without implementing production operations.<a href="#section-11.2-4.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-11.2-4.6">
+            <p id="section-11.2-4.6.1">Fixed envelope keys carry the safety invariants. Policy-defined check identifiers, component kinds,
+health objectives, and resilience controls are extension points; adding one does not change the
+profile token or the RAPP/1 wire.<a href="#section-11.2-4.6.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-11.2-4.7">
+            <p id="section-11.2-4.7.1">A consumer <strong>MUST</strong> refuse unknown required policy semantics. It may preserve and relay unknown
+optional evidence, but may not treat it as satisfying a requirement it does not implement.<a href="#section-11.2-4.7.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="section-11.2-5">The executable reference validators are <code>rapp_cicd.py</code> and <code>rapp_deploy.py</code>; controlled profile vectors
+are in <code>operations_conformance.py</code>. JSON Schemas define structural shape, while the reference validators
+enforce ordering, identity, temporal, and cross-document rules that JSON Schema cannot express.<a href="#section-11.2-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="versioning-evolution-no-legacy">
+<section id="section-12">
+      <h2 id="name-versioning-evolution-no-leg">
+<a href="#section-12" class="section-number selfRef">12. </a><a href="#name-versioning-evolution-no-leg" class="section-name selfRef">Versioning, evolution, no-legacy</a>
+      </h2>
+<p id="section-12-1">RAPP is a <strong>living standard</strong> (WHATWG): revised in place, never forked into parallel versions; a <code>name/X.Y</code>
+label <strong>MUST NOT</strong> ever denote two shapes (Art. II) — a shape change moves the token (§7.1). Published
+content-addressed artifacts are <strong>immutable</strong> (SemVer/crates). Within an estate there is <strong>no perpetual
+backward compatibility</strong> for the estate's own artifacts and retired legacy encodings (Art. III): a change
+to such a form is a <strong>total migration</strong> of every instance + <strong>deletion</strong> of the old form. Sealed re-genesis
+history (§12.1) is the retained live-stream exception and is not "legacy compatibility."<a href="#section-12-1" class="pilcrow">¶</a></p>
+<p id="section-12-2"><strong>The <code>rapp/1</code> wire is frozen (rev-15, Art. 18).</strong> No revision of this standard may change a form a
+<code>rapp/1</code> artifact is verified by: canonicalization (§4), the hash function and its tags (§5), the rappid
+grammar and mint (§6.1, §6.2), the eleven-key envelope and its two addresses (§7.1, §7.3), the consumer
+checklist (§7.5), the two wire forms and the <code>/chat</code> shapes (§8), or the egg container and address (§9.1).
+A change to any of those is not a revision; it moves the token to <code>rapp/2</code>, specified beside this
+document, and <code>rapp/1</code> artifacts keep verifying under this document forever. A consumer <strong>MUST NOT</strong>
+refuse a <code>rapp/1</code> artifact because a later token exists. Everything Art. IV names still grows under
+<code>rapp/1</code>: registered kinds, egg variants, error codes, registry entry types, vocabulary, subordinate
+profiles, and the registry itself. The frozen forms are what a stranger's implementation, written once
+and never updated, relies on; they are the reason an independent implementation can be finished.<a href="#section-12-2" class="pilcrow">¶</a></p>
+<p id="section-12-3">Immutable specification-governance history is a separate narrow exception:
+rev-5 through rev-13 anchor frames retain interpretable immutable pointer
+payloads so their ratified normative bytes remain resolvable. They are
+historical authority records, not accepted live legacy protocol forms. A
+producer <strong>MUST NOT</strong> emit the pointer-only revision profile after rev-13.<a href="#section-12-3" class="pilcrow">¶</a></p>
+<div id="re-genesis-converging-an-immutable-chain-one-owner-authorized-operation">
+<section id="section-12.1">
+        <h3 id="name-re-genesis-converging-an-im">
+<a href="#section-12.1" class="section-number selfRef">12.1. </a><a href="#name-re-genesis-converging-an-im" class="section-name selfRef">Re-genesis (converging an immutable chain — one owner-authorized operation)</a>
+        </h3>
+<ol start="1" type="1" class="normal type-1" id="section-12.1-1">
+<li id="section-12.1-1.1">
+            <p id="section-12.1-1.1.1"><strong>Terminal seal:</strong> <code>seal = Hb("rapp/1:seal", head_octets)</code>. <code>head_octets</code> is the exact octets of the old
+head's record <strong>as retained under <code>legacy/</code></strong> (step 4): for a one-frame-per-file store, the retired
+file's full octets; for a line-oriented log, the head's line <strong>excluding</strong> its trailing terminator. The
+retained <code>legacy/</code> artifact is the verification reference for the seal, and retirement <strong>MUST</strong> preserve
+those octets bit-exact. The step-3 <code>genesis</code> registry entry <strong>SHOULD</strong> record the <code>legacy/</code> artifact's
+repo+path so a consumer <strong>MAY</strong> verify the seal against it. (Defined for every legacy shape, including
+ones that cannot be §7.3-hashed.)<a href="#section-12.1-1.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-12.1-1.2">
+            <p id="section-12.1-1.2.1"><strong>New genesis:</strong> emit <code>seq</code>=0, <code>prev</code>=null, <code>kind</code> = the registered re-genesis kind <strong>of the stream's
+family</strong> — <code>memory.re-genesis</code>, <code>swarm.re-genesis</code>, or <code>body.re-genesis</code> (three §13 kinds, used only
+here) so the frame satisfies §7.2 family↔stream compatibility for any stream — <code>sig</code>≠null owner-signed
+(§10, §13 <code>estate_owner</code>), <code>payload</code> = <code>{"migrated_from":{"stream_id":&lt;old&gt;,"terminal_seal":&lt;seal&gt;,
+"terminal_seq":&lt;n&gt;}}</code> and no other members. A consumer <strong>MUST</strong> treat any <code>*.re-genesis</code> kind as the sole
+re-genesis marker for its family and refuse an unsigned/non-owner one.<a href="#section-12.1-1.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-12.1-1.3">
+            <p id="section-12.1-1.3.1"><strong>Register (the linearization point):</strong> append a §13.3 <code>genesis</code> entry mapping the <code>stream_id</code> to the new
+genesis's <code>frame_hash</code>, <strong>and flag every prior <code>genesis</code> entry for that <code>stream_id</code> <code>deprecated</code></strong> — the
+first convergence included (it deprecates the creation-time genesis), so exactly one non-deprecated entry
+always remains. A consumer resolves the current genesis <strong>only</strong> via that sole non-deprecated entry. A
+<strong>concurrent</strong> second registration fails closed (the append is the linearization point, Art. IX); a
+later fork/brick (§7.6/§14) is a fresh owner-authorized convergence that appends again and re-deprecates.<a href="#section-12.1-1.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-12.1-1.4">
+            <p id="section-12.1-1.4.1"><strong>Retire:</strong> move old frames under <code>legacy/</code> — retained as immutable sealed history, never served as
+current, never extended, never read as live chain. No live frame may set <code>prev</code>/<code>prev_wave</code> to a retired
+hash (a dangling ref is a drift finding).<a href="#section-12.1-1.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-12.1-1.5">
+            <p id="section-12.1-1.5.1">Keep the old <code>stream_id</code> unless the identity itself re-anchored (§6.3), in which case the registry entry
+also records <code>old_stream_id → new_stream_id</code>.<a href="#section-12.1-1.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-12.1-1.6">
+            <p id="section-12.1-1.6.1">Two frames with equal <code>stream_id</code>+<code>seq</code> from different eras are disambiguated <strong>solely</strong> by descent from
+the current registered genesis. Re-genesis is one-time per convergence; a repeat <em>of the same
+convergence</em> is the concurrent case (step 3, fails closed).<a href="#section-12.1-1.6.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+</section>
+</div>
+<div id="dogg-specification-revision-chain">
+<section id="section-12.2">
+        <h3 id="name-dogg-specification-revision">
+<a href="#section-12.2" class="section-number selfRef">12.2. </a><a href="#name-dogg-specification-revision" class="section-name selfRef">DOGG specification revision chain</a>
+        </h3>
+<p id="section-12.2-1">The RAPP/1 revision content is the append-only JSONL stream at
+<code>anchor/chain.jsonl</code>. The chain's particle, wave, and predecessor hashes prove
+byte integrity and linear history; they do <strong>not</strong> authenticate who selected a
+head or ratified an amendment. Until a separately authenticated RAPP
+registry/checkpoint is ratified, authority is selected by owner-ratified
+acceptance of a chain snapshot onto protected canonical
+<code>refs/heads/main</code> at <code>https://github.com/kody-w/rapp-1</code>. A consumer starting
+from an out-of-band pinned accepted commit and head frame hash has the same
+immutable selection evidence. An internally valid fork is not authoritative
+merely because its hashes verify.<a href="#section-12.2-1" class="pilcrow">¶</a></p>
+<p id="section-12.2-2">Every protocol adjustment <strong>MUST</strong> append exactly one valid successor frame:<a href="#section-12.2-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-12.2-3.1">
+            <p id="section-12.2-3.1.1"><code>spec</code> remains <code>"rapp/1"</code>, the envelope remains exactly eleven keys, and the
+allowed registered anchor kind is <code>body.pulse</code>; this profile does not create
+a new kind or alter canonicalization, hashing, or registered-kind semantics;<a href="#section-12.2-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-12.2-3.2">
+            <p id="section-12.2-3.2.1"><code>stream_id</code> remains the bootstrap-pinned anchor stream, <code>seq</code> is contiguous,
+<code>prev</code> names the predecessor's <code>payload_hash</code>, <code>prev_wave</code> and <code>sig</code> are
+<code>null</code>, and the applicable §7.5 integrity checks hold;<a href="#section-12.2-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-12.2-3.3">
+            <p id="section-12.2-3.3.1">the frame's <code>frame_hash</code> is the durable protocol-revision identity.
+Human names such as <code>rev-14</code> are lookup labels/views, never identities.<a href="#section-12.2-3.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<div id="immutable-bootstrap-boundary">
+<section id="section-12.2.1">
+          <h4 id="name-immutable-bootstrap-boundar">
+<a href="#section-12.2.1" class="section-number selfRef">12.2.1. </a><a href="#name-immutable-bootstrap-boundar" class="section-name selfRef">Immutable bootstrap boundary</a>
+          </h4>
+<p id="section-12.2.1-1">Verification begins from the frozen <code>rapp-anchor-bootstrap/1</code> profile published
+through <code>anchor/bootstrap/index.json</code>. The index names a
+<code>anchor/bootstrap/sha256-&lt;raw-profile-sha256&gt;.json</code> object and pins the exact
+stdlib verifier at <code>anchor/bootstrap_verify.py</code> by raw SHA-256 and byte length.
+The profile fixes the exact-integer JCS subset and limits, particle/wave
+domains, eleven frame keys, timestamp/sequence/predecessor rules, canonical
+repository and protected ref, anchor stream ID, genesis frame and payload
+hashes, <code>body.pulse</code> anchor profile, null signature/wave fields, and byte/depth
+limits needed to verify this chain.<a href="#section-12.2.1-1" class="pilcrow">¶</a></p>
+<p id="section-12.2.1-2">The content-addressed bootstrap profile is immutable. Changing it requires a
+new bootstrap schema/version and a new external ratification; mutating
+<code>rapp-anchor-bootstrap/1</code> in place is refusal. Its initial authenticity is
+necessarily external — owner-ratified protected canonical main or an
+out-of-band pinned profile hash/immutable commit — because neither a chain nor
+code fetched with that chain can circularly authenticate its own parser.
+<code>rapp.py</code> remains the complete reference implementation and is cross-checked,
+but it is not the mutable bootstrap trust pin.<a href="#section-12.2.1-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="revision-payloads-and-historical-exception">
+<section id="section-12.2.2">
+          <h4 id="name-revision-payloads-and-histo">
+<a href="#section-12.2.2" class="section-number selfRef">12.2.2. </a><a href="#name-revision-payloads-and-histo" class="section-name selfRef">Revision payloads and historical exception</a>
+          </h4>
+<p id="section-12.2.2-1">Frames through rev-13 retain their immutable legacy pointer fields:
+<code>canonical_repo</code>, a full 40-lowercase-hex <code>commit</code>, safe relative
+<code>normative_path</code>, raw-file <code>normative_sha256</code>, and decimal-string
+<code>normative_bytes</code>. A resolver <strong>MUST</strong> construct only an immutable
+commit-pinned GitHub Raw URL from those fields, fetch the bytes, and verify
+length and raw SHA-256 before use. A branch or tag name in <code>commit</code>, an unsafe
+path, malformed UTF-8, a byte-order mark, or a hash/length mismatch is refusal.
+Path validation occurs on the original string before path-library
+normalization: empty, absolute, <code>.</code>/<code>..</code>, empty components, repeated slash,
+leading <code>./</code>, trailing slash, backslash, percent-encoded ambiguity, or any
+value whose reconstructed POSIX form differs is refused.
+These pointer payloads are immutable governance history under Article 3's
+narrow exception; they <strong>MUST NOT</strong> be emitted for rev-14 or later.<a href="#section-12.2.2-1" class="pilcrow">¶</a></p>
+<p id="section-12.2.2-2">Rev-14 and each successor using this profile carries all normative text inside
+the chain frame. Its payload <strong>MUST</strong> include
+<code>schema:"rapp-spec-revision/1"</code>, a unique <code>revision</code>, and both
+<code>previous_revision</code> and <code>previous_normative_sha256</code> matching the immediate
+predecessor. It preserves the useful legacy fields above, carries the
+publication/ratification metadata defined below, and adds exactly this
+<code>normative</code> object:<a href="#section-12.2.2-2" class="pilcrow">¶</a></p>
+<p id="section-12.2.2-3"><code>json
+{
+  "media_type": "text/markdown; charset=utf-8",
+  "text": "&lt;exact normative SPEC.md Unicode text&gt;",
+  "sha256": "&lt;lowercase SHA-256 of text encoded as UTF-8&gt;",
+  "bytes": 123
+}
+</code><a href="#section-12.2.2-3" class="pilcrow">¶</a></p>
+<p id="section-12.2.2-4"><code>normative.text</code> <strong>MUST</strong> encode as UTF-8 without a byte-order mark;
+<code>normative.sha256</code> and <code>normative.bytes</code> <strong>MUST</strong> match those exact octets and
+the corresponding legacy <code>normative_sha256</code> and <code>normative_bytes</code>. The complete
+canonical frame remains subject to §4's 1 MiB limit. Inline revisions require
+only the selected, verified chain bytes once fetched; their commit/path fields
+are immutable provenance, not a second source for normative text.<a href="#section-12.2.2-4" class="pilcrow">¶</a></p>
+<p id="section-12.2.2-5">The payload's <code>publication</code> object, repeated in the beacon and revision index,
+records: canonical repository <code>https://github.com/kody-w/rapp-1</code>; protected ref
+<code>refs/heads/main</code>; selection by owner-ratified acceptance; the accepted
+canonical-main commit as linearization point; prohibition of history
+replacement; mandatory rebase/regeneration for a competing append; rev-14
+ratification under rev-13 Article 14; application of this chain-append process
+from rev-15 onward; and <code>authenticated_registry_checkpoint:null</code> until one
+actually exists. This metadata <strong>MUST NOT</strong> be interpreted as a signature or
+authenticated registry.<a href="#section-12.2.2-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="content-addressed-publication-and-resolution">
+<section id="section-12.2.3">
+          <h4 id="name-content-addressed-publicati">
+<a href="#section-12.2.3" class="section-number selfRef">12.2.3. </a><a href="#name-content-addressed-publicati" class="section-name selfRef">Content-addressed publication and resolution</a>
+          </h4>
+<p id="section-12.2.3-1">Every chain frame <strong>MUST</strong> also be published, without a trailing line
+terminator, at:<a href="#section-12.2.3-1" class="pilcrow">¶</a></p>
+<p id="section-12.2.3-2"><code>text
+anchor/frames/&lt;frame_hash&gt;.json
+</code><a href="#section-12.2.3-2" class="pilcrow">¶</a></p>
+<p id="section-12.2.3-3">A fetch through mutable main is discovery only. Given frame hash <code>F</code>, a
+stranger may fetch
+<code>https://raw.githubusercontent.com/kody-w/rapp-1/main/anchor/frames/F.json</code>,
+parse it under the pinned bootstrap, and accept the object only if its computed
+wave equals <code>F</code>. For accepted snapshot commit <code>C</code>, the immutable URL is
+<code>https://raw.githubusercontent.com/kody-w/rapp-1/C/anchor/frames/F.json</code>.
+Wrong content at the correct hash-derived path is refusal.<a href="#section-12.2.3-3" class="pilcrow">¶</a></p>
+<p id="section-12.2.3-4"><code>anchor/index.json</code> is a deterministic generated index from <code>seq</code>, revision
+label, frame hash, and payload hash to those objects. It carries no independent
+authority: a consumer <strong>MUST</strong> verify each selected object and match the index
+and beacon to the fully verified chain. Resolution by frame hash uses the path
+algorithm directly; resolution by payload hash or sequence uses the verified
+index; resolution by revision label is a view over it. The fixed pre-profile
+rev-5 pulses share one historical label, so the <code>rev-5</code> view resolves to the
+greatest matching <code>seq</code>, while every pulse remains directly resolvable by
+sequence and hashes.<a href="#section-12.2.3-4" class="pilcrow">¶</a></p>
+<p id="section-12.2.3-5">A consumer <strong>MUST</strong> verify the chain from the bootstrap-pinned genesis before
+using a revision as selected history. It <strong>MUST</strong> refuse an invalid frame shape,
+particle, wave, or <code>prev</code>; a fork or duplicate <code>seq</code>; duplicate frame/payload
+hashes; a duplicate profiled revision; an unsupported schema; a legacy
+pointer-only frame after rev-13; malformed UTF-8; normative hash/length drift;
+bootstrap/index/object drift; or an object absent from the selected chain.<a href="#section-12.2.3-5" class="pilcrow">¶</a></p>
+<p id="section-12.2.3-6"><code>orient.json</code> is only a beacon to the head. Its sequence, frame hash, payload
+hash, bootstrap/index pins, authority-selection metadata, and every retained
+head mirror — including <code>registered_kinds</code>, vocabulary, operational profiles,
+foundation, philosophy, and Constitution metadata — <strong>MUST</strong> be regenerated
+from and match the verified head. While the beacon schema remains
+<code>rapp/1-anchor</code>, <code>spec.normative_path</code> <strong>MUST</strong> remain as a compatibility alias
+equal to <code>spec.materialized_path</code>. <code>SPEC.md</code> <strong>MUST</strong> reproduce the selected
+head byte-for-byte. The Atom feed and mutable main URLs are discovery only.<a href="#section-12.2.3-6" class="pilcrow">¶</a></p>
+<p id="section-12.2.3-7">Materialization and immutable-pointer caching <strong>MUST</strong> use bounded reads and
+same-directory atomic replacement without following a symlink in the
+destination leaf or path. A symlink, unsafe directory component, oversized
+cache entry, content change during read/write, or compare-and-swap mismatch is
+refusal; the requested leaf is replaced, never the symlink target.<a href="#section-12.2.3-7" class="pilcrow">¶</a></p>
+<p id="section-12.2.3-8">After acceptance, let <code>C</code> be the full 40-hex canonical-main commit containing
+the accepted snapshot. The immutable checkpoint URLs are:<a href="#section-12.2.3-8" class="pilcrow">¶</a></p>
+<p id="section-12.2.3-9"><code>text
+https://raw.githubusercontent.com/kody-w/rapp-1/C/anchor/chain.jsonl
+https://raw.githubusercontent.com/kody-w/rapp-1/C/anchor/orient.json
+https://raw.githubusercontent.com/kody-w/rapp-1/C/anchor/index.json
+</code><a href="#section-12.2.3-9" class="pilcrow">¶</a></p>
+<p id="section-12.2.3-10">The authority linearization point is the owner-ratified acceptance of <code>C</code> onto
+protected canonical main, not creation of a local frame, a feed event, or a
+hash alone. A stale competing append <strong>MUST</strong> rebase onto the accepted head and
+regenerate. Force-push or history replacement of accepted authority is
+prohibited.<a href="#section-12.2.3-10" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="rev-14-transition-and-draft-replacement">
+<section id="section-12.2.4">
+          <h4 id="name-rev-14-transition-and-draft">
+<a href="#section-12.2.4" class="section-number selfRef">12.2.4. </a><a href="#name-rev-14-transition-and-draft" class="section-name selfRef">Rev-14 transition and draft replacement</a>
+          </h4>
+<p id="section-12.2.4-1">Rev-14 is ratified under rev-13 Article 14. Owner acceptance of the prepared
+change onto canonical protected main makes the final rev-14 frame effective;
+the new chain-append process governs rev-15 onward. Before that acceptance,
+rev-14 artifacts are unpublished drafts. A later commit in the same
+owner-ratified change may deterministically replace the one unpublished rev-14
+draft line/object and update dependent hashes, but <strong>MUST</strong> preserve every
+rev-5 through rev-13 line byte-for-byte and <strong>MUST NOT</strong> represent the replaced
+draft as accepted history.<a href="#section-12.2.4-1" class="pilcrow">¶</a></p>
+<p id="section-12.2.4-2">The publication generator <strong>MUST</strong> hold one cross-process exclusive lock across
+read, verification, generation, comparison, and publication. Immediately
+before replacing <code>chain.jsonl</code> it <strong>MUST</strong> re-read and verify the on-disk head
+and compare the complete expected prefix; a stale writer or changed prefix is
+refused. Supporting content-addressed artifacts are published first, the
+authority chain is compare-and-swap replaced next, and the beacon is replaced
+last, with file and parent-directory synchronization. Because the chain is
+authority content and the beacon is only a derived view, interruption after a
+valid chain replacement may leave a stale or missing beacon; the next locked
+run <strong>MUST</strong> deterministically regenerate it from the verified chain rather
+than refusing the valid head forever.<a href="#section-12.2.4-2" class="pilcrow">¶</a></p>
+<p id="section-12.2.4-3">This chain and beacon are unsigned. They provide integrity after authority
+selection, not authorship, and implementations <strong>MUST NOT</strong> fabricate a
+signature or authenticated registry/checkpoint state for them.<a href="#section-12.2.4-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="the-registry-an-estates-signed-root-of-trust-append-only">
+<section id="section-13">
+      <h2 id="name-the-registry-an-estates-sig">
+<a href="#section-13" class="section-number selfRef">13. </a><a href="#name-the-registry-an-estates-sig" class="section-name selfRef">The registry — an estate's signed root of trust (append-only)</a>
+      </h2>
+<p id="section-13-1">Each estate selects an owner-controlled <code>canonical_source</code> for its
+<code>schema:"rapp/1-registry"</code> document. The kody-w reference estate may publish
+its registry through <code>kody-w/RAPP</code> or another owner-authorized location, but
+that estate instance cannot alter this protocol. Because §7.6 head resets, §10
+key discovery, tombstone revocation, and ownership all resolve through the
+selected registry, it is the <strong>root of trust for that estate</strong> and is itself
+authenticated (an unsigned mutable file at the root of the trust graph would
+forge that estate).<a href="#section-13-1" class="pilcrow">¶</a></p>
+<div id="trust-anchor-and-registry-authentication">
+<section id="section-13.1">
+        <h3 id="name-trust-anchor-and-registry-a">
+<a href="#section-13.1" class="section-number selfRef">13.1. </a><a href="#name-trust-anchor-and-registry-a" class="section-name selfRef">Trust anchor and registry authentication</a>
+        </h3>
+<ul class="normal">
+<li class="normal" id="section-13.1-1.1">
+            <p id="section-13.1-1.1.1">The one bootstrap axiom is the <strong><code>estate_owner</code> rappid string</strong> itself: since a keyed tail is
+<code>Hb("rapp/1:rappid", SPKI_DER)</code>, the rappid <strong>is</strong> a self-certifying key fingerprint, distributed
+out-of-band exactly once (QR, invite, docs) the way a root-CA certificate is.<a href="#section-13.1-1.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-13.1-1.2">
+            <p id="section-13.1-1.2.1">The registry document <strong>MUST</strong> carry a top-level <code>registry_seq</code> (uint53) and a detached §10 JWS <code>sig</code> over
+<code>canonical(registry \ {sig})</code> with <code>kid</code> = the <code>estate_owner</code> rappid. A consumer <strong>MUST</strong> verify this
+signature against an SPKI whose <code>Hb("rapp/1:rappid", SPKI_DER)</code> equals the anchor rappid's tail (the SPKI
+may travel alongside the registry — the tail check authenticates it) and <strong>MUST</strong> refuse an unsigned or
+non-verifying registry.<a href="#section-13.1-1.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-13.1-1.3">
+            <p id="section-13.1-1.3.1"><strong>No rollback:</strong> a consumer persists the highest <code>registry_seq</code> it verified and refuses any registry with
+a lower one (mirrors §7.6). <strong>Freshness:</strong> a consumer <strong>MUST</strong> obtain the registry from <code>canonical_source</code>
+or a provenance-stamped (Art. VIII) mirror of it, <strong>SHOULD</strong> refresh before any §7.5-step-6 or §7.6
+head-reset decision, and <strong>MUST</strong> report a verification made against a registry older than its staleness
+policy as <em>stale</em>, not <em>clean</em>.<a href="#section-13.1-1.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="owner-succession-time-scoped-authority">
+<section id="section-13.2">
+        <h3 id="name-owner-succession-time-scope">
+<a href="#section-13.2" class="section-number selfRef">13.2. </a><a href="#name-owner-succession-time-scope" class="section-name selfRef">Owner succession (time-scoped authority)</a>
+        </h3>
+<p id="section-13.2-1">"Owner-signed" means: the <code>sig</code> verifies per §10 <strong>and</strong> <code>kid</code> is the estate-owner <strong>in effect at the
+artifact's <code>utc</code></strong> — the current <code>estate_owner</code> or any predecessor reachable through the registry's
+re-anchor records (§13.3), with the artifact's <code>utc</code> inside that owner's tenure <code>[record.utc, successor.utc)</code>.
+Verification uses the owner in effect at the artifact's time, <strong>never only the current one</strong> (so a routine
+owner key rotation never invalidates historical re-genesis frames or tombstones). Estate-owner <strong>root-key
+compromise</strong> is recovered only by re-distributing a new trust anchor out-of-band (§13.1) — it cannot be
+expressed inside the registry it signs.<a href="#section-13.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="entry-types-each-a-4-value-document-schemarapp1-registry">
+<section id="section-13.3">
+        <h3 id="name-entry-types-each-a-4-value-">
+<a href="#section-13.3" class="section-number selfRef">13.3. </a><a href="#name-entry-types-each-a-4-value-" class="section-name selfRef">Entry types (each a §4 value; document <code>schema:"rapp/1-registry"</code>)</a>
+        </h3>
+<p id="section-13.3-1">The registry is an I-JSON document; every entry is append-only (never removed/renamed; retirement is a
+<code>deprecated:true</code> flag). Entry types and their exact members:
+- <strong>protocol</strong> <code>{type:"protocol", name, spec_repo, spec_path, spec_hash, deprecated}</code> — an estate
+  adoption pin, never a power to redefine a protocol. An entry with <code>name:"rapp/1"</code> that is used for a
+  current-conformance claim <strong>MUST</strong> set <code>spec_repo:"https://github.com/kody-w/rapp-1"</code>,
+  <code>spec_path:"SPEC.md"</code>, and <code>spec_hash</code> to a normative SHA-256 published by a verified frame in this
+  repository's anchor chain. A historical RAPP/1 pin may be retained only as <code>deprecated:true</code>; it does
+  not override the current anchor. Other protocol entries are subordinate to their own canonical
+  authorities and <strong>MUST NOT</strong> claim the <code>rapp/1</code> name or namespace.
+- <strong>kind</strong> <code>{type:"kind", kind, family, deprecated}</code> (incl. the three <code>*.re-genesis</code> kinds)
+- <strong>egg-variant</strong> <code>{type:"egg-variant", variant, deprecated}</code> · <strong>error-code</strong> <code>{type:"error-code", code}</code>
+  (both closed namespaces; unregistered value = not conformant)
+- <strong>genesis</strong> <code>{type:"genesis", stream_id, frame_hash, deprecated, old_stream_id?, new_stream_id?}</code> — <strong>every</strong>
+  stream registers its creation genesis; re-genesis appends a new one and deprecates all prior (§12.1 step 3);
+  §7.6's "registered genesis" is the sole non-deprecated <code>genesis</code> for a <code>stream_id</code>.
+- <strong>spki</strong> <code>{type:"spki", rappid, spki_der_b64, deprecated}</code> — the §10 key-discovery source.
+- <strong>tombstone</strong> <code>{type:"tombstone", rappid, revoked_utc, sig}</code>, <code>sig</code> owner-signed over <code>canonical(entry \ {sig})</code>.
+- <strong>re-anchor</strong> <code>{type:"re-anchor", old_rappid, new_rappid, case:("upgrade"|"rotation"|"compromise"|"tag-migrate"),
+  utc, sig, old_key_sig?}</code> — <code>sig</code> owner-signed; <code>old_key_sig</code> a §10 JWS by the <strong>old</strong> key over
+  <code>canonical(entry \ {sig,old_key_sig})</code>, REQUIRED for <code>case:"rotation"</code>. This is the normative succession record (§13.2).
+- <strong>grail-kernel</strong> <code>{type:"grail-kernel", release_scope, grail_id, repository, immutable_ref,
+  object_format, commit, path, mode, blob, sha256, size_bytes, activated_utc, predecessor, declared_by,
+  sig}</code> — exactly these members. <code>release_scope</code> is an absolute HTTPS URI selected by the estate owner;
+  no two entries may share it. <code>grail_id</code> is
+  <code>"grail:" || Hb("rapp/1:grail", kernel_bytes)</code>; <code>repository</code> is an absolute HTTPS URI;
+  <code>immutable_ref</code> is a full <code>refs/tags/...</code> name that <strong>MUST</strong> resolve exactly to <code>commit</code>;
+  <code>object_format</code> is <code>"sha1"</code> or <code>"sha256"</code> and fixes the required lowercase hexadecimal length of
+  <code>commit</code> and <code>blob</code>; <code>path</code> at <code>commit</code> <strong>MUST</strong> resolve through the repository tree to exactly one
+  regular blob with <code>mode</code> <code>"100644"</code> or <code>"100755"</code> and object id <code>blob</code>;
+  <code>path</code> is a relative NFC POSIX path with no empty, <code>"."</code>, or <code>".."</code> component; <code>sha256</code> is the raw
+  kernel bytes' 64-lowercase-hex SHA-256; <code>size_bytes</code> is their positive <code>uint53</code> length;
+  <code>activated_utc</code> has the exact §7.4 form; <code>predecessor</code> is null or another <code>grail_id</code>; <code>declared_by</code> is
+  a keyed rappid; and <code>sig</code> is a detached §10 JWS whose protected <code>kid</code> equals <code>declared_by</code>, over
+  <code>canonical(entry \ {sig})</code>. The entry is additionally covered by the registry's §13.1 signature. A
+  consumer verifies the entry signer as the estate owner in effect at <code>activated_utc</code>, verifies the
+  referenced bytes, recomputes both hashes, persists the canonical entry on first activation, applies
+  §11.1, and refuses a missing/mutated prior binding, duplicate <code>grail_id</code>, or locator whose bytes
+  disagree.
+- <strong>estate_owner</strong> <code>{type:"estate_owner", rappid}</code> (exactly one non-deprecated) · <strong>master-plan</strong>
+          <code>{type:"master-plan", repo, path}</code> (Fed. Const. Art. VII).<a href="#section-13.3-1" class="pilcrow">¶</a></p>
+<p id="section-13.3-2">§7.5 steps 1–5 are time-independent (append-only lookups); <strong>only</strong> step 6 (tombstones) and §13.2 owner
+tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.<a href="#section-13.3-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="security-considerations">
+<section id="section-14">
+      <h2 id="name-security-considerations">
+<a href="#section-14" class="section-number selfRef">14. </a><a href="#name-security-considerations" class="section-name selfRef">Security considerations</a>
+      </h2>
+<ul class="normal">
+<li class="normal" id="section-14-1.1">
+          <p id="section-14-1.1.1"><strong>Integrity:</strong> every object is domain-separated content-addressed (§5); a hostile mirror cannot alter
+bytes without breaking the hash, so <em>history is safe given a trusted head</em>.<a href="#section-14-1.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-1.2">
+          <p id="section-14-1.2.1"><strong>Head freshness is not self-certifying:</strong> the chain authenticates history, not which head is current; a
+hostile mirror may serve a stale/forked head. Consumers counter with the §7.6 monotonic-head rule; swarm
+heads <strong>SHOULD</strong> be owner-signed.<a href="#section-14-1.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-1.3">
+          <p id="section-14-1.3.1"><strong>Cross-stream replay:</strong> without §7.5 step 1a, any genesis/segment of stream A replays as stream B (seq=0,
+prev=null always pass). Step 1a's stream binding is mandatory.<a href="#section-14-1.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-1.4">
+          <p id="section-14-1.4.1"><strong>Address-space confusion:</strong> §5 domain tags make a particle, wave, egg, or rappid tail with equal hex
+non-interchangeable; stores key by <code>(space, hash)</code>.<a href="#section-14-1.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-1.5">
+          <p id="section-14-1.5.1"><strong>Canonicalization attacks:</strong> the §4 I-JSON input-domain profile (no duplicate keys, no lone surrogates,
+exact binary64, no normalization ambiguity) removes hash-splitting and NFC-twin vectors.<a href="#section-14-1.5.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-1.6">
+          <p id="section-14-1.6.1"><strong>Identity forgery / key compromise:</strong> authorship requires a keyed rappid + valid §10 <code>sig</code>; rotation is
+§6.3 re-anchor (verifiable authorization, §6.3/§13.3 — a self-asserted <code>_migrated_from</code> is refused);
+compromise is a §13 tombstone enforced at verify time. Because a tombstone gates on the frame's
+producer-controlled <code>utc</code>, a compromised key can still emit frames stamped just below <code>revoked_utc</code>; after
+a compromise the owner <strong>SHOULD</strong> advance affected stream heads (or re-genesis) past <code>revoked_utc</code>.<a href="#section-14-1.6.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-1.7">
+          <p id="section-14-1.7.1"><strong>Root of trust:</strong> the registry is the estate's signed root (§13.1); it is authenticated by an owner
+signature anchored to the out-of-band <code>estate_owner</code> rappid fingerprint, <code>registry_seq</code>-monotonic against
+rollback, and freshness-checked (a stale registry silently un-revokes keys and hides re-geneses).<a href="#section-14-1.7.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-1.8">
+          <p id="section-14-1.8.1"><strong>Producer-controlled <code>utc</code> (DoS/merge bias):</strong> a future-dated head can brick a stream (successors refused
+as earlier) and bias UTC-first merges. A consumer <strong>SHOULD</strong> refuse a frame whose <code>utc</code> exceeds receipt
+time by &gt;300 s, and adversarial-scope merges <strong>SHOULD</strong> rank by <code>min(utc, first-seen)</code>; a bricked stream
+converges by re-genesis (§12.1).<a href="#section-14-1.8.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-1.9">
+          <p id="section-14-1.9.1"><strong>Sealed-artifact limits:</strong> a public mirror sees ciphertext and metadata. AES-GCM protects confidentiality
+only while the DEK remains secret; a recipient that has lawfully decrypted plaintext can copy it.
+Revocation stops future wrapped-key release, not prior possession. Shared passwords, embedded master keys,
+moving-branch URLs, nonce reuse under one DEK, and claims that bytecode cannot be inspected after
+decryption are non-conformant security postures (§9.2.1).<a href="#section-14-1.9.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-1.10">
+          <p id="section-14-1.10.1"><strong>Kernel substitution:</strong> testing mutable ring bytes and restoring the Grail only after approval creates
+an untested release. §11.1 requires the release-shaped artifact to contain the pinned bytes before its
+tests, attestations, and approval; a digest mismatch is a blocking <code>kernel-drift</code> finding.<a href="#section-14-1.10.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-1.11">
+          <p id="section-14-1.11.1"><strong>Kernel registry rollback/rebinding:</strong> persisting only <code>registry_seq</code> does not preserve an activated
+Grail declaration across a malicious higher-sequence registry. Consumers also persist every activated
+canonical <code>grail-kernel</code> entry and reject its later removal, mutation, or duplication (§11.1).<a href="#section-14-1.11.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+</section>
+</div>
+<div id="sec-combined-references">
+<section id="section-15">
+      <h2 id="name-references">
+<a href="#section-15" class="section-number selfRef">15. </a><a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<div id="sec-normative-references">
+<section id="section-15.1">
+        <h3 id="name-normative-references">
+<a href="#section-15.1" class="section-number selfRef">15.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="RFC2119">[RFC2119]</dt>
+        <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2119">https://www.rfc-editor.org/rfc/rfc2119</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC3339">[RFC3339]</dt>
+        <dd>
+<span class="refAuthor">Klyne, G.</span> and <span class="refAuthor">C. Newman</span>, <span class="refTitle">"Date and Time on the Internet: Timestamps"</span>, <span class="seriesInfo">RFC 3339</span>, <span class="seriesInfo">DOI 10.17487/RFC3339</span>, <time datetime="2002-07" class="refDate">July 2002</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc3339">https://www.rfc-editor.org/rfc/rfc3339</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC5280">[RFC5280]</dt>
+        <dd>
+<span class="refAuthor">Cooper, D.</span>, <span class="refAuthor">Santesson, S.</span>, <span class="refAuthor">Farrell, S.</span>, <span class="refAuthor">Boeyen, S.</span>, <span class="refAuthor">Housley, R.</span>, and <span class="refAuthor">W. Polk</span>, <span class="refTitle">"Internet X.509 Public Key Infrastructure Certificate and Certificate Revocation List (CRL) Profile"</span>, <span class="seriesInfo">RFC 5280</span>, <span class="seriesInfo">DOI 10.17487/RFC5280</span>, <time datetime="2008-05" class="refDate">May 2008</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc5280">https://www.rfc-editor.org/rfc/rfc5280</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC5869">[RFC5869]</dt>
+        <dd>
+<span class="refAuthor">Krawczyk, H.</span> and <span class="refAuthor">P. Eronen</span>, <span class="refTitle">"HMAC-based Extract-and-Expand Key Derivation Function (HKDF)"</span>, <span class="seriesInfo">RFC 5869</span>, <span class="seriesInfo">DOI 10.17487/RFC5869</span>, <time datetime="2010-05" class="refDate">May 2010</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc5869">https://www.rfc-editor.org/rfc/rfc5869</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6979">[RFC6979]</dt>
+        <dd>
+<span class="refAuthor">Pornin, T.</span>, <span class="refTitle">"Deterministic Usage of the Digital Signature Algorithm (DSA) and Elliptic Curve Digital Signature Algorithm (ECDSA)"</span>, <span class="seriesInfo">RFC 6979</span>, <span class="seriesInfo">DOI 10.17487/RFC6979</span>, <time datetime="2013-08" class="refDate">August 2013</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6979">https://www.rfc-editor.org/rfc/rfc6979</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7405">[RFC7405]</dt>
+        <dd>
+<span class="refAuthor">Kyzivat, P.</span>, <span class="refTitle">"Case-Sensitive String Support in ABNF"</span>, <span class="seriesInfo">RFC 7405</span>, <span class="seriesInfo">DOI 10.17487/RFC7405</span>, <time datetime="2014-12" class="refDate">December 2014</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7405">https://www.rfc-editor.org/rfc/rfc7405</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7493">[RFC7493]</dt>
+        <dd>
+<span class="refAuthor">Bray, T., Ed.</span>, <span class="refTitle">"The I-JSON Message Format"</span>, <span class="seriesInfo">RFC 7493</span>, <span class="seriesInfo">DOI 10.17487/RFC7493</span>, <time datetime="2015-03" class="refDate">March 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7493">https://www.rfc-editor.org/rfc/rfc7493</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7515">[RFC7515]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">N. Sakimura</span>, <span class="refTitle">"JSON Web Signature (JWS)"</span>, <span class="seriesInfo">RFC 7515</span>, <span class="seriesInfo">DOI 10.17487/RFC7515</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7515">https://www.rfc-editor.org/rfc/rfc7515</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7516">[RFC7516]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span> and <span class="refAuthor">J. Hildebrand</span>, <span class="refTitle">"JSON Web Encryption (JWE)"</span>, <span class="seriesInfo">RFC 7516</span>, <span class="seriesInfo">DOI 10.17487/RFC7516</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7516">https://www.rfc-editor.org/rfc/rfc7516</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7518">[RFC7518]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refTitle">"JSON Web Algorithms (JWA)"</span>, <span class="seriesInfo">RFC 7518</span>, <span class="seriesInfo">DOI 10.17487/RFC7518</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7518">https://www.rfc-editor.org/rfc/rfc7518</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7797">[RFC7797]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refTitle">"JSON Web Signature (JWS) Unencoded Payload Option"</span>, <span class="seriesInfo">RFC 7797</span>, <span class="seriesInfo">DOI 10.17487/RFC7797</span>, <time datetime="2016-02" class="refDate">February 2016</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7797">https://www.rfc-editor.org/rfc/rfc7797</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8037">[RFC8037]</dt>
+        <dd>
+<span class="refAuthor">Liusvaara, I.</span>, <span class="refTitle">"CFRG Elliptic Curve Diffie-Hellman (ECDH) and Signatures in JSON Object Signing and Encryption (JOSE)"</span>, <span class="seriesInfo">RFC 8037</span>, <span class="seriesInfo">DOI 10.17487/RFC8037</span>, <time datetime="2017-01" class="refDate">January 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8037">https://www.rfc-editor.org/rfc/rfc8037</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8174">[RFC8174]</dt>
+        <dd>
+<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8174">https://www.rfc-editor.org/rfc/rfc8174</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8785">[RFC8785]</dt>
+        <dd>
+<span class="refAuthor">Rundgren, A.</span>, <span class="refAuthor">Jordan, B.</span>, and <span class="refAuthor">S. Erdtman</span>, <span class="refTitle">"JSON Canonicalization Scheme (JCS)"</span>, <span class="seriesInfo">RFC 8785</span>, <span class="seriesInfo">DOI 10.17487/RFC8785</span>, <time datetime="2020-06" class="refDate">June 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8785">https://www.rfc-editor.org/rfc/rfc8785</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9562">[RFC9562]</dt>
+      <dd>
+<span class="refAuthor">Davis, K.</span>, <span class="refAuthor">Peabody, B.</span>, and <span class="refAuthor">P. Leach</span>, <span class="refTitle">"Universally Unique IDentifiers (UUIDs)"</span>, <span class="seriesInfo">RFC 9562</span>, <span class="seriesInfo">DOI 10.17487/RFC9562</span>, <time datetime="2024-05" class="refDate">May 2024</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9562">https://www.rfc-editor.org/rfc/rfc9562</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="sec-informative-references">
+<section id="section-15.2">
+        <h3 id="name-informative-references">
+<a href="#section-15.2" class="section-number selfRef">15.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="RAPP1-ANCHOR">[RAPP1-ANCHOR]</dt>
+      <dd>
+<span class="refTitle">"RAPP/1 specification anchor (append-only chain of record)"</span>, <time datetime="2026" class="refDate">2026</time>, <span>&lt;<a href="https://kody-w.github.io/rapp-1/anchor/orient.json">https://kody-w.github.io/rapp-1/anchor/orient.json</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+<div id="acknowledgements">
+<section id="appendix-A">
+      <h2 id="name-acknowledgements">
+<a href="#appendix-A" class="section-number selfRef">Appendix A. </a><a href="#name-acknowledgements" class="section-name selfRef">Acknowledgements</a>
+      </h2>
+<p id="appendix-A-1">The specification was hardened through adversarial review rounds recorded in its
+revision log. The chain of record and its verifier are at <span>[<a href="#RAPP1-ANCHOR" class="cite xref">RAPP1-ANCHOR</a>]</span>.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-B">
+      <h2 id="name-authors-address">
+<a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Kody Wildfeuer</span></div>
+<div dir="auto" class="left"><span class="org">Wildhaven Homes LLC</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:wildhavenhomesllc@gmail.com" class="email">wildhavenhomesllc@gmail.com</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>

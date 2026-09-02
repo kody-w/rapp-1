@@ -46,6 +46,8 @@ jobs:
             done
           done
           exit $bad
+      - name: The Internet-Draft renders the chain head (no stale archival copy)
+        run: python3 ietf/make_draft.py 00 --check
       - name: Implementer vectors are derived from rapp.py, never hand-edited
         run: python3 conformance/make_vectors.py --check
       - name: Reference/agent primitive parity (one canonicalizer, enforced)
