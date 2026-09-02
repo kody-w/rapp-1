@@ -77,7 +77,7 @@ in chapter 10.
 | **[`PHILOSOPHY.md`](PHILOSOPHY.md)** | byte-identical public mirror of the canonical foundation philosophy, never product authority |
 | **[`protocols/`](protocols/README.md)** | RAPP CI/CD and RAPP Deploy — immutable qualification, bounded rollout, and continuous AI health |
 | **[`conformance/`](conformance/)** | language-neutral known-answer vectors derived from `rapp.py`; how a second implementation claims conformance |
-| **[`ietf/`](ietf/)** | `draft-wildfeuer-rapp-1-00` — the spec rendered as an Internet-Draft for the Independent Submission stream; an RFC number outlives every platform |
+| **[`ietf/`](ietf/)** | `draft-wildfeuer-rapp-1-00` — the spec rendered as an Internet-Draft (CI refuses a copy that does not render the chain head); an RFC number outlives every platform |
 | **[`MIRRORS.md`](MIRRORS.md)** | where else the standard lives — Software Heritage, Wayback, git mirrors, paper |
 | **[`EXTENDING.md`](EXTENDING.md)** | how to extend RAPP without touching this repo — your own estate, your own signed registry, your own kinds; what still needs a revision |
 | **[`rapp_registry.py`](rapp_registry.py)** | the §13 registry as executable checks, stdlib only — exact entry shapes, kind↔family↔stream binding, owner succession, tombstones; `examples/07_your_own_estate.py` drives it |
