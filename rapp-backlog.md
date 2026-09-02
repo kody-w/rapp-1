@@ -5,12 +5,14 @@ internals, customer content and anything a reader here has no business seeing.
 
 ## Open
 
-- [ ] **The anchor is unsigned, and says so.** There is no authenticated §13 registry and
-      no established owner-signing authority, so a signature would be fabrication — the
-      exact ground `rapp-frame-net` was retired on. Unsigned is lawful for a body-stream
-      (§7.5 step 6 binds swarm-streams only) and the beacon states it. When the trust
-      ceremony happens, **the anchor should be the first thing signed**: a signed anchor is
-      what turns "canon we publish" into "canon you can prove".
+- [x] **The anchor is now bound to a signed registry (2026-09-01).** The owner minted the
+      estate-owner key and published `kody-w/rapp-map/ecosystem-spec.json` (registry_seq 1,
+      detached JWS EdDSA): it pins the current normative hash through a `protocol` entry and
+      registers the anchor stream's genesis. The chain frames themselves remain unsigned; a
+      follow-up may carry `sig` on frames (frame_hash does not cover `sig`, so existing waves
+      are unchanged) once the generator learns the ceremony. `orient.json`'s
+      `authenticated_registry_checkpoint` is still null until the generator is taught to point
+      at the registry — that is the next generator change.
 
 - [ ] **Downstream pins should resolve through the anchor rather than hardcode a hash.**
       A pin that was correct the day it was written goes stale silently; that is what
