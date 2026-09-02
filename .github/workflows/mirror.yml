@@ -1,0 +1,38 @@
+name: Mirror
+
+# Every clone is the whole history, but every clone today descends from one GitHub
+# account. This pushes main (and tags) to any mirrors whose push URLs are configured
+# as repository secrets, so the standard has more than one home. Setup is in MIRRORS.md.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Push to every configured mirror
+        env:
+          MIRROR_URLS: ${{ secrets.MIRROR_PUSH_URLS }}
+        run: |
+          if [ -z "$MIRROR_URLS" ]; then
+            echo "no MIRROR_PUSH_URLS secret configured — see MIRRORS.md"; exit 0
+          fi
+          n=0
+          for url in $MIRROR_URLS; do
+            host=$(printf '%s' "$url" | sed -E 's#https://[^@]*@##; s#/.*##')
+            echo "mirroring to $host"
+            git push --force-with-lease=main "$url" main:main
+            git push "$url" --tags
+            n=$((n+1))
+          done
+          echo "mirrored to $n host(s)"

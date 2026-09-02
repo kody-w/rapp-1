@@ -46,6 +46,8 @@ jobs:
             done
           done
           exit $bad
+      - name: Implementer vectors are derived from rapp.py, never hand-edited
+        run: python3 conformance/make_vectors.py --check
       - name: Reference/agent primitive parity (one canonicalizer, enforced)
         run: python3 parity_check.py
       - name: Run every example end to end
