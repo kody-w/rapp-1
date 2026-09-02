@@ -1,0 +1,495 @@
+{
+ "derived_from": "rapp.py",
+ "reference_limits": [
+  "rapp.py refuses non-integer JSON numbers rather than implementing full JCS number serialization; an implementation that does implement RFC 8785 numbers is more complete, not less conformant. Vectors therefore use integers only."
+ ],
+ "schema": "rapp/1-conformance-vectors",
+ "sections": {
+  "4_canonical": [
+   {
+    "canonical": "{\"a\":[3,2],\"b\":1,\"c\":{\"x\":2,\"y\":1}}",
+    "value": {
+     "a": [
+      3,
+      2
+     ],
+     "b": 1,
+     "c": {
+      "x": 2,
+      "y": 1
+     }
+    }
+   },
+   {
+    "canonical": "{\"f\":false,\"n\":0,\"t\":true,\"z\":null}",
+    "value": {
+     "f": false,
+     "n": 0,
+     "t": true,
+     "z": null
+    }
+   },
+   {
+    "canonical": "{\"escapes\":\"line\\nbreak \\\"quoted\\\" \\\\ back /\",\"unicode\":\"héllo — 日本 🐍\"}",
+    "value": {
+     "escapes": "line\nbreak \"quoted\" \\ back /",
+     "unicode": "héllo — 日本 🐍"
+    }
+   },
+   {
+    "canonical": "{\"num\":[0,1,-1,9007199254740991,-9007199254740991,4294967296]}",
+    "value": {
+     "num": [
+      0,
+      1,
+      -1,
+      9007199254740991,
+      -9007199254740991,
+      4294967296
+     ]
+    }
+   },
+   {
+    "canonical": "{\"nested\":{\"deep\":{\"deeper\":[[],{},[{}]]}}}",
+    "value": {
+     "nested": {
+      "deep": {
+       "deeper": [
+        [],
+        {},
+        [
+         {}
+        ]
+       ]
+      }
+     }
+    }
+   },
+   {
+    "canonical": "{\"B\":4,\"a\":3,\"a-b\":7,\"aa\":6,\"b\":5,\"é\":2,\"é\":1}",
+    "value": {
+     "B": 4,
+     "a": 3,
+     "a-b": 7,
+     "aa": 6,
+     "b": 5,
+     "é": 2,
+     "é": 1
+    }
+   },
+   {
+    "canonical": "[]",
+    "value": []
+   },
+   {
+    "canonical": "{}",
+    "value": {}
+   },
+   {
+    "canonical": "\"just a string\"",
+    "value": "just a string"
+   },
+   {
+    "canonical": "42",
+    "value": 42
+   }
+  ],
+  "4_refuse": [
+   {
+    "json_text": "{\"a\":1,\"a\":2}",
+    "why": "duplicate member name"
+   },
+   {
+    "json_text": "{\"n\": 9007199254740993}",
+    "why": "integer does not survive binary64 round-trip"
+   },
+   {
+    "json_text": "{\"n\": 1e999}",
+    "why": "non-finite after parse"
+   },
+   {
+    "json_text": "\"\\ud800\"",
+    "why": "unpaired UTF-16 surrogate"
+   }
+  ],
+  "5_hash": {
+   "H": {
+    "rapp/1:egg-manifest": "8c774ac7a755e62e80ce5791f60acc0673212cd05ba5cb1add656e06f58f18aa",
+    "rapp/1:particle": "2ba28c1fad4d0fbea812dddc74f13e3d097099fb07ce621fd208282ade5e5fc3",
+    "rapp/1:wave": "ab18eb8ab68a6093376335930413afb8b92f81a4da863708bbde8e1a875874e8"
+   },
+   "Hb": {
+    "rapp/1:egg": "6ee41fa6eb674a573496294f5ac6aedf70e38f7e8f7e5e36ba8528c5c0eeaf46",
+    "rapp/1:rappid": "ab8378d3177d0b0fc27dc237396675382754d8273e99290bf85650662212f301"
+   },
+   "rule": "H(space,v) = hex(sha256(utf8(space) || 0x0A || canonical(v))); Hb likewise over raw octets",
+   "value": {
+    "x": 1
+   }
+  },
+  "6_rappid": {
+   "invalid": [
+    "rappid:@Kody/x:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "rappid:@kody/x:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "rappid:@kody/x:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "rappid:@kody//x:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "rappid:@-kody/x:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "rappid:@kody--w/x:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "rappid:@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/x:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "rappid:@kody/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "rappid:v2:kody/x:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "rappid:x:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   ],
+   "keyed_mint": {
+    "rappid": "rappid:@kody/twin:ab8378d3177d0b0fc27dc237396675382754d8273e99290bf85650662212f301",
+    "spki_der_hex": "302a2066616b652d73706b69"
+   },
+   "valid": [
+    "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6"
+   ]
+  },
+  "7_frame": {
+   "child": {
+    "frame_hash": "9855b91ed15aa652f2085e27fc6a26b98466cf435fe498af7b4fb472f251bcbb",
+    "kind": "body.pulse",
+    "payload": {
+     "n": 2
+    },
+    "payload_hash": "18c562f22d4ccfcc1ddaf7d2d0404c75f6baf64360aebbe5860b47fe3eb29ebd",
+    "prev": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+    "prev_wave": null,
+    "seq": 1,
+    "sig": null,
+    "spec": "rapp/1",
+    "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "utc": "2026-07-15T00:00:01.000Z"
+   },
+   "genesis": {
+    "frame_hash": "7f1828db28378b29b976b2763f36154bd432ccf1cfa5bf25e913583db86a010b",
+    "kind": "body.pulse",
+    "payload": {
+     "hello": "world"
+    },
+    "payload_hash": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+    "prev": null,
+    "prev_wave": null,
+    "seq": 0,
+    "sig": null,
+    "spec": "rapp/1",
+    "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "utc": "2026-07-15T00:00:00.000Z"
+   },
+   "note": "tampered frames keep their original hashes on purpose; the verifier must recompute",
+   "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "tampers": [
+    {
+     "expect_step": "2",
+     "frame": {
+      "frame_hash": "7f1828db28378b29b976b2763f36154bd432ccf1cfa5bf25e913583db86a010b",
+      "kind": "body.pulse",
+      "payload": {
+       "hello": "evil"
+      },
+      "payload_hash": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev": null,
+      "prev_wave": null,
+      "seq": 0,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-15T00:00:00.000Z"
+     },
+     "head": null,
+     "label": "payload changed",
+     "stream_id_of_record": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+     "expect_step": "3",
+     "frame": {
+      "frame_hash": "7f1828db28378b29b976b2763f36154bd432ccf1cfa5bf25e913583db86a010b",
+      "kind": "body.pulse",
+      "payload": {
+       "hello": "world"
+      },
+      "payload_hash": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev": null,
+      "prev_wave": null,
+      "seq": 0,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2099-01-01T00:00:00.000Z"
+     },
+     "head": null,
+     "label": "utc changed",
+     "stream_id_of_record": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+     "expect_step": "1",
+     "frame": {
+      "frame_hash": "7f1828db28378b29b976b2763f36154bd432ccf1cfa5bf25e913583db86a010b",
+      "kind": "Body.Pulse",
+      "payload": {
+       "hello": "world"
+      },
+      "payload_hash": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev": null,
+      "prev_wave": null,
+      "seq": 0,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-15T00:00:00.000Z"
+     },
+     "head": null,
+     "label": "kind grammar",
+     "stream_id_of_record": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+     "expect_step": "1",
+     "frame": {
+      "extra": 1,
+      "frame_hash": "7f1828db28378b29b976b2763f36154bd432ccf1cfa5bf25e913583db86a010b",
+      "kind": "body.pulse",
+      "payload": {
+       "hello": "world"
+      },
+      "payload_hash": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev": null,
+      "prev_wave": null,
+      "seq": 0,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-15T00:00:00.000Z"
+     },
+     "head": null,
+     "label": "twelfth key",
+     "stream_id_of_record": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+     "expect_step": "1",
+     "frame": {
+      "frame_hash": "7f1828db28378b29b976b2763f36154bd432ccf1cfa5bf25e913583db86a010b",
+      "kind": "body.pulse",
+      "payload": {
+       "hello": "world"
+      },
+      "payload_hash": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev": null,
+      "prev_wave": null,
+      "seq": 0,
+      "sig": null,
+      "spec": "rapp/2",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-15T00:00:00.000Z"
+     },
+     "head": null,
+     "label": "spec token",
+     "stream_id_of_record": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+     "expect_step": "1a",
+     "frame": {
+      "frame_hash": "7f1828db28378b29b976b2763f36154bd432ccf1cfa5bf25e913583db86a010b",
+      "kind": "body.pulse",
+      "payload": {
+       "hello": "world"
+      },
+      "payload_hash": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev": null,
+      "prev_wave": null,
+      "seq": 0,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-15T00:00:00.000Z"
+     },
+     "head": null,
+     "label": "cross-stream replay",
+     "stream_id_of_record": "rappid:@kody/other:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+     "expect_step": "3",
+     "frame": {
+      "frame_hash": "7f1828db28378b29b976b2763f36154bd432ccf1cfa5bf25e913583db86a010b",
+      "kind": "body.pulse",
+      "payload": {
+       "hello": "world"
+      },
+      "payload_hash": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "prev_wave": null,
+      "seq": 0,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-15T00:00:00.000Z"
+     },
+     "head": null,
+     "label": "genesis with prev",
+     "stream_id_of_record": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+     "expect_step": "3",
+     "frame": {
+      "frame_hash": "9855b91ed15aa652f2085e27fc6a26b98466cf435fe498af7b4fb472f251bcbb",
+      "kind": "body.pulse",
+      "payload": {
+       "n": 2
+      },
+      "payload_hash": "18c562f22d4ccfcc1ddaf7d2d0404c75f6baf64360aebbe5860b47fe3eb29ebd",
+      "prev": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "prev_wave": null,
+      "seq": 1,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-15T00:00:01.000Z"
+     },
+     "head": {
+      "frame_hash": "7f1828db28378b29b976b2763f36154bd432ccf1cfa5bf25e913583db86a010b",
+      "kind": "body.pulse",
+      "payload": {
+       "hello": "world"
+      },
+      "payload_hash": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev": null,
+      "prev_wave": null,
+      "seq": 0,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-15T00:00:00.000Z"
+     },
+     "label": "child prev broken",
+     "stream_id_of_record": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+     "expect_step": "3",
+     "frame": {
+      "frame_hash": "9855b91ed15aa652f2085e27fc6a26b98466cf435fe498af7b4fb472f251bcbb",
+      "kind": "body.pulse",
+      "payload": {
+       "n": 2
+      },
+      "payload_hash": "18c562f22d4ccfcc1ddaf7d2d0404c75f6baf64360aebbe5860b47fe3eb29ebd",
+      "prev": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev_wave": null,
+      "seq": 2,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-15T00:00:01.000Z"
+     },
+     "head": {
+      "frame_hash": "7f1828db28378b29b976b2763f36154bd432ccf1cfa5bf25e913583db86a010b",
+      "kind": "body.pulse",
+      "payload": {
+       "hello": "world"
+      },
+      "payload_hash": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev": null,
+      "prev_wave": null,
+      "seq": 0,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-15T00:00:00.000Z"
+     },
+     "label": "child seq skipped",
+     "stream_id_of_record": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+     "expect_step": "3",
+     "frame": {
+      "frame_hash": "9855b91ed15aa652f2085e27fc6a26b98466cf435fe498af7b4fb472f251bcbb",
+      "kind": "body.pulse",
+      "payload": {
+       "n": 2
+      },
+      "payload_hash": "18c562f22d4ccfcc1ddaf7d2d0404c75f6baf64360aebbe5860b47fe3eb29ebd",
+      "prev": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev_wave": null,
+      "seq": 1,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-14T00:00:00.000Z"
+     },
+     "head": {
+      "frame_hash": "7f1828db28378b29b976b2763f36154bd432ccf1cfa5bf25e913583db86a010b",
+      "kind": "body.pulse",
+      "payload": {
+       "hello": "world"
+      },
+      "payload_hash": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev": null,
+      "prev_wave": null,
+      "seq": 0,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-15T00:00:00.000Z"
+     },
+     "label": "child utc before head",
+     "stream_id_of_record": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+     "expect_step": "3",
+     "frame": {
+      "frame_hash": "9855b91ed15aa652f2085e27fc6a26b98466cf435fe498af7b4fb472f251bcbb",
+      "kind": "body.pulse",
+      "payload": {
+       "n": 2
+      },
+      "payload_hash": "18c562f22d4ccfcc1ddaf7d2d0404c75f6baf64360aebbe5860b47fe3eb29ebd",
+      "prev": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev_wave": "7f1828db28378b29b976b2763f36154bd432ccf1cfa5bf25e913583db86a010b",
+      "seq": 1,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-15T00:00:01.000Z"
+     },
+     "head": {
+      "frame_hash": "7f1828db28378b29b976b2763f36154bd432ccf1cfa5bf25e913583db86a010b",
+      "kind": "body.pulse",
+      "payload": {
+       "hello": "world"
+      },
+      "payload_hash": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev": null,
+      "prev_wave": null,
+      "seq": 0,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-15T00:00:00.000Z"
+     },
+     "label": "prev_wave off swarm",
+     "stream_id_of_record": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+   ]
+  },
+  "9_egg": {
+   "egg_address": "8ca5f7815a3a77f60bd442e1b7dc9df9caf3173c23066f8546659bddb756e5a3",
+   "egg_octets_hex": "7b22636f6e74656e7473223a5b5d2c22637265617465645f757463223a22323032362d30372d31355430303a30303a30302e3030305a222c227061796c6f6164223a7b2272756e74696d65223a2274657374222c227472616e736372697074223a5b5d7d2c22726170706964223a227261707069643a406b6f64792f7477696e3a61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161222c22736368656d61223a22726170702f312d656767222c22736967223a6e756c6c2c2276617269616e74223a2273657373696f6e227d",
+   "manifest": {
+    "contents": [],
+    "created_utc": "2026-07-15T00:00:00.000Z",
+    "payload": {
+     "runtime": "test",
+     "transcript": []
+    },
+    "rappid": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "schema": "rapp/1-egg",
+    "sig": null,
+    "variant": "session"
+   },
+   "note": "a session egg is a JSON object; two conformant packers emit these exact octets",
+   "variant": "session"
+  }
+ }
+}

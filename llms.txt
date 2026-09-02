@@ -21,6 +21,9 @@ Start at the beacon, verify the chain, then read the materialized spec. Names li
 - Prompt book (the human interface — copy-paste prompts, no code typed): https://kody-w.github.io/rapp-1/PROMPTS.md
 - The book: https://kody-w.github.io/rapp-1/book/
 - Source and issues: https://github.com/kody-w/rapp-1
+- Conformance vectors (prove your implementation): https://kody-w.github.io/rapp-1/conformance/vectors.json
+- Internet-Draft rendering: https://kody-w.github.io/rapp-1/ietf/draft-wildfeuer-rapp-1-00.txt
+- Mirrors and archives: https://kody-w.github.io/rapp-1/MIRRORS.md
 - Extending (your own estate, no change to rapp-1 needed): https://kody-w.github.io/rapp-1/EXTENDING.md
 - Contributing: https://kody-w.github.io/rapp-1/CONTRIBUTING.md
 
