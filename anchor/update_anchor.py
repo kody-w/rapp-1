@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Append the deterministic rev-14 RAPP/1 specification-chain frame."""
+"""Append the deterministic rev-15 RAPP/1 specification-chain frame."""
 
 from __future__ import annotations
 
@@ -32,8 +32,8 @@ INDEX = ANCHOR / "index.json"
 FRAMES = ANCHOR / "frames"
 BOOTSTRAP = ANCHOR / "bootstrap"
 LOCK = ANCHOR / ".update_anchor.lock"
-REVISION = "rev-14"
-PREVIOUS_REVISION = "rev-13"
+REVISION = "rev-15"
+PREVIOUS_REVISION = "rev-14"
 INPUT_PATHS = [
     "SPEC.md",
     "CONSTITUTION.md",
@@ -641,6 +641,10 @@ def revision_payload(
         "status": "live",
         "where": "§9.4 typed multi-parent lineage and PHILOSOPHY.md",
     }
+    payload["vocabulary"]["wire-freeze"] = {
+        "status": "live",
+        "where": "§12 and Constitution Article 18 — the rapp/1 verified forms never change; a change is rapp/2",
+    }
     rules = [
         {
             "t": "gotcha",
@@ -677,6 +681,14 @@ def revision_payload(
             "c": (
                 "kody-w/RAPP remains the public foundation and product home; "
                 "kody-w/rapp-1 defines the interoperable protocol only."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
+                "The rapp/1 wire is frozen: §4, §5, §6.1-6.2, §7.1, §7.3, §7.5, §8 and §9.1 "
+                "never change under the rapp/1 token; a change is rapp/2 beside it, and rapp/1 "
+                "artifacts verify forever."
             ),
         },
     ]
