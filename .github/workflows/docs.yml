@@ -97,3 +97,27 @@ jobs:
             .book-build/tests/generated.pdf
             book/the-rapp-programming-language.pdf
           if-no-files-found: error
+
+  dco:
+    # Provenance for every line an outside contributor lands in the standard: the
+    # Developer Certificate of Origin (developercertificate.org, v1.1). Runs only on
+    # pull requests from forks; the owner's own branches are already attributed.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Every commit carries a Signed-off-by line (git commit -s)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          missing=$(gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/commits" --paginate \
+            --jq '.[] | select((.commit.message | split("\n") | map(test("^Signed-off-by: .+ <.+@.+>$")) | any) | not) | .sha[0:12] + "  " + (.commit.message | split("\n")[0])')
+          if [ -n "$missing" ]; then
+            echo "$missing"
+            echo "::error::commits without a Signed-off-by line — certify DCO 1.1 with 'git commit -s' (see CONTRIBUTING.md)"
+            exit 1
+          fi
+          echo "all commits signed off"
