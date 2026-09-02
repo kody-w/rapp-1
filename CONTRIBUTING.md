@@ -63,10 +63,21 @@ for f in examples/0*.py; do python3 "$f"; done
 
 Paste the tail of that output into the PR. The template asks for it.
 
-## Licensing of contributions
+## Licensing of contributions — the DCO
 
 Contributions are accepted under the repository's [MIT License](LICENSE), the same terms
-the code is offered under. Keep the copyright line as it is; the owner maintains it.
+the code is offered under, and every commit from an outside contributor certifies the
+[Developer Certificate of Origin 1.1](https://developercertificate.org/): that you wrote
+it or have the right to submit it under that license. Certify by signing off each commit:
+
+```bash
+git commit -s
+```
+
+That adds `Signed-off-by: Your Name <you@example.com>` to the message. CI checks every
+commit on a pull request from a fork and fails the PR if one is missing. A DCO is not a
+CLA: nothing is assigned, nothing is countersigned, and no employer paperwork is needed.
+Keep the copyright line in `LICENSE` as it is; the owner maintains it.
 
 ## Where discussion happens
 
