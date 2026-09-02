@@ -1,0 +1,9 @@
+# Actions are pinned to commit SHAs in the workflows (a mutable major tag is a
+# supply-chain door). Dependabot keeps those pins moving as PRs the CI oracles judge.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3

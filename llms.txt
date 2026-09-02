@@ -1,0 +1,29 @@
+# RAPP/1 — the wire that carries agents
+
+> The interoperable protocol authority for RAPP: canonicalization, content addressing,
+> identity, the frame, the egg. One wire tag, `rapp/1`. Stdlib-only reference implementation.
+
+Start at the beacon, verify the chain, then read the materialized spec. Names like
+`rev-14` are lookup labels; the frame hash is the identity.
+
+## Verify first (machine entry)
+- Beacon (selected head): https://kody-w.github.io/rapp-1/anchor/orient.json
+- Chain (append-only DOGG): https://kody-w.github.io/rapp-1/anchor/chain.jsonl
+- Index (seq → frame objects): https://kody-w.github.io/rapp-1/anchor/index.json
+- Bootstrap profile + pinned verifier: https://kody-w.github.io/rapp-1/anchor/bootstrap/index.json
+- How to resolve and materialize: https://kody-w.github.io/rapp-1/anchor/README.md
+- Tick stream (Atom, discovery only, no CORS): https://github.com/kody-w/rapp-1/commits/main/anchor.atom
+
+## Read
+- Materialized spec (byte-exact head view): https://kody-w.github.io/rapp-1/SPEC.md
+- Reference implementation: https://kody-w.github.io/rapp-1/rapp.py
+- Constitution (the law of change): https://kody-w.github.io/rapp-1/CONSTITUTION.md
+- Prompt book (the human interface — copy-paste prompts, no code typed): https://kody-w.github.io/rapp-1/PROMPTS.md
+- The book: https://kody-w.github.io/rapp-1/book/
+- Source and issues: https://github.com/kody-w/rapp-1
+- Contributing: https://kody-w.github.io/rapp-1/CONTRIBUTING.md
+
+## Discipline
+- The chain is unsigned on purpose; authority is owner-ratified acceptance onto protected main.
+- Pin by frame hash or full commit SHA, never by branch name; raw main is discovery only.
+- Poll the Atom feed for change detection, not the GitHub REST API.
