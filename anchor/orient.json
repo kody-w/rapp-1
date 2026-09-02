@@ -1,24 +1,24 @@
 {
  "schema": "rapp/1-anchor",
- "generated_utc": "2026-08-30T23:40:07.000Z",
+ "generated_utc": "2026-09-02T01:31:21.000Z",
  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
  "head": {
-  "seq": 14,
-  "frame_hash": "59629adab4e26d156f3d66ecfb766e08705919ea1d2adc92ba0ad2b17337dfc2",
-  "payload_hash": "c7549bbd3e133b833930e24e008817ea295734b870f41706455d3f45821aba3a"
+  "seq": 15,
+  "frame_hash": "83ca275f35cca96e43d75c99d338326c1a39b2240eabf57eb7c29ac96cc90818",
+  "payload_hash": "1ac47416e9caf174c4fdc00265ca187c244fb701ae2a7fb7211ba1385a951310"
  },
  "spec": {
-  "revision": "rev-14",
-  "revision_frame_hash": "59629adab4e26d156f3d66ecfb766e08705919ea1d2adc92ba0ad2b17337dfc2",
-  "revision_payload_hash": "c7549bbd3e133b833930e24e008817ea295734b870f41706455d3f45821aba3a",
+  "revision": "rev-15",
+  "revision_frame_hash": "83ca275f35cca96e43d75c99d338326c1a39b2240eabf57eb7c29ac96cc90818",
+  "revision_payload_hash": "1ac47416e9caf174c4fdc00265ca187c244fb701ae2a7fb7211ba1385a951310",
   "schema": "rapp-spec-revision/1",
   "materialized_path": "SPEC.md",
   "normative_path": "SPEC.md",
   "media_type": "text/markdown; charset=utf-8",
-  "normative_sha256": "d345235be5bc698d78c5893285abd09f2e62a398f781123d1de8da313a01c7de",
-  "normative_bytes": 78183,
+  "normative_sha256": "348e7d5baa94aaf2ce4c5354f3cb261f389298a04af65e271a686d3b62f7c384",
+  "normative_bytes": 79692,
   "canonical_repo": "https://github.com/kody-w/rapp-1",
-  "commit": "1a27d11eec48a7f9ebda4208916a67ffd3a24b7f"
+  "commit": "58058d08c9f0e340fae07c9865647f599c32634d"
  },
  "registered_kinds": [
   "body.pulse",
@@ -128,6 +128,10 @@
   "cross": {
    "status": "live",
    "where": "§9.4 typed multi-parent lineage and PHILOSOPHY.md"
+  },
+  "wire-freeze": {
+   "status": "live",
+   "where": "§12 and Constitution Article 18 — the rapp/1 verified forms never change; a change is rapp/2"
   }
  },
  "operational_profiles": {
@@ -166,8 +170,8 @@
  },
  "constitution": {
   "path": "CONSTITUTION.md",
-  "sha256": "c218819541c0a2caa88048f208aa28c632577bff9a8512b1d7f6d2e484a18d21",
-  "size_bytes": 16124
+  "sha256": "59b600d63e329de5adf11aa6dd103c82e62c72882edd899788e80fd316b21d43",
+  "size_bytes": 17403
  },
  "authority": {
   "canonical_repository": "https://github.com/kody-w/rapp-1",
@@ -189,7 +193,7 @@
  },
  "index": {
   "path": "anchor/index.json",
-  "sha256": "f409e495ba93034b6b145d9aec73d6b67ea72014480c3c0fbd18420b1b2b1ebf",
-  "bytes": 7378
+  "sha256": "5f19ed2739c48e799ee142152f09da99488c06ee7a9100d6b67de7cf7618ca93",
+  "bytes": 7748
  }
 }
