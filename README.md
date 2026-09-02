@@ -103,7 +103,7 @@ Its registry of record (`schema:"rapp/1-registry"`, owner-signed, append-only) i
 `kody-w/rapp-map/ecosystem-spec.json`; first signed publication at commit `6883563e94054981925866a61600378ee3a7e5c3`
 (registry_seq 1). It pins `rapp/1` by the anchor head's normative hash, registers the
 anchor stream's genesis, and binds the fourteen reference kinds. Verify it with
-`rapp_registry.load_document(doc, entries_member="entries")` — it reports `verified` only
+`rapp_registry.load_document(doc, entries_member="entries", trust_anchor=<that rappid>)` — it reports `verified` only
 after the §10 signature checks against that rappid. This repository stays the protocol
 authority; the registry is the estate's, and the two are deliberately separate.
 
