@@ -17,10 +17,10 @@ jobs:
       matrix:
         python-version: ['3.9', '3.13']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Protocol conformance (spec floor is stdlib-only, any modern Python)
@@ -33,6 +33,19 @@ jobs:
           git diff --exit-code -- anchor
       - name: Operational profile conformance
         run: python3 operations_conformance.py
+      - name: Committed RAPP artifacts pass the repo's own linter (red oracle)
+        run: python3 rapp_check.py .
+      - name: Front doors name the chain head (index.html and guide must not outlive the anchor)
+        run: |
+          rev=$(python3 -c 'import json; print(json.load(open("anchor/orient.json"))["spec"]["revision"])')
+          echo "chain head: $rev"
+          bad=0
+          for f in index.html guide/index.html; do
+            for label in $(grep -o 'RAPP rev-[0-9]*' "$f" | sed 's/^RAPP //' | sort -u); do
+              if [ "$label" != "$rev" ]; then echo "::error file=$f::stale revision label 'RAPP $label' (chain head is $rev)"; bad=1; fi
+            done
+          done
+          exit $bad
       - name: Reference/agent primitive parity (one canonicalizer, enforced)
         run: python3 parity_check.py
       - name: Run every example end to end
@@ -46,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
       - name: Committed PDF must not lag the book source
@@ -59,10 +72,10 @@ jobs:
             echo "::error::book source changed after the committed PDF was last rebuilt — run book/build-pdf.sh and commit the result"
             exit 1
           fi
-      - uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
           ruby-version: '3.3'
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.12'
       - name: Install pinned documentation tools
@@ -76,7 +89,7 @@ jobs:
         run: python3 conformance.py
       - name: Upload print regression evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: documentation-evidence
           path: |

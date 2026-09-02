@@ -192,7 +192,7 @@
 
 <!-- COVER -->
 <header class="cover"><div class="wrap">
-  <div class="kicker">RAPP · The Visual Guide · RAPP rev-7</div>
+  <div class="kicker" data-rev>RAPP · The Visual Guide · RAPP rev-14</div>
   <h1>Design &amp; Build<br><em>Agents</em></h1>
   <p class="lede">RAPP — one protocol for agents that keep a verifiable memory and talk over one wire, taught in pictures.</p>
   <div class="chips">
@@ -504,8 +504,15 @@ tail = Hb(<span class="s">"rapp/1:rappid"</span>, SPKI_DER)
   <h3>That's the whole protocol.</h3>
   <p style="color:#cfd0d8">Five primitives, one wire, a reference implementation that passes its own vectors and reproduces a real estate's hashes, and a gate that tells conformance from drift by computing, not asserting.</p>
   <p style="margin-top:18px"><a href="../">← back to rapp-1</a> &nbsp;·&nbsp; <a href="../book/">The RAPP Programming Language</a> &nbsp;·&nbsp; <a href="../anchor/chain.jsonl">the specification chain</a> &nbsp;·&nbsp; <a href="../SPEC.md">current spec view</a> &nbsp;·&nbsp; <a href="https://github.com/kody-w/rapp-1">source</a></p>
-  <p class="colophon">RAPP rev-7 — <em>Design &amp; Build Agents</em>, the visual guide. One spec, one canonicalizer, one mint, one frame. Set in the system humanist sans; colour-coded by primitive in the tradition of the visual design books that taught a generation to build for the web. The protocol is meant to be implemented.</p>
+  <p class="colophon"><span data-rev>RAPP rev-14</span> — <em>Design &amp; Build Agents</em>, the visual guide. One spec, one canonicalizer, one mint, one frame. Set in the system humanist sans; colour-coded by primitive in the tradition of the visual design books that taught a generation to build for the web. The protocol is meant to be implemented.</p>
 </div></footer>
 
+<script>
+/* Live revision label: same-origin read of the anchor beacon (never a feed, never the API). */
+fetch('../anchor/orient.json',{cache:'no-store'}).then(function(r){return r.json()}).then(function(o){
+  var rev=o&&o.spec&&o.spec.revision; if(!/^rev-\d+$/.test(rev||''))return;
+  document.querySelectorAll('[data-rev]').forEach(function(e){e.textContent=e.textContent.replace(/rev-\d+/,rev)});
+}).catch(function(){});
+</script>
 </body>
 </html>

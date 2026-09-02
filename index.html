@@ -71,7 +71,7 @@
 </head>
 <body>
 <header><div class="wrap">
-  <div class="tag">RAPP · programming language · RAPP rev-7</div>
+  <div class="tag" data-rev>RAPP · programming language · RAPP rev-14</div>
   <h1>The wire that carries <span class="s">agents</span>.</h1>
   <p class="sub">RAPP is the programming language for agents that keep a verifiable memory and
     talk over one exact wire. Five primitives, specified so independent implementations produce
@@ -157,7 +157,7 @@ python3 examples/01_hello_frame.py   <span class="c"># build & verify your first
 </div></section>
 
 <footer><div class="wrap">
-  RAPP rev-7 — one spec, one canonicalizer, one mint, one frame. The protocol is meant to be
+  <span data-rev>RAPP rev-14</span> — one spec, one canonicalizer, one mint, one frame. The protocol is meant to be
   implemented. <a href="https://github.com/kody-w/rapp-1">Do →</a>
 </div></footer>
 <script>
@@ -172,6 +172,13 @@ document.querySelectorAll('.copybtn').forEach(function(btn){
     } else { btn.textContent='Press Ctrl/Cmd+C'; }
   });
 });
+</script>
+<script>
+/* Live revision label: same-origin read of the anchor beacon (never a feed, never the API). */
+fetch('anchor/orient.json',{cache:'no-store'}).then(function(r){return r.json()}).then(function(o){
+  var rev=o&&o.spec&&o.spec.revision; if(!/^rev-\d+$/.test(rev||''))return;
+  document.querySelectorAll('[data-rev]').forEach(function(e){e.textContent=e.textContent.replace(/rev-\d+/,rev)});
+}).catch(function(){});
 </script>
 </body>
 </html>
