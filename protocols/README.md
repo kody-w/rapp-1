@@ -57,7 +57,7 @@ the estate's signed registry.
 
 ## External subordinate profiles (registered by pointer)
 
-Profiles that live in their own repository and pin this one, per [](../EXTENDING.md).
+Profiles that live in their own repository and pin this one, per [`EXTENDING.md`](../EXTENDING.md).
 Listed here for discovery only; adoption is the estate's signed `protocol` entry.
 
 | Human name | Protocol identifier | Normative specification | SHA-256 | Pinned commit |
