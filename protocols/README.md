@@ -62,4 +62,4 @@ Listed here for discovery only; adoption is the estate's signed `protocol` entry
 
 | Human name | Protocol identifier | Normative specification | SHA-256 | Pinned commit |
 |---|---|---|---|---|
-| vbrainstem | `vbrainstem/1` | https://github.com/kody-w/vbrainstem/blob/078bb44b9ac28fda94ec4b13afcf88dc2fbcfc63/PROFILE.md | `b11228194d945f3de1f16c47b99ecb700334fbd90bf4cd6fc26e5e8e7a15e9cd` | `078bb44b9ac28fda94ec4b13afcf88dc2fbcfc63` |
+| vbrainstem | `vbrainstem/1` | https://github.com/kody-w/vbrainstem/blob/24ffe4fd0479f26c594ab638f51cec73f75fd5a5/PROFILE.md | `e596b3a9204f1a088364e8df25561c3dcfd3863eeb85140a5066503c20c2f741` | `24ffe4fd0479f26c594ab638f51cec73f75fd5a5` |
