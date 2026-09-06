@@ -54,3 +54,18 @@ not authority.
 The profile index in [`index.json`](index.json) is generated from the committed
 specifications and checked in CI. It is a publication aid, not a substitute for
 the estate's signed registry.
+
+## External profile discovery
+
+An external profile may pin this protocol without becoming part of its
+authority. The following is an immutable discovery pointer, not registration,
+adoption, or a claim that its described behavior has been demonstrated on every
+AI host. Adoption still requires the estate's signed `protocol` entry.
+
+| Profile | Pinned specification | SHA-256 |
+|---|---|---|
+| `vbrainstem/1`, rev-2 | [`PROFILE.md` at `511b79f6d2d930bcad62eb7079b3f1c38986b81f`](https://github.com/kody-w/vbrainstem/blob/511b79f6d2d930bcad62eb7079b3f1c38986b81f/PROFILE.md) | `077f1b26ad83a94d8d44d70d377431237b4ab228692bb0e0a9cc389d042da08f` |
+
+Preserving source inside a skill is not proof of equivalent execution.
+Text-only interpretation and actual tool-backed execution must be distinguished
+in any compatibility or promotion evidence.

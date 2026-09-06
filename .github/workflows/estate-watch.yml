@@ -26,12 +26,13 @@ jobs:
       - name: Re-observe the live estate
         id: observe
         run: |
-          set -o pipefail
+          set -euo pipefail
           {
-            python3 conformance.py
-            python3 operations_conformance.py
-            python3 parity_check.py
-            python3 realcheck.py
+            python3 conformance.py &&
+            python3 operations_conformance.py &&
+            python3 parity_check.py &&
+            python3 alignment_check.py --live --output alignment-report.json &&
+            python3 realcheck.py --output estate-report.json
           } 2>&1 | tee watch-report.txt
       - name: File drift as an issue (red oracle, not a bypass)
         if: failure()
@@ -57,5 +58,8 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: estate-watch-report
-          path: watch-report.txt
-          if-no-files-found: ignore
+          path: |
+            watch-report.txt
+            alignment-report.json
+            estate-report.json
+          if-no-files-found: error
