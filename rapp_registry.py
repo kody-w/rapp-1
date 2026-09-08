@@ -295,13 +295,22 @@ class Registry:
                 seen.add(cur)
                 cur = self.grail[cur]["predecessor"]
         self._succession = {r["new_rappid"]: r for r in self.reanchors}
-        for successor in self._succession:
+        succession_by_tail = {}
+        for record in self.reanchors:
+            tail = R.rappid_parts(record["new_rappid"])["hash"]
+            if tail in succession_by_tail:
+                raise RegistryError("re-anchor must mint a fresh tail, not another name for one")
+            succession_by_tail[tail] = record
+        for successor in succession_by_tail:
             seen, current = set(), successor
-            while current in self._succession:
+            while True:
                 if current in seen:
-                    raise RegistryError("re-anchor succession cycle")
+                    raise RegistryError("re-anchor succession reuses an ancestral identity tail")
                 seen.add(current)
-                current = self._succession[current]["old_rappid"]
+                record = succession_by_tail.get(current)
+                if record is None:
+                    break
+                current = R.rappid_parts(record["old_rappid"])["hash"]
 
     # ---- §7.2 / §6.1.1 kind binding ----
     def family(self, kind):
@@ -339,10 +348,15 @@ class Registry:
     def signer_acceptable(self, kid, utc):
         """Is a `sig` by `kid` on an artifact at `utc` acceptable: key discoverable, not
         superseded by a re-anchor at or before utc, not tombstoned at or before utc."""
+        return self._signer_acceptable(kid, utc)
+
+    def _signer_acceptable(self, kid, utc, ignored_reanchor=None):
         e = self.spki.get(kid)
         if e is None:
             return False, "no spki entry for kid (registry absence is refusal)"
         for r in self.reanchors:
+            if r is ignored_reanchor:
+                continue
             if r["old_rappid"] == kid and utc >= r["utc"]:
                 return False, f"kid superseded by re-anchor ({r['case']}) at {r['utc']}"
         if e["deprecated"] and not any(r["old_rappid"] == kid for r in self.reanchors):
@@ -382,12 +396,14 @@ class Registry:
                 return g
         return None
 
-    def check_lifecycle_signatures(self):
+    def check_lifecycle_signatures(self, *, tombstone_issued_at=None):
         """Check the signatures on lifecycle entries, not only their outer registry.
 
         This checks owner tenure and old-key continuity. A snapshot cannot prove
         which entries arrived in the same append; callers must retain append
-        provenance for the additional §6.3 compromise requirement.
+        provenance for the additional §6.3 compromise requirement. Tombstones
+        have a cutoff, not an issuance UTC: a trusted context resolver must
+        supply the latter, keyed by the exact signed entry's particle hash.
         """
         owner, seen, owner_transitions = self.estate_owner, set(), set()
         while owner in self._succession:
@@ -395,6 +411,9 @@ class Registry:
                 raise RegistryError("re-anchor succession cycle")
             seen.add(owner)
             record = self._succession[owner]
+            prior = self._succession.get(record["old_rappid"])
+            if prior is not None and prior["utc"] >= record["utc"]:
+                raise RegistryError("owner succession requires a nonempty, forward tenure")
             owner_transitions.add(record["new_rappid"])
             owner = record["old_rappid"]
 
@@ -408,7 +427,17 @@ class Registry:
             kind = entry["type"]
             if kind not in ("tombstone", "re-anchor"):
                 continue
-            utc = entry["revoked_utc"] if kind == "tombstone" else entry["utc"]
+            if kind == "tombstone":
+                if not callable(tombstone_issued_at):
+                    return False, "tombstone issuance time requires trusted append/issuance context"
+                try:
+                    utc = tombstone_issued_at(R.H("rapp/1:particle", entry))
+                except (KeyError, ValueError) as why:
+                    return False, f"tombstone issuance context refused: {why}"
+                if not R.utc_valid(utc):
+                    return False, "tombstone issuance context did not supply a valid UTC"
+            else:
+                utc = entry["utc"]
             if kind == "re-anchor" and entry["new_rappid"] in owner_transitions:
                 # The outgoing owner signs its own transition at the tenure boundary.
                 signer = entry["old_rappid"]
@@ -420,6 +449,12 @@ class Registry:
                 return False, f"{kind} owner signature refused: {why}"
             if kind == "re-anchor":
                 if "old_key_sig" in entry:
+                    if entry["case"] == "rotation":
+                        ok, why = self._signer_acceptable(
+                            entry["old_rappid"], utc, ignored_reanchor=entry,
+                        )
+                        if not ok:
+                            return False, f"rotation old-key authority refused: {why}"
                     continuity = {k: v for k, v in entry.items()
                                   if k not in ("sig", "old_key_sig")}
                     ok, why = verify(continuity, entry["old_key_sig"], entry["old_rappid"])
@@ -430,7 +465,8 @@ class Registry:
         return True, "ok"
 
 
-def load_document(doc, *, entries_member, trust_anchor, allow_unsigned=False, persisted_seq=None):
+def load_document(doc, *, entries_member, trust_anchor, allow_unsigned=False,
+                  persisted_seq=None, tombstone_issued_at=None):
     """Load a `rapp/1-registry` document. Returns (status, registry, reason) where status is
     "verified" (owner signature verified AGAINST THE TRUST ANCHOR), "draft" (unsigned and
     allow_unsigned), or "refused".
@@ -443,7 +479,11 @@ def load_document(doc, *, entries_member, trust_anchor, allow_unsigned=False, pe
     no-rollback: a lower `registry_seq` is refused. Signed documents also verify
     each lifecycle entry's owner signature and any old-key continuity signature.
     Freshness, append provenance, and historical migration proofs remain caller
-    responsibilities; a verified snapshot alone cannot establish them."""
+    responsibilities; a verified snapshot alone cannot establish them.
+    `tombstone_issued_at(entry_hash)` must resolve authenticated issuance/append
+    context to a fixed UTC string. It is trusted caller configuration, never a
+    field read from the untrusted document. No resolver means tombstones are
+    refused: revoked_utc cannot be silently reinterpreted as issuance time."""
     if not R.rappid_valid(trust_anchor):
         return "refused", None, "trust_anchor must be the out-of-band estate-owner rappid"
     if not isinstance(doc, dict) or doc.get("schema") != "rapp/1-registry":
@@ -475,7 +515,7 @@ def load_document(doc, *, entries_member, trust_anchor, allow_unsigned=False, pe
     if not ok:
         return "refused", None, why
     try:
-        ok, why = reg.check_lifecycle_signatures()
+        ok, why = reg.check_lifecycle_signatures(tombstone_issued_at=tombstone_issued_at)
     except RegistryError as why:
         return "refused", None, str(why)
     if not ok:

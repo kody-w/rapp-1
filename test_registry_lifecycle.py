@@ -13,6 +13,7 @@ class RegistryLifecycleTests(unittest.TestCase):
         self.der = {}
         self.keys = {}
         self.signatures = {}
+        self.issued_utc = "2026-07-01T00:00:00.000Z"
         for name in ("owner", "worker", "successor", "outsider"):
             der = ("synthetic-public-key-" + name).encode()
             kid = R.mint_rappid("test", name, spki_der=der)
@@ -42,10 +43,11 @@ class RegistryLifecycleTests(unittest.TestCase):
         value["sig"] = self.sign(value, self.keys[signer])
         return value
 
-    def reanchor(self, old="worker", new="successor", signer="owner", case="rotation"):
+    def reanchor(self, old="worker", new="successor", signer="owner", case="rotation",
+                 utc="2026-07-01T00:00:00.000Z"):
         value = {"type": "re-anchor", "old_rappid": self.keys[old],
                  "new_rappid": self.keys[new], "case": case,
-                 "utc": "2026-07-01T00:00:00.000Z"}
+                 "utc": utc}
         if case == "rotation":
             value["old_key_sig"] = self.sign(value, self.keys[old])
         value["sig"] = self.sign(value, self.keys[signer])
@@ -57,6 +59,9 @@ class RegistryLifecycleTests(unittest.TestCase):
         return value
 
     def load(self, document, owner="owner", **kwargs):
+        # Fixture configuration stands in for authenticated issuance evidence.
+        # It is independent of the revocation cutoff carried in the entry.
+        kwargs.setdefault("tombstone_issued_at", lambda entry_hash: self.issued_utc)
         with patch.object(R, "verify_detached_jws", side_effect=self.verify):
             return REG.load_document(document, entries_member="entries",
                                      trust_anchor=self.keys[owner], **kwargs)
@@ -128,6 +133,7 @@ class RegistryLifecycleTests(unittest.TestCase):
         retired = {"type": "tombstone", "rappid": self.keys["worker"],
                    "revoked_utc": "2026-06-01T00:00:00.000Z"}
         retired["sig"] = self.sign(retired, self.keys["owner"])
+        self.issued_utc = "2026-06-15T00:00:00.000Z"
         doc = self.document(self.entries(owner="successor") + [transition, retired],
                             owner="successor")
         self.assertEqual(self.load(doc, owner="successor")[0], "verified")
@@ -149,6 +155,92 @@ class RegistryLifecycleTests(unittest.TestCase):
             with self.subTest(records=len(records)):
                 doc = self.document(self.entries() + records)
                 self.assertEqual(self.load(doc)[0], "refused")
+
+    def test_revocation_cutoff_is_not_the_tombstone_issuance_time(self):
+        transition = self.reanchor(old="owner", signer="owner")
+        retired = {"type": "tombstone", "rappid": self.keys["worker"],
+                   "revoked_utc": "2026-06-01T00:00:00.000Z"}
+        retired["sig"] = self.sign(retired, self.keys["successor"])
+        self.issued_utc = "2026-08-01T00:00:00.000Z"
+        doc = self.document(self.entries(owner="successor") + [transition, retired],
+                            owner="successor")
+        self.assertEqual(self.load(doc, owner="successor")[0], "verified")
+
+    def test_tombstone_without_trusted_issuance_context_is_refused(self):
+        doc = self.document(self.entries() + [self.tombstone()])
+        status, _, why = self.load(doc, tombstone_issued_at=None)
+        self.assertEqual(status, "refused")
+        self.assertIn("issuance", why)
+
+    def test_invalid_issuance_context_is_not_a_success_fallback(self):
+        doc = self.document(self.entries() + [self.tombstone()])
+        for invalid in (None, False, 1, "", "2026-99-01T00:00:00.000Z"):
+            with self.subTest(invalid=invalid):
+                self.assertEqual(self.load(
+                    doc, tombstone_issued_at=lambda entry_hash: invalid,
+                )[0], "refused")
+
+    def test_issuance_resolver_receives_the_exact_signed_entry_commitment(self):
+        entry = self.tombstone()
+        seen = []
+        def resolve(entry_hash):
+            seen.append(entry_hash)
+            return self.issued_utc
+        self.assertEqual(self.load(self.document(self.entries() + [entry]),
+                                  tombstone_issued_at=resolve)[0], "verified")
+        self.assertEqual(seen, [R.H("rapp/1:particle", entry)])
+
+    def test_revoked_key_cannot_supply_uncompromised_rotation_continuity(self):
+        retired = {"type": "tombstone", "rappid": self.keys["worker"],
+                   "revoked_utc": "2026-06-01T00:00:00.000Z"}
+        retired["sig"] = self.sign(retired, self.keys["owner"])
+        doc = self.document(self.entries() + [retired, self.reanchor()])
+        self.assertEqual(self.load(doc)[0], "refused")
+
+    def test_prior_supersession_cannot_be_ignored_for_a_second_rotation(self):
+        earlier = self.reanchor(utc="2026-06-01T00:00:00.000Z")
+        later = self.reanchor(new="outsider")
+        doc = self.document(self.entries() + [earlier, later])
+        self.assertEqual(self.load(doc)[0], "refused")
+
+    def test_retirement_after_a_historical_rotation_does_not_invalidate_it(self):
+        retired = {"type": "tombstone", "rappid": self.keys["worker"],
+                   "revoked_utc": "2026-08-01T00:00:00.000Z"}
+        retired["sig"] = self.sign(retired, self.keys["owner"])
+        doc = self.document(self.entries() + [self.reanchor(), retired])
+        self.assertEqual(self.load(doc)[0], "verified")
+
+    def test_compromise_does_not_require_a_retired_keys_authority(self):
+        retired = {"type": "tombstone", "rappid": self.keys["worker"],
+                   "revoked_utc": "2026-06-01T00:00:00.000Z"}
+        retired["sig"] = self.sign(retired, self.keys["owner"])
+        entry = self.reanchor(case="compromise")
+        continuity = {k: v for k, v in entry.items() if k != "sig"}
+        entry["old_key_sig"] = self.sign(continuity, self.keys["worker"])
+        entry["sig"] = self.sign({k: v for k, v in entry.items() if k != "sig"},
+                                 self.keys["owner"])
+        doc = self.document(self.entries() + [retired, entry])
+        self.assertEqual(self.load(doc)[0], "verified")
+
+    def test_owner_succession_cannot_run_backwards_or_have_empty_tenure(self):
+        first = self.reanchor(old="owner", signer="owner",
+                              utc="2026-08-01T00:00:00.000Z")
+        for when in ("2026-07-01T00:00:00.000Z", "2026-08-01T00:00:00.000Z"):
+            with self.subTest(when=when):
+                second = self.reanchor(old="successor", new="outsider",
+                                       signer="successor", utc=when)
+                doc = self.document(self.entries(owner="outsider") + [first, second],
+                                    owner="outsider")
+                self.assertEqual(self.load(doc, owner="outsider")[0], "refused")
+
+    def test_renaming_a_key_does_not_make_its_tail_fresh_in_its_lineage(self):
+        alias = R.mint_rappid("test", "renamed-worker", spki_der=self.der[self.keys["worker"]])
+        self.keys["alias"] = alias
+        self.der[alias] = self.der[self.keys["worker"]]
+        first = self.reanchor(utc="2026-06-01T00:00:00.000Z")
+        second = self.reanchor(old="successor", new="alias")
+        doc = self.document(self.entries() + [first, second])
+        self.assertEqual(self.load(doc)[0], "refused")
 
 
 if __name__ == "__main__":
