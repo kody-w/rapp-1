@@ -25,6 +25,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Protocol conformance (spec floor is stdlib-only, any modern Python)
         run: python3 conformance.py
+      - name: Registry lifecycle authorization boundaries (stdlib-only)
+        run: python3 -m unittest test_registry_lifecycle
       - name: Specification chain and materialized view
         run: |
           python3 -m unittest anchor.test_spec_chain

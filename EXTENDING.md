@@ -55,6 +55,37 @@ your registry. Signature verification itself uses the optional `cryptography` im
 inside `rapp.verify_detached_jws`; without it, signed artifacts are refused, never
 assumed.
 
+`load_document` also verifies lifecycle entries: a valid enclosing registry
+signature is not a substitute for a tombstone or re-anchor's own signature.
+The issuer must be the owner in tenure at the authenticated issuance/action
+time; an owner's own succession record is signed by the outgoing owner at that
+boundary, after checking that its tenure is nonempty and chronologically
+possible. A required rotation proof must come from a key that was not already
+retired, excluding only the supersession introduced by that record.
+For that required proof, retirement is matched by the validated key tail, so
+renaming the source RAPPID cannot revive the same retired SPKI. Optional
+old-key signatures on compromise records are checked cryptographically without
+pretending the compromised key still has authority. Compromise requires a
+registered tombstone. Ambiguous predecessors and reused ancestral key tails
+(including renamed aliases) are refused rather than silently choosing one.
+
+Tombstones require explicit caller configuration:
+`load_document(..., tombstone_issued_at=resolver)`. The resolver receives
+`H("rapp/1:particle", entry)` for the exact signed entry and must return an
+authenticated issuance UTC from accepted history or an explicitly trusted
+estate profile. It is not a document field or an unverified caller-supplied
+timestamp. Without this evidence the loader refuses to guess. In particular,
+`revoked_utc` is an effective revocation cutoff, not proof of when the tombstone
+was issued.
+
+This is still not a complete distributed consumer. The caller retains trusted
+heads and registry high-water marks, enforces freshness, and verifies the history
+needed to establish a compromise tombstone's **same-append** provenance. A
+standalone snapshot cannot prove when each entry was appended. Historical
+upgrade/tag-migration evidence and owner-authorized re-genesis remain separate
+checks. The reference canonicalizer implements the documented exact-integer
+profile; it is not an implementation of every binary64 input allowed by JCS.
+
 ## What is not yet closed (do not improvise it — it is a rev-N+1 conversation)
 
 These are recorded in `rapp-backlog.md` for the owner's ratification. Until then they
@@ -64,6 +95,12 @@ are interoperable only by out-of-band agreement, and a candidate registry should
   §13.3 names every entry; nothing names the member that holds the entries or how
   `canonical_source` is carried. `rapp_registry.load_document` therefore requires the
   caller to name the entries member — it will not guess.
+- **Tombstone issuance time.** §13.2 scopes an issuer's authority to the
+  artifact's time, but the exact tombstone entry carries only `revoked_utc`,
+  not a separate issuance time. A current owner can discover an earlier
+  compromise cutoff. Equating those two times would invent an interoperability
+  rule. Until a ratified profile closes this gap, the loader requires the
+  explicit trusted issuance resolver described above.
 - **Kind ownership across estates.** On a `net:` swarm stream, two estates could bind the
   same kind string to different families. A namespace rule (the first label belongs to one
   estate) would close it; today it is a convention.
@@ -74,8 +111,14 @@ are interoperable only by out-of-band agreement, and a candidate registry should
 
 ## How to propose a change to `rapp/1` itself
 
-If your need cannot be expressed as a registration — a twelfth key, a new hash space, a
-sibling endpoint — it is a revision. Open an issue in the shape the existing ones use
-(a PII-free use case, the ambiguous clause, the questions, and the fail-closed behaviour
-you adopt meanwhile), then read `CONTRIBUTING.md`: `SPEC.md` is generated from the chain
-and a revision is appended with `anchor/update_anchor.py`, ratified by the owner.
+First distinguish an extension from a change to a frozen form. Registered kinds,
+registry entries, vocabulary and subordinate profiles can grow under `rapp/1`.
+A twelfth frame key, a changed canonical form/hash tag, or a changed wire form
+cannot be introduced by a later `rapp/1` revision: §12 and Constitution Article 18
+require a new `rapp/2` token while existing `rapp/1` artifacts keep verifying.
+
+Open an issue in the shape the existing ones use (a PII-free use case, the
+ambiguous clause, the questions, and the fail-closed behaviour you adopt
+meanwhile), then read `CONTRIBUTING.md`. A permitted normative amendment is
+carried by an owner-ratified successor in the specification chain; `SPEC.md` is
+its generated view, never an independently edited authority.
