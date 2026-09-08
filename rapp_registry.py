@@ -258,6 +258,10 @@ class Registry:
                 prior = self.tombstones.get(e["rappid"])
                 self.tombstones[e["rappid"]] = min(prior, e["revoked_utc"]) if prior else e["revoked_utc"]
             elif t == "re-anchor":
+                if R.rappid_parts(e["old_rappid"])["hash"] == R.rappid_parts(e["new_rappid"])["hash"]:
+                    raise RegistryError(f"{where}: re-anchor requires a fresh identity tail")
+                if any(r["new_rappid"] == e["new_rappid"] for r in self.reanchors):
+                    raise RegistryError(f"{where}: more than one predecessor for a re-anchored identity")
                 self.reanchors.append(e)
             elif t == "genesis":
                 self.genesis.setdefault(e["stream_id"], []).append(e)
@@ -291,6 +295,13 @@ class Registry:
                 seen.add(cur)
                 cur = self.grail[cur]["predecessor"]
         self._succession = {r["new_rappid"]: r for r in self.reanchors}
+        for successor in self._succession:
+            seen, current = set(), successor
+            while current in self._succession:
+                if current in seen:
+                    raise RegistryError("re-anchor succession cycle")
+                seen.add(current)
+                current = self._succession[current]["old_rappid"]
 
     # ---- §7.2 / §6.1.1 kind binding ----
     def family(self, kind):
@@ -371,6 +382,53 @@ class Registry:
                 return g
         return None
 
+    def check_lifecycle_signatures(self):
+        """Check the signatures on lifecycle entries, not only their outer registry.
+
+        This checks owner tenure and old-key continuity. A snapshot cannot prove
+        which entries arrived in the same append; callers must retain append
+        provenance for the additional §6.3 compromise requirement.
+        """
+        owner, seen, owner_transitions = self.estate_owner, set(), set()
+        while owner in self._succession:
+            if owner in seen:
+                raise RegistryError("re-anchor succession cycle")
+            seen.add(owner)
+            record = self._succession[owner]
+            owner_transitions.add(record["new_rappid"])
+            owner = record["old_rappid"]
+
+        def verify(value, sig, expected_kid):
+            der = self.spki_der(expected_kid)
+            if der is None:
+                return False, "lifecycle signer has no registered spki"
+            return R.verify_detached_jws(value, sig, der, expected_kid=expected_kid)
+
+        for entry in self.entries:
+            kind = entry["type"]
+            if kind not in ("tombstone", "re-anchor"):
+                continue
+            utc = entry["revoked_utc"] if kind == "tombstone" else entry["utc"]
+            if kind == "re-anchor" and entry["new_rappid"] in owner_transitions:
+                # The outgoing owner signs its own transition at the tenure boundary.
+                signer = entry["old_rappid"]
+            else:
+                signer = self.owner_at(utc)
+            unsigned = {k: v for k, v in entry.items() if k != "sig"}
+            ok, why = verify(unsigned, entry["sig"], signer)
+            if not ok:
+                return False, f"{kind} owner signature refused: {why}"
+            if kind == "re-anchor":
+                if "old_key_sig" in entry:
+                    continuity = {k: v for k, v in entry.items()
+                                  if k not in ("sig", "old_key_sig")}
+                    ok, why = verify(continuity, entry["old_key_sig"], entry["old_rappid"])
+                    if not ok:
+                        return False, f"re-anchor old-key signature refused: {why}"
+                if entry["case"] == "compromise" and entry["old_rappid"] not in self.tombstones:
+                    return False, "compromise re-anchor requires a registered tombstone"
+        return True, "ok"
+
 
 def load_document(doc, *, entries_member, trust_anchor, allow_unsigned=False, persisted_seq=None):
     """Load a `rapp/1-registry` document. Returns (status, registry, reason) where status is
@@ -382,7 +440,10 @@ def load_document(doc, *, entries_member, trust_anchor, allow_unsigned=False, pe
     refused before its signature is even checked; without this, a registry signed by a
     self-minted key would verify against itself. `entries_member` is REQUIRED because §13
     does not yet name the member that holds the entries. `persisted_seq` implements §13.1
-    no-rollback: a lower `registry_seq` is refused."""
+    no-rollback: a lower `registry_seq` is refused. Signed documents also verify
+    each lifecycle entry's owner signature and any old-key continuity signature.
+    Freshness, append provenance, and historical migration proofs remain caller
+    responsibilities; a verified snapshot alone cannot establish them."""
     if not R.rappid_valid(trust_anchor):
         return "refused", None, "trust_anchor must be the out-of-band estate-owner rappid"
     if not isinstance(doc, dict) or doc.get("schema") != "rapp/1-registry":
@@ -411,6 +472,12 @@ def load_document(doc, *, entries_member, trust_anchor, allow_unsigned=False, pe
     if der is None:
         return "refused", None, "no spki entry for the estate_owner; the tail check cannot run"
     ok, why = R.verify_detached_jws(unsigned, sig, der, expected_kid=reg.estate_owner)
+    if not ok:
+        return "refused", None, why
+    try:
+        ok, why = reg.check_lifecycle_signatures()
+    except RegistryError as why:
+        return "refused", None, str(why)
     if not ok:
         return "refused", None, why
     return "verified", reg, "ok"

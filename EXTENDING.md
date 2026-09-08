@@ -55,6 +55,22 @@ your registry. Signature verification itself uses the optional `cryptography` im
 inside `rapp.verify_detached_jws`; without it, signed artifacts are refused, never
 assumed.
 
+`load_document` also verifies lifecycle entries: a valid enclosing registry
+signature is not a substitute for a tombstone or re-anchor's own signature.
+The issuer must be the owner in tenure at the entry's time; an owner's own
+succession record is signed by the outgoing owner at that boundary. A supplied
+old-key signature must verify over the exact continuity payload, and compromise
+requires a registered tombstone. Ambiguous predecessors and identity cycles are
+refused rather than silently choosing one.
+
+This is still not a complete distributed consumer. The caller retains trusted
+heads and registry high-water marks, enforces freshness, and verifies the history
+needed to establish a compromise tombstone's **same-append** provenance. A
+standalone snapshot cannot prove when each entry was appended. Historical
+upgrade/tag-migration evidence and owner-authorized re-genesis remain separate
+checks. The reference canonicalizer implements the documented exact-integer
+profile; it is not an implementation of every binary64 input allowed by JCS.
+
 ## What is not yet closed (do not improvise it — it is a rev-N+1 conversation)
 
 These are recorded in `rapp-backlog.md` for the owner's ratification. Until then they
@@ -74,8 +90,14 @@ are interoperable only by out-of-band agreement, and a candidate registry should
 
 ## How to propose a change to `rapp/1` itself
 
-If your need cannot be expressed as a registration — a twelfth key, a new hash space, a
-sibling endpoint — it is a revision. Open an issue in the shape the existing ones use
-(a PII-free use case, the ambiguous clause, the questions, and the fail-closed behaviour
-you adopt meanwhile), then read `CONTRIBUTING.md`: `SPEC.md` is generated from the chain
-and a revision is appended with `anchor/update_anchor.py`, ratified by the owner.
+First distinguish an extension from a change to a frozen form. Registered kinds,
+registry entries, vocabulary and subordinate profiles can grow under `rapp/1`.
+A twelfth frame key, a changed canonical form/hash tag, or a changed wire form
+cannot be introduced by a later `rapp/1` revision: §12 and Constitution Article 18
+require a new `rapp/2` token while existing `rapp/1` artifacts keep verifying.
+
+Open an issue in the shape the existing ones use (a PII-free use case, the
+ambiguous clause, the questions, and the fail-closed behaviour you adopt
+meanwhile), then read `CONTRIBUTING.md`. A permitted normative amendment is
+carried by an owner-ratified successor in the specification chain; `SPEC.md` is
+its generated view, never an independently edited authority.
