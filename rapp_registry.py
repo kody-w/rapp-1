@@ -350,18 +350,22 @@ class Registry:
         superseded by a re-anchor at or before utc, not tombstoned at or before utc."""
         return self._signer_acceptable(kid, utc)
 
-    def _signer_acceptable(self, kid, utc, ignored_reanchor=None):
+    def _signer_acceptable(self, kid, utc, ignored_reanchor=None, match_key_aliases=False):
         e = self.spki.get(kid)
         if e is None:
             return False, "no spki entry for kid (registry absence is refusal)"
+        target = R.rappid_parts(kid)["hash"] if match_key_aliases else kid
+        def matches(other):
+            return (R.rappid_parts(other)["hash"] if match_key_aliases else other) == target
         for r in self.reanchors:
             if r is ignored_reanchor:
                 continue
-            if r["old_rappid"] == kid and utc >= r["utc"]:
+            if matches(r["old_rappid"]) and utc >= r["utc"]:
                 return False, f"kid superseded by re-anchor ({r['case']}) at {r['utc']}"
-        if e["deprecated"] and not any(r["old_rappid"] == kid for r in self.reanchors):
+        if e["deprecated"] and not any(matches(r["old_rappid"]) for r in self.reanchors):
             return False, "spki entry deprecated"
-        rv = self.tombstones.get(kid)
+        revocations = [revoked for identity, revoked in self.tombstones.items() if matches(identity)]
+        rv = min(revocations) if revocations else None
         if rv is not None and utc >= rv:
             return False, f"kid tombstoned at {rv}"
         return True, "ok"
@@ -452,6 +456,7 @@ class Registry:
                     if entry["case"] == "rotation":
                         ok, why = self._signer_acceptable(
                             entry["old_rappid"], utc, ignored_reanchor=entry,
+                            match_key_aliases=True,
                         )
                         if not ok:
                             return False, f"rotation old-key authority refused: {why}"

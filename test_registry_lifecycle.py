@@ -242,6 +242,35 @@ class RegistryLifecycleTests(unittest.TestCase):
         doc = self.document(self.entries() + [first, second])
         self.assertEqual(self.load(doc)[0], "refused")
 
+    def worker_alias(self):
+        alias = R.mint_rappid("test", "worker-alias", spki_der=self.der[self.keys["worker"]])
+        self.keys["alias"] = alias
+        self.der[alias] = self.der[self.keys["worker"]]
+        return alias
+
+    def test_revoked_old_key_cannot_rotate_through_a_source_alias(self):
+        self.worker_alias()
+        retired = {"type": "tombstone", "rappid": self.keys["worker"],
+                   "revoked_utc": "2026-06-01T00:00:00.000Z"}
+        retired["sig"] = self.sign(retired, self.keys["owner"])
+        transition = self.reanchor(old="alias", new="outsider")
+        status, _, why = self.load(self.document(self.entries() + [retired, transition]))
+        self.assertEqual(status, "refused")
+        self.assertIn("old-key authority", why)
+
+    def test_superseded_old_key_cannot_rotate_through_a_source_alias(self):
+        self.worker_alias()
+        earlier = self.reanchor(utc="2026-06-01T00:00:00.000Z")
+        later = self.reanchor(old="alias", new="outsider")
+        status, _, why = self.load(self.document(self.entries() + [earlier, later]))
+        self.assertEqual(status, "refused")
+        self.assertIn("old-key authority", why)
+
+    def test_unretired_source_alias_is_not_rejected_merely_for_its_name(self):
+        self.worker_alias()
+        transition = self.reanchor(old="alias", new="outsider")
+        self.assertEqual(self.load(self.document(self.entries() + [transition]))[0], "verified")
+
 
 if __name__ == "__main__":
     unittest.main()

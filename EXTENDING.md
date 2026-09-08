@@ -61,7 +61,9 @@ The issuer must be the owner in tenure at the authenticated issuance/action
 time; an owner's own succession record is signed by the outgoing owner at that
 boundary, after checking that its tenure is nonempty and chronologically
 possible. A required rotation proof must come from a key that was not already
-retired, excluding only the supersession introduced by that record. Optional
+retired, excluding only the supersession introduced by that record.
+For that required proof, retirement is matched by the validated key tail, so
+renaming the source RAPPID cannot revive the same retired SPKI. Optional
 old-key signatures on compromise records are checked cryptographically without
 pretending the compromised key still has authority. Compromise requires a
 registered tombstone. Ambiguous predecessors and reused ancestral key tails
