@@ -3,7 +3,7 @@
 This directory is RAPP's public, pullable specification anchor. The append-only
 `chain.jsonl` DOGG stream carries the normative revision content and proves its
 integrity and lineage. It is unsigned: hashes do not authenticate which head
-the owner ratified. Until an authenticated RAPP registry/checkpoint exists,
+the owner ratified. Until an authenticated checkpoint for this protocol anchor exists,
 owner-ratified acceptance onto protected canonical `kody-w/rapp-1` main selects
 the authoritative verified chain.
 
@@ -16,8 +16,10 @@ The chain frame hash is the durable protocol-revision identity. Names such as
 current inline normative text; it is not a second mutable authority.
 
 These files are generator-owned and never hand-edited. The anchor is unsigned
-on purpose — no authenticated registry exists yet, and signing without one
-would be fabrication — and the beacon says so itself.
+on purpose — no authenticated checkpoint for this anchor is published, and
+fabricating one would not establish authority. The beacon says so itself.
+An estate may separately operate its own authenticated §13 registry; that is
+not a ratification of this protocol chain.
 
 - Beacon: `https://raw.githubusercontent.com/kody-w/rapp-1/main/anchor/orient.json`
 - Chain: `https://raw.githubusercontent.com/kody-w/rapp-1/main/anchor/chain.jsonl`

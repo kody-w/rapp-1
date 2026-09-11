@@ -7,7 +7,8 @@ agent is self-contained and offline-capable). Two copies of one canonicalizer is
 the drift class RAPP exists to kill, so this check runs in CI on every push:
 
   1. source parity — the agent's own `sync` normalization (ast-parse, strip docstrings,
-     unparse) applied OFFLINE against the local rapp.py, for canonical/H/Hb;
+     unparse) applied OFFLINE against the local rapp.py, including transitive
+     numeric/parser/frame helpers and their grammar/limit constants;
   2. behavioral parity — both modules run the same vectors through canonical, H, Hb,
      build_frame, verify_frame, and rappid grammar, and must emit identical bytes and
      identical verdicts, including on deliberately broken frames.
@@ -15,8 +16,10 @@ the drift class RAPP exists to kill, so this check runs in CI on every push:
 Exit 0 = the two copies are one canonicalizer. Anything else fails the build.
 """
 import ast
+import copy
 import importlib.util
 import os
+import struct
 import sys
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -40,6 +43,10 @@ def normalized_defs(src, names):
                 body = body[1:] or [ast.Pass()]
             node.body = body
             out[node.name] = ast.unparse(node)
+        elif isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id in names:
+                    out[target.id] = ast.unparse(node.value)
     return out
 
 
@@ -54,21 +61,28 @@ def main():
             failures.append(label)
 
     # 1. source parity for the address core (the agent's sync contract, offline)
-    prims = ("canonical", "H", "Hb")
+    prims = (
+        "_canonical_number", "canonical", "_parse_json_number", "_strict_json",
+        "H", "Hb", "mint_rappid", "rappid_valid", "kind_valid", "stream_form",
+        "utc_valid", "_frame_shape", "build_frame", "verify_frame", "_verify_frame",
+        "_signature_ok", "SPEC", "FRAME_KEYS", "MAX_CANONICAL_BYTES", "MAX_JSON_DEPTH",
+        "_HEX64", "_UTC", "_LCLABEL", "_KIND", "_RAPPID",
+    )
     with open(os.path.join(ROOT, "rapp.py"), encoding="utf-8") as f:
         ref_defs = normalized_defs(f.read(), prims)
     with open(os.path.join(ROOT, "agents", "rapp_sdk_builder_agent.py"), encoding="utf-8") as f:
         agent_defs = normalized_defs(f.read(), prims)
     print("source parity (ast-normalized, no network):")
     for p in prims:
-        check(f"source of {p}", ref_defs.get(p) == agent_defs.get(p))
+        check(f"source of {p}", p in ref_defs and p in agent_defs
+              and ref_defs[p] == agent_defs[p])
 
     # 2. behavioral parity — canonicalization and addressing
     vectors = [
         None, True, False, 0, -1, 2**53 - 1,
         "", "a", "héllo", "é", "é", "  ", "\"\\\b\f\n\r\t",
         [], [1, [2, [3]]], {}, {"b": 1, "a": [3, 2]},
-        {"z": None, "a": {"nested": ["x", 0, False]}, "m": "\uD800" if False else "ok"},
+        {"z": None, "a": {"nested": ["x", 0, False]}, "m": "ok"},
         {"payload": {"k": "v"}, "spec": "rapp/1"},
     ]
     print("behavioral parity — canonical / H / Hb:")
@@ -78,22 +92,51 @@ def main():
     for i, b in enumerate([b"", b"x", bytes(range(256))]):
         check(f"Hb vector {i}", R.Hb("rapp/1:egg", b) == A.Hb("rapp/1:egg", b))
 
+    with open(os.path.join(ROOT, "conformance", "vectors.json"), "rb") as source:
+        known = R._strict_json(source.read())["sections"]
+    print("independently specified numeric and parse answers:")
+    for section in ("4_numbers", "4_number_refuse", "4_parse_accept", "4_refuse"):
+        check(f"required vector section {section}", bool(known.get(section)))
+    for index, vector in enumerate(known.get("4_numbers", [])):
+        value = struct.unpack(">d", bytes.fromhex(vector["binary64_hex"]))[0]
+        check(f"number known answer {index}",
+              R.canonical(value) == A.canonical(value) == vector["canonical"])
+    for index, vector in enumerate(known.get("4_parse_accept", [])):
+        check(f"raw number known answer {index}",
+              R.canonical(R._strict_json(vector["json_text"]))
+              == A.canonical(A._strict_json(vector["json_text"])) == vector["canonical"])
+    for section in ("4_number_refuse", "4_refuse"):
+        for index, vector in enumerate(known.get(section, [])):
+            refused = []
+            for module in (R, A):
+                try:
+                    if section == "4_number_refuse":
+                        module.canonical(struct.unpack(">d", bytes.fromhex(vector["binary64_hex"]))[0])
+                    else:
+                        module._strict_json(vector["json_text"])
+                except ValueError:
+                    refused.append(True)
+                else:
+                    refused.append(False)
+            check(f"{section} refusal {index}", refused == [True, True])
+
     # 3. behavioral parity — the frame, byte for byte
     print("behavioral parity — build_frame / verify_frame:")
     utc = "2026-01-01T00:00:00.000Z"
-    g_ref = R.build_frame("memory.note", "s-1", 0, utc, {"text": "hi", "n": 1}, None)
-    g_agent = A.build_frame("memory.note", "s-1", 0, utc, {"text": "hi", "n": 1}, None)
+    stream = "rappid:@parity/fixture:" + "a" * 64 + ":instance"
+    g_ref = R.build_frame("memory.note", stream, 0, utc, {"text": "hi", "n": 1}, None)
+    g_agent = A.build_frame("memory.note", stream, 0, utc, {"text": "hi", "n": 1}, None)
     check("genesis frame identical", g_ref == g_agent)
-    n_ref = R.build_frame("memory.note", "s-1", 1, utc, {"text": "next"}, g_ref["payload_hash"])
-    n_agent = A.build_frame("memory.note", "s-1", 1, utc, {"text": "next"}, g_agent["payload_hash"])
+    n_ref = R.build_frame("memory.note", stream, 1, utc, {"text": "next"}, g_ref["payload_hash"])
+    n_agent = A.build_frame("memory.note", stream, 1, utc, {"text": "next"}, g_agent["payload_hash"])
     check("successor frame identical", n_ref == n_agent)
 
     def verdicts(frame, head=None, sid=None):
         return R.verify_frame(frame, head, sid), A.verify_frame(frame, head, sid)
 
-    cases = [("valid genesis", dict(g_ref), None, None),
-             ("valid successor", dict(n_ref), g_ref, None),
-             ("cross-stream replay", dict(g_ref), None, "other-stream")]
+    cases = [("valid genesis", dict(g_ref), None, stream, (True, None)),
+             ("valid successor", dict(n_ref), g_ref, stream, (True, None)),
+             ("cross-stream replay", dict(g_ref), None, "other-stream", (False, "1a"))]
     mutations = [
         ("missing key", lambda f: f.pop("sig")),
         ("wrong spec", lambda f: f.__setitem__("spec", "rapp/2")),
@@ -106,14 +149,32 @@ def main():
         ("genesis with prev", lambda f: f.__setitem__("prev", "b" * 64)),
         ("bad utc form", lambda f: f.__setitem__("utc", "2026-01-01T00:00:00Z")),
     ]
-    for label, frame, head, sid in cases:
+    for label, frame, head, sid, expected in cases:
         r, a = verdicts(frame, head, sid)
-        check(f"verdict agrees: {label}", r == a, f"ref={r} agent={a}")
+        check(f"verdict agrees: {label}", r == a and r[:2] == expected, f"ref={r} agent={a}")
     for label, mutate in mutations:
         f = {**g_ref, "payload": dict(g_ref["payload"])}
         mutate(f)
         r, a = verdicts(f)
         check(f"verdict agrees: {label}", r == a, f"ref={r} agent={a}")
+
+    for index, vector in enumerate(known["7_frame"]["tampers"]):
+        r, a = verdicts(vector["frame"], vector["head"], vector["stream_id_of_record"])
+        check(f"known frame refusal {index}", r == a and r[:2] == (False, vector["expect_step"]))
+    for index, malformed in enumerate((None, [], 1, {**g_ref, "payload": {"bad": "\ud800"}})):
+        r, a = verdicts(malformed)
+        check(f"controlled malformed frame {index}", r == a and r[:2] == (False, "1"))
+    for module in (R, A):
+        signed = copy.deepcopy(g_ref)
+        signed["sig"] = "test-only-adapter"
+        before = copy.deepcopy(signed)
+
+        def mutating_adapter(unsigned, _signature):
+            unsigned["payload"]["text"] = "changed"
+            return True, "test-only adapter, not cryptographic verification"
+
+        result = module.verify_frame(signed, signature_verifier=mutating_adapter)
+        check(f"signature callback isolation: {module.__name__}", result[0] and signed == before)
 
     # 4. identity grammar
     print("behavioral parity — rappid grammar:")

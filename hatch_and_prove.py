@@ -3,7 +3,7 @@
 compliance stack end-to-end, really using the protocol. Reports every layer's verdict
 and every repo that bombs, so the loop can fix → re-cubby → re-hatch → re-prove.
 """
-import sys, os, json, gzip, glob, hashlib, tempfile, importlib.util, unicodedata
+import sys, os, json, gzip, glob, hashlib, tempfile, importlib.util, shutil
 from pathlib import Path
 
 _trusted_spec = importlib.util.spec_from_file_location(
@@ -13,17 +13,8 @@ _trusted_spec = importlib.util.spec_from_file_location(
 trusted_rapp = importlib.util.module_from_spec(_trusted_spec)
 _trusted_spec.loader.exec_module(trusted_rapp)
 
-if len(sys.argv) not in (4, 6):
-    raise SystemExit(
-        "usage: python3 hatch_and_prove.py <rapp-estate.iso.egg.gz> "
-        "<expected-egg-hash> <expected-gzip-sha256> "
-        "[trusted-signer-rappid trusted-spki.der]"
-    )
-ISO_GZ = sys.argv[1]
-EXPECTED_EGG_HASH = sys.argv[2]
-EXPECTED_GZIP_HASH = sys.argv[3]
-TRUSTED_SIGNER = sys.argv[4] if len(sys.argv) == 6 else None
-TRUSTED_SPKI = Path(sys.argv[5]).read_bytes() if len(sys.argv) == 6 else None
+TRUSTED_SIGNER = None
+TRUSTED_SPKI = None
 MAX_COMPRESSED_BYTES = 256 * 1024 * 1024
 MAX_EXPANDED_BYTES = 512 * 1024 * 1024
 
@@ -103,10 +94,7 @@ def hatch(iso_gz, expected_egg_hash, expected_gzip_hash):
     actual_egg_hash = trusted_rapp.egg_address(manifest)
     if actual_egg_hash != expected_egg_hash:
         raise ValueError("estate egg does not match the trusted expected address")
-    home = tempfile.mkdtemp(prefix="hatched-estate-")
-    root = Path(home).resolve()
     destinations = []
-    collision_keys = set()
     organisms = {}
     for organism, files in _collect_organisms(blob, verifier):
         rappid = organism["rappid"]
@@ -119,27 +107,107 @@ def hatch(iso_gz, expected_egg_hash, expected_gzip_hash):
         organisms[rappid] = (address, organism, files)
     for rappid, (_, organism, files) in organisms.items():
         parts = trusted_rapp.rappid_parts(rappid)
-        organism_root = (root / f"{parts['owner']}--{parts['slug']}").resolve()
-        if root not in organism_root.parents:
-            raise ValueError("organism path escaped the hatch root")
+        if not trusted_rapp._path_set_valid(["manifest.json", *files]):
+            raise ValueError("organism paths violate the portable extraction filesystem policy")
+        prefix = f"{parts['owner']}--{parts['slug']}"
         for relative, octets in files.items():
-            destination = organism_root.joinpath(*relative.split("/"))
-            resolved = destination.resolve()
+            destinations.append((prefix + "/" + relative, octets))
+    if not trusted_rapp._path_set_valid([path for path, _ in destinations]):
+        raise ValueError("estate paths collide under the portable extraction filesystem policy")
+
+    # Validate every destination before allocating the tree or writing any member.
+    home = tempfile.mkdtemp(prefix="hatched-estate-")
+    complete = False
+    try:
+        root = Path(home).resolve()
+        resolved_destinations = []
+        for relative, octets in destinations:
+            resolved = root.joinpath(*relative.split("/")).resolve()
             if root not in resolved.parents:
                 raise ValueError("estate egg path escaped the hatch root")
-            collision_key = unicodedata.normalize("NFD", str(resolved)).casefold()
-            if collision_key in collision_keys:
-                raise ValueError("estate egg paths collide on the target filesystem")
-            collision_keys.add(collision_key)
-            destinations.append((resolved, octets))
-    for resolved, octets in destinations:
-        resolved.parent.mkdir(parents=True, exist_ok=True)
-        resolved.write_bytes(octets)
-    return home, blob
+            resolved_destinations.append((resolved, octets))
+        for resolved, octets in resolved_destinations:
+            resolved.parent.mkdir(parents=True, exist_ok=True)
+            resolved.write_bytes(octets)
+        complete = True
+        return home, blob
+    finally:
+        if not complete:
+            shutil.rmtree(home)
+
+def check_bundled_repositories(checker, repositories):
+    """Aggregate counted local checks, never missing evidence or authority."""
+    paths = [os.fspath(path) for path in repositories]
+    scope_errors = []
+    if not paths:
+        scope_errors.append("no repositories were selected")
+    if len(paths) != len(set(paths)):
+        scope_errors.append("duplicate repository paths do not establish distinct coverage")
+    if not callable(getattr(checker, "scan_repo", None)):
+        scope_errors.append("bundled checker has no counted scan_repo interface")
+    observations = []
+    if not scope_errors:
+        for path in paths:
+            try:
+                report = checker.scan_repo(path)
+            except (OSError, ValueError, TypeError) as error:
+                observations.append({
+                    "repository": path, "verdict": "INCOMPLETE",
+                    "passed": False, "error": str(error),
+                })
+                continue
+            if not isinstance(report, dict):
+                observations.append({
+                    "repository": path, "verdict": "INCOMPLETE",
+                    "passed": False, "error": "checker returned no structured observation",
+                })
+                continue
+            counts = report.get("counts")
+            measured = None
+            if isinstance(counts, dict):
+                values = [counts.get(name) for name in
+                          ("verified_identities", "verified_frames", "verified_eggs")]
+                if all(type(value) is int and value >= 0 for value in values):
+                    measured = sum(values)
+            gates = report.get("gates", {})
+            coverage = report.get("coverage", {})
+            passed = (
+                report.get("verdict") == "COMPLIANT" and type(report.get("exit_code")) is int
+                and report["exit_code"] == 0
+                and measured is not None and measured > 0 and report.get("findings") == []
+                and isinstance(report.get("evidence"), list) and bool(report["evidence"])
+                and isinstance(gates, dict) and gates.get("discovery") == "pass"
+                and gates.get("local_artifacts") == "pass"
+                and isinstance(coverage, dict)
+                and coverage.get("complete_within_supported_forms") is True
+            )
+            observations.append({
+                "repository": path, "verdict": report.get("verdict", "INCOMPLETE"),
+                "passed": passed, "measured_artifacts": measured,
+                "findings": report.get("findings"),
+                "scope": "local-structural-hash; authenticated Consumer acceptance unmeasured",
+            })
+    return {
+        "passed": bool(observations) and not scope_errors
+                  and all(row["passed"] for row in observations),
+        "repositories_selected": len(paths), "scope_errors": scope_errors,
+        "observations": observations, "authenticated_acceptance": False,
+    }
+
 
 def main():
+    global TRUSTED_SIGNER, TRUSTED_SPKI
+    if len(sys.argv) not in (4, 6):
+        raise SystemExit(
+            "usage: python3 hatch_and_prove.py <rapp-estate.iso.egg.gz> "
+            "<expected-egg-hash> <expected-gzip-sha256> "
+            "[trusted-signer-rappid trusted-spki.der]"
+        )
+    iso_gz, expected_egg_hash, expected_gzip_hash = sys.argv[1:4]
+    TRUSTED_SIGNER = sys.argv[4] if len(sys.argv) == 6 else None
+    TRUSTED_SPKI = Path(sys.argv[5]).read_bytes() if len(sys.argv) == 6 else None
     print("═══ HATCHING the estate .iso as a twin (offline) ═══")
-    home, blob = hatch(ISO_GZ, EXPECTED_EGG_HASH, EXPECTED_GZIP_HASH)
+    home, blob = hatch(iso_gz, expected_egg_hash, expected_gzip_hash)
     # the hatched twin carries its OWN reference impl — use IT (real dogfooding)
     matches = sorted(Path(home).glob("*--rapp-1/rapp.py"))
     if len(matches) != 1:
@@ -201,7 +269,7 @@ def main():
     results["§9 hatch round-trip (files intact)"] = (set(hf) == set(twin_files) and
         hf["rappid.json"] == twin_files["rappid.json"])
 
-    # ── §12 + full ecosystem: rapp_check every bundled repo (offline) ──
+    # ── Counted local checks over the explicit bundled repository scope. ──
     sys.path.insert(0, os.path.join(home, "rapp-1"))
     spec = importlib.util.spec_from_file_location(
         "rc",
@@ -209,24 +277,18 @@ def main():
     )
     rc = importlib.util.module_from_spec(spec); spec.loader.exec_module(rc)
     repos = sorted(glob.glob(os.path.join(home, "*", "repos", "*")))
-    drift = []
-    for d in repos:
-        verdict, findings, _ = rc.check_repo(d)
-        if verdict == "DRIFT":
-            drift.append((os.path.basename(d), findings[:2]))
-    results[f"ecosystem: {len(repos)} repos §6/§7/§9/§12"] = (len(drift) == 0)
+    repository_checks = check_bundled_repositories(rc, repos)
+    results[f"local artifacts: {len(repos)} selected repos"] = repository_checks["passed"]
 
-    print("\n═══ END-TO-END COMPLIANCE STACK (the hatched twin, using the protocol) ═══")
+    print("\n═══ LOCAL STRUCTURAL CHECKS (the selected hatched data) ═══")
     allok = True
     for k, v in results.items():
         allok = allok and v
         print(f"  {'✅' if v else '❌'}  {k}")
-    if drift:
-        print(f"\n  ❌ {len(drift)} repos bombed:")
-        for name, f in drift:
-            print(f"     ✗ {name}: {f}")
-    print(f"\n{'✅ FULL STACK GREEN — the protocol proves itself end-to-end, offline.' if allok else '❌ STACK RED — fix the bombs, re-cubby, re-hatch, re-prove.'}")
-    import shutil; shutil.rmtree(home, ignore_errors=True)
+    if not repository_checks["passed"]:
+        print(json.dumps(repository_checks, indent=2))
+    shutil.rmtree(home)
+    print(f"\n{'✅ LOCAL CHECKS PASSED — authority and runtime compatibility are not certified.' if allok else '❌ LOCAL CHECKS FAILED OR INCOMPLETE.'}")
     sys.exit(0 if allok else 1)
 
 if __name__ == "__main__":

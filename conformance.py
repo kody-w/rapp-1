@@ -1,5 +1,5 @@
-"""conformance.py — executable proof that RAPP (rev-14) is implementable and
-self-consistent, plus a non-gating observation of one live estate artifact.
+"""conformance.py — controlled checks of the frozen RAPP/1 reference,
+plus a non-gating observation of one live estate artifact.
 
 Run: python3 conformance.py
 Exit 0 = all controlled vectors pass. Mutable remote state never defines
@@ -10,6 +10,8 @@ import urllib.request
 import hashlib
 import io
 import zipfile
+import struct
+from pathlib import Path
 import rapp as R
 
 PASS, FAIL = "\033[32mPASS\033[0m", "\033[31mFAIL\033[0m"
@@ -19,7 +21,7 @@ def check(name, ok, detail=""):
     print(f"  [{PASS if ok else FAIL}] {name}" + (f"  — {detail}" if detail and not ok else ""))
 
 print("=" * 70)
-print("RAPP rev-14 — conformance vectors")
+print("RAPP/1 — frozen protocol conformance vectors")
 print("=" * 70)
 
 # V1 canonicalization determinism (key order independence)
@@ -27,6 +29,39 @@ a = R.canonical({"b": 1, "a": [3, 2], "c": {"y": 1, "x": 2}})
 b = R.canonical({"c": {"x": 2, "y": 1}, "a": [3, 2], "b": 1})
 check("V1 canonicalization is key-order independent", a == b, f"{a} vs {b}")
 check("V1b array order IS significant", R.canonical([1, 2]) != R.canonical([2, 1]))
+
+vectors = R._strict_json(
+    (Path(__file__).resolve().parent / "conformance" / "vectors.json").read_bytes()
+)["sections"]
+required_vectors = ("4_numbers", "4_number_refuse", "4_parse_accept", "4_refuse")
+check(
+    "V1c independent number and parse fixtures are present",
+    all(isinstance(vectors.get(name), list) and vectors[name] for name in required_vectors),
+)
+for vector in vectors.get("4_numbers", []):
+    number = struct.unpack(">d", bytes.fromhex(vector["binary64_hex"]))[0]
+    check("V1 number " + vector["binary64_hex"], R.canonical(number) == vector["canonical"])
+for vector in vectors.get("4_number_refuse", []):
+    try:
+        R.canonical(struct.unpack(">d", bytes.fromhex(vector["binary64_hex"]))[0])
+    except ValueError:
+        refused = True
+    else:
+        refused = False
+    check("V1 non-finite " + vector["binary64_hex"], refused)
+for vector in vectors.get("4_parse_accept", []):
+    check(
+        "V1 parsed number " + vector["json_text"],
+        R.canonical(R._strict_json(vector["json_text"])) == vector["canonical"],
+    )
+for index, vector in enumerate(vectors.get("4_refuse", [])):
+    try:
+        R._strict_json(vector["json_text"])
+    except ValueError:
+        refused = True
+    else:
+        refused = False
+    check("V1 parse refusal " + str(index), refused)
 
 # V2 domain separation (§5): same bytes, different space → different address
 val = {"x": 1}
@@ -93,6 +128,14 @@ check(
     "V8 missing key and impossible calendar time are refused at step 1",
     (not ok) and step == "1" and (not calendar_ok) and calendar_step == "1",
 )
+check("V8 committed frame refusal fixtures are present", bool(vectors["7_frame"]["tampers"]))
+for vector in vectors["7_frame"]["tampers"]:
+    outcome = R.verify_frame(
+        vector["frame"], head=vector["head"],
+        stream_id_of_record=vector["stream_id_of_record"],
+    )
+    check("V8 known refusal: " + vector["label"],
+          outcome[:2] == (False, vector["expect_step"]))
 
 # V9 swarm frame must be signed
 sw = R.build_frame("swarm.echo", "net:commons", 0, "2026-07-15T00:00:00.000Z", {"x": 1}, prev=None, prev_wave=None)
@@ -108,6 +151,21 @@ check(
     "V9 unsigned swarm and unverified frame signatures are refused at step 6",
     (not ok) and step == "6" and (not forged_ok) and forged_step == "6",
 )
+
+adapter_frame = {**g, "payload": dict(g["payload"]), "sig": "test-only-adapter"}
+adapter_before = R.canonical(adapter_frame)
+
+
+def mutating_frame_adapter(unsigned, _signature):
+    unsigned["payload"]["hello"] = "changed"
+    return True, "test-only adapter, not cryptographic verification"
+
+
+adapter_ok, _, _ = R.verify_frame(
+    adapter_frame, stream_id_of_record=sid, signature_verifier=mutating_frame_adapter,
+)
+check("V9 signature adapter cannot mutate accepted frame bytes",
+      adapter_ok and R.canonical(adapter_frame) == adapter_before)
 
 # V10 sealed artifact: public ciphertext, signed manifest, scoped key release
 sealed_rappid = "rappid:@kody/sealed:" + "c" * 64
@@ -363,10 +421,15 @@ check(
         and malformed_step == "parse"
         and not alias_ok
         and alias_step == "§9.1"
-        and not prefix_ok
-        and prefix_step == "§9.1"
-        and not manifest_alias_ok
-        and manifest_alias_step == "§9.1"
+    ),
+)
+check(
+    "V10c distinct POSIX wire paths retain conservative extraction refusal",
+    (
+        prefix_ok
+        and manifest_alias_ok
+        and not R._path_set_valid(["manifest.json", *R.read_egg(prefix_conflict)[1]])
+        and not R._path_set_valid(["manifest.json", *R.read_egg(manifest_alias)[1]])
     ),
 )
 

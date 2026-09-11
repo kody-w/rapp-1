@@ -3,7 +3,7 @@
 **Audience:** any AI agent assigned to sweep one repository of the kody-w RAPP estate into full conformance with the RAPP standard (wire tag: `rapp/1`).
 **Assumption:** you have read a GitHub issue on your repo that linked you here, and you have nothing else — no prior context, no memory, no access to the human. This document plus the public URLs it cites are your entire brain. Everything you need is below, including exact formulas, runnable commands, and the judgment rules for every case you will encounter.
 
-**Prime directive:** you are performing a *deep* conformance pass, not a grep. A grep finds strings; you must exercise real code, judge each finding by category, fix producers at their real layer, and prove the result by re-running the checks until they come up empty. "Fixed" is a re-sweep verdict, never a single edit.
+**Prime directive:** you are performing a *deep* conformance pass, not a grep. A grep finds strings; you must exercise real code, judge each finding by category, fix producers at their real layer, and prove the result by re-running the checks. Missing evidence is not a clean result, and preserving a historical refusal is not a reason to rewrite immutable bytes. State the scope of every verdict.
 
 ---
 
@@ -19,22 +19,31 @@
 
 `kody-w/rapp-1` is the protocol authority and reference implementation of
 record. `kody-w/RAPP` is the public foundation and product home. Where this
-Playbook and the protocol sources disagree, **SPEC.md + the public Protocol
-Constitution + rapp.py win** — they are the standard; this document teaches it.
+Playbook and the accepted normative sources disagree, the **verified specification
+chain and Protocol Constitution govern**. `SPEC.md` is their materialized view.
+`rapp.py` is an executable reference, not permission to narrow the frozen
+standard when an implementation defect is found.
+
+Resolve the accepted anchor and record its exact canonical-main commit,
+revision-frame hash, and normative hash. Mutable URLs below are discovery, not
+a durable pin. Follow the target repository's contribution policy; permission
+to inspect or repair a consumer does not ratify a protocol revision or authorize
+rewriting its history.
 
 Get the whole reference in one command:
 
 ```bash
 git clone --depth 1 https://github.com/kody-w/rapp-1 /tmp/rapp-1
+python3 /tmp/rapp-1/alignment_check.py --live
 ```
 
 ---
 
 ## 1. The convergence doctrine — why you exist
 
-The estate (~144 public repos) is converging to the RAPP standard through **alternating bidirectional sweeps**:
+The explicitly inventoried public estate is examined through **alternating bidirectional sweeps**. Record the repository set and observation time rather than reusing a historical repository count:
 
-- **Top-down (estate → repo):** a central agent sweeps all repos at once. Broad, but necessarily shallow per repo — it cannot soak 144 full contexts.
+- **Top-down (estate → repo):** a central agent accounts for every repository in the declared scope. Static references, actual artifact checks, and unmeasured runtime behavior remain separate.
 - **Bottom-up (repo → estate):** *you*. You have one repo and unlimited depth. You soak your repo's entire context — its README, its structure, every producer, test, and artifact — and sweep from the inside, catching what the shallow central passes missed. Then you report back.
 - **The loop:** passes alternate until **both directions come up empty**. A single shallow pass always leaves residue. The doctrine is deep-context passes, bidirectional, iterated to a **zero-drift fixpoint**.
 
@@ -53,11 +62,13 @@ rappid:@<owner>/<slug>:<64hex>
 ```
 
 - `owner` and `slug` each match `[a-z0-9]+(-[a-z0-9]+)*` — lowercase alphanumerics, single hyphens as separators, **no dots, no underscores, no uppercase, no leading/trailing/double hyphens**.
+- `owner` is 1-39 characters and `slug` is 1-100 characters. Shape alone is not a complete grammar check.
 - The tail is exactly **64 lowercase hex characters** (`[0-9a-f]{64}`).
-- The full validating regex (verbatim from `rapp.py`):
+- Use the reference validator, including its length checks:
 
 ```python
-_RAPPID = re.compile(r"^rappid:@([a-z0-9]+(?:-[a-z0-9]+)*)/([a-z0-9]+(?:-[a-z0-9]+)*):([0-9a-f]{64})$")
+import rapp
+assert rapp.rappid_valid(rid), "not a RAPP/1 rappid"
 ```
 
 ### 2.2 The one true mint
@@ -108,7 +119,7 @@ Everything in RAPP is addressed through two functions with an exact newline-sepa
 def Hb(space, b):   # over raw octets
     return hashlib.sha256(space.encode() + b"\x0a" + b).hexdigest()
 
-def H(space, v):    # over a canonicalized JSON value (§4 JCS, no floats)
+def H(space, v):    # over a canonicalized JSON value (§4)
     return hashlib.sha256(space.encode() + b"\x0a" + canonical(v).encode("utf-8")).hexdigest()
 ```
 
@@ -121,9 +132,17 @@ The ratified spaces (each used by either `H` or `Hb`, never both):
 | `rapp/1:rappid` | identity tails (via `Hb`) |
 | `rapp/1:egg` | egg member-file octets (via `Hb`) |
 | `rapp/1:egg-manifest` | the egg's whole-address (via `H`) |
+| `rapp/1:grail` | immutable Grail bindings |
 | `rapp/1:seal` | seals |
+| `rapp/1:sealed-aad` | sealed-envelope authenticated data |
+| `rapp/1:sealed-key-request` | restricted key requests |
 
-`canonical(v)` is RFC 8785 JCS restricted to strings/ints/bools/null/arrays/objects (no floats): sorted keys, no whitespace, `ensure_ascii=False`. Use the reference `rapp.canonical` — do not hand-roll.
+`canonical(v)` implements §4's JCS and RAPP input domain: UTF-16 member ordering,
+ECMAScript binary64 number serialization, no Unicode normalization, a 1 MiB
+canonical limit, and the 64-level container-depth limit. `0.1` is admitted;
+lossy raw number tokens are not. Reject duplicate members and lossy tokens
+before ordinary JSON parsing can repair them. Use the reference parser and
+canonicalizer rather than re-typing an integer-only or sorted-JSON approximation.
 
 ---
 
@@ -138,9 +157,10 @@ spec, kind, stream_id, seq, utc, payload, payload_hash, frame_hash, prev, prev_w
 The laws, exactly:
 
 - `spec` is the string `"rapp/1"`.
-- `kind` matches `^[a-z0-9]+(-[a-z0-9]+)*\.[a-z0-9]+(-[a-z0-9]+)*$` — `namespace.name`, **exactly one dot**.
+- `kind` is `lclabel "." lclabel`, **exactly one dot**, with each label 1-64 characters (§6.1.1). A prefix does not establish its registered family.
+- `stream_id` is a body rappid, a memory rappid followed by a 1-64-character `instance`, or `net:` followed by an `lclabel`. Do not invent a swarm-label length ceiling.
 - `seq` is an integer in `[0, 2^53 − 1]` (never a bool, never a string).
-- `utc` is the fixed millisecond form `YYYY-MM-DDTHH:MM:SS.mmmZ` (regex `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$`), non-decreasing along the chain.
+- `utc` is the valid-calendar, 24-byte ASCII millisecond form `YYYY-MM-DDTHH:MM:SS.mmmZ`, non-decreasing along the chain. Use `rapp.utc_valid`; Unicode-aware `\d` alone is insufficient.
 - `payload` is a JSON object.
 - `payload_hash = H("rapp/1:particle", payload)`.
 - `frame_hash = H("rapp/1:wave", frame_without_frame_hash_and_sig)` — the frame minus exactly the `frame_hash` and `sig` members.
@@ -150,19 +170,30 @@ The laws, exactly:
 
 **Frames are IMMUTABLE.** Editing a committed frame's bytes breaks its hash chain. NEVER hand-edit committed frames or sealed `frames/legacy/` files — not to fix a typo, not to update a retired schema string inside a payload, not for any reason. A frame correctly preserves whatever was current when it was written; history is not rewritten. If a chain is genuinely broken, the remedy is the owner-authorized re-genesis operation (SPEC §12.1), which is **not** yours to perform — report it as drift instead (§9).
 
-Verify chains with the reference verifier, threading the head so linkage is actually checked:
+For a numbered chain, obtain `RAPP_STREAM_ID` from an independently trusted
+stream record before running the following. The incoming frame must not choose
+its own expected stream identity. Threading a head checks linkage, not registry
+ratification or unmeasured cryptography:
 
 ```python
-import sys, json, glob, os
+import sys, glob, os, re
 sys.path.insert(0, "/tmp/rapp-1")
 import rapp
 
-files = sorted(glob.glob("path/to/frames/*.json"),
+files = sorted((f for f in glob.glob("path/to/frames/*.json")
+                if re.fullmatch(r"[0-9]+\.json", os.path.basename(f))),
                key=lambda f: int(os.path.basename(f)[:-5]))
+assert files, "no numbered frames were observed"
+expected_stream = os.environ["RAPP_STREAM_ID"]
 head = None
+raw_read_budget = 8 * 1024 * 1024  # Local resource policy, not the canonical-byte limit.
 for f in files:
-    fr = json.load(open(f))
-    ok, step, why = rapp.verify_frame(fr, head=head, stream_id_of_record=fr.get("stream_id"))
+    with open(f, "rb") as source:
+        raw = source.read(raw_read_budget + 1)
+    if len(raw) > raw_read_budget:
+        raise ValueError("complete frame input exceeds this reader's local budget")
+    fr = rapp._strict_json(raw)
+    ok, step, why = rapp.verify_frame(fr, head=head, stream_id_of_record=expected_stream)
     print(f, ok, step, why)
     assert ok, (f, step, why)
     head = fr
@@ -180,7 +211,10 @@ An egg is either a JSON object (`invite`, `session` variants) or a ZIP whose roo
   "payload": { }, "sig": null }
 ```
 
-The ratified variants: **organism, rapplication, session, invite, neighborhood, estate** (see SPEC §9.2 for each one's required members). No other variant exists; no other document may re-specify eggs.
+The built-in variants are **organism, rapplication, session, invite,
+neighborhood, estate, and sealed** (see §9.2 for required members).
+Estate-defined extensions need their own lawful registry and validation
+contract; they cannot re-specify the frozen container or address.
 
 The laws:
 
@@ -190,26 +224,31 @@ The laws:
 - The egg's one address is `egg_hash = H("rapp/1:egg-manifest", manifest_without_sig)` — the manifest with exactly the `sig` key removed (re-signing never changes identity).
 - `invite` eggs REQUIRE a valid estate-owner `sig`.
 
-**Retired:** all legacy `brainstem-egg/2.x-*` stamps (e.g. `brainstem-egg/2.3-neighborhood`, `neighborhood-egg/1.0`). They MUST never be emitted. Existing legacy eggs are **RE-PACKED** into `rapp/1-egg` form — a packed `.egg` is hash-sealed like a frame, so it is never hand-edited, only re-packed by a conformant packer.
+**Retired:** legacy `brainstem-egg/2.x-*` stamps (e.g.
+`brainstem-egg/2.3-neighborhood`, `neighborhood-egg/1.0`) are not emitted as new
+RAPP/1 artifacts. Preserve original eggs as historical data. An authorized
+migration writes a separate conforming result with explicit before/after
+bindings; never overwrite an old egg to make a sweep green. Transport-only
+repacking may retain logical identity only when the manifest and every member's
+octets are unchanged.
 
-Verify an egg:
+Use the reference egg verifier rather than a partial ZIP/manifest checklist:
 
 ```python
-import sys, json, zipfile
+import sys
+from pathlib import Path
 sys.path.insert(0, "/tmp/rapp-1"); import rapp
 
-z = zipfile.ZipFile("thing.egg")
-assert all(i.compress_type == 0 for i in z.infolist()), "deflate found — not byte-reproducible"
-m = json.loads(z.read("manifest.json"))
-assert set(m) == {"schema","variant","rappid","created_utc","contents","payload","sig"}
-assert m["schema"] == "rapp/1-egg" and rapp.rappid_valid(m["rappid"])
-paths = [c["path"] for c in m["contents"]]
-assert paths == sorted(paths, key=lambda p: p.encode())
-for c in m["contents"]:
-    assert rapp.Hb("rapp/1:egg", z.read(c["path"])) == c["hash"], c["path"]
-egg_hash = rapp.H("rapp/1:egg-manifest", {k: v for k, v in m.items() if k != "sig"})
-print("egg OK:", egg_hash)
+ok, step, why = rapp.verify_egg(Path("thing.egg").read_bytes())
+assert ok, (step, why)
+print("egg core checks passed")
 ```
+
+Invites and other signed flows additionally require the independently trusted
+owner/signature inputs named by the verifier; never substitute a permissive
+test callback. Verification does not hatch code or prove that the current
+host can safely materialize every protocol-valid path. Hatching must apply its
+separate containment and filesystem-collision policy before writing.
 
 ---
 
@@ -367,11 +406,11 @@ Your report is what lets the top-down agent skip or target your repo on its next
 
 ```
 Hb(space, b)        = sha256(space + "\x0a" + b).hexdigest()
-H(space, v)         = Hb(space, canonical(v).encode())          # canonical = JCS, no floats
+H(space, v)         = Hb(space, canonical(v).encode())          # §4 JCS + lossless input domain
 rappid              = "rappid:@" + owner + "/" + slug + ":" + tail
   tail (keyless)    = Hb("rapp/1:rappid", uuid4().bytes)         # 64 hex, mint-once, reuse on read
   tail (keyed)      = Hb("rapp/1:rappid", SPKI_DER)
-  owner/slug        = [a-z0-9]+(-[a-z0-9]+)*
+  owner/slug        = lclabel; owner 1-39 chars, slug 1-100 chars
 frame keys (11)     = spec kind stream_id seq utc payload payload_hash frame_hash prev prev_wave sig
   payload_hash      = H("rapp/1:particle", payload)
   frame_hash        = H("rapp/1:wave", frame \ {frame_hash, sig})

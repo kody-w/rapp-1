@@ -25,12 +25,30 @@ Then say so in your README with the vectors' revision, the date, and the count, 
 this repository's README dates its own claims (Constitution Art. 9: claims are computed
 and dated). Conformance classes (Producer, Consumer, Router/Mirror) are in SPEC §11.
 
-## What the reference does not do
+## Numeric domain and trust boundaries
 
-`rapp.py` refuses non-integer JSON numbers instead of implementing full RFC 8785 number
-serialization. An implementation that handles them is more complete, not less conformant;
-the vectors use integers only. The reference also verifies §10 signatures only when the
-optional `cryptography` import is present; an implementation with native Ed25519 is fine.
+Use the complete frozen §4 numeric contract: ECMAScript binary64 serialization
+and refusal of original JSON number tokens whose mathematical value changes
+after that round trip. `0.1` and exactly `2^53` are not forbidden merely because
+the sequence field has a separate uint53 ceiling. Duplicate members and lossy
+tokens must be refused at the original parse boundary, before a permissive
+parser can normalize them.
+
+Generated-vector freshness proves agreement with the reference, not independent
+normative correctness. Run the independent domain/boundary regressions as well:
+
+```bash
+python3 -m unittest test_protocol_fixes test_linter_registry
+```
+
+Reference/embedded-SDK agreement alone is not sufficient when both share a
+defect. Keep independently specified numeric known answers and correctly
+rehashed negative frames among the controls.
+
+The reference verifies §10 signatures only when the optional `cryptography`
+import is present; an implementation with native Ed25519 is fine. A test
+signature adapter is not evidence of real cryptographic verification or
+authenticated registry authority.
 
 ## Regenerate after a revision
 

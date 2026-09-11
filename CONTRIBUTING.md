@@ -40,8 +40,10 @@ merged by review consensus.
 
 ## What a PR must not do
 
-- Present a `kind`, egg variant, error code, or trust entry as **registered**. §13 has no
-  authenticated registry yet; proposals are proposals and say so in their text.
+- Present a `kind`, egg variant, error code, or trust entry as **registered** merely
+  because a document or pull request lists it. Registration requires the relevant
+  estate's authenticated §13 registry; proposals are proposals and say so. The
+  reference estate's registry does not ratify this protocol's unsigned anchor.
 - Add a dependency to make signing, verification, or hashing "easier". Signing tooling
   that needs a third-party library belongs with the estate that signs, in a repository
   that pins this one and imports `rapp.py`'s canonicalizer rather than re-typing it.
@@ -58,10 +60,15 @@ python3 parity_check.py
 python3 rapp_check.py .
 python3 -m unittest anchor.test_spec_chain
 python3 anchor/materialize_spec.py --offline --check SPEC.md
+python3 alignment_check.py
+python3 -m unittest test_realcheck test_alignment_check test_estate_inventory test_protocol_fixes test_linter_registry
 for f in examples/0*.py; do python3 "$f"; done
 ```
 
 Paste the tail of that output into the PR. The template asks for it.
+`alignment_check.py` without `--live` proves only local agreement with the
+verified chain, not that the checkout is current canonical main. See
+[`ALIGNMENT.md`](ALIGNMENT.md) for live observations and captured-consumer scope.
 
 ## Licensing of contributions — the DCO
 

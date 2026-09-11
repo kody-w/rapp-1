@@ -19,7 +19,7 @@ Paste into your brainsurgeon:
 
 ```text
 You are my hands — I watch, you type. Clone https://github.com/kody-w/rapp-1 and prove
-RAPP to me end to end: (1) run python3 conformance.py — I expect 22/22 PASS; (2) run
+RAPP to me end to end: (1) run python3 conformance.py — every controlled check must pass; (2) run
 python3 anchor/materialize_spec.py --check SPEC.md and show that the checked-in view
 matches the verified specification-chain head; (3) run python3 realcheck.py — the spec
 against the live public estate — and explain the verdict in plain English; (4) run
@@ -28,7 +28,7 @@ key. Narrate as you go, show real output, and stop on any red result — a red c
 finding, not something to patch around.
 ```
 
-**Expect:** `22 controlled checks | 22 PASS | 0 FAIL`, a JSON revision identity
+**Expect:** all reported controlled checks passing with `0 FAIL`, a JSON revision identity
 for the byte-exact materialized chain head, an estate verdict with zero drift
 findings, and an 11-key frame explained.
 
@@ -136,8 +136,11 @@ verify this frame: { …paste any frame JSON… }
 ```
 
 ```text
-check https://github.com/kody-w/twin for RAPP compliance
+check the main/rappid.json identity record in https://github.com/kody-w/twin
 ```
+
+This SDK action observes one identity record, not every artifact in the repo.
+Missing or failed observations are not a clean repository verdict.
 
 ## 7 · Audit anything I've built for drift
 

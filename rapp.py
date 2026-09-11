@@ -1,19 +1,16 @@
-"""rapp.py — reference implementation of the RAPP protocol suite (rev-14).
+"""rapp.py — reference implementation of the frozen RAPP/1 protocol.
 
-Stdlib only (json, hashlib, uuid, re, base64). Implements the primitives that the
+Stdlib only, with optional fail-closed signature verification. Implements the primitives that the
 spec claims are byte-for-byte interoperable, so the conformance suite can PROVE the
 standard is implementable and self-consistent — and so it can be run against real
 estate artifacts to see where reality conforms and where reality is the drift RAPP fixes.
-
-Scope note: §4 canonicalization here is JCS restricted to the string/int/bool/null/
-array/object domain (no floats) — exactly the profile RAPP §4 allows for payloads.
-Full IEEE-754 number serialization (RFC 8785) is the production requirement; the
-reference vectors use exact-integer payloads so the hashes are reproducible anywhere.
 """
 import hashlib
 import base64
+import copy
 import hmac
 import json
+import math
 import re
 import uuid
 import io
@@ -21,14 +18,17 @@ import urllib.parse
 import unicodedata
 import zipfile
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 
 SPEC = "rapp/1"
 _HEX64 = re.compile(r"[0-9a-f]{64}")
-_UTC = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z")
+_UTC = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z")
 _LCLABEL = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
+_KIND = re.compile(r"([a-z0-9]+(?:-[a-z0-9]+)*)\.([a-z0-9]+(?:-[a-z0-9]+)*)")
 _RAPPID = re.compile(r"rappid:@([a-z0-9]+(?:-[a-z0-9]+)*)/([a-z0-9]+(?:-[a-z0-9]+)*):([0-9a-f]{64})")
 MAX_SEALED_PLAINTEXT_BYTES = 2**30
 MAX_CANONICAL_BYTES = 1024 * 1024
+MAX_JSON_DEPTH = 64
 _B64URL = re.compile(r"^[A-Za-z0-9_-]*$")
 
 FRAME_KEYS = {"spec", "kind", "stream_id", "seq", "utc", "payload",
@@ -36,32 +36,153 @@ FRAME_KEYS = {"spec", "kind", "stream_id", "seq", "utc", "payload",
 
 
 # ---------- §4 canonicalization ----------
+def _canonical_number(value):
+    try:
+        number = float(value)
+    except (OverflowError, TypeError, ValueError) as exc:
+        raise ValueError("number is outside finite binary64") from exc
+    if not math.isfinite(number):
+        raise ValueError("non-finite number is not I-JSON")
+    if number == 0:
+        return "0"
+
+    # Python's binary64 repr supplies the shortest round-trip significand,
+    # choosing the closest/even result. Apply ECMA-262's decimal placement
+    # and exponent rules; json.dumps does not implement those rules.
+    negative = number < 0
+    significand, _, exponent = repr(abs(number)).partition("e")
+    whole, _, fraction = significand.partition(".")
+    digits = whole + fraction
+    leading = len(digits) - len(digits.lstrip("0"))
+    point = len(whole) + (int(exponent) if exponent else 0) - leading
+    digits = digits.lstrip("0").rstrip("0")
+    count = len(digits)
+    if count <= point <= 21:
+        text = digits + "0" * (point - count)
+    elif 0 < point <= 21:
+        text = digits[:point] + "." + digits[point:]
+    elif -6 < point <= 0:
+        text = "0." + "0" * (-point) + digits
+    else:
+        text = digits[0] + ("." + digits[1:] if count > 1 else "")
+        power = point - 1
+        text += "e" + ("+" if power >= 0 else "-") + str(abs(power))
+    if negative:
+        text = "-" + text
+    if isinstance(value, int) and Decimal(value) != Decimal(text):
+        raise ValueError("integer does not survive the binary64/JCS round-trip")
+    return text
+
+
 def canonical(v):
-    """RFC 8785 JCS over the exact-value domain (no floats). Returns UTF-8 str."""
-    if v is None or isinstance(v, bool):
-        return json.dumps(v)
-    if isinstance(v, int):
-        if abs(v) > 2**53 - 1:
-            # I-JSON (RFC 7493) interoperable domain, which SPEC.md adopts: a
-            # JS consumer's JSON.parse collapses larger ints (and >=1e21
-            # re-serializes as exponent notation), so a producer-side hash
-            # over such a value can NEVER be reproduced by a browser verifier.
-            raise ValueError("int outside interoperable range (|n| > 2^53-1); carry it as a string")
-        return json.dumps(v)               # exact integers only in this profile
-    if isinstance(v, float):
-        raise ValueError("floats require full-JCS number serialization; use ints/strings")
-    if isinstance(v, str):
-        return json.dumps(v, ensure_ascii=False)
-    if isinstance(v, list):
-        return "[" + ",".join(canonical(x) for x in v) + "]"
-    if isinstance(v, dict):
-        # RFC 8785 orders member names by UTF-16 code units; plain sorted()
-        # is code-POINT order and diverges for non-BMP keys.
-        keys = sorted(v.keys(), key=lambda k: k.encode("utf-16-be"))
-        if len(keys) != len(set(keys)):
-            raise ValueError("duplicate keys")
-        return "{" + ",".join(json.dumps(k, ensure_ascii=False) + ":" + canonical(v[k]) for k in keys) + "}"
-    raise ValueError(f"non-I-JSON value: {type(v)}")
+    """RFC 8785 JCS and the frozen §4 value-domain limits; returns UTF-8 str."""
+    chunks = []
+    byte_count = 0
+    active = set()
+
+    def emit(text):
+        nonlocal byte_count
+        try:
+            byte_count += len(text.encode("utf-8"))
+        except UnicodeError as exc:
+            raise ValueError("string contains a surrogate code point") from exc
+        if byte_count > MAX_CANONICAL_BYTES:
+            raise ValueError("canonical JSON exceeds 1 MiB")
+        chunks.append(text)
+
+    def visit(value, depth):
+        if value is None:
+            emit("null")
+        elif isinstance(value, bool):
+            emit("true" if value else "false")
+        elif isinstance(value, (int, float)):
+            emit(_canonical_number(value))
+        elif isinstance(value, str):
+            emit(json.dumps(value, ensure_ascii=False))
+        elif isinstance(value, (list, dict)):
+            if depth > MAX_JSON_DEPTH:
+                raise ValueError("JSON nesting depth exceeds 64")
+            identity = id(value)
+            if identity in active:
+                raise ValueError("cyclic value is not a JSON tree")
+            active.add(identity)
+            try:
+                if isinstance(value, list):
+                    emit("[")
+                    for index, item in enumerate(value):
+                        if index:
+                            emit(",")
+                        visit(item, depth + 1)
+                    emit("]")
+                else:
+                    if not all(isinstance(key, str) for key in value):
+                        raise ValueError("object member names MUST be strings")
+                    try:
+                        keys = sorted(value, key=lambda key: key.encode("utf-16-be"))
+                    except UnicodeError as exc:
+                        raise ValueError("object member name contains a surrogate") from exc
+                    emit("{")
+                    for index, key in enumerate(keys):
+                        if index:
+                            emit(",")
+                        emit(json.dumps(key, ensure_ascii=False))
+                        emit(":")
+                        visit(value[key], depth + 1)
+                    emit("}")
+            finally:
+                active.remove(identity)
+        else:
+            raise ValueError(f"non-I-JSON value: {type(value).__name__}")
+
+    visit(v, 1)
+    return "".join(chunks)
+
+
+def _parse_json_number(token):
+    number = float(token)
+    text = _canonical_number(number)
+    if number == 0:
+        mantissa = token.lower().split("e", 1)[0]
+        if any(char in "123456789" for char in mantissa):
+            raise ValueError("number token does not survive the binary64/JCS round-trip")
+    else:
+        try:
+            if Decimal(token) != Decimal(text):
+                raise ValueError("number token does not survive the binary64/JCS round-trip")
+        except InvalidOperation as exc:
+            raise ValueError("invalid JSON number token") from exc
+    # Keep fraction/exponent syntax distinguishable for fields such as seq.
+    return number if "." in token or "e" in token.lower() else int(token)
+
+
+def _strict_json(blob):
+    if not isinstance(blob, (str, bytes)):
+        raise ValueError("JSON input MUST be UTF-8 bytes or text")
+    try:
+        text = blob.decode("utf-8") if isinstance(blob, bytes) else blob
+    except UnicodeError as exc:
+        raise ValueError("JSON input is not UTF-8") from exc
+
+    def pairs(values):
+        result = {}
+        for key, value in values:
+            if key in result:
+                raise ValueError(f"duplicate JSON member: {key}")
+            result[key] = value
+        return result
+
+    def constant(value):
+        raise ValueError(f"non-finite JSON number: {value}")
+
+    try:
+        value = json.loads(
+            text, object_pairs_hook=pairs, parse_int=_parse_json_number,
+            parse_float=_parse_json_number, parse_constant=constant,
+        )
+        canonical(value)
+    except RecursionError as exc:
+        raise ValueError("JSON nesting depth exceeds 64") from exc
+    return value
 
 
 # ---------- §5 domain-separated content addressing ----------
@@ -114,6 +235,24 @@ def rappid_valid(s):
         and 1 <= len(match.group(1)) <= 39
         and 1 <= len(match.group(2)) <= 100
     )
+
+
+def kind_valid(value):
+    match = _KIND.fullmatch(value) if isinstance(value, str) else None
+    return bool(match and all(1 <= len(label) <= 64 for label in match.groups()))
+
+
+def stream_form(value):
+    if not isinstance(value, str):
+        return None
+    if value.startswith("net:"):
+        return "swarm-stream" if _LCLABEL.fullmatch(value[4:]) else None
+    if rappid_valid(value):
+        return "body-stream"
+    body, separator, instance = value.rpartition(":")
+    if separator and rappid_valid(body) and 1 <= len(instance) <= 64 and _LCLABEL.fullmatch(instance):
+        return "memory-stream"
+    return None
 
 
 def utc_valid(value):
@@ -219,6 +358,36 @@ def verify_detached_jws(value, sig, spki_der, expected_kid=None):
 
 
 # ---------- §7 the frame ----------
+def _frame_shape(frame):
+    if not isinstance(frame, dict):
+        return "frame MUST be an object"
+    if set(frame) != FRAME_KEYS:
+        return "key set != 11"
+    if frame["spec"] != SPEC:
+        return "spec != rapp/1"
+    if not kind_valid(frame["kind"]):
+        return "kind grammar"
+    if stream_form(frame["stream_id"]) is None:
+        return "stream_id grammar"
+    if not (isinstance(frame["seq"], int) and not isinstance(frame["seq"], bool)
+            and 0 <= frame["seq"] <= 2**53 - 1):
+        return "seq not uint53"
+    if not utc_valid(frame["utc"]):
+        return "utc not fixed form"
+    if not isinstance(frame["payload"], dict):
+        return "payload not object"
+    for key in ("payload_hash", "frame_hash"):
+        if not (isinstance(frame[key], str) and _HEX64.fullmatch(frame[key])):
+            return f"{key} not 64hex"
+    for key in ("prev", "prev_wave"):
+        if not (frame[key] is None
+                or isinstance(frame[key], str) and _HEX64.fullmatch(frame[key])):
+            return f"{key} not null|64hex"
+    if frame["sig"] is not None and not isinstance(frame["sig"], str):
+        return "sig not null|JWS text"
+    return None
+
+
 def build_frame(kind, stream_id, seq, utc, payload, prev, prev_wave=None, sig=None):
     """Construct an 11-key frame, computing particle then wave (§7.3)."""
     payload_hash = H("rapp/1:particle", payload)
@@ -231,6 +400,10 @@ def build_frame(kind, stream_id, seq, utc, payload, prev, prev_wave=None, sig=No
     frame["frame_hash"] = H("rapp/1:wave", pre)
     # canonical key set / ordering is by JCS at hash time; store all 11:
     frame = {**frame, "frame_hash": frame["frame_hash"]}
+    why = _frame_shape(frame)
+    if why:
+        raise ValueError(why)
+    canonical(frame)
     return frame
 
 
@@ -240,28 +413,22 @@ def verify_frame(
     stream_id_of_record=None,
     signature_verifier=None,
 ):
-    """§7.5 consumer checklist. Returns (ok, failing_step_or_None, reason)."""
-    # 1 shape & types
-    if set(frame.keys()) != FRAME_KEYS:
-        return False, "1", f"key set != 11 ({sorted(frame.keys())})"
-    if frame["spec"] != SPEC:
-        return False, "1", "spec != rapp/1"
-    if not (isinstance(frame["kind"], str) and re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*\.[a-z0-9]+(-[a-z0-9]+)*", frame["kind"])):
-        return False, "1", "kind grammar"
-    if not isinstance(frame["stream_id"], str):
-        return False, "1", "stream_id type"
-    if not (isinstance(frame["seq"], int) and not isinstance(frame["seq"], bool) and 0 <= frame["seq"] <= 2**53 - 1):
-        return False, "1", "seq not uint53"
-    if not utc_valid(frame["utc"]):
-        return False, "1", "utc not fixed form"
-    if not isinstance(frame["payload"], dict):
-        return False, "1", "payload not object"
-    for k in ("payload_hash", "frame_hash"):
-        if not (isinstance(frame[k], str) and _HEX64.fullmatch(frame[k])):
-            return False, "1", f"{k} not 64hex"
-    for k in ("prev", "prev_wave"):
-        if not (frame[k] is None or (isinstance(frame[k], str) and _HEX64.fullmatch(frame[k]))):
-            return False, "1", f"{k} not null|64hex"
+    """Verify frame shape/hashes/links; caller also supplies registry binding.
+
+    Returns (ok, failing_step_or_None, reason), including malformed-value refusals.
+    A stream-of-record must be supplied for an authoritative step-1a check.
+    """
+    try:
+        return _verify_frame(frame, head, stream_id_of_record, signature_verifier)
+    except (AttributeError, IndexError, KeyError, RecursionError, TypeError, ValueError) as exc:
+        return False, "1", f"invalid frame value: {exc}"
+
+
+def _verify_frame(frame, head, stream_id_of_record, signature_verifier):
+    why = _frame_shape(frame)
+    if why:
+        return False, "1", why
+    canonical(frame)
     # 1a stream binding
     if stream_id_of_record is not None and frame["stream_id"] != stream_id_of_record:
         return False, "1a", "stream_id mismatch (cross-stream replay)"
@@ -277,6 +444,12 @@ def verify_frame(
         if not (frame["seq"] == 0 and frame["prev"] is None):
             return False, "4", "genesis must be seq=0 prev=null"
     else:
+        if _frame_shape(head):
+            return False, "4", "head MUST be a verified frame"
+        try:
+            canonical(head)
+        except ValueError as exc:
+            return False, "4", f"invalid head value: {exc}"
         if frame["seq"] != head["seq"] + 1:
             return False, "4", "seq not contiguous"
         if frame["prev"] != head["payload_hash"]:
@@ -366,34 +539,6 @@ def pack_egg(variant, rappid, created_utc, files=None, payload=None, sig=None):
     return buf.getvalue()
 
 
-def _strict_json(blob):
-    raw = blob.encode("utf-8") if isinstance(blob, str) else blob
-    if not isinstance(raw, bytes) or len(raw) > MAX_CANONICAL_BYTES:
-        raise ValueError("JSON exceeds the 1 MiB input ceiling")
-
-    def pairs(values):
-        result = {}
-        for key, value in values:
-            if key in result:
-                raise ValueError(f"duplicate JSON member: {key}")
-            result[key] = value
-        return result
-
-    value = json.loads(raw, object_pairs_hook=pairs)
-    stack = [(value, 1)]
-    while stack:
-        current, depth = stack.pop()
-        if depth > 64:
-            raise ValueError("JSON nesting depth exceeds 64")
-        if isinstance(current, dict):
-            stack.extend((item, depth + 1) for item in current.values())
-        elif isinstance(current, list):
-            stack.extend((item, depth + 1) for item in current)
-    if len(canonical(value).encode("utf-8")) > MAX_CANONICAL_BYTES:
-        raise ValueError("canonical JSON exceeds the 1 MiB input ceiling")
-    return value
-
-
 def _validate_zip_layout(blob, archive, infos):
     if not blob.startswith(b"PK\x03\x04"):
         raise ValueError("ZIP MUST begin with a local file header")
@@ -452,6 +597,13 @@ def _validate_zip_layout(blob, archive, infos):
 
 def read_egg(blob):
     """Parse a rapp/1-egg → (manifest_dict, files_dict). files={} for JSON variants."""
+    manifest, files, _container = _read_egg_container(blob)
+    return manifest, files
+
+
+def _read_egg_container(blob):
+    if not isinstance(blob, bytes):
+        raise ValueError("egg input MUST be bytes")
     if blob[:2] == b"PK":
         with zipfile.ZipFile(io.BytesIO(blob)) as z:
             infos = z.infolist()
@@ -496,11 +648,11 @@ def read_egg(blob):
                 info.filename: z.read(info)
                 for info in infos[1:]
             }
-            return manifest, files
+            return manifest, files, "zip"
     manifest = _strict_json(blob)
     if blob != canonical(manifest).encode("utf-8"):
         raise ValueError("JSON egg bytes MUST equal canonical(manifest)")
-    return manifest, {}
+    return manifest, {}, "json"
 
 
 def _member_filename(rappid):
@@ -737,8 +889,8 @@ def _https_chat_url_valid(value):
 def _signature_ok(manifest, signature_verifier, expected_signer=None):
     if signature_verifier is None:
         return False, "trusted signature verifier is required"
-    unsigned = {k: v for k, v in manifest.items() if k != "sig"}
     try:
+        unsigned = copy.deepcopy({k: v for k, v in manifest.items() if k != "sig"})
         if expected_signer is None:
             result = signature_verifier(unsigned, manifest["sig"])
         else:
@@ -747,7 +899,7 @@ def _signature_ok(manifest, signature_verifier, expected_signer=None):
                 manifest["sig"],
                 expected_signer,
             )
-    except Exception as exc:
+    except (ValueError, TypeError, RuntimeError, OSError) as exc:
         return False, f"signature verifier failed: {exc}"
     if isinstance(result, tuple):
         return bool(result[0]), str(result[1]) if len(result) > 1 else ""
@@ -764,7 +916,7 @@ def verify_egg(
     if _depth > 8:
         return (False, "§9.2", "nested egg depth exceeds eight")
     try:
-        manifest, files = read_egg(blob)
+        manifest, files, container = _read_egg_container(blob)
     except Exception as e:
         return (False, "parse", str(e))
     if not isinstance(manifest, dict) or set(manifest.keys()) != _EGG_MANIFEST_KEYS:
@@ -774,6 +926,9 @@ def verify_egg(
     v = manifest["variant"]
     if not isinstance(v, str) or v not in EGG_VARIANTS:
         return (False, "§9.2", f"unknown variant {v}")
+    required_container = "json" if v in _EGG_JSON_VARIANTS else "zip"
+    if container != required_container:
+        return (False, "§9.1", f"{v} variant requires a {required_container.upper()} container")
     if not isinstance(manifest["rappid"], str) or not rappid_valid(manifest["rappid"]):
         return (False, "§6.1", f"bad rappid {manifest['rappid']}")
     if not utc_valid(manifest["created_utc"]):
@@ -802,8 +957,8 @@ def verify_egg(
         return (False, "§9.1", "contents not sorted by path bytes")
     if len(paths) != len(set(paths)):
         return (False, "§9.1", "duplicate path")
-    if not _path_set_valid(["manifest.json", *paths]):
-        return (False, "§9.1", "paths collide or conflict on common filesystems")
+    if "manifest.json" in paths:
+        return (False, "§9.1", "contents MUST exclude manifest.json itself")
     if v in _EGG_JSON_VARIANTS:
         if contents != []:
             return (False, "§9.1", "JSON variant contents MUST be []")
@@ -917,6 +1072,7 @@ def _path_valid(path):
 
 
 def _path_set_valid(paths):
+    """Conservative portable extraction policy, not §9.1 path equality."""
     keys = []
     for path in paths:
         key = tuple(

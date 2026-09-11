@@ -1,7 +1,8 @@
 {
  "derived_from": "rapp.py",
  "reference_limits": [
-  "rapp.py refuses non-integer JSON numbers rather than implementing full JCS number serialization; an implementation that does implement RFC 8785 numbers is more complete, not less conformant. Vectors therefore use integers only."
+  "Raw JSON number tokens must be validated before an ordinary JSON parser can discard their original mathematical value or fraction/exponent syntax.",
+  "Registry authority and trusted signature verification remain caller-supplied; passing byte/shape vectors alone does not establish authenticated Consumer conformance."
  ],
  "schema": "rapp/1-conformance-vectors",
  "sections": {
@@ -94,6 +95,172 @@
     "value": 42
    }
   ],
+  "4_number_refuse": [
+   {
+    "binary64_hex": "7fffffffffffffff",
+    "why": "non-finite binary64"
+   },
+   {
+    "binary64_hex": "7ff0000000000000",
+    "why": "non-finite binary64"
+   },
+   {
+    "binary64_hex": "fff0000000000000",
+    "why": "non-finite binary64"
+   }
+  ],
+  "4_numbers": [
+   {
+    "binary64_hex": "0000000000000000",
+    "canonical": "0"
+   },
+   {
+    "binary64_hex": "8000000000000000",
+    "canonical": "0"
+   },
+   {
+    "binary64_hex": "0000000000000001",
+    "canonical": "5e-324"
+   },
+   {
+    "binary64_hex": "8000000000000001",
+    "canonical": "-5e-324"
+   },
+   {
+    "binary64_hex": "7fefffffffffffff",
+    "canonical": "1.7976931348623157e+308"
+   },
+   {
+    "binary64_hex": "ffefffffffffffff",
+    "canonical": "-1.7976931348623157e+308"
+   },
+   {
+    "binary64_hex": "4340000000000000",
+    "canonical": "9007199254740992"
+   },
+   {
+    "binary64_hex": "c340000000000000",
+    "canonical": "-9007199254740992"
+   },
+   {
+    "binary64_hex": "4430000000000000",
+    "canonical": "295147905179352830000"
+   },
+   {
+    "binary64_hex": "44b52d02c7e14af5",
+    "canonical": "9.999999999999997e+22"
+   },
+   {
+    "binary64_hex": "44b52d02c7e14af6",
+    "canonical": "1e+23"
+   },
+   {
+    "binary64_hex": "44b52d02c7e14af7",
+    "canonical": "1.0000000000000001e+23"
+   },
+   {
+    "binary64_hex": "444b1ae4d6e2ef4e",
+    "canonical": "999999999999999700000"
+   },
+   {
+    "binary64_hex": "444b1ae4d6e2ef4f",
+    "canonical": "999999999999999900000"
+   },
+   {
+    "binary64_hex": "444b1ae4d6e2ef50",
+    "canonical": "1e+21"
+   },
+   {
+    "binary64_hex": "3eb0c6f7a0b5ed8c",
+    "canonical": "9.999999999999997e-7"
+   },
+   {
+    "binary64_hex": "3eb0c6f7a0b5ed8d",
+    "canonical": "0.000001"
+   },
+   {
+    "binary64_hex": "41b3de4355555553",
+    "canonical": "333333333.3333332"
+   },
+   {
+    "binary64_hex": "41b3de4355555554",
+    "canonical": "333333333.33333325"
+   },
+   {
+    "binary64_hex": "41b3de4355555555",
+    "canonical": "333333333.3333333"
+   },
+   {
+    "binary64_hex": "41b3de4355555556",
+    "canonical": "333333333.3333334"
+   },
+   {
+    "binary64_hex": "41b3de4355555557",
+    "canonical": "333333333.33333343"
+   },
+   {
+    "binary64_hex": "becbf647612f3696",
+    "canonical": "-0.0000033333333333333333"
+   },
+   {
+    "binary64_hex": "43143ff3c1cb0959",
+    "canonical": "1424953923781206.2"
+   }
+  ],
+  "4_parse_accept": [
+   {
+    "canonical": "0.1",
+    "json_text": "0.1"
+   },
+   {
+    "canonical": "9007199254740992",
+    "json_text": "9007199254740992"
+   },
+   {
+    "canonical": "1e+23",
+    "json_text": "100000000000000000000000"
+   },
+   {
+    "canonical": "295147905179352830000",
+    "json_text": "295147905179352830000"
+   },
+   {
+    "canonical": "1",
+    "json_text": "1.00"
+   },
+   {
+    "canonical": "1",
+    "json_text": "1e0"
+   },
+   {
+    "canonical": "0",
+    "json_text": "-0"
+   },
+   {
+    "canonical": "0",
+    "json_text": "-0.000e9999"
+   },
+   {
+    "canonical": "1e+21",
+    "json_text": "1E+21"
+   },
+   {
+    "canonical": "100000000000000000000",
+    "json_text": "1e20"
+   },
+   {
+    "canonical": "0.000001",
+    "json_text": "1e-6"
+   },
+   {
+    "canonical": "1e-7",
+    "json_text": "1e-7"
+   },
+   {
+    "canonical": "5e-324",
+    "json_text": "5e-324"
+   }
+  ],
   "4_refuse": [
    {
     "json_text": "{\"a\":1,\"a\":2}",
@@ -110,6 +277,46 @@
    {
     "json_text": "\"\\ud800\"",
     "why": "unpaired UTF-16 surrogate"
+   },
+   {
+    "json_text": "9007199254740993",
+    "why": "lossy or non-finite number token"
+   },
+   {
+    "json_text": "0.10000000000000001",
+    "why": "lossy or non-finite number token"
+   },
+   {
+    "json_text": "1.0000000000000001",
+    "why": "lossy or non-finite number token"
+   },
+   {
+    "json_text": "295147905179352825856",
+    "why": "lossy or non-finite number token"
+   },
+   {
+    "json_text": "1000000000000000128",
+    "why": "lossy or non-finite number token"
+   },
+   {
+    "json_text": "1e999",
+    "why": "lossy or non-finite number token"
+   },
+   {
+    "json_text": "1e-999",
+    "why": "lossy or non-finite number token"
+   },
+   {
+    "json_text": "NaN",
+    "why": "lossy or non-finite number token"
+   },
+   {
+    "json_text": "Infinity",
+    "why": "lossy or non-finite number token"
+   },
+   {
+    "json_text": "-Infinity",
+    "why": "lossy or non-finite number token"
    }
   ],
   "5_hash": {
@@ -180,7 +387,7 @@
     "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "utc": "2026-07-15T00:00:00.000Z"
    },
-   "note": "tampered frames keep their original hashes on purpose; the verifier must recompute",
+   "note": "Original tamper cases retain their hashes; explicitly rehashed cases exercise chain/wire checks after integrity.",
    "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
    "tampers": [
     {
@@ -470,6 +677,228 @@
      },
      "label": "prev_wave off swarm",
      "stream_id_of_record": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+     "expect_step": "4",
+     "frame": {
+      "frame_hash": "106bfdc27cf646c760d0030a51d401a23518a7562d75667e0ecc8fd70831f6bd",
+      "kind": "body.pulse",
+      "payload": {
+       "n": 2
+      },
+      "payload_hash": "18c562f22d4ccfcc1ddaf7d2d0404c75f6baf64360aebbe5860b47fe3eb29ebd",
+      "prev": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "prev_wave": null,
+      "seq": 1,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-15T00:00:01.000Z"
+     },
+     "head": {
+      "frame_hash": "7f1828db28378b29b976b2763f36154bd432ccf1cfa5bf25e913583db86a010b",
+      "kind": "body.pulse",
+      "payload": {
+       "hello": "world"
+      },
+      "payload_hash": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev": null,
+      "prev_wave": null,
+      "seq": 0,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-15T00:00:00.000Z"
+     },
+     "label": "rehashed broken child prev",
+     "stream_id_of_record": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+     "expect_step": "4",
+     "frame": {
+      "frame_hash": "13336a809eda22a275a55b7cbd41eacb1b1255a06a1d81c7659e27d994a2c5db",
+      "kind": "body.pulse",
+      "payload": {
+       "n": 2
+      },
+      "payload_hash": "18c562f22d4ccfcc1ddaf7d2d0404c75f6baf64360aebbe5860b47fe3eb29ebd",
+      "prev": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev_wave": null,
+      "seq": 2,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-15T00:00:01.000Z"
+     },
+     "head": {
+      "frame_hash": "7f1828db28378b29b976b2763f36154bd432ccf1cfa5bf25e913583db86a010b",
+      "kind": "body.pulse",
+      "payload": {
+       "hello": "world"
+      },
+      "payload_hash": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev": null,
+      "prev_wave": null,
+      "seq": 0,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-15T00:00:00.000Z"
+     },
+     "label": "rehashed skipped child seq",
+     "stream_id_of_record": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+     "expect_step": "4",
+     "frame": {
+      "frame_hash": "68dcf9e8dadaaee3578384f5cb90311bc3a5417d84b9026617ebe6852275e718",
+      "kind": "body.pulse",
+      "payload": {
+       "n": 2
+      },
+      "payload_hash": "18c562f22d4ccfcc1ddaf7d2d0404c75f6baf64360aebbe5860b47fe3eb29ebd",
+      "prev": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev_wave": null,
+      "seq": 1,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-14T00:00:00.000Z"
+     },
+     "head": {
+      "frame_hash": "7f1828db28378b29b976b2763f36154bd432ccf1cfa5bf25e913583db86a010b",
+      "kind": "body.pulse",
+      "payload": {
+       "hello": "world"
+      },
+      "payload_hash": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev": null,
+      "prev_wave": null,
+      "seq": 0,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-15T00:00:00.000Z"
+     },
+     "label": "rehashed child utc before head",
+     "stream_id_of_record": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+     "expect_step": "5",
+     "frame": {
+      "frame_hash": "e61f8160a8e9b187f17de5e26a7313fa0c88f5b68839d66871368d0f018a0a61",
+      "kind": "body.pulse",
+      "payload": {
+       "n": 2
+      },
+      "payload_hash": "18c562f22d4ccfcc1ddaf7d2d0404c75f6baf64360aebbe5860b47fe3eb29ebd",
+      "prev": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev_wave": "7f1828db28378b29b976b2763f36154bd432ccf1cfa5bf25e913583db86a010b",
+      "seq": 1,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-15T00:00:01.000Z"
+     },
+     "head": {
+      "frame_hash": "7f1828db28378b29b976b2763f36154bd432ccf1cfa5bf25e913583db86a010b",
+      "kind": "body.pulse",
+      "payload": {
+       "hello": "world"
+      },
+      "payload_hash": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev": null,
+      "prev_wave": null,
+      "seq": 0,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-15T00:00:00.000Z"
+     },
+     "label": "rehashed prev_wave off swarm",
+     "stream_id_of_record": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+     "expect_step": "1",
+     "frame": {
+      "frame_hash": "97e3777273274cc2e48c2b1fbccce017e4ea031f18b5e1da36582cc17e87e36c",
+      "kind": "body.pulse",
+      "payload": {
+       "hello": "world"
+      },
+      "payload_hash": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev": null,
+      "prev_wave": null,
+      "seq": 0,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "s-1",
+      "utc": "2026-07-15T00:00:00.000Z"
+     },
+     "head": null,
+     "label": "stream grammar",
+     "stream_id_of_record": "s-1"
+    },
+    {
+     "expect_step": "1",
+     "frame": {
+      "frame_hash": "e1df3c96c4d49c44f01df93274c4d8b37f7965eea860c8e783b12e867a8352cc",
+      "kind": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.pulse",
+      "payload": {
+       "hello": "world"
+      },
+      "payload_hash": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev": null,
+      "prev_wave": null,
+      "seq": 0,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "2026-07-15T00:00:00.000Z"
+     },
+     "head": null,
+     "label": "kind label too long",
+     "stream_id_of_record": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+     "expect_step": "1",
+     "frame": {
+      "frame_hash": "b056c27fc470c8e50883ea888b738ff11669e495e83e69c27886bdf4d3f39b18",
+      "kind": "body.pulse",
+      "payload": {
+       "hello": "world"
+      },
+      "payload_hash": "dccd124a460d7f7a6ab23b15df476f1f65fa19b8979f0ab70c656e55c67beb05",
+      "prev": null,
+      "prev_wave": null,
+      "seq": 0,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "utc": "２０２６-07-15T00:00:00.000Z"
+     },
+     "head": null,
+     "label": "non-ASCII year",
+     "stream_id_of_record": "rappid:@kody/twin:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+     "expect_step": "6",
+     "frame": {
+      "frame_hash": "e7c6630cb34f739e1ffe7215e5e13e78828effac26b1f8a20c86ab4c60fabe98",
+      "kind": "swarm.echo",
+      "payload": {},
+      "payload_hash": "00d4ee8c3964f0e289ba07982ab8457a7b820056236640bda09572f0725a265b",
+      "prev": null,
+      "prev_wave": null,
+      "seq": 0,
+      "sig": null,
+      "spec": "rapp/1",
+      "stream_id": "net:commons",
+      "utc": "2026-07-15T00:00:00.000Z"
+     },
+     "head": null,
+     "label": "unsigned swarm",
+     "stream_id_of_record": "net:commons"
     }
    ]
   },
