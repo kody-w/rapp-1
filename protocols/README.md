@@ -54,3 +54,14 @@ not authority.
 The profile index in [`index.json`](index.json) is generated from the committed
 specifications and checked in CI. It is a publication aid, not a substitute for
 the estate's signed registry.
+
+## External subordinate profiles (registered by pointer)
+
+Profiles that live in their own repository and pin this one, per [`EXTENDING.md`](../EXTENDING.md).
+Listed here for discovery only; adoption is the estate's signed `protocol` entry.
+
+| Human name | Protocol identifier | Normative specification | SHA-256 | Pinned commit |
+|---|---|---|---|---|
+| vbrainstem | `vbrainstem/1` (rev-2) | https://github.com/kody-w/vbrainstem/blob/511b79f6d2d930bcad62eb7079b3f1c38986b81f/PROFILE.md | `077f1b26ad83a94d8d44d70d377431237b4ab228692bb0e0a9cc389d042da08f` | `511b79f6d2d930bcad62eb7079b3f1c38986b81f` |
+
+vbrainstem/1 rev-2 (2026-09-05): the host is a virtual machine. Any AI given a person's file runs the pinned Brainstem kernel, vendored in the skill with per-file SHA-256, as a Python virtual machine within its own reasoning, is also the model that kernel calls, keeps the machine's whole storage in the file, offers the kernel's factory tools from the first task, measures drift by running the code, and can plant a real kernel on a device with every memory mapped one to one. The skill any AI loads to do this: https://raw.githubusercontent.com/kody-w/vbrainstem/main/virtual-brainstem/SKILL.md

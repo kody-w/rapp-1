@@ -107,6 +107,16 @@ anchor stream's genesis, and binds the fourteen reference kinds. Verify it with
 after the §10 signature checks against that rappid. This repository stays the protocol
 authority; the registry is the estate's, and the two are deliberately separate.
 
+## Where the wire travels today
+
+The protocol does not change for this, and nothing here is authority for it; it is a pointer.
+As of 2026-09-04 the newest carrier of RAPP is one file a person owns, read by any AI that reads
+skills, with the protocol underneath and invisible:
+[rapp-mission](https://github.com/kody-w/rapp-mission) (charter, dated prior art),
+[vbrainstem](https://github.com/kody-w/vbrainstem) (the person's file),
+[rapp-skills](https://github.com/kody-w/rapp-skills) (lossless conversion between a skill file and
+a single-file agent).
+
 ## License
 
 The RAPP/1 specification, reference implementation, conformance suite,
