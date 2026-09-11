@@ -1,6 +1,6 @@
 {
   "schema": "rapp/1-operational-profile-index",
-  "generated_utc": "2026-08-30T12:54:20.000Z",
+  "generated_utc": "2026-09-11T17:41:07.000Z",
   "canonical_repository": "https://github.com/kody-w/rapp-1",
   "profiles": [
     {
@@ -22,6 +22,16 @@
       "schema_path": "protocols/rapp-deploy/1/schema.json",
       "schema_sha256": "aca783f3274cd865926f6b943163189fa93a7bbc4c7d4258856a54779a4a71ba",
       "conformance": "operations_conformance.py"
+    },
+    {
+      "name": "rapp-hive/1",
+      "human_name": "RAPP Private Hive",
+      "parent": "rapp/1",
+      "spec_path": "protocols/rapp-hive/1/SPEC.md",
+      "spec_sha256": "97ce01397cf5d3ef5efd710b019af926750de3602f837c499406a68d08bec1be",
+      "schema_path": "protocols/rapp-hive/1/schema.json",
+      "schema_sha256": "16f00a2ad832aa692d378fca850d21d58992d75f6817c4396dc15af99f6a62b4",
+      "conformance": "hive_conformance.py"
     }
   ]
 }

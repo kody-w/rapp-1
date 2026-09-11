@@ -1,0 +1,397 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/kody-w/rapp-1/main/protocols/rapp-hive/1/schema.json",
+  "title": "RAPP Private Hive v1 payloads",
+  "oneOf": [
+    {"$ref": "#/$defs/declaration"},
+    {"$ref": "#/$defs/sharedObject"},
+    {"$ref": "#/$defs/goddSlice"},
+    {"$ref": "#/$defs/assimilation"},
+    {"$ref": "#/$defs/convergence"},
+    {"$ref": "#/$defs/projection"}
+    ,{"$ref": "#/$defs/template"}
+  ],
+  "$defs": {
+    "hex64": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "rappid": {
+      "type": "string",
+      "pattern": "^rappid:@[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*:[0-9a-f]{64}$"
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$"
+    },
+    "utc": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?/)(?!.*\\\\).+$"
+    },
+    "member": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rappid", "role", "area"],
+      "properties": {
+        "rappid": {"$ref": "#/$defs/rappid"},
+        "role": {"enum": ["owner", "member", "viewer"]},
+        "area": {"$ref": "#/$defs/relativePath"}
+      }
+    },
+    "channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "role", "locator", "writeback"],
+      "properties": {
+        "id": {"$ref": "#/$defs/label"},
+        "kind": {"enum": ["github", "sharepoint", "nas", "lan", "local", "custom"]},
+        "role": {"enum": ["authority", "writable", "mirror", "cache", "backup"]},
+        "locator": {"type": "string", "minLength": 1, "maxLength": 2048},
+        "writeback": {"type": "boolean"}
+      }
+    },
+    "declaration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema", "hive_rappid", "world_id", "created_utc",
+        "authority_channel_id", "members", "rooms", "channels", "policy"
+      ],
+      "properties": {
+        "schema": {"const": "rapp-hive/1-declaration"},
+        "hive_rappid": {"$ref": "#/$defs/rappid"},
+        "world_id": {"$ref": "#/$defs/label"},
+        "created_utc": {"$ref": "#/$defs/utc"},
+        "authority_channel_id": {"$ref": "#/$defs/label"},
+        "members": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/member"}
+        },
+        "rooms": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "area", "members", "access"],
+            "properties": {
+              "id": {"$ref": "#/$defs/label"},
+              "area": {"$ref": "#/$defs/relativePath"},
+              "members": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {"$ref": "#/$defs/rappid"}
+              },
+              "access": {"enum": ["repository", "sealed"]}
+            }
+          }
+        },
+        "channels": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/channel"}
+        },
+        "policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "godd_sharing", "default_godd_scope", "external_publication",
+            "conflict_mode", "default_transfer"
+          ],
+          "properties": {
+            "godd_sharing": {"const": "explicit"},
+            "default_godd_scope": {"const": "local-only"},
+            "external_publication": {"const": "disabled"},
+            "conflict_mode": {"const": "explicit"},
+            "default_transfer": {"const": "copy"}
+          }
+        }
+      }
+    },
+    "sharedObject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema", "hive_rappid", "object_rappid", "producer_rappid",
+        "world_id", "created_utc", "room_id", "audience", "object",
+        "source_frames", "mutation_keys"
+      ],
+      "properties": {
+        "schema": {"const": "rapp-hive/1-object"},
+        "hive_rappid": {"$ref": "#/$defs/rappid"},
+        "object_rappid": {"$ref": "#/$defs/rappid"},
+        "producer_rappid": {"$ref": "#/$defs/rappid"},
+        "world_id": {"$ref": "#/$defs/label"},
+        "created_utc": {"$ref": "#/$defs/utc"},
+        "room_id": {"$ref": "#/$defs/label"},
+        "audience": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"$ref": "#/$defs/rappid"}
+        },
+        "object": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "space", "hash", "kind", "data_class", "pii_status",
+            "pii_evidence_hash", "protection", "target_path"
+          ],
+          "properties": {
+            "space": {"enum": ["rapp/1:particle", "rapp/1:wave", "rapp/1:egg-manifest"]},
+            "hash": {"$ref": "#/$defs/hex64"},
+            "kind": {"type": "string", "minLength": 1, "maxLength": 128},
+            "data_class": {"enum": ["dogg", "godd", "neutral"]},
+            "pii_status": {"enum": ["none", "present", "unknown", "not-applicable"]},
+            "pii_evidence_hash": {
+              "oneOf": [{"$ref": "#/$defs/hex64"}, {"type": "null"}]
+            },
+            "protection": {"enum": ["member-visible", "sealed-room"]},
+            "target_path": {"$ref": "#/$defs/relativePath"}
+          }
+        },
+        "source_frames": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/sourceFrame"}
+        },
+        "mutation_keys": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 512}
+        }
+      }
+    },
+    "sourceFrame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stream_id", "seq", "utc", "payload_hash", "frame_hash"],
+      "properties": {
+        "stream_id": {"type": "string", "minLength": 1, "maxLength": 512},
+        "seq": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+        "utc": {"$ref": "#/$defs/utc"},
+        "payload_hash": {"$ref": "#/$defs/hex64"},
+        "frame_hash": {"$ref": "#/$defs/hex64"}
+      }
+    },
+    "goddSlice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema", "hive_rappid", "source_workspace_rappid", "producer_rappid",
+        "world_id", "created_utc", "room_id", "audience", "classification", "content",
+        "source_frames", "mutation_keys"
+      ],
+      "properties": {
+        "schema": {"const": "rapp-hive/1-godd-slice"},
+        "hive_rappid": {"$ref": "#/$defs/rappid"},
+        "source_workspace_rappid": {"$ref": "#/$defs/rappid"},
+        "producer_rappid": {"$ref": "#/$defs/rappid"},
+        "world_id": {"$ref": "#/$defs/label"},
+        "created_utc": {"$ref": "#/$defs/utc"},
+        "room_id": {"$ref": "#/$defs/label"},
+        "audience": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"$ref": "#/$defs/rappid"}
+        },
+        "classification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["estate", "scope", "sensitivity", "dogg_projection_allowed"],
+          "properties": {
+            "estate": {"const": "godd"},
+            "scope": {"const": "hive-shared"},
+            "sensitivity": {"$ref": "#/$defs/label"},
+            "dogg_projection_allowed": {"type": "boolean"}
+          }
+        },
+        "content": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sealed_egg_hash", "artifact_rappid", "plaintext_schema",
+            "plaintext_bytes", "record_count"
+          ],
+          "properties": {
+            "sealed_egg_hash": {"$ref": "#/$defs/hex64"},
+            "artifact_rappid": {"$ref": "#/$defs/rappid"},
+            "plaintext_schema": {"type": "string", "minLength": 1, "maxLength": 128},
+            "plaintext_bytes": {"type": "integer", "minimum": 0, "maximum": 1073741824},
+            "record_count": {"type": "integer", "minimum": 0, "maximum": 9007199254740991}
+          }
+        },
+        "source_frames": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/sourceFrame"}
+        },
+        "mutation_keys": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 512}
+        }
+      }
+    },
+    "assimilation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema", "hive_rappid", "slice_payload_hash", "recipient_workspace_rappid",
+        "recipient_rappid", "assimilated_utc", "target_namespace", "mode",
+        "precedence", "resulting_layer_hash"
+      ],
+      "properties": {
+        "schema": {"const": "rapp-hive/1-assimilation"},
+        "hive_rappid": {"$ref": "#/$defs/rappid"},
+        "slice_payload_hash": {"$ref": "#/$defs/hex64"},
+        "recipient_workspace_rappid": {"$ref": "#/$defs/rappid"},
+        "recipient_rappid": {"$ref": "#/$defs/rappid"},
+        "assimilated_utc": {"$ref": "#/$defs/utc"},
+        "target_namespace": {"$ref": "#/$defs/relativePath"},
+        "mode": {"enum": ["overlay", "copy", "materialize"]},
+        "precedence": {"type": "integer", "minimum": 0, "maximum": 1000},
+        "resulting_layer_hash": {"$ref": "#/$defs/hex64"}
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dimension_rappid", "stream_id", "seq", "utc", "payload_hash",
+        "frame_hash", "mutation_keys", "source_channel_ids"
+      ],
+      "properties": {
+        "dimension_rappid": {"$ref": "#/$defs/rappid"},
+        "stream_id": {"type": "string", "minLength": 1, "maxLength": 512},
+        "seq": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+        "utc": {"$ref": "#/$defs/utc"},
+        "payload_hash": {"$ref": "#/$defs/hex64"},
+        "frame_hash": {"$ref": "#/$defs/hex64"},
+        "mutation_keys": {
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 512}
+        },
+        "source_channel_ids": {
+          "type": "array", "uniqueItems": true,
+          "items": {"$ref": "#/$defs/label"}
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["frame_hash", "status", "reason_code"],
+      "properties": {
+        "frame_hash": {"$ref": "#/$defs/hex64"},
+        "status": {"enum": ["accepted", "duplicate", "conflict", "quarantined", "superseded"]},
+        "reason_code": {"$ref": "#/$defs/label"}
+      }
+    },
+    "resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mutation_key", "frame_hashes", "resolution_frame_hash"],
+      "properties": {
+        "mutation_key": {"type": "string", "minLength": 1, "maxLength": 512},
+        "frame_hashes": {
+          "type": "array", "minItems": 2, "uniqueItems": true,
+          "items": {"$ref": "#/$defs/hex64"}
+        },
+        "resolution_frame_hash": {"$ref": "#/$defs/hex64"}
+      }
+    },
+    "convergence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema", "hive_rappid", "created_utc", "base_head_frame_hash",
+        "base_convergence_payload_hash", "candidates", "decisions", "resolutions",
+        "resulting_catalog_hash", "status"
+      ],
+      "properties": {
+        "schema": {"const": "rapp-hive/1-convergence"},
+        "hive_rappid": {"$ref": "#/$defs/rappid"},
+        "created_utc": {"$ref": "#/$defs/utc"},
+        "base_head_frame_hash": {
+          "oneOf": [{"$ref": "#/$defs/hex64"}, {"type": "null"}]
+        },
+        "base_convergence_payload_hash": {
+          "oneOf": [{"$ref": "#/$defs/hex64"}, {"type": "null"}]
+        },
+        "candidates": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"$ref": "#/$defs/candidate"}
+        },
+        "decisions": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"$ref": "#/$defs/decision"}
+        },
+        "resolutions": {
+          "type": "array", "uniqueItems": true,
+          "items": {"$ref": "#/$defs/resolution"}
+        },
+        "resulting_catalog_hash": {"$ref": "#/$defs/hex64"},
+        "status": {"enum": ["converged", "partial"]}
+      }
+    },
+    "projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema", "hive_rappid", "convergence_payload_hash", "channel_id",
+        "projected_utc", "registry_seq", "catalog_hash", "frame_head",
+        "artifact_manifest_hash", "status"
+      ],
+      "properties": {
+        "schema": {"const": "rapp-hive/1-projection"},
+        "hive_rappid": {"$ref": "#/$defs/rappid"},
+        "convergence_payload_hash": {"$ref": "#/$defs/hex64"},
+        "channel_id": {"$ref": "#/$defs/label"},
+        "projected_utc": {"$ref": "#/$defs/utc"},
+        "registry_seq": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+        "catalog_hash": {"$ref": "#/$defs/hex64"},
+        "frame_head": {"$ref": "#/$defs/hex64"},
+        "artifact_manifest_hash": {"$ref": "#/$defs/hex64"},
+        "status": {"enum": ["current", "stale", "failed"]}
+      }
+    },
+    "template": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema", "source_hive_rappid", "template_rappid", "created_utc",
+        "egg_hash", "objects", "pii_evidence_hash"
+      ],
+      "properties": {
+        "schema": {"const": "rapp-hive/1-template"},
+        "source_hive_rappid": {"$ref": "#/$defs/rappid"},
+        "template_rappid": {"$ref": "#/$defs/rappid"},
+        "created_utc": {"$ref": "#/$defs/utc"},
+        "egg_hash": {"$ref": "#/$defs/hex64"},
+        "objects": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["object_payload_hash", "data_class", "pii_status"],
+            "properties": {
+              "object_payload_hash": {"$ref": "#/$defs/hex64"},
+              "data_class": {"enum": ["dogg", "neutral"]},
+              "pii_status": {"enum": ["none", "not-applicable"]}
+            }
+          }
+        },
+        "pii_evidence_hash": {"$ref": "#/$defs/hex64"}
+      }
+    }
+  }
+}

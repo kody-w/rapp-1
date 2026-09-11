@@ -8,6 +8,7 @@ healthy there without mutating the serving system underneath its users.
 |---|---|---|
 | RAPP CI/CD | `rapp-cicd/1` | [`rapp-cicd/1/SPEC.md`](rapp-cicd/1/SPEC.md) |
 | RAPP Deploy | `rapp-deploy/1` | [`rapp-deploy/1/SPEC.md`](rapp-deploy/1/SPEC.md) |
+| RAPP Private Hive | `rapp-hive/1` | [`rapp-hive/1/SPEC.md`](rapp-hive/1/SPEC.md) |
 
 The profiles are subordinate to RAPP/1:
 
@@ -22,11 +23,13 @@ The profiles are subordinate to RAPP/1:
 
 ```bash
 python3 operations_conformance.py
+python3 hive_conformance.py
 ```
 
-The suite executes positive and negative vectors for exact-candidate promotion,
+The suites execute positive and negative vectors for exact-candidate promotion,
 kernel drift, skipped stages, failed evidence, serving mutation, stale health,
-cell isolation, progressive exposure, and exact rollback.
+cell isolation, progressive exposure, exact rollback, sealed GODD sharing,
+room-scoped access, Dream Catcher convergence, and multi-channel projection.
 
 Validate the reusable examples directly:
 
