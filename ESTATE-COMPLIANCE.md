@@ -21,7 +21,8 @@ re-anchoring identity at the root costs nothing, because no external actor refer
 addresses yet.
 
 **How compliance is decided:** `python3 rapp_check.py <repo>` verdicts each repo `CLEAN` (no RAPP
-artifacts), `COMPLIANT` (all artifacts pass RAPP), or `DRIFT` (lists each violation by §). The
+artifacts after complete bounded discovery), `COMPLIANT` (all artifacts pass RAPP), or `DRIFT`
+(lists each violation or verification-unavailable blocker by §/status). The
 migration is deterministic and identity-preserving — `rapp_migrate.py` re-anchors each legacy
 rappid from its *own UUID* into the domain-tagged 64-hex form (§5/§6.2), records the old string in
 `_migrated_from` so references resolve forward (§6.3), and sets the schema label to `rapp/1` (§12).
