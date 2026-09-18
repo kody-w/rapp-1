@@ -3,14 +3,14 @@
  "generated_utc": "2026-09-02T01:31:21.000Z",
  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
  "head": {
-  "seq": 15,
-  "frame_hash": "83ca275f35cca96e43d75c99d338326c1a39b2240eabf57eb7c29ac96cc90818",
-  "payload_hash": "1ac47416e9caf174c4fdc00265ca187c244fb701ae2a7fb7211ba1385a951310"
+  "seq": 16,
+  "frame_hash": "6fddd2370220ca195fdbee3a7ae46a2686fc745d8e88debda26c5a6497e5756a",
+  "payload_hash": "61a01808240e16066bdf0437933ac16b6530c939e9f31f67fac44d517f1e580c"
  },
  "spec": {
-  "revision": "rev-15",
-  "revision_frame_hash": "83ca275f35cca96e43d75c99d338326c1a39b2240eabf57eb7c29ac96cc90818",
-  "revision_payload_hash": "1ac47416e9caf174c4fdc00265ca187c244fb701ae2a7fb7211ba1385a951310",
+  "revision": "rev-16",
+  "revision_frame_hash": "6fddd2370220ca195fdbee3a7ae46a2686fc745d8e88debda26c5a6497e5756a",
+  "revision_payload_hash": "61a01808240e16066bdf0437933ac16b6530c939e9f31f67fac44d517f1e580c",
   "schema": "rapp-spec-revision/1",
   "materialized_path": "SPEC.md",
   "normative_path": "SPEC.md",
@@ -132,6 +132,10 @@
   "wire-freeze": {
    "status": "live",
    "where": "§12 and Constitution Article 18 — the rapp/1 verified forms never change; a change is rapp/2"
+  },
+  "rapp-work": {
+   "status": "live",
+   "where": "protocols/rapp-work/1/SPEC.md — additive organization, Hive high-water, migration, custody, and rollback"
   }
  },
  "operational_profiles": {
@@ -148,6 +152,13 @@
    "spec_sha256": "b5fc84465fb201fd97d7059997490a8fae5bf79ec55e935b0cfd9b4c787108e5",
    "schema_path": "protocols/rapp-deploy/1/schema.json",
    "schema_sha256": "aca783f3274cd865926f6b943163189fa93a7bbc4c7d4258856a54779a4a71ba"
+  },
+  "rapp-work/1": {
+   "status": "live",
+   "spec_path": "protocols/rapp-work/1/SPEC.md",
+   "spec_sha256": "283359355c3fe2858e28744368255683af3ed28a68e290e56c231e7d4b13c08e",
+   "schema_path": "protocols/rapp-work/1/schema.json",
+   "schema_sha256": "ff30f9878f12fa4ad7d93c4c205eb1cb580137a7dee87aa9d23c88a93466d19e"
   }
  },
  "philosophy": {
@@ -193,7 +204,7 @@
  },
  "index": {
   "path": "anchor/index.json",
-  "sha256": "5f19ed2739c48e799ee142152f09da99488c06ee7a9100d6b67de7cf7618ca93",
-  "bytes": 7748
+  "sha256": "b265a53bb2381ba86d8e561d4f150fd3371bcae13f8be00f590389c1912522ca",
+  "bytes": 8118
  }
 }

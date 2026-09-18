@@ -486,6 +486,25 @@ def _state_schema(release: dict) -> dict:
     return components[0]
 
 
+def _qualified_release(
+    payload: dict,
+    organization: dict,
+    qualification_verifier: Optional[Callable[[dict, str], bool]],
+    where: str,
+) -> str:
+    release_hash = C.validate_release_payload(payload)
+    require(
+        payload["release_scope"] == organization["release_scope"],
+        f"{where}: release scope differs from the organization",
+    )
+    require(
+        callable(qualification_verifier)
+        and bool(qualification_verifier(payload, organization["policy_sha256"])),
+        f"{where}: authenticated CI/CD qualification does not bind the organization policy",
+    )
+    return release_hash
+
+
 def validate_rollback(
     payload: dict,
     organization: dict,
@@ -493,9 +512,15 @@ def validate_rollback(
     *,
     deployment: Optional[dict] = None,
     candidate_release: Optional[dict] = None,
+    qualification_verifier: Optional[Callable[[dict, str], bool]] = None,
 ) -> str:
     rollback_hash = _rollback_shape(payload, organization)
-    release_hash = C.validate_release_payload(rollback_release)
+    release_hash = _qualified_release(
+        rollback_release,
+        organization,
+        qualification_verifier,
+        "work rollback",
+    )
     require(
         payload["release_payload_hash"] == release_hash,
         "work rollback: release binding mismatch",
@@ -523,6 +548,12 @@ def validate_rollback(
     )
     if deployment is not None:
         require(candidate_release is not None, "work rollback: candidate release is required")
+        _qualified_release(
+            candidate_release,
+            organization,
+            qualification_verifier,
+            "work rollback candidate",
+        )
         D.validate_plan_payload(candidate_release, deployment)
         require(
             deployment["rollback_release_payload_hash"] == release_hash,
@@ -653,12 +684,25 @@ def validate_migration(
     vector: dict,
     target_release: dict,
     rollback: dict,
+    *,
+    source_head_verifier: Optional[Callable[[dict], bool]] = None,
+    qualification_verifier: Optional[Callable[[dict, str], bool]] = None,
 ) -> str:
     migration_hash = _migration_shape(payload, organization)
+    require(
+        callable(source_head_verifier)
+        and bool(source_head_verifier(payload["source"])),
+        "work migration: source signed frame head was not authenticated",
+    )
     catalog_hash = _catalog_shape(catalog, validate_organization(organization))
     del catalog_hash
     vector_hash = validate_vector(vector, organization)
-    target_release_hash = C.validate_release_payload(target_release)
+    target_release_hash = _qualified_release(
+        target_release,
+        organization,
+        qualification_verifier,
+        "work migration target",
+    )
     rollback_hash = _rollback_shape(rollback, organization)
     require(
         payload["target"]["release_payload_hash"] == target_release_hash,
@@ -820,9 +864,15 @@ def validate_observation(
     *,
     previous_observation: Optional[dict] = None,
     health_verifier: Optional[Callable[[dict], bool]] = None,
+    qualification_verifier: Optional[Callable[[dict, str], bool]] = None,
 ) -> str:
     organization_hash = validate_organization(organization)
-    release_hash = C.validate_release_payload(release)
+    release_hash = _qualified_release(
+        release,
+        organization,
+        qualification_verifier,
+        "work observation",
+    )
     deployment_hash = D.validate_plan_payload(release, deployment)
     vector_hash = validate_vector(vector, organization)
     canonical_object(payload, "work observation")
@@ -972,7 +1022,12 @@ def required_registry_entries(spec_hash: str) -> list:
     return entries
 
 
-def validate_registry_adoption(registry, spec_hash: str) -> bool:
+def validate_registry_adoption(
+    registry,
+    spec_hash: str,
+    *,
+    dependency_verifier: Optional[Callable[[str, dict], bool]] = None,
+) -> bool:
     required = required_registry_entries(spec_hash)
     active_protocols = [
         entry
@@ -984,11 +1039,20 @@ def validate_registry_adoption(registry, spec_hash: str) -> bool:
         len(work_entries) == 1 and work_entries[0] == required[0],
         "rapp-work registry: canonical protocol pin is absent or differs",
     )
-    active_names = {entry["name"] for entry in active_protocols}
     require(
-        DEPENDENCY_PROTOCOLS <= active_names,
-        "rapp-work registry: required parent, Hive, CI/CD, and Deploy protocol pins are absent",
+        callable(dependency_verifier),
+        "rapp-work registry: authenticated dependency verifier is required",
     )
+    for name in sorted(DEPENDENCY_PROTOCOLS):
+        matches = [entry for entry in active_protocols if entry.get("name") == name]
+        require(
+            len(matches) == 1,
+            f"rapp-work registry: exactly one active {name} pin is required",
+        )
+        require(
+            bool(dependency_verifier(name, matches[0])),
+            f"rapp-work registry: {name} pin does not match authenticated canonical authority",
+        )
     for kind in WORK_KINDS:
         require(
             registry.family(kind) == "body",
@@ -1019,6 +1083,7 @@ class WorkLedger:
         self.vector = None
         self.rollbacks = {}
         self.migrations = {}
+        self.targets = {}
         self.completed = {}
         self.observations = []
 
@@ -1052,6 +1117,7 @@ class WorkLedger:
         *,
         deployment: Optional[dict] = None,
         candidate_release: Optional[dict] = None,
+        qualification_verifier: Optional[Callable[[dict, str], bool]] = None,
     ) -> str:
         rollback_hash = validate_rollback(
             payload,
@@ -1059,6 +1125,7 @@ class WorkLedger:
             rollback_release,
             deployment=deployment,
             candidate_release=candidate_release,
+            qualification_verifier=qualification_verifier,
         )
         release_hash = payload["release_payload_hash"]
         previous = self.rollbacks.get(release_hash)
@@ -1076,6 +1143,10 @@ class WorkLedger:
         vector: dict,
         target_release: dict,
         rollback: dict,
+        *,
+        source_head_verifier: Optional[Callable[[dict], bool]] = None,
+        target_absence_verifier: Optional[Callable[[str], bool]] = None,
+        qualification_verifier: Optional[Callable[[dict, str], bool]] = None,
     ) -> str:
         migration_hash = validate_migration(
             payload,
@@ -1084,6 +1155,8 @@ class WorkLedger:
             vector,
             target_release,
             rollback,
+            source_head_verifier=source_head_verifier,
+            qualification_verifier=qualification_verifier,
         )
         require(
             self.vector is not None
@@ -1101,11 +1174,23 @@ class WorkLedger:
             previous is None or previous["hash"] == migration_hash,
             "work migration: create-only migration changed under one migration_id",
         )
+        target_rappid = payload["target"]["workspace_rappid"]
+        target_owner = self.targets.get(target_rappid)
+        require(
+            target_owner is None or target_owner == migration_id,
+            "work migration: create-only target identity was reused",
+        )
         if previous is None:
+            require(
+                callable(target_absence_verifier)
+                and bool(target_absence_verifier(target_rappid)),
+                "work migration: target identity already exists",
+            )
             self.migrations[migration_id] = {
                 "hash": migration_hash,
                 "payload": copy.deepcopy(payload),
             }
+            self.targets[target_rappid] = migration_id
         return migration_hash
 
     def record_observation(
@@ -1116,6 +1201,7 @@ class WorkLedger:
         vector: dict,
         *,
         health_verifier: Optional[Callable[[dict], bool]] = None,
+        qualification_verifier: Optional[Callable[[dict, str], bool]] = None,
     ) -> str:
         previous = self.observations[-1] if self.observations else None
         observation_hash = validate_observation(
@@ -1126,6 +1212,7 @@ class WorkLedger:
             vector,
             previous_observation=previous,
             health_verifier=health_verifier,
+            qualification_verifier=qualification_verifier,
         )
         require(
             self.vector is not None
@@ -1157,6 +1244,9 @@ class WorkLedger:
         authorization_verifier,
         evidence_verifier: Optional[Callable[[dict], bool]],
         custody_verifier: Optional[Callable[[dict], bool]],
+        source_head_verifier: Optional[Callable[[dict], bool]],
+        target_absence_verifier: Optional[Callable[[str], bool]],
+        qualification_verifier: Optional[Callable[[dict, str], bool]],
         mutate: Callable[[dict], object],
     ) -> object:
         migration_hash = validate_migration(
@@ -1166,6 +1256,8 @@ class WorkLedger:
             vector,
             target_release,
             rollback,
+            source_head_verifier=source_head_verifier,
+            qualification_verifier=qualification_verifier,
         )
         retained = self.migrations.get(migration["migration_id"])
         require(
@@ -1203,6 +1295,11 @@ class WorkLedger:
             "work migration: source changed during completed-migration recovery",
         )
         require(
+            callable(source_head_verifier)
+            and bool(source_head_verifier(observed_source)),
+            "work migration: source signed frame head was not reauthenticated",
+        )
+        require(
             callable(evidence_verifier)
             and all(bool(evidence_verifier(item)) for item in receipt["evidence"]),
             "work migration: completed evidence is missing or unverified",
@@ -1214,6 +1311,16 @@ class WorkLedger:
         )
         if prior is not None:
             return {"status": "replayed", "receipt_payload_hash": receipt_hash}
+        target_rappid = migration["target"]["workspace_rappid"]
+        require(
+            self.targets.get(target_rappid) == migration["migration_id"],
+            "work migration: target identity binding changed",
+        )
+        require(
+            callable(target_absence_verifier)
+            and bool(target_absence_verifier(target_rappid)),
+            "work migration: target identity exists before create-only mutation",
+        )
         result = mutate(
             {
                 "migration_payload_hash": migration_hash,

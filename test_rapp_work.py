@@ -54,6 +54,24 @@ class RappWorkTests(unittest.TestCase):
     def authorization_verifier(_frame: dict, _purpose: str) -> bool:
         return True
 
+    def qualification_verifier(self, release: dict, policy_sha256: str) -> bool:
+        return (
+            release["release_scope"] == self.organization["release_scope"]
+            and policy_sha256 == self.organization["policy_sha256"]
+        )
+
+    def source_head_verifier(self, source: dict) -> bool:
+        expected = self.migration["source"]
+        return (
+            source["workspace_rappid"] == expected["workspace_rappid"]
+            and source["world_id"] == expected["world_id"]
+            and source["head"] == expected["head"]
+        )
+
+    @staticmethod
+    def target_absence_verifier(_target_rappid: str) -> bool:
+        return True
+
     def frames(self, receipt: Optional[dict] = None) -> dict:
         payloads = [
             ("work.organization", self.organization),
@@ -95,6 +113,7 @@ class RappWorkTests(unittest.TestCase):
             self.rollback_release,
             deployment=self.deployment,
             candidate_release=self.release,
+            qualification_verifier=self.qualification_verifier,
         )
         ledger.register_migration(
             self.migration,
@@ -102,6 +121,9 @@ class RappWorkTests(unittest.TestCase):
             self.vector,
             self.release,
             self.rollback,
+            source_head_verifier=self.source_head_verifier,
+            target_absence_verifier=self.target_absence_verifier,
+            qualification_verifier=self.qualification_verifier,
         )
         return ledger
 
@@ -119,6 +141,7 @@ class RappWorkTests(unittest.TestCase):
                 self.rollback_release,
                 deployment=self.deployment,
                 candidate_release=self.release,
+                qualification_verifier=self.qualification_verifier,
             ),
             particle_hash(self.rollback),
         )
@@ -130,6 +153,8 @@ class RappWorkTests(unittest.TestCase):
                 self.vector,
                 self.release,
                 self.rollback,
+                source_head_verifier=self.source_head_verifier,
+                qualification_verifier=self.qualification_verifier,
             ),
             particle_hash(self.migration),
         )
@@ -150,6 +175,7 @@ class RappWorkTests(unittest.TestCase):
                 self.deployment,
                 self.vector,
                 health_verifier=lambda _observation: True,
+                qualification_verifier=self.qualification_verifier,
             ),
             particle_hash(self.observation),
         )
@@ -206,6 +232,9 @@ class RappWorkTests(unittest.TestCase):
             authorization_verifier=self.authorization_verifier,
             evidence_verifier=lambda _address: True,
             custody_verifier=lambda _custody: True,
+            source_head_verifier=self.source_head_verifier,
+            target_absence_verifier=self.target_absence_verifier,
+            qualification_verifier=self.qualification_verifier,
             mutate=lambda token: mutations.append(token) or {"status": "created"},
         )
         self.assertEqual(result, {"status": "created"})
@@ -224,6 +253,9 @@ class RappWorkTests(unittest.TestCase):
             authorization_verifier=self.authorization_verifier,
             evidence_verifier=lambda _address: True,
             custody_verifier=lambda _custody: True,
+            source_head_verifier=self.source_head_verifier,
+            target_absence_verifier=self.target_absence_verifier,
+            qualification_verifier=self.qualification_verifier,
             mutate=lambda token: mutations.append(token),
         )
         self.assertEqual(replay["status"], "replayed")
@@ -285,6 +317,9 @@ class RappWorkTests(unittest.TestCase):
                 authorization_verifier=self.authorization_verifier,
                 evidence_verifier=lambda _address: True,
                 custody_verifier=lambda _custody: True,
+                source_head_verifier=self.source_head_verifier,
+                target_absence_verifier=self.target_absence_verifier,
+                qualification_verifier=self.qualification_verifier,
                 mutate=lambda token: mutations.append(token),
             )
         self.assertEqual(mutations, [])
@@ -311,6 +346,9 @@ class RappWorkTests(unittest.TestCase):
                 authorization_verifier=self.authorization_verifier,
                 evidence_verifier=lambda _address: True,
                 custody_verifier=lambda _custody: True,
+                source_head_verifier=self.source_head_verifier,
+                target_absence_verifier=self.target_absence_verifier,
+                qualification_verifier=self.qualification_verifier,
                 mutate=lambda token: mutations.append(token),
             )
         self.assertEqual(mutations, [])
@@ -335,6 +373,9 @@ class RappWorkTests(unittest.TestCase):
                 authorization_verifier=self.authorization_verifier,
                 evidence_verifier=lambda _address: True,
                 custody_verifier=lambda _custody: False,
+                source_head_verifier=self.source_head_verifier,
+                target_absence_verifier=self.target_absence_verifier,
+                qualification_verifier=self.qualification_verifier,
                 mutate=lambda token: mutations.append(token),
             )
         self.assertEqual(mutations, [])
@@ -350,6 +391,7 @@ class RappWorkTests(unittest.TestCase):
                 self.rollback_release,
                 deployment=self.deployment,
                 candidate_release=self.release,
+                qualification_verifier=self.qualification_verifier,
             )
 
     def test_unsigned_static_receipt_is_non_authoritative(self) -> None:
@@ -422,11 +464,105 @@ class RappWorkTests(unittest.TestCase):
                 self.vector,
                 self.release,
                 self.rollback,
+                source_head_verifier=self.source_head_verifier,
+                target_absence_verifier=self.target_absence_verifier,
+                qualification_verifier=self.qualification_verifier,
             )
         self.assertEqual(
             ledger.migrations[self.migration["migration_id"]]["hash"],
             particle_hash(self.migration),
         )
+
+    def test_migration_source_head_requires_authentication(self) -> None:
+        ledger = W.WorkLedger(self.organization)
+        ledger.accept_vector(
+            self.vector,
+            hive_verifier=lambda _checkpoint, _head: True,
+        )
+        ledger.register_rollback(
+            self.rollback,
+            self.rollback_release,
+            deployment=self.deployment,
+            candidate_release=self.release,
+            qualification_verifier=self.qualification_verifier,
+        )
+        forged = copy.deepcopy(self.migration)
+        forged["source"]["head"]["payload_hash"] = digest("forged source payload")
+        forged["source"]["head"]["frame_hash"] = digest("forged source frame")
+        with self.assertRaisesRegex(ValueError, "source signed frame head was not authenticated"):
+            ledger.register_migration(
+                forged,
+                self.catalog,
+                self.vector,
+                self.release,
+                self.rollback,
+                source_head_verifier=self.source_head_verifier,
+                target_absence_verifier=self.target_absence_verifier,
+                qualification_verifier=self.qualification_verifier,
+            )
+        self.assertEqual(ledger.migrations, {})
+
+    def test_create_only_target_identity_cannot_be_reused(self) -> None:
+        ledger = self.prepared_ledger()
+        second = copy.deepcopy(self.migration)
+        second["source"]["workspace_rappid"] = (
+            "rappid:@example/second-source:" + "7" * 64
+        )
+        second["source"]["head"]["stream_id"] = second["source"]["workspace_rappid"]
+        second["source"]["head"]["payload_hash"] = digest("second source payload")
+        second["source"]["head"]["frame_hash"] = digest("second source frame")
+        second["migration_id"] = W.migration_identifier(
+            particle_hash(self.organization),
+            second["source"]["workspace_rappid"],
+            second["target"]["workspace_rappid"],
+            second["target"]["release_payload_hash"],
+        )
+        with self.assertRaisesRegex(ValueError, "target identity was reused"):
+            ledger.register_migration(
+                second,
+                self.catalog,
+                self.vector,
+                self.release,
+                self.rollback,
+                source_head_verifier=lambda _source: True,
+                target_absence_verifier=self.target_absence_verifier,
+                qualification_verifier=self.qualification_verifier,
+            )
+        self.assertEqual(len(ledger.migrations), 1)
+
+    def test_release_scope_and_policy_bind_every_lifecycle_release(self) -> None:
+        changed_release = copy.deepcopy(self.release)
+        changed_release["release_scope"] = "https://example.com/other/releases"
+        changed = copy.deepcopy(self.migration)
+        changed["target"]["release_payload_hash"] = particle_hash(changed_release)
+        changed["migration_id"] = W.migration_identifier(
+            particle_hash(self.organization),
+            changed["source"]["workspace_rappid"],
+            changed["target"]["workspace_rappid"],
+            changed["target"]["release_payload_hash"],
+        )
+        with self.assertRaisesRegex(ValueError, "release scope differs"):
+            W.validate_migration(
+                changed,
+                self.organization,
+                self.catalog,
+                self.vector,
+                changed_release,
+                self.rollback,
+                source_head_verifier=self.source_head_verifier,
+                qualification_verifier=self.qualification_verifier,
+            )
+        with self.assertRaisesRegex(ValueError, "does not bind the organization policy"):
+            W.validate_migration(
+                self.migration,
+                self.organization,
+                self.catalog,
+                self.vector,
+                self.release,
+                self.rollback,
+                source_head_verifier=self.source_head_verifier,
+                qualification_verifier=lambda _release, _policy: False,
+            )
 
     def test_release_observations_are_bounded_before_append(self) -> None:
         ledger = W.WorkLedger(self.organization)
@@ -454,6 +590,7 @@ class RappWorkTests(unittest.TestCase):
                 self.deployment,
                 self.vector,
                 health_verifier=lambda _observation: True,
+                qualification_verifier=self.qualification_verifier,
             )
             previous = observation
         overflow = copy.deepcopy(self.observation)
@@ -474,6 +611,7 @@ class RappWorkTests(unittest.TestCase):
                 self.deployment,
                 self.vector,
                 health_verifier=lambda _observation: True,
+                qualification_verifier=self.qualification_verifier,
             )
         self.assertEqual(len(ledger.observations), W.MAX_RELEASE_OBSERVATIONS)
 
@@ -521,8 +659,20 @@ class RappWorkTests(unittest.TestCase):
             *protocol_entries,
             *W.required_registry_entries(spec_hash),
         ]
+        expected_dependencies = {
+            entry["name"]: entry for entry in protocol_entries
+        }
+        dependency_verifier = (
+            lambda name, entry: entry == expected_dependencies[name]
+        )
         registry = REG.Registry(entries)
-        self.assertTrue(W.validate_registry_adoption(registry, spec_hash))
+        self.assertTrue(
+            W.validate_registry_adoption(
+                registry,
+                spec_hash,
+                dependency_verifier=dependency_verifier,
+            )
+        )
         self.assertEqual(
             {entry["kind"] for entry in W.required_registry_entries(spec_hash)[1:]},
             set(W.WORK_KINDS),
@@ -544,7 +694,26 @@ class RappWorkTests(unittest.TestCase):
             ]
         )
         with self.assertRaisesRegex(ValueError, "canonical protocol pin"):
-            W.validate_registry_adoption(conflicting, spec_hash)
+            W.validate_registry_adoption(
+                conflicting,
+                spec_hash,
+                dependency_verifier=dependency_verifier,
+            )
+        conflicting_dependency = REG.Registry(
+            [
+                *entries,
+                {
+                    **expected_dependencies["rapp-cicd/1"],
+                    "spec_repo": "https://example.com/conflicting-rapp-cicd",
+                },
+            ]
+        )
+        with self.assertRaisesRegex(ValueError, "exactly one active rapp-cicd/1"):
+            W.validate_registry_adoption(
+                conflicting_dependency,
+                spec_hash,
+                dependency_verifier=dependency_verifier,
+            )
 
     def test_sdk_builder_discovers_work_profile_without_claiming_authority(self) -> None:
         from agents.rapp_sdk_builder_agent import RappSdkBuilderAgent

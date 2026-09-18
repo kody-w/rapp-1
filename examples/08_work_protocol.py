@@ -19,6 +19,11 @@ release = json.loads((EXAMPLES / "release.json").read_text(encoding="utf-8"))
 rollback_release = json.loads((EXAMPLES / "rollback-release.json").read_text(encoding="utf-8"))
 deployment = json.loads((EXAMPLES / "deployment.json").read_text(encoding="utf-8"))
 organization = bundle["organization"]
+qualification_verifier = lambda candidate, policy_sha256: (
+    candidate["release_scope"] == organization["release_scope"]
+    and policy_sha256 == organization["policy_sha256"]
+)
+source_head_verifier = lambda source: source == bundle["migration"]["source"]
 
 W.validate_organization(organization)
 W.validate_catalog(bundle["catalog"], organization)
@@ -29,6 +34,7 @@ W.validate_rollback(
     rollback_release,
     deployment=deployment,
     candidate_release=release,
+    qualification_verifier=qualification_verifier,
 )
 W.validate_migration(
     bundle["migration"],
@@ -37,6 +43,8 @@ W.validate_migration(
     bundle["vector"],
     release,
     bundle["rollback"],
+    source_head_verifier=source_head_verifier,
+    qualification_verifier=qualification_verifier,
 )
 W.validate_migration_receipt(
     bundle["receipt"],
@@ -51,6 +59,7 @@ W.validate_observation(
     deployment,
     bundle["vector"],
     health_verifier=lambda _observation: True,
+    qualification_verifier=qualification_verifier,
 )
 
 payloads = [
