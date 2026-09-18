@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Append the deterministic rev-15 RAPP/1 specification-chain frame."""
+"""Append the deterministic rev-16 RAPP/1 specification-chain frame."""
 
 from __future__ import annotations
 
@@ -32,8 +32,8 @@ INDEX = ANCHOR / "index.json"
 FRAMES = ANCHOR / "frames"
 BOOTSTRAP = ANCHOR / "bootstrap"
 LOCK = ANCHOR / ".update_anchor.lock"
-REVISION = "rev-15"
-PREVIOUS_REVISION = "rev-14"
+REVISION = "rev-16"
+PREVIOUS_REVISION = "rev-15"
 INPUT_PATHS = [
     "SPEC.md",
     "CONSTITUTION.md",
@@ -45,6 +45,8 @@ INPUT_PATHS = [
     "protocols/rapp-cicd/1/schema.json",
     "protocols/rapp-deploy/1/SPEC.md",
     "protocols/rapp-deploy/1/schema.json",
+    "protocols/rapp-work/1/SPEC.md",
+    "protocols/rapp-work/1/schema.json",
     "anchor/materialize_spec.py",
     "anchor/bootstrap_verify.py",
     "anchor/update_anchor.py",
@@ -633,6 +635,10 @@ def revision_payload(
         "status": "live",
         "where": "§11.2 and protocols/rapp-deploy/1/SPEC.md",
     }
+    payload["vocabulary"]["rapp-work"] = {
+        "status": "live",
+        "where": "protocols/rapp-work/1/SPEC.md — additive organization, Hive high-water, migration, custody, and rollback",
+    }
     payload["vocabulary"]["offspring"] = {
         "status": "live",
         "where": "§9.4 typed lineage and PHILOSOPHY.md",
@@ -666,6 +672,21 @@ def revision_payload(
             "c": (
                 "RAPP Deploy forbids in-place serving mutation: growth happens in an isolated "
                 "candidate lineage and reaches users only through bounded, reversible waves."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
+                "RAPP Work uses seven registered body kinds on the unchanged eleven-key frame; "
+                "catalog locators, Portable Neurons, Git, raw paths, and static API documents "
+                "remain inert evidence or discovery rather than authority."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "A completed RAPP Work migration verifies retained intent, signed evidence, "
+                "unchanged source, exact rollback, and key custody before any mutation."
             ),
         },
         {
@@ -891,7 +912,7 @@ def _main_locked(accepted_ref: str) -> None:
     head = base_frames[-1]
     if head["payload"]["revision"] == REVISION:
         if len(base_frames) < 2:
-            raise SystemExit("rev-14 cannot be the anchor genesis")
+            raise SystemExit(f"{REVISION} cannot be the anchor genesis")
         accepted_frame = head
         head = base_frames[-2]
     if head["payload"]["revision"] != PREVIOUS_REVISION:
@@ -920,14 +941,14 @@ def _main_locked(accepted_ref: str) -> None:
     )
     frame_octets = R.canonical(frame).encode("utf-8")
     if len(frame_octets) > R.MAX_CANONICAL_BYTES:
-        raise SystemExit("rev-14 frame exceeds the RAPP/1 canonical-byte limit")
+        raise SystemExit(f"{REVISION} frame exceeds the RAPP/1 canonical-byte limit")
     candidate_chain = (
         base_chain + json.dumps(frame, ensure_ascii=False).encode("utf-8") + b"\n"
         if accepted_frame is None
         else canonical_chain
     )
     if accepted_frame is not None and frame != accepted_frame:
-        raise SystemExit("accepted rev-14 frame is inconsistent with committed inputs")
+        raise SystemExit(f"accepted {REVISION} frame is inconsistent with committed inputs")
     if candidate_chain != current_chain:
         payload = revision_payload(
             head["payload"],

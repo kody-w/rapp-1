@@ -8,25 +8,36 @@ healthy there without mutating the serving system underneath its users.
 |---|---|---|
 | RAPP CI/CD | `rapp-cicd/1` | [`rapp-cicd/1/SPEC.md`](rapp-cicd/1/SPEC.md) |
 | RAPP Deploy | `rapp-deploy/1` | [`rapp-deploy/1/SPEC.md`](rapp-deploy/1/SPEC.md) |
+| RAPP Work | `rapp-work/1` | [`rapp-work/1/SPEC.md`](rapp-work/1/SPEC.md) |
 
 The profiles are subordinate to RAPP/1:
 
 - every payload is I-JSON canonicalized with RAPP/1 section 4;
 - every payload is identified by its RAPP particle hash;
 - authoritative payloads travel in signed RAPP/1 frames;
-- neither profile adds an endpoint beside `POST /chat`;
-- neither profile can weaken the immutable Grail rule;
+- no profile adds an endpoint beside `POST /chat`;
+- no profile can weaken the immutable Grail rule;
 - a profile conflict with `SPEC.md` is refused in favor of `SPEC.md`.
+
+RAPP Work additionally requires an authenticated `rapp-hive/1` adoption. It
+binds organizations, discovery-only catalogs, signed Hive-vector high-water,
+create-only migrations, completed-migration custody, bounded release
+observations, and immutable rollback targets to the existing CI/CD and Deploy
+profiles. Plugin, skill, Portable Neuron, Git, raw, and static catalog entries
+remain inert locators or evidence rather than authority.
 
 ## Prove the profiles
 
 ```bash
 python3 operations_conformance.py
+python3 work_conformance.py
 ```
 
-The suite executes positive and negative vectors for exact-candidate promotion,
+The suites execute positive and negative vectors for exact-candidate promotion,
 kernel drift, skipped stages, failed evidence, serving mutation, stale health,
-cell isolation, progressive exposure, and exact rollback.
+cell isolation, progressive exposure, exact rollback, Hive rollback/fork
+refusal, create-only migration, custody-before-mutation, bounded observations,
+inert Portable Neurons, and non-authoritative discovery.
 
 Validate the reusable examples directly:
 
@@ -36,6 +47,7 @@ python3 rapp_cicd.py release protocols/examples/release.json \
 python3 rapp_cicd.py policy protocols/examples/policy.json
 python3 rapp_deploy.py plan protocols/examples/deployment.json \
   --release protocols/examples/release.json
+python3 examples/08_work_protocol.py
 ```
 
 These commands report **payload conformance**, not authority. JSON Schemas

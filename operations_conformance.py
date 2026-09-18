@@ -1585,6 +1585,7 @@ profile_index = load_example("../index.json")
 schema_paths = [
     ROOT / "protocols" / "rapp-cicd" / "1" / "schema.json",
     ROOT / "protocols" / "rapp-deploy" / "1" / "schema.json",
+    ROOT / "protocols" / "rapp-work" / "1" / "schema.json",
 ]
 schemas_parse = all(isinstance(json.loads(path.read_text(encoding="utf-8")), dict) for path in schema_paths)
 check("O40 published JSON Schemas parse as canonical JSON objects", schemas_parse)

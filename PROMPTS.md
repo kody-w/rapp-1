@@ -193,6 +193,24 @@ or a mutable rollback target.
 cellular deployment plan that can prove pause, quarantine, restore, and exact
 rollback before it receives broad user traffic.
 
+## 11 · Build a portable RAPP Work organization
+
+```text
+In my clone of https://github.com/kody-w/rapp-1, read
+protocols/rapp-work/1/SPEC.md and run python3 work_conformance.py. Stop on any
+red vector. Then run python3 examples/08_work_protocol.py and explain the seven
+registered work kinds. Show why the signed Hive vector refuses rollback and a
+same-sequence fork, why migration is create-only and source-bound, why completed
+migration evidence and key custody are checked before any mutation, and why
+plugins, skills, static APIs, Git/raw paths, and Portable Neurons remain
+non-authoritative inert discovery data. Confirm every frame has exactly the
+frozen eleven RAPP/1 keys.
+```
+
+**Expect:** a signed organization lifecycle bound to authenticated Hive,
+CI/CD, and Deploy evidence without a new envelope, registry-entry type, or
+endpoint.
+
 ---
 
 *The interactive book edition gives every code example its own **Copy prompt** control —

@@ -25,6 +25,9 @@ Start at the beacon, verify the chain, then read the materialized spec. Names li
 - Internet-Draft rendering: https://kody-w.github.io/rapp-1/ietf/draft-wildfeuer-rapp-1-00.txt
 - Mirrors and archives: https://kody-w.github.io/rapp-1/MIRRORS.md
 - Extending (your own estate, no change to rapp-1 needed): https://kody-w.github.io/rapp-1/EXTENDING.md
+- Operational profile index: https://kody-w.github.io/rapp-1/protocols/index.json
+- RAPP Work (`rapp-work/1`): https://kody-w.github.io/rapp-1/protocols/rapp-work/1/SPEC.md
+- RAPP Work reference: https://kody-w.github.io/rapp-1/rapp_work.py
 - Contributing: https://kody-w.github.io/rapp-1/CONTRIBUTING.md
 
 ## Discipline

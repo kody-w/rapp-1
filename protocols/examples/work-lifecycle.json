@@ -1,0 +1,213 @@
+{
+  "organization": {
+    "schema": "rapp-work/1-organization",
+    "organization_rappid": "rappid:@example/work-organization:1111111111111111111111111111111111111111111111111111111111111111",
+    "owner_rappid": "rappid:@example/work-owner:2222222222222222222222222222222222222222222222222222222222222222",
+    "world_id": "example-work",
+    "hive_rappid": "rappid:@example/private-hive:3333333333333333333333333333333333333333333333333333333333333333",
+    "release_scope": "https://github.com/kody-w/rapp-installer/releases/grail",
+    "policy_sha256": "65e809a724cb84bcf14284ee1e388b14fb5d056e3817a907eb1ac41955d44ee1",
+    "created_utc": "2026-09-18T12:00:00.000Z"
+  },
+  "catalog": {
+    "schema": "rapp-work/1-catalog",
+    "organization_payload_hash": "4c9501517a9eabb9abab9d14b056e181c3bbd6aee820b8027ba7bcefb92bad13",
+    "created_utc": "2026-09-18T12:01:00.000Z",
+    "previous_catalog_payload_hash": null,
+    "items": [
+      {
+        "id": "neuron",
+        "kind": "portable-neuron",
+        "address": {
+          "space": "rapp/1:particle",
+          "hash": "843a5e9afead506d262b32969bf16b1e3b7fd5e1e8b0347a93b0afbf170efd8c"
+        },
+        "locator": {
+          "kind": "raw",
+          "uri": "https://example.com/rapp-work",
+          "path": "neurons/packet.json"
+        },
+        "authority": "discovery-only",
+        "compatibility": {
+          "format": "portable-neuron/2",
+          "mode": "inert-data",
+          "verdict": "compatible",
+          "evidence_sha256": "1b6a1784d30f2f8a217e00cc434ecb9fadc1c8c9c0a99abb128ff08ac58a794d"
+        }
+      },
+      {
+        "id": "plugin",
+        "kind": "plugin",
+        "address": {
+          "space": "rapp/1:egg-manifest",
+          "hash": "2398eb61f077765bd146cd1e88182c952efbbe54b1b3019bdec3a7f9106df16c"
+        },
+        "locator": {
+          "kind": "git",
+          "uri": "https://example.com/rapp-work",
+          "path": "plugins/example.json"
+        },
+        "authority": "discovery-only",
+        "compatibility": null
+      },
+      {
+        "id": "skill",
+        "kind": "skill",
+        "address": {
+          "space": "rapp/1:particle",
+          "hash": "c0985c52ab01a63ec63133b3d868f81145bdeda99d9ec7f5e0b429e76f1ca6c0"
+        },
+        "locator": {
+          "kind": "raw",
+          "uri": "https://example.com/rapp-work",
+          "path": "skills/example/SKILL.md"
+        },
+        "authority": "discovery-only",
+        "compatibility": null
+      },
+      {
+        "id": "static-api",
+        "kind": "static-api",
+        "address": {
+          "space": "rapp/1:particle",
+          "hash": "1e074f76f17946ac225eb1528e222ed5b290b7490776e1a2afe535575fd7a88c"
+        },
+        "locator": {
+          "kind": "static",
+          "uri": "https://example.com/rapp-work",
+          "path": "api/catalog.json"
+        },
+        "authority": "discovery-only",
+        "compatibility": null
+      }
+    ]
+  },
+  "vector": {
+    "schema": "rapp-work/1-vector",
+    "organization_payload_hash": "4c9501517a9eabb9abab9d14b056e181c3bbd6aee820b8027ba7bcefb92bad13",
+    "observed_utc": "2026-09-18T12:02:00.000Z",
+    "hive_checkpoint": {
+      "registry_seq": 8,
+      "registry_hash": "fcff2ad1f62b62ecb6f2396774d75291620f169ff0c4f769bb7e10a47cd734fd",
+      "hive_rappid": "rappid:@example/private-hive:3333333333333333333333333333333333333333333333333333333333333333",
+      "mother_head_frame_hash": "bd5350860f9b6807766c7980f56b1fdbc24262ee99840dfebb0c72e30d176f21",
+      "catalog_hash": "03f35e3dff0c21e08fb84520386d7352aeafd6442b24367f0542df36b37c8164"
+    },
+    "mother_head": {
+      "stream_id": "rappid:@example/private-hive:3333333333333333333333333333333333333333333333333333333333333333",
+      "seq": 5,
+      "utc": "2026-09-18T12:01:30.000Z",
+      "payload_hash": "669b5f7aca94e571c27ce2c6081f74ef1b79bb765ae3caa4577eaf52f854e1e0",
+      "frame_hash": "bd5350860f9b6807766c7980f56b1fdbc24262ee99840dfebb0c72e30d176f21"
+    },
+    "previous_vector_payload_hash": null
+  },
+  "rollback": {
+    "schema": "rapp-work/1-rollback",
+    "organization_payload_hash": "4c9501517a9eabb9abab9d14b056e181c3bbd6aee820b8027ba7bcefb92bad13",
+    "created_utc": "2026-09-18T12:03:00.000Z",
+    "release_payload_hash": "c0c70457c0ce87ea0794ab76de9235d2802b6e1cf61fa7991e101c286563fe59",
+    "artifact_sha256": "b2a7ad9e21e613aaa5bf8ce4bd22174988ff6fe3c168a63914448740989782e5",
+    "grail_id": "grail:1a501dd7a01f05698abcf5f9bbe0273ebb9d09f5d6ec444aa71edccff947c8c7",
+    "state_schema_sha256": "1aaa7e13bb76028924c8e0e766d83ed566cac41a1ac76d8e414dccec3f4f7eca",
+    "snapshot": {
+      "space": "rapp/1:particle",
+      "hash": "75aca7e98af38a34cb8f4566e73f54eefdce92b7acebd59f15d388b18dea79b4"
+    },
+    "restore_evidence_sha256": "52b13f52b661f4c1672e4efde1669a4f4b378dce888f41d65cde2b0bba9daa9c",
+    "locator": {
+      "repository": "https://github.com/kody-w/rapp-installer",
+      "object_format": "sha1",
+      "commit": "49db80c8c6b6caa7647369beaf477d374a8f293c",
+      "path": "rapp_brainstem/brainstem.py"
+    }
+  },
+  "migration": {
+    "schema": "rapp-work/1-migration",
+    "organization_payload_hash": "4c9501517a9eabb9abab9d14b056e181c3bbd6aee820b8027ba7bcefb92bad13",
+    "migration_id": "540bb7a38c984bb5972f3c33daa9ca2f11125c5c071f9209265be9b3451150ff",
+    "created_utc": "2026-09-18T12:04:00.000Z",
+    "mode": "create-only",
+    "source": {
+      "workspace_rappid": "rappid:@example/source-workspace:4444444444444444444444444444444444444444444444444444444444444444",
+      "world_id": "example-work",
+      "snapshot": {
+        "space": "rapp/1:particle",
+        "hash": "75aca7e98af38a34cb8f4566e73f54eefdce92b7acebd59f15d388b18dea79b4"
+      },
+      "head": {
+        "stream_id": "rappid:@example/source-workspace:4444444444444444444444444444444444444444444444444444444444444444",
+        "seq": 3,
+        "utc": "2026-09-18T12:02:30.000Z",
+        "payload_hash": "b5fb823554f19f027dfee42ddfac8c194319a6dc9b0b0044fec53999d913252a",
+        "frame_hash": "2ec83167a4ed04ce7fe8101aba39b7a3678b05a5cb72d53c030b33132c47451e"
+      }
+    },
+    "target": {
+      "workspace_rappid": "rappid:@example/target-workspace:5555555555555555555555555555555555555555555555555555555555555555",
+      "release_payload_hash": "6014f5040a79feb0f78639a66852db87fa19fff075778c70d3870b5fdbfb8b06",
+      "vector_payload_hash": "bee8876cddee357ad9b62cc8511387c860f8ba700eb3ac64814bb3a13e950af9"
+    },
+    "catalog_item_ids": [
+      "neuron",
+      "plugin",
+      "skill",
+      "static-api"
+    ],
+    "rollback_payload_hash": "1aa52552876ecf40472bcc9be1ee4efcab19546eb1f7b38b516ed0a0d3d1cd63"
+  },
+  "receipt": {
+    "schema": "rapp-work/1-receipt",
+    "organization_payload_hash": "4c9501517a9eabb9abab9d14b056e181c3bbd6aee820b8027ba7bcefb92bad13",
+    "receipt_type": "migration-completed",
+    "subject": {
+      "kind": "migration",
+      "address": {
+        "space": "rapp/1:particle",
+        "hash": "0afcd6ab7b3db1e9a2e41268b580f102c1701687ca83ccd176309117c7599561"
+      }
+    },
+    "issued_utc": "2026-09-18T12:05:00.000Z",
+    "result": "verified",
+    "evidence": [
+      {
+        "space": "rapp/1:particle",
+        "hash": "855d254101311061c0a90f443aecdca66759bfe7303275156e3ae25f5c73420f"
+      },
+      {
+        "space": "rapp/1:wave",
+        "hash": "58e80927b19983475f2ec012d646b77f4eb2a11ef024d12a30c3e9cb92acad17"
+      }
+    ],
+    "migration": {
+      "migration_id": "540bb7a38c984bb5972f3c33daa9ca2f11125c5c071f9209265be9b3451150ff",
+      "source_snapshot_hash": "75aca7e98af38a34cb8f4566e73f54eefdce92b7acebd59f15d388b18dea79b4",
+      "source_head_frame_hash": "2ec83167a4ed04ce7fe8101aba39b7a3678b05a5cb72d53c030b33132c47451e",
+      "target_workspace_rappid": "rappid:@example/target-workspace:5555555555555555555555555555555555555555555555555555555555555555",
+      "target_release_payload_hash": "6014f5040a79feb0f78639a66852db87fa19fff075778c70d3870b5fdbfb8b06",
+      "target_vector_payload_hash": "bee8876cddee357ad9b62cc8511387c860f8ba700eb3ac64814bb3a13e950af9",
+      "rollback_payload_hash": "1aa52552876ecf40472bcc9be1ee4efcab19546eb1f7b38b516ed0a0d3d1cd63"
+    },
+    "custody": {
+      "holder_rappid": "rappid:@example/target-workspace:5555555555555555555555555555555555555555555555555555555555555555",
+      "key_rappid": "rappid:@example/target-key:6666666666666666666666666666666666666666666666666666666666666666",
+      "evidence_sha256": "0992d22bfece2ac94eb2c3550be964789387baf06edcb11d1916fbdaa5f552b1"
+    }
+  },
+  "observation": {
+    "schema": "rapp-work/1-observation",
+    "organization_payload_hash": "4c9501517a9eabb9abab9d14b056e181c3bbd6aee820b8027ba7bcefb92bad13",
+    "release_payload_hash": "6014f5040a79feb0f78639a66852db87fa19fff075778c70d3870b5fdbfb8b06",
+    "deployment_payload_hash": "b6df2999c9ff89d8aca5fd726476ed29a9f83bfbc63e3bdd5bf9074d9b00befd",
+    "vector_payload_hash": "bee8876cddee357ad9b62cc8511387c860f8ba700eb3ac64814bb3a13e950af9",
+    "observed_utc": "2026-09-18T12:06:00.000Z",
+    "verdict": "healthy",
+    "evidence": [
+      {
+        "space": "rapp/1:particle",
+        "hash": "adf36ae126a8737de5c8b386dc3e1924c97c7e60d644d07452e59b38954650db"
+      }
+    ],
+    "previous_observation_payload_hash": null
+  }
+}
