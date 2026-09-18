@@ -110,7 +110,7 @@ class SpecChainTests(unittest.TestCase):
             M.verify_chain(chain_octets)
 
     def test_historical_lines_are_byte_exact(self) -> None:
-        self.assertEqual(len(self.lines), 16)
+        self.assertEqual(len(self.lines), 17)
         actual = tuple(hashlib.sha256(line).hexdigest() for line in self.lines[:15])
         self.assertEqual(actual, HISTORICAL_LINE_SHA256)
         for line, frame in zip(self.lines, self.frames):
@@ -132,8 +132,8 @@ class SpecChainTests(unittest.TestCase):
         )
 
     def test_full_chain_head_and_beacon_verify(self) -> None:
-        self.assertEqual(self.head["seq"], 15)
-        self.assertEqual(self.head["payload"]["revision"], "rev-15")
+        self.assertEqual(self.head["seq"], 16)
+        self.assertEqual(self.head["payload"]["revision"], "rev-16")
         self.assertIn("wire-freeze", self.head["payload"]["vocabulary"])
         self.assertEqual(self.head["kind"], "body.pulse")
         self.assertEqual(set(self.head), R.FRAME_KEYS)
@@ -157,8 +157,8 @@ class SpecChainTests(unittest.TestCase):
     def test_resolution_by_every_identifier(self) -> None:
         selectors = [
             {},
-            {"revision": "rev-15"},
-            {"seq": 15},
+            {"revision": "rev-16"},
+            {"seq": 16},
             {"frame_hash": self.head["frame_hash"]},
             {"payload_hash": self.head["payload_hash"]},
         ]
@@ -556,14 +556,14 @@ class SpecChainTests(unittest.TestCase):
         )
 
         duplicate_revision_payload = copy.deepcopy(self.head["payload"])
-        duplicate_revision_payload["previous_revision"] = "rev-15"
+        duplicate_revision_payload["previous_revision"] = "rev-16"
         duplicate_revision_payload["previous_normative_sha256"] = self.head[
             "payload"
         ]["normative_sha256"]
         duplicate_revision = R.build_frame(
             "body.pulse",
             self.head["stream_id"],
-            16,
+            17,
             self.head["utc"],
             duplicate_revision_payload,
             self.head["payload_hash"],
@@ -575,14 +575,14 @@ class SpecChainTests(unittest.TestCase):
 
         fork_payload = copy.deepcopy(self.head["payload"])
         fork_payload["revision"] = "rev-16"
-        fork_payload["previous_revision"] = "rev-14"
+        fork_payload["previous_revision"] = "rev-15"
         fork_payload["previous_normative_sha256"] = self.frames[-2]["payload"][
             "normative_sha256"
         ]
         fork = R.build_frame(
             "body.pulse",
             self.head["stream_id"],
-            15,
+            16,
             self.head["utc"],
             fork_payload,
             self.frames[-2]["payload_hash"],
@@ -595,7 +595,7 @@ class SpecChainTests(unittest.TestCase):
         frame = R.build_frame(
             "body.pulse",
             self.head["stream_id"],
-            16,
+            17,
             self.head["utc"],
             payload,
             self.head["payload_hash"],
@@ -612,20 +612,22 @@ class SpecChainTests(unittest.TestCase):
         payload["previous_normative_sha256"] = self.head["payload"][
             "normative_sha256"
         ]
+        payload["rules"].append(
+            {"t": "fact", "c": "Competing rev-16 test frame."}
+        )
         competing = R.build_frame(
             "body.pulse",
             self.head["stream_id"],
             16,
             self.head["utc"],
             payload,
-            self.head["payload_hash"],
+            self.frames[-2]["payload_hash"],
         )
-        competing_chain = self.appended(competing)
-        canonical_rev14 = b"".join(self.lines[:15])
+        competing_chain = self.appended(competing, b"".join(self.lines[:16]))
         with self.assertRaisesRegex(SystemExit, "stale or competing"):
             U.select_chain_base(
                 competing_chain,
-                canonical_rev14,
+                self.chain_octets,
                 self.bootstrap_profile,
             )
 

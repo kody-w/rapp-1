@@ -49,12 +49,13 @@ except Exception:                               # dropped in / run standalone
 __manifest__ = {
     "schema": "rapp-agent/1.0",
     "name": "@kody-w/rapp_sdk_builder",
-    "version": "1.0.1",
+    "version": "1.1.0",
     "display_name": "RAPP SDK Builder",
     "description": "A hotloadable RAPP toolkit: mint compliant rappids, build/verify frames, "
-                   "content-address values, scaffold organism seeds, and lint any public repo in "
-                   "the stack for compliance. Build with RAPP and stay synced against the public "
-                   "GitHubs — and back again. Builds on the public RAPP standard (kody-w/rapp-1).",
+                   "content-address values, scaffold organism seeds, discover additive profiles, "
+                   "and lint any public repo in the stack for compliance. Build with RAPP and stay "
+                   "synced against the public GitHubs — and back again. Builds on the public RAPP "
+                   "standard (kody-w/rapp-1).",
     "author": "Kody Wildfeuer",
     "tags": ["starter", "rapp", "sdk", "identity", "frame", "builder"],
     "category": "devtools",
@@ -71,6 +72,29 @@ _LCLABEL = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 _RAPPID = re.compile(r"rappid:@([a-z0-9]+(?:-[a-z0-9]+)*)/([a-z0-9]+(?:-[a-z0-9]+)*):([0-9a-f]{64})")
 FRAME_KEYS = {"spec", "kind", "stream_id", "seq", "utc", "payload",
               "payload_hash", "frame_hash", "prev", "prev_wave", "sig"}
+PROFILE_DISCOVERY = {
+    "rapp-work/1": {
+        "name": "rapp-work/1",
+        "parent": "rapp/1",
+        "depends_on": ["rapp-hive/1", "rapp-cicd/1", "rapp-deploy/1"],
+        "canonical_repository": "https://github.com/kody-w/rapp-1",
+        "index_path": "protocols/index.json",
+        "spec_path": "protocols/rapp-work/1/SPEC.md",
+        "schema_path": "protocols/rapp-work/1/schema.json",
+        "conformance": "work_conformance.py",
+        "kinds": [
+            "work.catalog",
+            "work.migration",
+            "work.observation",
+            "work.organization",
+            "work.receipt",
+            "work.rollback",
+            "work.vector",
+        ],
+        "family": "body",
+        "authority": "discovery-only-until-signed-registry-adoption",
+    }
+}
 
 
 # ── RAPP primitives (embedded verbatim from rapp.py; the `sync` action proves parity) ──
@@ -234,16 +258,18 @@ class RappSdkBuilderAgent(BasicAgent):
             "name": self.name,
             "description": "RAPP SDK toolkit. Use for any RAPP protocol operation: mint a "
                            "compliant rappid, scaffold a new organism seed, build or verify a frame, "
-                           "canonicalize/content-address a value, or check a repo for RAPP compliance.",
+                           "canonicalize/content-address a value, discover an additive protocol "
+                           "profile, or check a repo for RAPP compliance.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "action": {
                         "type": "string",
-                        "enum": ["mint", "scaffold", "frame", "verify", "canonicalize", "check", "sync"],
+                        "enum": ["mint", "scaffold", "frame", "verify", "canonicalize", "discover", "check", "sync"],
                         "description": "mint=mint a rappid · scaffold=new organism seed (rappid+genesis) · "
                                        "frame=build+verify a frame · verify=verify a frame object · "
                                        "canonicalize=canonical bytes + domain hash of a value · "
+                                       "discover=non-authoritative additive profile discovery · "
                                        "check=lint a repo/rappid for compliance · sync=verify embedded SDK vs public repo",
                     },
                     "id": {"type": "string", "description": "identity as '@owner/slug' or a full rappid string"},
@@ -252,6 +278,7 @@ class RappSdkBuilderAgent(BasicAgent):
                     "utc": {"type": "string", "description": "millisecond UTC 'YYYY-MM-DDTHH:MM:SS.mmmZ'"},
                     "frame": {"type": "object", "description": "a frame object to verify"},
                     "repo": {"type": "string", "description": "a github repo URL or owner/name to lint for compliance"},
+                    "protocol": {"type": "string", "description": "additive profile identifier to discover"},
                     "value": {"description": "any I-JSON value to canonicalize/address"},
                 },
                 "required": ["action"],
@@ -272,13 +299,15 @@ class RappSdkBuilderAgent(BasicAgent):
                 return self._verify(kwargs)
             if action == "canonicalize":
                 return self._canon(kwargs)
+            if action == "discover":
+                return self._discover(kwargs)
             if action == "check":
                 return self._check(kwargs)
             if action == "sync":
                 return self._sync()
             return json.dumps({"status": "error",
                                "message": f"unknown action {action!r}",
-                               "actions": ["mint", "scaffold", "frame", "verify", "canonicalize", "check", "sync"]})
+                               "actions": ["mint", "scaffold", "frame", "verify", "canonicalize", "discover", "check", "sync"]})
         except Exception as e:
             return json.dumps({"status": "error", "action": action, "message": str(e)})
 
@@ -336,6 +365,29 @@ class RappSdkBuilderAgent(BasicAgent):
         return json.dumps({"status": "ok", "action": "canonicalize", "canonical": c,
                            "particle": H("rapp/1:particle", v), "wave_of_value": H("rapp/1:wave", v),
                            "egg_manifest": H("rapp/1:egg-manifest", v)})
+
+    def _discover(self, kw):
+        name = (kw.get("protocol") or "rapp-work/1").strip()
+        profile = PROFILE_DISCOVERY.get(name)
+        if profile is None:
+            return json.dumps({
+                "status": "error",
+                "action": "discover",
+                "message": f"unknown additive profile {name!r}",
+                "known_profiles": sorted(PROFILE_DISCOVERY),
+            })
+        return json.dumps({
+            "status": "ok",
+            "action": "discover",
+            "profile": profile,
+            "registry_entries": [
+                {"type": "kind", "kind": kind, "family": profile["family"], "deprecated": False}
+                for kind in profile["kinds"]
+            ],
+            "note": "Discovery is not authority. Resolve the indexed specification hash and adopt it "
+                    "with an owner-signed ordinary RAPP/1 protocol entry; these ordinary kind entries "
+                    "add no frame key, registry entry type, or endpoint.",
+        }, indent=2)
 
     def _check(self, kw):
         """Lint a public repo's rappid.json for compliance (network fetch)."""
@@ -431,5 +483,6 @@ if __name__ == "__main__":
     print("mint     :", a.perform(action="mint", id="@me/notes"))
     print("scaffold :", a.perform(action="scaffold", id="@me/scratch")[:160], "…")
     print("canon    :", a.perform(action="canonicalize", value={"b": 1, "a": [3, 2]}))
+    print("discover :", a.perform(action="discover", protocol="rapp-work/1")[:160], "…")
     fr = json.loads(a.perform(action="scaffold", id="@me/x"))["files"]["frames/0.json"]
     print("verify   :", a.perform(action="verify", frame=fr))

@@ -54,6 +54,8 @@ merged by review consensus.
 
 ```bash
 python3 conformance.py
+python3 operations_conformance.py
+python3 work_conformance.py
 python3 parity_check.py
 python3 rapp_check.py .
 python3 -m unittest anchor.test_spec_chain

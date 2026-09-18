@@ -25,10 +25,10 @@
   "verifier_sha256": "4a4c19912063d5ce15cec69b1aca0cebf5df122fb1c481f357f1cf21bc0a07ff"
  },
  "head": {
-  "seq": 15,
-  "revision": "rev-15",
-  "frame_hash": "83ca275f35cca96e43d75c99d338326c1a39b2240eabf57eb7c29ac96cc90818",
-  "payload_hash": "1ac47416e9caf174c4fdc00265ca187c244fb701ae2a7fb7211ba1385a951310",
+  "seq": 16,
+  "revision": "rev-16",
+  "frame_hash": "6fddd2370220ca195fdbee3a7ae46a2686fc745d8e88debda26c5a6497e5756a",
+  "payload_hash": "61a01808240e16066bdf0437933ac16b6530c939e9f31f67fac44d517f1e580c",
   "normative_sha256": "348e7d5baa94aaf2ce4c5354f3cb261f389298a04af65e271a686d3b62f7c384",
   "normative_bytes": 79692
  },
@@ -159,6 +159,14 @@
    "frame_hash": "83ca275f35cca96e43d75c99d338326c1a39b2240eabf57eb7c29ac96cc90818",
    "payload_hash": "1ac47416e9caf174c4fdc00265ca187c244fb701ae2a7fb7211ba1385a951310",
    "object_path": "anchor/frames/83ca275f35cca96e43d75c99d338326c1a39b2240eabf57eb7c29ac96cc90818.json",
+   "payload_profile": "rapp-spec-revision/1"
+  },
+  {
+   "seq": 16,
+   "revision": "rev-16",
+   "frame_hash": "6fddd2370220ca195fdbee3a7ae46a2686fc745d8e88debda26c5a6497e5756a",
+   "payload_hash": "61a01808240e16066bdf0437933ac16b6530c939e9f31f67fac44d517f1e580c",
+   "object_path": "anchor/frames/6fddd2370220ca195fdbee3a7ae46a2686fc745d8e88debda26c5a6497e5756a.json",
    "payload_profile": "rapp-spec-revision/1"
   }
  ]

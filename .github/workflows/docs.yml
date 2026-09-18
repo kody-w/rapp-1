@@ -34,7 +34,9 @@ jobs:
           python3 anchor/update_anchor.py
           git diff --exit-code -- anchor
       - name: Operational profile conformance
-        run: python3 operations_conformance.py
+        run: |
+          python3 operations_conformance.py
+          python3 work_conformance.py
       - name: Committed RAPP artifacts pass the repo's own linter (red oracle)
         run: python3 rapp_check.py .
       - name: Front doors name the chain head (index.html and guide must not outlive the anchor)
