@@ -339,31 +339,56 @@ class LifecycleCycleTests(LifecycleCase):
         self.assertRefused(self.notice(ALPHA, "deprecated", superseded_by=BETA),
                            self.notice(BETA, "superseded", superseded_by=ALPHA), reason="cycle")
 
-    def test_only_current_notices_count(self):
+    def test_the_notices_in_effect_at_any_one_time_must_not_loop(self):
         a1 = self.notice(ALPHA, "superseded", superseded_by=BETA)
         a2 = self.notice(ALPHA, "active", since=T1, previous=a1, activated=T1)  # reinstated
-        b1 = self.notice(BETA, "superseded", superseded_by=ALPHA)
+        # BETA naming ALPHA from T0 loops with a1 until a2 takes effect, though the current notices
+        # (a2 and BETA's) do not loop.
+        self.assertRefused(a1, a2, self.notice(BETA, "superseded", superseded_by=ALPHA),
+                           reason=f"in effect at {re.escape(T0)} form a cycle")
+        # BETA naming ALPHA only from T1, when a2 withdraws a1: the two never loop at one time.
+        b1 = self.notice(BETA, "superseded", since=T1, superseded_by=ALPHA, activated=T1)
         registry = self.registry(a1, a2, b1)
-        self.assertIsNone(registry.successor_at(ALPHA, T1))
-        self.assertEqual(registry.successor_at(BETA, T1), ALPHA)
-        # A past state may loop — only current notices must be acyclic: at T0 each names the other.
-        self.assertEqual((registry.successor_at(ALPHA, T0), registry.successor_at(BETA, T0)), (BETA, ALPHA))
+        self.assertEqual((registry.successor_at(ALPHA, T0), registry.successor_at(BETA, T0)), (BETA, None))
+        self.assertEqual((registry.successor_at(ALPHA, T1), registry.successor_at(BETA, T1)), (None, ALPHA))
         scheduled = self.notice(ALPHA, "superseded", since=FUTURE, previous=a2, superseded_by=BETA, activated=T2)
-        self.assertRefused(a1, a2, b1, scheduled, reason="cycle")  # a scheduled notice is current
+        self.assertRefused(a1, a2, b1, scheduled, reason=f"in effect at {re.escape(FUTURE)} form a cycle")
 
-    def test_a_scheduled_withdrawal_leaves_the_loop_in_effect_until_its_since_utc(self):
+    def test_a_scheduled_reinstatement_that_leaves_a_loop_in_effect_is_refused(self):
         a1 = self.notice(ALPHA, "superseded", superseded_by=BETA)
-        withdrawal = self.notice(ALPHA, "active", since=FUTURE, previous=a1, activated=T1)  # current, scheduled
-        b1 = self.notice(BETA, "superseded", superseded_by=ALPHA)
-        registry = self.registry(a1, withdrawal, b1)  # current notices: ALPHA names none, BETA names ALPHA
-        for utc, named in ((T2, (BETA, ALPHA)), (FUTURE, (None, ALPHA))):
+        reinstatement = self.notice(ALPHA, "active", since=FUTURE, previous=a1, activated=T1)  # scheduled
+        # The current notices do not loop, but a1 and BETA's notice are both in effect until FUTURE.
+        self.assertRefused(a1, reinstatement, self.notice(BETA, "superseded", superseded_by=ALPHA),
+                           reason="cycle")
+        # Scheduled to take effect as a1 is withdrawn, BETA's notice never loops with it.
+        b1 = self.notice(BETA, "superseded", since=FUTURE, superseded_by=ALPHA, activated=T1)
+        registry = self.registry(a1, reinstatement, b1)
+        for utc, named in ((T2, (BETA, None)), (FUTURE, (None, ALPHA))):
             with self.subTest(utc=utc):
                 self.assertEqual((registry.successor_at(ALPHA, utc), registry.successor_at(BETA, utc)), named)
-        walk, organism = [], ALPHA  # so a walk along successors in effect at T2 stops where it has been
-        while organism is not None and organism not in walk:
-            walk.append(organism)
-            organism = registry.successor_at(organism, T2)
-        self.assertEqual((walk, organism), ([ALPHA, BETA], ALPHA))
+                walk, organism = [], ALPHA  # a walk along the successors in effect at one time ends
+                while organism is not None:
+                    self.assertNotIn(organism, walk)
+                    walk.append(organism)
+                    organism = registry.successor_at(organism, utc)
+
+    def test_a_retroactive_notice_cannot_close_a_loop_in_the_past(self):
+        a1 = self.notice(ALPHA, "superseded", superseded_by=BETA)
+        a2 = self.notice(ALPHA, "active", since=T2, previous=a1, activated=T2)
+        late = self.notice(BETA, "superseded", since=T1, superseded_by=ALPHA, activated=T3)  # declared later
+        self.assertEqual(self.registry(a1, a2).successor_at(ALPHA, T1), BETA)
+        self.assertRefused(a1, a2, late, reason=f"in effect at {re.escape(T1)} form a cycle")
+
+    def test_every_since_utc_is_checked_not_only_the_first_and_current_notices(self):
+        a1 = self.notice(ALPHA, "active")
+        a2 = self.notice(ALPHA, "superseded", since=T1, previous=a1, superseded_by=BETA, activated=T1)
+        a3 = self.notice(ALPHA, "active", since=T2, previous=a2, activated=T2)
+        b1 = self.notice(BETA, "superseded", superseded_by=ALPHA)
+        b2 = self.notice(BETA, "active", since=T3, previous=b1, activated=T3)
+        # Neither the first notices (a1, b1) nor the current ones (a3, b2) loop; a2 and b1 do, from T1 to T2.
+        self.assertRefused(a1, a2, a3, b1, b2, reason=f"in effect at {re.escape(T1)} form a cycle")
+        undone = self.notice(ALPHA, "active", since=T2, previous=a1, activated=T2)
+        self.assertIsNone(self.registry(a1, undone, b1, b2).successor_at(ALPHA, T1))
 
     def test_a_later_notice_can_close_a_cycle_its_first_notice_did_not(self):
         g1 = self.notice(GAMMA, "active")
@@ -634,6 +659,23 @@ class LifecycleLintTests(LifecycleCase):
         details = {item["artifact"]: item["detail"] for item in findings}
         self.assertIn("fork", details["fork/registry.json"])
         self.assertIn("cycle", details["cycle/registry.json"])
+
+
+class SectionNumberingTests(LifecycleCase):
+    """The reference cites the SPEC's own number for lifecycle notices, the only §13.5 of this draft."""
+
+    def test_refusals_cite_the_subsection_that_specifies_them(self):
+        spec = (ROOT / "SPEC.md").read_text(encoding="utf-8")
+        headings = dict(re.findall(r"^### (13\.[5-9]) (.+)$", spec, flags=re.M))
+        self.assertEqual(sorted(headings), ["13.5"])
+        self.assertTrue(headings["13.5"].startswith("Lifecycle notices"))
+        owner, worker = self.estate.keys["owner"], self.estate.keys["worker"]
+        notice = {"type": "lifecycle", "rappid": worker, "state": "active", "superseded_by": owner,
+                  "since_utc": T0, "previous": None, "activated_utc": T0, "declared_by": owner, "sig": "s"}
+        with self.assertRaisesRegex(REG.RegistryError, re.escape("(§13.5)")):
+            REG.validate_entry(notice)
+        self.assertRefused(self.notice(ALPHA, "superseded", superseded_by=BETA),
+                           self.notice(BETA, "superseded", superseded_by=ALPHA), reason=re.escape("(§13.5)"))
 
 
 @unittest.skipUnless(real_ed25519_signer(), "optional cryptography import is absent")

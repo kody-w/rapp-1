@@ -755,6 +755,14 @@ def revision_payload(
                 "revoke keys with a §10 tombstone."
             ),
         },
+        {
+            "t": "gotcha",
+            "c": (
+                "The successors named by the lifecycle notices in effect at any one time never form a "
+                "cycle: check at every distinct since_utc, not only the current notices, because a "
+                "scheduled or retroactive notice can close a loop."
+            ),
+        },
     ]
     for rule in rules:
         if rule not in payload["rules"]:

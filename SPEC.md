@@ -985,9 +985,12 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
 - **estate_owner** `{type:"estate_owner", rappid}` (exactly one non-deprecated) · **master-plan**
   `{type:"master-plan", repo, path}` (Fed. Const. Art. VII).
 
-§7.5 steps 1–5 are time-independent (append-only lookups); **only** step 6 (tombstones) and §13.2 owner
-tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule. A declared entry (§13.4) is
-authenticated at its own `activated_utc`, never at the time it is read.
+§7.5 steps 1–5 are time-independent (append-only lookups); step 6 (tombstones) and §13.2 owner tenure are
+time-scoped, and both are monotone given the §13.1 no-rollback rule. A declared entry (§13.4) is
+authenticated at its own `activated_utc`, never at the time it is read. The lifecycle state in effect
+(§13.5) is evaluated at a given time — for a frame, its `utc` — and, because every declared entry is
+retained (§13.4), a later registry can add a notice but never withdraw one. The rules of §13.5 —
+lifecycle notices — sit above §7.5 and never add a §7.5 step.
 
 ### 13.4 Declared entries (entry-level owner signatures)
 A **declared entry** carries its own `activated_utc` (the §7.4 form), `declared_by` (a keyed rappid), and
@@ -1023,8 +1026,10 @@ notice **in effect at** time `t` is the last entry in the chain whose `since_utc
 its `state` is the state in effect at `t` and its `superseded_by` the successor named at `t`, so a notice
 whose `since_utc` is later than `t` names no successor at `t`. An organism with no such entry has no
 declared lifecycle at `t`, and a consumer **MUST NOT** infer deprecation from absence. The chain's last
-entry is the current notice, and the organisms named by current notices' `superseded_by` **MUST NOT** form
-a cycle. A registry that breaks these rules is refused whole.
+entry is the current notice. The organisms named by the `superseded_by` of the notices in effect at any
+one time **MUST NOT** form a cycle; since the notices in effect change only at a `since_utc`, checking the
+notices in effect at each distinct `since_utc` of the registry checks every time. A registry that breaks
+these rules is refused whole.
 
 A notice is metadata about an organism, not trust: it revokes no key (§10 tombstones do), re-anchors no
 identity (§6.3), changes no frame's §7.5 result, and `superseded_by` transfers no key, signature
@@ -1090,12 +1095,12 @@ in effect. A copy that carries the exact signed entry verifies by §13.4.
 
 ### Revision log
 - **rev-17 (registry closure for the distributed Hive)** — names the §13.1 document container
-  (`schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; any other member carries no meaning),
+  (`schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; any other member carries no meaning);
   generalizes the `grail-kernel` entry-level owner signature into §13.4 declared entries, each verified
-  at its own `activated_utc` and retained byte-for-byte once accepted, and adds the `lifecycle` declared
-  entry: estate-signed, chained notices that an organism is active, deprecated, superseded (with
-  `superseded_by`), or archived since a given time (§13.5). No frozen form (§12) changes: every rev-16
-  `rapp/1` frame, egg, rappid, and conformance vector verifies unchanged.
+  at its own `activated_utc` and retained byte-for-byte once accepted; and adds one declared entry type.
+  **Lifecycle notices** (§13.5): estate-signed, chained notices that an organism is active, deprecated,
+  superseded (with `superseded_by`), or archived since a given time. No frozen form (§12) changes: every
+  rev-16 `rapp/1` frame, egg, rappid, and conformance vector verifies unchanged.
 - **rev-16 (RAPP Work profile)** — added the subordinate `rapp-work/1` operational profile
   (`protocols/rapp-work/1/SPEC.md`) to the chain's operational-profile index; this document's normative
   text was unchanged from rev-15.
