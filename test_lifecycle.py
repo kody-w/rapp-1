@@ -60,7 +60,12 @@ class LifecycleCase(unittest.TestCase):
         return self.estate.declare(entry, signer or declared)
 
     def registry(self, *entries):
-        return REG.Registry(self.estate.base_entries() + list(entries))
+        """The §13.5 rules over these entries. Its `status` stands in for load_document's "verified":
+        the signed path is exercised by the load() tests and the real-key class, and the status
+        gate itself by LifecycleStatusTests."""
+        registry = REG.Registry(self.estate.base_entries() + list(entries))
+        registry.status = "verified"
+        return registry
 
     def assertRefused(self, *entries, reason=None):
         with self.assertRaises(REG.RegistryError) as caught:

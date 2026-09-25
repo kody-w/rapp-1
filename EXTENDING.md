@@ -65,8 +65,9 @@ owner signature is checked at its `activated_utc`, `first_seen=` (or `verificati
 for a first sighting) applies the per-entry 300-second first-seen bound — a signed
 registry carrying a declared entry is refused without one — and `persisted_entries=`
 refuses a later registry that dropped or changed a declaration. A copy of a declared
-entry found outside the registry counts only when it is byte-identical to one the
-registry carries.
+entry found outside the registry counts only when its canonical form equals one the
+registry carries — the same JSON value, however it is formatted — and
+`Registry.declared_entry_ok(copy)` answers that only for a verified registry.
 The issuer must be the owner in tenure at the authenticated issuance/action
 time; an owner's own succession record is signed by the outgoing owner at that
 boundary, after checking that its tenure is nonempty and chronologically
