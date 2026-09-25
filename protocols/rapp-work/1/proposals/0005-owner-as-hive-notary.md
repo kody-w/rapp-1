@@ -455,17 +455,18 @@ head" and "vector" have their meanings in `rapp-work-folder-hive/1`.
 > The consumer persists accepted notarizations and the notary stream head as
 > high-water (RAPP/1 §7.6). Resetting or deleting that state is not recovery.
 >
-> **Without the Hive's bytes.** Steps 3 and 5 to 8 need the Hive's own objects and
-> an accepted vector. A consumer that does not hold them cannot accept a
-> notarization, and **MUST NOT** treat one as the Hive's decision or as authority for
-> any effect. It **MAY** check what needs none of the Hive's bytes: the frame, stream
-> and signer (steps 1 and 2); the closed payload; and, for `publish`, a public copy it
-> holds: `effect.commit` as a named commit, the plain-file tree, `PUBLISHED.md` in the
-> checker's shape (front matter naming `subject_sha256` and the `hive_id` of the
-> organization's genesis, then every file of the tree listed once with its hash, and
-> nothing else), and `published_sha256`. If all of that holds, it may report the
-> notarization as **attested**, never as accepted: the notary in effect signed exactly
-> this statement about exactly these public bytes. An attestation is the notary's
+> **Without the Hive's bytes.** Step 3, step 4 for the Hive's own commits, and steps 5
+> to 8 need the Hive's own objects and an accepted vector. A consumer that does not
+> hold them cannot accept a notarization, and **MUST NOT** treat one as the Hive's
+> decision or as authority for any effect. It **MAY** check what needs none of the
+> Hive's bytes: the frame, stream and signer (steps 1 and 2); the closed payload; and,
+> for `publish`, a public copy it holds: `effect.commit` as a named commit, the
+> plain-file tree, `PUBLISHED.md` in the checker's shape (front matter naming
+> `subject_sha256` and the `hive_id` of the organization's genesis, then every other
+> file of the tree except `.gitattributes` listed once with its hash, and nothing
+> else), and `published_sha256`. If all of that holds, it may report the notarization
+> as **attested**, never as accepted: the notary in effect signed exactly this
+> statement about exactly these public bytes. An attestation is the notary's
 > accountable claim. Anyone who later holds the Hive's bytes can check it, and a false
 > one stays signed evidence against the notary (section 7).
 >
@@ -479,7 +480,8 @@ head" and "vector" have their meanings in `rapp-work-folder-hive/1`.
 >    byte, file, destination or commit, or "repair" a near match;
 > 3. **pre-sign**: notarize a decision before an accepted vector of the organization
 >    reaches it, or a publication before its public copy commit exists;
-> 4. **re-use**: notarize one approval twice with different payloads;
+> 4. **re-use**: notarize one approval twice with a different `approval`,
+>    `threshold`, `rules` or `effect`;
 > 5. **sign outside tenure**: sign when not the owner in effect at the frame's `utc`;
 > 6. **split**: keep a second live notary stream, or sign two different frames at one
 >    position of the stream; or
@@ -868,9 +870,10 @@ None in this proposal. The gap is an idea, and ideas get a proposal only. A late
 reference would sit beside G10's: stdlib-only payload validators that import
 `rapp.py`'s canonicalizer (Art. 10), with the Hive replay and the recomputation of
 section 4 as injected verifiers that run the checker only from bytes equal to the
-estate's checker pin. It would ship under its own token, off by default. Without
-adoption, every `notary.notarization` frame is refused. It is never part of
-`rapp-work/1` conformance.
+estate's checker pin (the model's checker needs Python 3.11 or later, `cryptography`
+and git). It would ship under its own token, off by default. Without adoption, every
+`notary.notarization` frame is refused. It is never part of `rapp-work/1`
+conformance.
 
 ## Ready-to-file issue text (not filed)
 
