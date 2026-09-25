@@ -27,6 +27,8 @@ What is fully specified by §13 and enforced here:
     the family was accepted; the `rapp/1-release-manifest` structure and its `release`
     name, kernel coherence with the family's `grail-kernel`, and an all-or-nothing
     verified snapshot of one selected pinned release through a caller's fetch;
+  - lifecycle notices (§13.5): one linear, owner-signed chain of `lifecycle` entries per
+    organism, the state and successor in effect at a time, and no cycle among current successors;
   - owner-signature verification over canonical(document \\ {sig}).
 
 What stays the caller's responsibility, because a snapshot cannot prove it:
@@ -49,6 +51,7 @@ import rapp as R
 FAMILIES = ("memory", "swarm", "body")
 STREAM_FORMS = {"memory": "memory-stream", "swarm": "swarm-stream", "body": "body-stream"}
 REANCHOR_CASES = ("upgrade", "rotation", "compromise", "tag-migrate")
+LIFECYCLE_STATES = ("active", "deprecated", "superseded", "archived")  # §13.5
 
 _LCLABEL = r"[a-z0-9]+(?:-[a-z0-9]+)*"
 _KIND = re.compile(rf"({_LCLABEL})\.({_LCLABEL})")
@@ -64,7 +67,7 @@ DOCUMENT_MEMBERS = ("schema", "registry_seq", "canonical_source", ENTRIES_MEMBER
 
 # §13.4 — entry types that carry their own owner signature at `activated_utc`.
 # Every declared entry is persisted: once accepted, it is retained byte-for-byte.
-DECLARED_TYPES = ("grail-kernel", "release-pin")
+DECLARED_TYPES = ("grail-kernel", "release-pin", "lifecycle")
 PERSISTED_TYPES = DECLARED_TYPES
 FIRST_SEEN_SKEW_SECONDS = 300
 
@@ -83,6 +86,8 @@ ENTRY_MEMBERS = {
                       "activated_utc", "predecessor", "declared_by", "sig"}, set()),
     "release-pin": ({"type", "release_scope", "channel", "predecessor", "manifest_hash", "repository",
                      "object_format", "commit", "path", "activated_utc", "declared_by", "sig"}, set()),
+    "lifecycle": ({"type", "rappid", "state", "superseded_by", "since_utc", "previous",
+                   "activated_utc", "declared_by", "sig"}, set()),
     "estate_owner": ({"type", "rappid"}, set()),
     "master-plan": ({"type", "repo", "path"}, set()),
 }
@@ -199,6 +204,30 @@ def _hex64(entry, member, where):
     return v
 
 
+def _validate_lifecycle(entry, where):
+    """The §13.3 `lifecycle` members and the §13.5 rules one entry shows by itself.
+    Its chain and the no-cycle rule span entries, so `Registry` checks those."""
+    organism = _rappid(entry, "rappid", where)
+    state = entry.get("state")
+    if state not in LIFECYCLE_STATES:
+        raise RegistryError(f"{where}: `state` must be one of {LIFECYCLE_STATES}")
+    successor = entry.get("superseded_by")
+    if successor is not None and not R.rappid_valid(successor):
+        raise RegistryError(f"{where}: `superseded_by` must be null or a §6.1 rappid")
+    if successor == organism:
+        raise RegistryError(f"{where}: `superseded_by` never equals `rappid` (§13.5)")
+    if state == "active" and successor is not None:
+        raise RegistryError(f"{where}: an active organism has no successor; `superseded_by` must be null (§13.5)")
+    if state == "superseded" and successor is None:
+        raise RegistryError(f"{where}: a superseded organism names its successor in `superseded_by` (§13.5)")
+    _utc(entry, "since_utc", where)
+    previous = entry.get("previous")
+    if previous is not None and not (isinstance(previous, str) and _HEX64.fullmatch(previous)):
+        raise RegistryError(f"{where}: `previous` must be null or the 64-hex entry_hash of an earlier entry")
+    _utc(entry, "activated_utc", where)
+    _rappid(entry, "declared_by", where); _str(entry, "sig", where)
+
+
 def validate_entry(entry, where="entry"):
     """Refuse an entry that is not exactly a §13.3 entry of its type. Returns the type."""
     if not isinstance(entry, dict):
@@ -297,6 +326,8 @@ def validate_entry(entry, where="entry"):
         _rappid(entry, "declared_by", where); _str(entry, "sig", where)
     elif t == "release-pin":
         _validate_release_pin(entry, where)
+    elif t == "lifecycle":
+        _validate_lifecycle(entry, where)
     elif t == "estate_owner":
         _rappid(entry, "rappid", where)
     elif t == "master-plan":
@@ -320,6 +351,7 @@ class Registry:
         self.genesis = {}        # stream_id -> list of entries
         self.grail = {}          # grail_id -> entry
         self.release_pins = {}   # manifest_hash -> release-pin entry, append order (§13.5)
+        self.lifecycle = {}      # rappid -> [lifecycle entries, chain order] (§13.5)
         self.protocol_history = {}  # name -> [entries], append order
         self.master_plan = None
         self.canonical_source = None  # set by load_document from the §13.1 container
@@ -367,6 +399,8 @@ class Registry:
                         "manifest is pinned once and never rebound (§13.3)"
                     )
                 self.release_pins[e["manifest_hash"]] = e
+            elif t == "lifecycle":
+                self.lifecycle.setdefault(e["rappid"], []).append(e)
             elif t == "protocol":
                 self.protocol_history.setdefault(e["name"], []).append(e)
             elif t == "estate_owner":
@@ -420,6 +454,7 @@ class Registry:
                 current = R.rappid_parts(record["old_rappid"])["hash"]
             walked |= path
         self._index_release_pins()
+        self._index_lifecycle()
 
     # ---- §7.2 / §6.1.1 kind binding ----
     def family(self, kind):
@@ -600,8 +635,10 @@ class Registry:
         return self._check_release_history(persisted_entries)
 
     def check_lifecycle_signatures(self, *, tombstone_issued_at=None):
-        """Check the signatures on lifecycle entries, not only their outer registry.
+        """Check the signatures on key-lifecycle entries, not only their outer registry.
 
+        Key-lifecycle entries are tombstones and re-anchors (§10); `lifecycle` notices
+        (§13.5) are declared entries, checked by `check_declared_signatures`.
         This checks owner tenure and old-key continuity. A snapshot cannot prove
         which entries arrived in the same append; callers must retain append
         provenance for the additional §6.3 compromise requirement. Tombstones
@@ -777,6 +814,78 @@ class Registry:
         chain = self.release_channels.get(channel) if isinstance(channel, str) else None
         return chain[-1] if chain else None
 
+    # ---- §13.5 lifecycle notices ----
+    def _index_lifecycle(self):
+        """Chain each organism's `lifecycle` entries and refuse what §13.5 forbids.
+
+        One linear chain per `rappid`, every entry after the first naming the one it
+        follows by `previous` = entry_hash (so a chain is its organism's entries in append
+        order); neither `since_utc` nor `activated_utc` decreasing along it; and no cycle
+        among the successors named by current notices (each chain's last entry)."""
+        collected = [e for notices in self.lifecycle.values() for e in notices]
+        self.lifecycle = linear_chains(
+            collected, key=lambda e: e["rappid"], ident=entry_hash,
+            link=lambda e: e["previous"], where="lifecycle chain",
+        )
+        for organism, chain in self.lifecycle.items():
+            for prior, notice in zip(chain, chain[1:]):
+                for member in ("since_utc", "activated_utc"):
+                    # The fixed §7.4 form orders bytewise exactly as it orders in time.
+                    if notice[member] < prior[member]:
+                        raise RegistryError(
+                            f"lifecycle chain {organism!r}: `{member}` decreases along the chain (§13.5)"
+                        )
+        successors = {organism: chain[-1]["superseded_by"] for organism, chain in self.lifecycle.items()
+                      if chain[-1]["superseded_by"] is not None}
+        settled = set()  # organisms whose walk along current successors is known to end
+        for start in successors:
+            walk, current = set(), start
+            while current in successors and current not in settled:
+                if current in walk:
+                    raise RegistryError(
+                        f"lifecycle: current notices' `superseded_by` form a cycle through {current!r} (§13.5)"
+                    )
+                walk.add(current)
+                current = successors[current]
+            settled |= walk
+
+    def lifecycle_chain(self, rappid):
+        """The organism's `lifecycle` entries in chain order (first notice first); [] when none."""
+        return list(self.lifecycle.get(rappid, ())) if isinstance(rappid, str) else []
+
+    def lifecycle_head(self, rappid):
+        """The current notice — the last entry of the organism's chain — or None. A scheduled
+        notice is current before its `since_utc` arrives; `lifecycle_at` and `successor_at`
+        say what is in effect."""
+        chain = self.lifecycle_chain(rappid)
+        return chain[-1] if chain else None
+
+    def lifecycle_at(self, rappid, utc):
+        """The notice in effect at `utc`: the last chain entry whose `since_utc` <= `utc`
+        (bytewise, §7.4). None means no declared lifecycle at `utc` — never deprecation.
+        A `utc` that is not the fixed §7.4 form raises RegistryError (a ValueError)."""
+        if not R.utc_valid(utc):
+            raise RegistryError("lifecycle query time is not the fixed §7.4 UTC form")
+        in_effect = None
+        for notice in self.lifecycle_chain(rappid):
+            if notice["since_utc"] > utc:
+                break  # since_utc never decreases along a chain
+            in_effect = notice
+        return in_effect
+
+    def lifecycle_state_at(self, rappid, utc):
+        """The organism's state in effect at `utc`; None when it has no declared lifecycle then."""
+        notice = self.lifecycle_at(rappid, utc)
+        return None if notice is None else notice["state"]
+
+    def successor_at(self, rappid, utc):
+        """The `superseded_by` of the notice in effect at `utc`; None when no notice is in effect
+        then or it names no successor, so a scheduled notice names none before its `since_utc`.
+        It names; it grants nothing. Only current notices are acyclic (§13.5): successors in
+        effect at one time may loop, so a walk along them must stop where it has already been."""
+        notice = self.lifecycle_at(rappid, utc)
+        return None if notice is None else notice["superseded_by"]
+
 
 def validate_document(doc):
     """The §13.1 container, structurally: refuse, never repair. Entries are not checked here."""
@@ -814,7 +923,7 @@ def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_uns
     other name), and `canonical_source` is the document's own owner-selected location of
     record; pass `canonical_source=` when you obtained one out of band with the anchor and a
     document naming another is refused. `persisted_seq` implements §13.1 no-rollback: a lower
-    `registry_seq` is refused. Signed documents also verify each lifecycle entry's owner
+    `registry_seq` is refused. Signed documents also verify each key-lifecycle entry's owner
     signature and any old-key continuity signature, and every declared entry's own owner
     signature at its `activated_utc` (§13.4). The 300-second rule is per entry:
     `first_seen(entry_hash)` returns the caller's persisted first-seen time for an entry (and

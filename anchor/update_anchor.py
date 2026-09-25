@@ -667,6 +667,14 @@ def revision_payload(
         "status": "live",
         "where": "§13.5 — an owner-named linear chain of release pins; its head pins the current release",
     }
+    payload["vocabulary"]["lifecycle"] = {
+        "status": "live",
+        "where": "§13.5 — estate-signed notice: active, deprecated, superseded, or archived since a time",
+    }
+    payload["vocabulary"]["superseded-by"] = {
+        "status": "live",
+        "where": "§13.5 — names an organism's successor; transfers nothing",
+    }
     rules = [
         {
             "t": "gotcha",
@@ -767,6 +775,22 @@ def revision_payload(
             "c": (
                 "A verified snapshot is exactly the files a release manifest pins; seeds, beacons, Hive "
                 "indexes, member pointers and HEAD fetches are locators, never authority."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
+                "An organism's lifecycle comes from its estate-signed lifecycle chain: the state and "
+                "successor in effect at t are those of the last notice whose since_utc <= t; no notice is "
+                "no declared lifecycle, a claim no verified notice supports is unverified, and a README, "
+                "member file, or Hive notice that disagrees is drift."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "A lifecycle notice is not revocation: a superseded organism's frames still verify; "
+                "revoke keys with a §10 tombstone."
             ),
         },
     ]

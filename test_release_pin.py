@@ -223,7 +223,7 @@ class ReleasePinEntryTests(unittest.TestCase):
                 self.assertEqual(REG.validate_entry(unsigned_pin(**changes)), "release-pin")
 
     def test_release_pin_is_a_declared_persisted_type(self):
-        self.assertEqual(REG.DECLARED_TYPES, ("grail-kernel", "release-pin"))
+        self.assertIn("release-pin", REG.DECLARED_TYPES)
         self.assertIs(REG.PERSISTED_TYPES, REG.DECLARED_TYPES)  # every declared entry is persisted (§13.4)
 
 

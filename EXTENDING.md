@@ -18,6 +18,7 @@ signs. This page is the lane. Nothing on it needs a change to `rapp/1`.
 | a subordinate profile (`acme-factory/1`) with its own normative text | **your** repository; adopted by a `protocol` entry pinning repo, path, and SHA-256 | §11.2, `protocols/README.md` |
 | tooling that needs a library (Ed25519 signing, HSMs, a database) | **your** repository; it imports `rapp.py`'s canonicalizer, never re-types it | Art. 10 |
 | to say which RAPP/1 you implement | a `protocol` entry `name:"rapp/1"` whose `spec_hash` comes from **this** repository's anchor | §13.3 |
+| to say an organism is deprecated, superseded, or archived | `lifecycle` entries (one signed chain per rappid) | §13.5 |
 | the registry document itself | exactly `schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; other members carry no meaning | §13.1 |
 
 Every estate pins RAPP/1 the same way, so two estates interoperate on bytes while
@@ -57,9 +58,20 @@ your registry. Signature verification itself uses the optional `cryptography` im
 inside `rapp.verify_detached_jws`; without it, signed artifacts are refused, never
 assumed.
 
-`load_document` also verifies lifecycle entries: a valid enclosing registry
+`Registry.lifecycle_state_at(rappid, utc)` answers from an organism's signed
+`lifecycle` chain (§13.5) whether it was active, deprecated, superseded, or archived
+at that time, and returns `None` — never a guessed deprecation — when none of the
+estate's notices is in effect then. `Registry.successor_at(rappid, utc)` returns the
+successor that the notice in effect then names, or `None` (a scheduled notice names
+none before its `since_utc`); naming grants nothing, and because only current notices
+are acyclic, a walk along successors at one time stops where it has already been.
+Notices are persisted like every declared entry: pass the ones you accepted back as
+`persisted_entries=`, and a later registry that drops or rewrites one is refused, so a
+state changes only by a new notice on the record.
+
+`load_document` also verifies key-lifecycle entries: a valid enclosing registry
 signature is not a substitute for a tombstone or re-anchor's own signature. The
-same holds for every declared entry (§13.4, today `grail-kernel` and `release-pin`): its own owner
+same holds for every declared entry (§13.4, today `grail-kernel`, `release-pin`, and `lifecycle`): its own owner
 signature is checked at its `activated_utc`, `first_seen=` (or `verification_utc=`
 for a first sighting) applies the per-entry 300-second first-seen bound — a
 signed registry carrying a declared entry is refused without one — and

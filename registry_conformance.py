@@ -23,6 +23,7 @@ MODULES = [
     "test_registry_lifecycle",
     "test_registry_container",
     "test_release_pin",
+    "test_lifecycle",
 ]
 
 print("=" * 72)

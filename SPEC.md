@@ -85,6 +85,8 @@ its `activated_utc`; a byte-identical copy of it verifies against the estate's r
 Grail kernel (§11.1). **release manifest** — the `rapp/1-release-manifest` object a `release-pin` entry
 pins by particle hash (§13.5). **channel** — an owner-named linear chain of `release-pin` entries whose
 head pins the channel's current release (§13.5).
+**lifecycle notice** — an estate-signed `lifecycle` entry stating whether an organism is active,
+deprecated, superseded, or archived, and since when (§13.5).
 
 ## 4. Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **[RFC 8785] JCS** for the value `v`, defined **only**
@@ -989,6 +991,11 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   URI), `object_format`, `commit`, and `path` locate the manifest's octets under the `grail-kernel` rules for
   those members, and `path` also obeys the §9.1 path grammar. It pins every component of one immutable
   release of its family (§13.5).
+- **lifecycle** `{type:"lifecycle", rappid, state, superseded_by, since_utc, previous, activated_utc,
+  declared_by, sig}` — exactly these members; a declared entry (§13.4). `rappid` is the organism the notice
+  is about; `state` is `"active"`, `"deprecated"`, `"superseded"`, or `"archived"`; `superseded_by` is `null`
+  or another §6.1 rappid; `since_utc` has the §7.4 form; `previous` is `null` or `H("rapp/1:particle", e)`
+  of the earlier `lifecycle` entry `e` for the same `rappid` that this one follows (§13.5).
 - **estate_owner** `{type:"estate_owner", rappid}` (exactly one non-deprecated) · **master-plan**
   `{type:"master-plan", repo, path}` (Fed. Const. Art. VII).
 
@@ -999,7 +1006,7 @@ authenticated at its own `activated_utc`, never at the time it is read.
 ### 13.4 Declared entries (entry-level owner signatures)
 A **declared entry** carries its own `activated_utc` (the §7.4 form), `declared_by` (a keyed rappid), and
 `sig` (a detached §10 JWS whose protected `kid` equals `declared_by`, over `canonical(entry \ {sig})`). The
-declared entry types are `grail-kernel` and `release-pin`. For every declared entry a consumer **MUST**:
+declared entry types are `grail-kernel`, `release-pin`, and `lifecycle`. For every declared entry a consumer **MUST**:
 1. require `declared_by` to be the estate owner in effect at `activated_utc` (§13.2), with a §13 `spki`
    entry whose key §10 does not refuse (as superseded or tombstoned) at `activated_utc`;
 2. verify `sig` with that registry key — the enclosing §13.1 signature never substitutes for it;
@@ -1104,6 +1111,33 @@ them is verified only when a manifest pins it, and a locator that disagrees with
 finding, never a second opinion. A consumer **MUST NOT** present unpinned content as part of a verified
 snapshot.
 
+### 13.5 Lifecycle notices
+A `lifecycle` entry is the estate's authoritative notice about one organism:
+- `active` — maintained; `superseded_by` **MUST** be `null`.
+- `deprecated` — still available, but new use should not start; `superseded_by` **MAY** name a
+  recommended successor.
+- `superseded` — replaced; `superseded_by` **MUST** name the successor.
+- `archived` — kept readable and given no further releases; `superseded_by` **MAY** name a successor.
+
+`superseded_by` never equals `rappid`. The `lifecycle` entries for one `rappid` form one linear chain:
+exactly one has `previous:null`, every other names an entry that appears earlier in `entries` for the same
+`rappid`, no two name the same entry, and neither `since_utc` nor `activated_utc` decreases along it. The
+notice **in effect at** time `t` is the last entry in the chain whose `since_utc` ≤ `t` (bytewise, §7.4);
+its `state` is the state in effect at `t` and its `superseded_by` the successor named at `t`, so a notice
+whose `since_utc` is later than `t` names no successor at `t`. An organism with no such entry has no
+declared lifecycle at `t`, and a consumer **MUST NOT** infer deprecation from absence. The chain's last
+entry is the current notice, and the organisms named by current notices' `superseded_by` **MUST NOT** form
+a cycle. A registry that breaks these rules is refused whole.
+
+A notice is metadata about an organism, not trust: it revokes no key (§10 tombstones do), re-anchors no
+identity (§6.3), changes no frame's §7.5 result, and `superseded_by` transfers no key, signature
+authority, entitlement, or ownership — like §9.4 lineage, it names a successor and grants nothing. A
+lifecycle statement anywhere else — a README, a member file, a Hive notice, a portfolio card, a pointer —
+is a copy: a consumer **MUST** take the state from the verified entry, and a copy that disagrees with it is
+a drift finding. A lifecycle claim that no verified entry supports is unverified, never evidence of a state.
+A verified copy of an earlier notice is authentic but historical: the chain, not the copy, decides the state
+in effect. A copy that carries the exact signed entry verifies by §13.4.
+
 ## 14. Security considerations
 - **Integrity:** every object is domain-separated content-addressed (§5); a hostile mirror cannot alter
   bytes without breaking the hash, so *history is safe given a trusted head*.
@@ -1133,6 +1167,9 @@ snapshot.
   a later registry (§13.4), no kernel can join a family after a release of it was accepted, and a verified
   snapshot is all-or-nothing, so a hostile mirror cannot splice stale or unpinned member content into it
   (§13.5).
+- **Lifecycle is not revocation:** deprecating, superseding, or archiving an organism leaves its valid
+  frames valid and its keys unrevoked; a compromise is a §10 tombstone, and a copied notice that disagrees
+  with the registry is drift, not authority (§13.5).
 - **Producer-controlled `utc` (DoS/merge bias):** a future-dated head can brick a stream (successors refused
   as earlier) and bias UTC-first merges. A consumer **SHOULD** refuse a frame whose `utc` exceeds receipt
   time by >300 s, and adversarial-scope merges **SHOULD** rank by `min(utc, first-seen)`; a bricked stream
@@ -1166,8 +1203,10 @@ snapshot.
   entry and the named `rapp/1-release-manifest`: a release scope names a release family, bound to at most
   one kernel, and each pinned release of it pins every component by digest at an immutable commit, with
   door-of-record bindings, kernel coherence and kernel ordering, linear channels, and all-or-nothing
-  verified snapshots (§13.5). No frozen form (§12) changes: every rev-16 `rapp/1` frame, egg, rappid, and
-  conformance vector verifies unchanged.
+  verified snapshots (§13.5); and the `lifecycle` declared entry: estate-signed, chained notices that an
+  organism is active, deprecated, superseded (with `superseded_by`), or archived since a given time
+  (§13.5). No frozen form (§12) changes: every rev-16 `rapp/1` frame, egg, rappid, and conformance vector
+  verifies unchanged.
 - **rev-16 (RAPP Work profile)** — added the subordinate `rapp-work/1` operational profile
   (`protocols/rapp-work/1/SPEC.md`) to the chain's operational-profile index; this document's normative
   text was unchanged from rev-15.
