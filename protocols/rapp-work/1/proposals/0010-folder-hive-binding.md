@@ -203,7 +203,8 @@ into `rapp-work/2`.
   that Work Constitution Part V.1 plans for `kody-w/rapp-workspace`. It is adopted
   by an estate's `protocol` entry (the `EXTENDING.md` lane).
 - **At graduation:** either `protocols/rapp-work-folder-hive/1/` in this repository,
-  which adds anchor inputs and needs an owner-ratified chain revision, or `rapp-work/2`.
+  which adds anchor inputs and needs an owner-ratified chain revision (Constitution
+  Art. 14), or `rapp-work/2`.
 
 Putting it into `kody-w/rapp-1` now would put an experiment into the index of the
 LTS protocol authority.
@@ -289,7 +290,8 @@ Here "this profile" means `rapp-work-folder-hive/1`.
 > its id, its root, its founder, a repository, a URL or a path. Owner authority is
 > evaluated through the adopting estate's signed registry and time-scoped signer
 > rules, never from the declaration alone. The frame is signed by the owner in effect
-> at its `utc`. A folder-Hive organization is not a `rapp-work/1` organization: it
+> at its `utc`, with superseded and revoked keys refused as RAPP/1 §§6.3, 10 and 13.3
+> require. A folder-Hive organization is not a `rapp-work/1` organization: it
 > carries no `work.*` payload, and no `work.*` payload may name it.
 >
 > ## 3. The binding: one folder Hive, named by three values and a convention
@@ -585,6 +587,11 @@ checker.
   tagged Hive member that includes this binding, and folder-Hive organizations would
   move by create-only migration to new identities. Accepted history stays readable
   under this token forever.
+- **Not a rev-N+1 revision.** Nothing in `rapp/1` or `rapp-work/1` changes, and
+  `EXTENDING.md` says: "Registered kinds, registry entries, vocabulary and
+  subordinate profiles can grow under `rapp/1`." It becomes an amendment, carried by
+  an owner-ratified chain append (Constitution Art. 14), only if the owner chooses
+  (a), or publishes the profile in this repository's `protocols/index.json`.
 - **Intended release.** Newest release scope only, as an experiment. It is not part
   of RAPP/1 LTS.
 
@@ -600,7 +607,7 @@ checker.
 | Withheld or stale objects | A missing object is refused, never assumed. A stale vector is reported with its age, and freshness is the consumer's policy, as in RAPP/1 §13.1. |
 | Forged commits by non-members | The checker refuses them. The model's forged push is a refusal vector. |
 | Compromised member key | A Hive-level limit that the convention documents ("whoever holds a member's only key acts as that member until removed"). The organization records what the Hive accepted and cannot fix it. |
-| Compromised owner key | The attacker can sign vectors only for heads that verify, so cannot originate Hive state. It can bind a Hive unilaterally (the binding grants nothing inside it) or fork the stream (both branches refused, RAPP/1 §7.6). Tombstone and re-anchor per RAPP/1 §§10, 13.2 and 13.3, heeding the §14 note on backdated frames. |
+| Compromised owner key | The attacker can sign vectors only for heads that verify, so cannot originate Hive state. It can bind a Hive unilaterally (the binding grants nothing inside it) or fork the stream (both branches refused, RAPP/1 §7.6). Recovery is a tombstone and a re-anchor (RAPP/1 §§6.3, 10 and 13.3, and §13.2 when the owner is the estate owner), heeding the §14 note on backdated frames. |
 | Checker substitution | `checker_sha256` plus the registry's pin of the spec bytes. |
 | Instruction injection from Hive text | Verifiers treat Hive bytes as data. The checker parses markdown and never runs it, git hooks stay off, and nothing from the Hive is executed or loaded as instructions. |
 | Denial of service by huge histories | A consumer may bound its work. Beyond the bound it reports "not verified", never "accepted". |
