@@ -21,7 +21,7 @@ signs. This page is the lane. Nothing on it needs a change to `rapp/1`.
 | a subordinate profile (`acme-factory/1`) with its own normative text | **your** repository; adopted by a `protocol` entry pinning repo, path, and SHA-256 | §11.2, `protocols/README.md` |
 | tooling that needs a library (Ed25519 signing, HSMs, a database) | **your** repository; it imports `rapp.py`'s canonicalizer, never re-types it | Art. 10 |
 | to say which RAPP/1 you implement | a `protocol` entry `name:"rapp/1"` whose `spec_hash` comes from **this** repository's anchor | §13.3 |
-| the registry document itself | exactly `schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; other members carry no meaning | §13.1 |
+| the registry document itself | exactly `schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; other members carry no meaning; at most 1 MiB canonical, so spend entries on releases and changes | §13.1, §4 |
 
 Every estate pins RAPP/1 the same way, so two estates interoperate on bytes while
 disagreeing on everything else. That is the point.

@@ -34,8 +34,8 @@ Evidence is quoted from `main` at `591e014` (rev-16).
 | 5 | Keyless identities for about 300 station repos; can estate-bound keys be added without a re-anchor (§§6.2, 6.3)? | **No new mechanism** | §6.2: keyless "`tail = Hb("rapp/1:rappid", uuid4_octets)`"; "Re-anchor is lawful in exactly three cases"; §10: keyless rappids "assert location, not authorship"; §12 freezes §6.1–6.2. | A keyless identity can never gain its own key: there is no lawful fourth re-anchor case, and adding one would change a frozen form (`rapp/2`). Estate-bound keys are added without any re-anchor as `stream-signer` grants — authority, not identity. Releases (component `rappid: null`) and lifecycle notices (repository subjects) need no rappid, so the lock needs no station minting. |
 | 6 | Should the discovery chain (seed, beacon, sniff schemas) become a RAPP/1 subordinate protocol? | **No** | Constitution Art. 17: this repository is "canonicalization, content addressing, identity, frames, wire, eggs, trust, registries, and protocol-level profiles", while RAPP keeps the "foundation, product home, reference implementation, organism model, and philosophy". The seed is an observation-only document, and the live beacon and `estate.json` paths serve placeholder status documents. | None here. §13.5 makes every discovery document a locator, so trust never depends on it; the LTS manifest pins the discovery convention and its resolver by digest as RAPP files. Revisit only if a second independent resolver needs a wire contract. |
 | 7 | `body.pulse` binding, payload, and stream id | **No core change** | §7.2 defines the `body` family; the published estate registry (`registry_seq` 2) binds `body.pulse` to it; §6.1.1: a body stream id is a rappid; §8: "memory/body-stream frames **MAY** be unsigned"; §13.3: "every stream registers its creation genesis". The network's live stream `rappid:@kody-w/rapp1-network:71216534…` is keyless; its first pulse is a valid `rapp/1` frame that binds to `body.pulse` (checked with this reference), and its genesis is not yet registered. | None. The stream id is the network organism's rappid; the payload belongs to the network convention (RAPP), and an estate may adopt a written payload contract with an ordinary `protocol` entry. The estate registers the stream's `genesis`, then grants a keyed pulse signer (§13.7). Until then pulses are integrity-only. |
-| 8a | Registry container | **Yes** | `EXTENDING.md`: "nothing names the member that holds the entries or how `canonical_source` is carried". | §13.1 names exactly `schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; any other member carries no meaning. The published registry already has this shape and still verifies. |
-| 8b | Entry-level signatures | **Yes** | §13.3 `grail-kernel`: "A consumer verifies the entry signer as the estate owner in effect at `activated_utc`"; §11.1: `activated_utc` "**MUST NOT** be more than 300 seconds after the verifier's first-seen time". The reference checked only tombstone and re-anchor signatures. | §13.4 declared entries: owner-in-effect signature at `activated_utc`, a per-entry first-seen bound, byte-identical copies only, and retention of every accepted declaration. |
+| 8a | Registry container | **Yes** | `EXTENDING.md`: "nothing names the member that holds the entries or how `canonical_source` is carried". | §13.1 names exactly `schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; any other member carries no meaning. §3 defines an absolute HTTPS URI (a non-empty host, no user information, printable ASCII). The reference now enforces §4's 1 MiB and depth-64 limits on the document. The published registry already has this shape and still verifies. |
+| 8b | Entry-level signatures | **Yes** | §13.3 `grail-kernel`: "A consumer verifies the entry signer as the estate owner in effect at `activated_utc`"; §11.1: `activated_utc` "**MUST NOT** be more than 300 seconds after the verifier's first-seen time". The reference checked only tombstone and re-anchor signatures. | §13.4 declared entries: owner-in-effect signature at `activated_utc`, a per-entry first-seen bound, copies that count only in canonical form, and retention of every accepted declaration. |
 | 8c | LTS corrections | **Yes, inside 1** | §11.1: "at most one `grail-kernel` entry for each `grail_id`" and "an existing scope is never rebound": a correction that keeps kernel v0.6.9 cannot declare it again under a new scope. | A release scope names a release **family** with at most one kernel; its releases are successive `release-pin` entries in one channel. A new kernel is a new family (a new scope). |
 | 8d | Reference answers from unverified registries | tooling | `Registry.protocols` returned the first pin per name — for the published registry, a deprecated one; authority answers ignored whether the registry had been verified. | `current_protocol` returns the sole non-deprecated pin. Every answer — `verify_snapshot`, `frame_authorized`, `verify_authorized_frame`, the lifecycle in effect (`lifecycle_at`, `lifecycle_state_at`, `successor_at`), and `declared_entry_ok` for a copy — comes only from a registry `load_document` returned as verified (a draft only with `allow_draft=True`); structural accessors stay readable. Registry time values must be ASCII, because the frozen `rapp.utc_valid` also accepts other scripts' digits. |
 
@@ -99,8 +99,8 @@ registry      {schema:"rapp/1-registry", registry_seq, canonical_source, entries
   manifest is stored as exactly `canonical(manifest)` at an immutable commit. Components are sorted by
   `id`; files by the UTF-8 bytes of `path`, under the §9.1 path grammar; `sha256` is over raw bytes. A
   component with `rappid` names its door of record through `identity_path`. When the family has a kernel,
-  exactly one `kind:"kernel"` component matches the `grail-kernel` entry. A verified snapshot is every
-  pinned file, checked by length and SHA-256, or nothing.
+  exactly one `kind:"kernel"` component matches the `grail-kernel` entry. An identity file is UTF-8 with
+  no byte-order mark. A verified snapshot is every pinned file, checked by length and SHA-256, or nothing.
 - **Lifecycle notices (§13.6).** `state` is `active`, `deprecated`, `superseded`, or `archived`; `active`
   names no successor and `superseded` must name one. `subject` and `superseded_by` are rappids or HTTPS
   repository URIs, compared byte-for-byte. One chain per subject through `previous` =
@@ -133,7 +133,11 @@ unverified until the estate that pins this root is anchored". Rev-17 answers bot
   reads (its member card and shared files). `estate.json`'s `hives[]` entry, the beacon, the seed, and the
   pointers stay locators: they must agree with the manifest, and a disagreement is a drift finding. A
   resolver produces the verified snapshot with `verify_snapshot(registry, fetch, channel=…)` and matches
-  pointers to components by `repository`.
+  pointers to components by repository: a pointer's `repo: <owner>/<repo>` names the component whose
+  `repository` is `https://github.com/<owner>/<repo>`. The manifest's spelling is authoritative and rev-17
+  compares it byte-for-byte, so a pointer, card, or lifecycle copy whose `owner/repo` differs only in case
+  is a drift finding, not a second repository; a Hive `superseded_by: <owner>/<repo>` maps the same way.
+  (A Hive record could also carry the exact repository URI and skip the mapping.)
 - **Hashes.** The manifest pins raw bytes. HIVE-MD lists the SHA-256 of text normalized to LF and NFC.
   For every file the Hive accepts (it refuses carriage returns) that is already NFC, the two are equal, so
   a resolver checks both; the raw digest is the one with authority.
@@ -245,9 +249,10 @@ reference's.
       "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
     },
     "https": {
-      "description": "absolute HTTPS URI, no whitespace",
+      "description": "§3 absolute HTTPS URI: scheme https, a non-empty host, no user information, at most 2048 printable ASCII characters; ALSO a real host (not only a port) and a well-formed IPv6 literal, which this pattern does not check",
       "type": "string",
-      "pattern": "^https://[^\\s]+$"
+      "maxLength": 2048,
+      "pattern": "^https://[\\x21\\x22\\x24-\\x2e\\x30-\\x3e\\x41-\\x7e]+(?:[/?#][\\x21-\\x7e]*)?$"
     },
     "hex64": {
       "type": "string",
@@ -718,7 +723,7 @@ reference's.
       }
     },
     "registry-document": {
-      "description": "§13.1 registry document: exactly these five members carry meaning; any other top-level member is covered by sig and carries none. sig null = unsigned draft, never authority.",
+      "description": "§13.1 registry document: exactly these five members carry meaning; any other top-level member is covered by sig and carries none. sig null = unsigned draft, never authority. Not expressible here: at most 1 MiB canonical and nested at most 64 deep (§4(d)).",
       "type": "object",
       "required": [
         "schema",

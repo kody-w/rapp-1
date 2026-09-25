@@ -88,7 +88,8 @@ whose head pins the channel's current release (§13.5).
 **lifecycle notice** — an estate-signed `lifecycle` entry stating whether an organism, or a repository
 that has no rappid, is active, deprecated, superseded, or archived, and since when (§13.6).
 **stream signer** — a keyed signer an estate has granted, by a `stream-signer` entry, to speak for it on
-one stream (§13.7).
+one stream (§13.7). **absolute HTTPS URI** — a URI [RFC 3986] of at most 2048 printable ASCII characters
+whose scheme is `https`, whose host is not empty, and which carries no user information.
 
 ## 4. Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **[RFC 8785] JCS** for the value `v`, defined **only**
@@ -1077,8 +1078,9 @@ that pins every component of that release:
 - The stored manifest's octets **MUST** be exactly `canonical(manifest)` — UTF-8, no byte-order mark, no
   trailing line terminator — so its raw SHA-256 and `manifest_hash` are both reproducible from the bytes.
 - **Door of record.** `rappid` and `identity_path` are both `null` or both non-null. When set,
-  `identity_path` is one of the component's `files`, and those octets parse as a §4 object whose `rappid`
-  member equals the component's `rappid` and whose `schema`, when present, is `"rapp/1"`. Such a component
+  `identity_path` is one of the component's `files`, and those octets are UTF-8 without a byte-order mark
+  and parse as a §4 object whose `rappid` member equals the component's `rappid` and whose `schema`, when
+  present, is `"rapp/1"`. Such a component
   is the estate's signed statement that, within this pinned release, the organism's door of record is
   `repository` at `commit`. A manifest **MUST NOT** bind one rappid in two components. A consumer locating
   that organism for this pinned release **MUST** use this binding, not the rappid's `@owner/slug`, a

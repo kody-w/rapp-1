@@ -72,7 +72,7 @@ _KIND = re.compile(rf"({_LCLABEL})\.({_LCLABEL})")
 _LABEL = re.compile(_LCLABEL)
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 _HEX40 = re.compile(r"[0-9a-f]{40}")
-_HTTPS = re.compile(r"https://[^\s]+")
+_HTTPS = re.compile(r"https://[\x21-\x7e]+")  # printable ASCII after the scheme: no space, no control
 _OBJECT_ID = {"sha1": _HEX40, "sha256": _HEX64}  # object_format -> commit/blob grammar
 
 # §13.1 — the registry document container (rev-17 closure).
@@ -120,6 +120,18 @@ def entry_hash(entry):
     This is how a later entry names an earlier one, and how a caller keys
     persisted or first-seen state: any byte of difference is a different entry."""
     return R.H("rapp/1:particle", entry)
+
+
+def _https_uri(value):
+    """An absolute HTTPS URI (§3): scheme `https`, a non-empty host, no user information, printable
+    ASCII only, at most 2048 characters — the rule `rapp_profile.https_uri` also applies."""
+    if not (isinstance(value, str) and len(value) <= 2048 and _HTTPS.fullmatch(value)):
+        return False
+    try:
+        parts = urllib.parse.urlsplit(value)
+        return bool(parts.hostname) and "@" not in parts.netloc
+    except ValueError:  # e.g. an unterminated IPv6 literal
+        return False
 
 
 def _utc_form(value):
@@ -242,7 +254,7 @@ def _validate_release_pin(entry, where):
     """The §13.3 release-pin members. Uniqueness, channels, families, and kernel order span
     entries, so `Registry` checks those."""
     for member in ("release_scope", "repository"):
-        if not _HTTPS.fullmatch(_str(entry, member, where)):
+        if not _https_uri(_str(entry, member, where)):
             raise RegistryError(f"{where}: `{member}` must be an absolute HTTPS URI")
     if not _lclabel(entry.get("channel"), 64):
         raise RegistryError(f"{where}: `channel` must be an lclabel of 1-64 characters")
@@ -268,7 +280,7 @@ def _validate_release_pin(entry, where):
 def lifecycle_subject_valid(value):
     """§13.6: a lifecycle subject is a §6.1 rappid (an organism) or an absolute HTTPS URI naming a
     repository (one that carries no rappid of its own). The two forms never overlap."""
-    return R.rappid_valid(value) or (isinstance(value, str) and bool(_HTTPS.fullmatch(value)))
+    return R.rappid_valid(value) or _https_uri(value)
 
 
 def lifecycle_subject(component):
@@ -348,7 +360,7 @@ def validate_entry(entry, where="entry"):
         )
     if t == "protocol":
         _str(entry, "name", where); _str(entry, "spec_path", where); _bool(entry, "deprecated", where)
-        if not _HTTPS.fullmatch(_str(entry, "spec_repo", where)):
+        if not _https_uri(_str(entry, "spec_repo", where)):
             raise RegistryError(f"{where}: `spec_repo` must be an absolute HTTPS URI")
         _hex64(entry, "spec_hash", where)
         name = entry["name"]
@@ -398,7 +410,7 @@ def validate_entry(entry, where="entry"):
             _str(entry, "old_key_sig", where)
     elif t == "grail-kernel":
         for m in ("release_scope", "repository"):
-            if not _HTTPS.fullmatch(_str(entry, m, where)):
+            if not _https_uri(_str(entry, m, where)):
                 raise RegistryError(f"{where}: `{m}` must be an absolute HTTPS URI")
         if not _str(entry, "immutable_ref", where).startswith("refs/tags/"):
             raise RegistryError(f"{where}: `immutable_ref` must be a full refs/tags/... name")
@@ -1222,13 +1234,17 @@ def validate_document(doc):
     if not (isinstance(seq, int) and not isinstance(seq, bool) and 0 <= seq <= 2**53 - 1):
         raise RegistryError("registry_seq must be uint53")
     source = doc["canonical_source"]
-    if not (isinstance(source, str) and _HTTPS.fullmatch(source)):
+    if not _https_uri(source):
         raise RegistryError("canonical_source must be an absolute HTTPS URI (§13.1)")
     if not isinstance(doc[ENTRIES_MEMBER], list):
         raise RegistryError("entries must be a JSON array (§13.1)")
     sig = doc["sig"]
     if sig is not None and not (isinstance(sig, str) and sig):
         raise RegistryError("sig must be a detached JWS string or null (§13.1)")
+    try:  # §4(d): a registry is one §4 value — at most 1 MiB canonical, nested at most 64 deep
+        R._strict_json(R.canonical(doc).encode("utf-8"))
+    except (ValueError, RecursionError) as why:
+        raise RegistryError(f"registry document is not a §4 value: {why}")
     return doc
 
 
@@ -1344,7 +1360,7 @@ def _validate_component(component, where):
     if not _lclabel(component["kind"], 64):
         raise RegistryError(f"{where}: `kind` must be an lclabel of 1-64 characters")
     repository = component["repository"]
-    if not (isinstance(repository, str) and _HTTPS.fullmatch(repository)):
+    if not _https_uri(repository):
         raise RegistryError(f"{where}: `repository` must be an absolute HTTPS URI")
     if component["object_format"] not in ("sha1", "sha256"):
         raise RegistryError(f"{where}: `object_format` must be sha1 or sha256")
@@ -1405,7 +1421,7 @@ def validate_release_manifest(manifest):
     if manifest["schema"] != MANIFEST_SCHEMA:
         raise RegistryError(f'release manifest schema must be "{MANIFEST_SCHEMA}"')
     scope = manifest["release_scope"]
-    if not (isinstance(scope, str) and _HTTPS.fullmatch(scope)):
+    if not _https_uri(scope):
         raise RegistryError("release manifest `release_scope` must be an absolute HTTPS URI")
     name = manifest["release"]
     if not (isinstance(name, str) and _RELEASE_NAME.fullmatch(name)):
@@ -1551,6 +1567,16 @@ def _fetch_pinned(fetch, locator, path, where):
 
 
 def _door_of_record_mismatch(component, octets):
+    # json.loads would guess UTF-16 or UTF-32 from a byte-order mark or from NUL bytes; the identity
+    # file is UTF-8 without one, and NUL is never part of a UTF-8 JSON text.
+    if octets.startswith(b"\xef\xbb\xbf"):
+        return "identity file must be UTF-8 without a byte-order mark"
+    try:
+        octets.decode("utf-8")
+    except UnicodeDecodeError:
+        return "identity file must be UTF-8"
+    if b"\x00" in octets:
+        return "identity file must be UTF-8 JSON text, which never holds a NUL byte"
     try:
         identity = R._strict_json(octets)
     except (ValueError, RecursionError) as why:
