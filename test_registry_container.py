@@ -322,7 +322,7 @@ class SectionNumberingTests(unittest.TestCase):
         owner, worker = estate.keys["owner"], estate.keys["worker"]
         with self.assertRaisesRegex(REG.RegistryError, re.escape("(§13.5)")):
             REG.validate_release_manifest({"schema": REG.MANIFEST_SCHEMA})
-        notice = {"type": "lifecycle", "rappid": worker, "state": "active", "superseded_by": owner,
+        notice = {"type": "lifecycle", "subject": worker, "state": "active", "superseded_by": owner,
                   "since_utc": T0, "previous": None, "activated_utc": T0, "declared_by": owner, "sig": "s"}
         with self.assertRaisesRegex(REG.RegistryError, re.escape("(§13.6)")):
             REG.validate_entry(notice)

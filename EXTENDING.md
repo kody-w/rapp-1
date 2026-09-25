@@ -15,7 +15,7 @@ signs. This page is the lane. Nothing on it needs a change to `rapp/1`.
 | your signers and their keys | `spki` entries; rotation by `re-anchor`; compromise by `tombstone` | §10, §13.2 |
 | your production runtime pinned | a `grail-kernel` entry | §11.1 |
 | every component of one release of a family pinned together (an LTS line and its corrections, a newest channel) | one `release-pin` entry per pinned release + its `rapp/1-release-manifest` (`schema`, `release_scope`, `release`, `components`); the `release_scope` names the release family, and `release` names the release for people | §13.5 |
-| to say an organism is deprecated, superseded, or archived, and since when | `lifecycle` notices (one signed chain per rappid) | §13.6 |
+| to say an organism — or a repository that never minted a rappid — is deprecated, superseded, or archived, and since when | `lifecycle` notices (one signed chain per subject: a rappid, or a repository's HTTPS URI) | §13.6 |
 | to let a key speak for you on one stream (a pulse, a notice feed) | `stream-signer` grants — keyless organisms stay keyless | §13.7 |
 | your own signature on each of those four (a kernel, a release, a notice, a grant) | a declared entry: signed by the owner in effect at its `activated_utc`, retained byte-for-byte once accepted; a copy elsewhere counts only when byte-identical | §13.4 |
 | a subordinate profile (`acme-factory/1`) with its own normative text | **your** repository; adopted by a `protocol` entry pinning repo, path, and SHA-256 | §11.2, `protocols/README.md` |
@@ -50,7 +50,7 @@ disagreeing on everything else. That is the point.
 
 ```bash
 python3 examples/07_your_own_estate.py      # a complete fictional estate, checked end to end
-python3 examples/09_distributed_hive_lts.py # pinned releases, a lifecycle notice, a pulse signer
+python3 examples/09_distributed_hive_lts.py # pinned releases, lifecycle notices, a pulse signer
 ```
 
 `rapp_registry.py` (stdlib only) validates every §13.3 entry type to its exact member
@@ -105,11 +105,16 @@ accepted. `rapp_check.py` lints a committed release manifest's structure and can
 bytes and reports it as unverified evidence: it has authority only through a verified
 `release-pin`.
 
-`Registry.lifecycle_state_at(rappid, utc)` answers from an organism's signed
+`Registry.lifecycle_state_at(subject, utc)` answers from a subject's signed
 `lifecycle` chain (§13.6) whether it was active, deprecated, superseded, or archived
 at that time, and returns `None` — never a guessed deprecation — when none of the
-estate's notices is in effect then. `Registry.successor_at(rappid, utc)` returns the
-successor that the notice in effect then names, or `None` (a scheduled notice names
+estate's notices is in effect then. A subject is an organism's rappid or, for a
+repository that never minted one, its HTTPS URI spelled exactly as your release
+manifests spell it; `lifecycle_subject(component)` picks the right one for a release
+component, so a station keeps a signed lifecycle without an identity of its own, and
+moving it is a `superseded` notice naming its new repository.
+`Registry.successor_at(subject, utc)` returns the successor — a rappid or a repository
+URI — that the notice in effect then names, or `None` (a scheduled notice names
 none before its `since_utc`); naming grants nothing, and because a registry whose
 successors in effect at any one time form a cycle is refused whole, a walk along the
 successors in effect at one time always ends.
@@ -123,7 +128,10 @@ your registry's `signature_verifier()`, kind binding included, and then the auth
 rule: a valid frame whose signer is neither your owner in effect nor granted its stream,
 kind, and time fails at step `"authority"`, never at a §7.5 step, and
 `Registry.authorization_verifier()` hands the same rule to a profile's
-`authorization_verifier`. §13.7 binds a consumer that follows no profile-defined signer
+`authorization_verifier`. Like `verify_snapshot`, these answer only for a registry
+`load_document` returned as "verified" (a draft only with `allow_draft=True`, as a
+rehearsal; a `Registry` you built directly never); `authority_decision` is the bare
+rule over the entries. §13.7 binds a consumer that follows no profile-defined signer
 rule; a profile with its own (`rapp-work/1` §1, a `rapp-cicd/1` stage approver) keeps it
 and may meet it this way. A grant may start before its `activated_utc` and so adopt
 frames already published in its window. Authority is decided against the verified

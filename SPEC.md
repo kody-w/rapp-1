@@ -85,8 +85,8 @@ its `activated_utc`; a byte-identical copy of it verifies against the estate's r
 Grail kernel (§11.1, §13.5). **release manifest** — the `rapp/1-release-manifest` object a `release-pin`
 entry pins by particle hash (§13.5). **channel** — an owner-named linear chain of `release-pin` entries
 whose head pins the channel's current release (§13.5).
-**lifecycle notice** — an estate-signed `lifecycle` entry stating whether an organism is active,
-deprecated, superseded, or archived, and since when (§13.6).
+**lifecycle notice** — an estate-signed `lifecycle` entry stating whether an organism, or a repository
+that has no rappid, is active, deprecated, superseded, or archived, and since when (§13.6).
 **stream signer** — a keyed signer an estate has granted, by a `stream-signer` entry, to speak for it on
 one stream (§13.7).
 
@@ -993,11 +993,12 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   URI), `object_format`, `commit`, and `path` locate the manifest's octets under the `grail-kernel` rules for
   those members, and `path` also obeys the §9.1 path grammar. It pins every component of one immutable
   release of its family (§13.5).
-- **lifecycle** `{type:"lifecycle", rappid, state, superseded_by, since_utc, previous, activated_utc,
-  declared_by, sig}` — exactly these members; a declared entry (§13.4). `rappid` is the organism the notice
-  is about; `state` is `"active"`, `"deprecated"`, `"superseded"`, or `"archived"`; `superseded_by` is `null`
-  or another §6.1 rappid; `since_utc` has the §7.4 form; `previous` is `null` or `H("rapp/1:particle", e)`
-  of the earlier `lifecycle` entry `e` for the same `rappid` that this one follows (§13.6).
+- **lifecycle** `{type:"lifecycle", subject, state, superseded_by, since_utc, previous, activated_utc,
+  declared_by, sig}` — exactly these members; a declared entry (§13.4). `subject` is what the notice is
+  about: a §6.1 rappid (an organism) or an absolute HTTPS URI naming a repository (§13.6); `state` is
+  `"active"`, `"deprecated"`, `"superseded"`, or `"archived"`; `superseded_by` is `null` or another subject
+  of either form; `since_utc` has the §7.4 form; `previous` is `null` or `H("rapp/1:particle", e)` of the
+  earlier `lifecycle` entry `e` for the same `subject` that this one follows (§13.6).
 - **stream-signer** `{type:"stream-signer", stream_id, signer, kinds, since_utc, until_utc,
   activated_utc, declared_by, sig}` — exactly these members; a declared entry (§13.4). `stream_id` has a
   §6.1.1 form; `signer` is a keyed rappid with a §13 `spki` entry (deprecated or not) in the same
@@ -1011,9 +1012,9 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
 §7.5 steps 1–5 are time-independent (append-only lookups); step 6 (tombstones) and §13.2 owner tenure are
 time-scoped, and both are monotone given the §13.1 no-rollback rule. A declared entry (§13.4) is
 authenticated at its own `activated_utc`, never at the time it is read. The lifecycle state in effect
-(§13.6) and a stream-signer window (§13.7) are evaluated at a given time — for a frame, its `utc` — and,
-because every declared entry is retained (§13.4), a later registry can add a notice or a grant but never
-withdraw one: a grant ends only at its `until_utc` or where §10 refuses its signer's key. The rules of
+(§13.6) is evaluated at the time asked about, and a stream-signer window (§13.7) at a frame's `utc`; because
+every declared entry is retained (§13.4), a later registry can add a notice or a grant but never withdraw
+one: a grant ends only at its `until_utc` or where §10 refuses its signer's key. The rules of
 §§13.5–13.7 — release pins, lifecycle notices, stream signers — sit above §7.5 and never add a §7.5 step.
 
 ### 13.4 Declared entries (entry-level owner signatures)
@@ -1126,33 +1127,42 @@ finding, never a second opinion. A consumer **MUST NOT** present unpinned conten
 snapshot.
 
 ### 13.6 Lifecycle notices
-A `lifecycle` entry is the estate's authoritative notice about one organism:
+A `lifecycle` entry is the estate's authoritative notice about one **subject**: an organism, named by its
+rappid, or a repository that carries no rappid of its own — a member of a distributed Hive that never
+minted an identity — named by its absolute HTTPS URI:
 - `active` — maintained; `superseded_by` **MUST** be `null`.
 - `deprecated` — still available, but new use should not start; `superseded_by` **MAY** name a
   recommended successor.
 - `superseded` — replaced; `superseded_by` **MUST** name the successor.
 - `archived` — kept readable and given no further releases; `superseded_by` **MAY** name a successor.
 
-`superseded_by` never equals `rappid`. The `lifecycle` entries for one `rappid` form one linear chain:
+Subjects compare byte-for-byte: an estate uses one exact spelling of each repository URI, the one its
+release manifests use (§13.5). A notice about a rappid is about the organism wherever its door of record
+is; a notice about a repository is about that location, so moving a repository that has no rappid is a
+`superseded` notice naming the new repository. The lifecycle of a component of a pinned release (§13.5) is
+read from the chain of its `rappid` when it binds one and otherwise from the chain of its `repository`; a
+repository's chain never speaks for an organism a release binds there.
+
+`superseded_by` never equals `subject`. The `lifecycle` entries for one `subject` form one linear chain:
 exactly one has `previous:null`, every other names an entry that appears earlier in `entries` for the same
-`rappid`, no two name the same entry, and neither `since_utc` nor `activated_utc` decreases along it. The
+`subject`, no two name the same entry, and neither `since_utc` nor `activated_utc` decreases along it. The
 notice **in effect at** time `t` is the last entry in the chain whose `since_utc` ≤ `t` (bytewise, §7.4);
 its `state` is the state in effect at `t` and its `superseded_by` the successor named at `t`, so a notice
-whose `since_utc` is later than `t` names no successor at `t`. An organism with no such entry has no
+whose `since_utc` is later than `t` names no successor at `t`. A subject with no such entry has no
 declared lifecycle at `t`, and a consumer **MUST NOT** infer deprecation from absence. The chain's last
-entry is the current notice. The organisms named by the `superseded_by` of the notices in effect at any
+entry is the current notice. The subjects named by the `superseded_by` of the notices in effect at any
 one time **MUST NOT** form a cycle; since the notices in effect change only at a `since_utc`, checking the
 notices in effect at each distinct `since_utc` of the registry checks every time. A registry that breaks
 these rules is refused whole.
 
-A notice is metadata about an organism, not trust: it revokes no key (§10 tombstones do), re-anchors no
-identity (§6.3), changes no frame's §7.5 result, and `superseded_by` transfers no key, signature
-authority, entitlement, or ownership — like §9.4 lineage, it names a successor and grants nothing. A
-lifecycle statement anywhere else — a README, a member file, a Hive notice, a portfolio card, a pointer —
-is a copy: a consumer **MUST** take the state from the verified entry, and a copy that disagrees with it is
-a drift finding. A lifecycle claim that no verified entry supports is unverified, never evidence of a state.
-A verified copy of an earlier notice is authentic but historical: the chain, not the copy, decides the state
-in effect. A copy that carries the exact signed entry verifies by §13.4.
+A notice is metadata about an organism or a repository, not trust: it revokes no key (§10 tombstones
+do), re-anchors no identity (§6.3), changes no frame's §7.5 result, and `superseded_by` transfers no key,
+signature authority, entitlement, or ownership — like §9.4 lineage, it names a successor and grants
+nothing. A lifecycle statement anywhere else — a README, a member file, a Hive notice, a portfolio card,
+a pointer — is a copy: a consumer **MUST** take the state from the verified entry, and a copy that
+disagrees with it is a drift finding. A lifecycle claim that no verified entry supports is unverified,
+never evidence of a state. A verified copy of an earlier notice is authentic but historical: the chain,
+not the copy, decides the state in effect. A copy that carries the exact signed entry verifies by §13.4.
 
 ### 13.7 Stream signers (who speaks for the estate on a stream)
 §7.5 step 6 proves that a registry-discoverable key signed a frame; it does not say whether that key
@@ -1214,7 +1224,10 @@ against a newer registry.
   (§13.5).
 - **Lifecycle is not revocation:** deprecating, superseding, or archiving an organism leaves its valid
   frames valid and its keys unrevoked; a compromise is a §10 tombstone, and a copied notice that disagrees
-  with the registry is drift, not authority (§13.6).
+  with the registry is drift, not authority (§13.6). A repository subject names a location, not an
+  identity: if its URI later reaches another party's repository, the estate's notices about it still read
+  as written, so an estate that loses control of a repository **SHOULD** declare it `archived` or
+  `superseded` at once.
 - **Signer scope:** any registered key can yield a §7.5-valid signature on any stream. Where no
   subordinate profile defines who signs a payload, only the owner in effect or a `stream-signer` grant
   makes a frame the estate's statement, so a station, crawler, or careless key cannot speak for another
@@ -1255,11 +1268,11 @@ against a newer registry.
   each `release-pin` names the `rapp/1-release-manifest` that pins every component of one immutable release
   by digest at an immutable commit, with door-of-record bindings, kernel coherence and kernel ordering,
   linear channels, and all-or-nothing verified snapshots. **Lifecycle notices** (§13.6): estate-signed,
-  chained notices that an organism is active, deprecated, superseded (with `superseded_by`), or archived
-  since a given time. **Stream signers** (§13.7): an estate grant, above §7.5, that lets a keyed signer
-  speak for the estate on one stream for its listed kinds within a time window — a keyless organism's
-  streams included, with no re-anchor. No frozen form (§12) changes: every rev-16 `rapp/1` frame, egg,
-  rappid, and conformance vector verifies unchanged.
+  chained notices that an organism — or a repository that has no rappid — is active, deprecated,
+  superseded (with `superseded_by`), or archived since a given time. **Stream signers** (§13.7): an
+  estate grant, above §7.5, that lets a keyed signer speak for the estate on one stream for its listed
+  kinds within a time window — a keyless organism's streams included, with no re-anchor. No frozen form
+  (§12) changes: every rev-16 `rapp/1` frame, egg, rappid, and conformance vector verifies unchanged.
 - **rev-16 (RAPP Work profile)** — added the subordinate `rapp-work/1` operational profile
   (`protocols/rapp-work/1/SPEC.md`) to the chain's operational-profile index; this document's normative
   text was unchanged from rev-15.

@@ -7,12 +7,14 @@ network organism whose pulse says the Hive is alive — held together by one est
     each immutable release of it is one `release-pin` naming a `rapp/1-release-manifest` by particle
     hash, and the manifest pins every component file by SHA-256 and length at an immutable commit
     and binds each member's door of record. A verified snapshot is exactly those files, or nothing.
-  - lifecycle notices (§13.6): the estate says, and signs, that a member is superseded, and since when.
+  - lifecycle notices (§13.6): the estate says, and signs, that a member is superseded, and since when —
+    a member with a rappid by its rappid, a member that never minted one by its repository.
   - stream signers (§13.7): the estate says which key speaks for it on one stream.
 
 This program builds a fictional estate, "acme": an LTS family (kernel 1.4.2, three files) with one
 correction release; a newest channel that moves from the 2.0 family to the 2.1 family; keyless member
-organisms bound as doors of record; a notice superseding one member; and the network organism's
+organisms bound as doors of record; a station with no rappid at all; the Hive root's index pinned like
+any file; notices superseding one organism and moving the station; and the network organism's
 body.pulse stream, unsigned at first, then spoken for by a granted crawler key.
 Run: python3 examples/09_distributed_hive_lts.py
 
@@ -77,10 +79,22 @@ def component(cid, kind, commit, files, rappid=None, tag=None):
             "files": [{"path": p, "sha256": hashlib.sha256(o).hexdigest(), "size_bytes": len(o)}
                       for p, o in sorted(files.items(), key=lambda item: item[0].encode("utf-8"))]}
 
-def manifest(scope, name, version, kernel_commit, widget_commit, books=("ledger", ledger, "4a" * 20)):
+def unminted(slug, commit):
+    """A member that never minted a rappid: its card is pinned, and its repository names it (§13.6)."""
+    return component(slug, "station", commit, {".rapp/member.md": f"---\nmember: {slug}\n---\n".encode()})
+
+def hive_root(commit, member):
+    """The Hive root's public copy — its index and one pointer. An estate catalog's `hives[]` entry
+    only says where it is; the release manifest pinning it is what makes it authentic (§13.5)."""
+    pointer = f"---\nstation: {member}\nrepo: acme/{member}\n---\n".encode()
+    index = f"---\nhive: acme\n---\n{hashlib.sha256(pointer).hexdigest()}  members/{member}.md\n".encode()
+    return component("hive-root", "hive", commit, {"PUBLISHED.md": index, f"members/{member}.md": pointer})
+
+def manifest(scope, name, version, kernel_commit, widget_commit, books=("ledger", ledger, "4a" * 20),
+             member=("handbook", "5c" * 20), hive_commit="9a" * 20):
     """One release of the family `scope`, named `name` for people; its identity is its manifest_hash."""
     slug, books_rappid, books_commit = books
-    return {"schema": REG.MANIFEST_SCHEMA, "release_scope": scope, "release": name, "components": [
+    return {"schema": REG.MANIFEST_SCHEMA, "release_scope": scope, "release": name, "components": sorted([
         component("brainstem", "kernel", kernel_commit, kernel_files(version), tag=f"refs/tags/v{version}"),
         component(slug, "organism", books_commit,
                   {"rappid.json": identity(books_rappid), "soul.md": f"# {slug}\n".encode()}, rappid=books_rappid),
@@ -88,7 +102,8 @@ def manifest(scope, name, version, kernel_commit, widget_commit, books=("ledger"
         component("rapp-1", "protocol", "5a" * 20, {"SPEC.md": b"# the protocol text acme implements\n"},
                   tag="refs/tags/rev-17"),
         component("widget-factory", "organism", widget_commit, {"rappid.json": identity(widget),
-                  "agents/widget_agent.py": f"# widget {widget_commit[:4]}\n".encode()}, rappid=widget)]}
+                  "agents/widget_agent.py": f"# widget {widget_commit[:4]}\n".encode()}, rappid=widget),
+        unminted(*member), hive_root(hive_commit, member[0])], key=lambda c: c["id"])}
 
 # ── 3. The declared entries: kernels, release pins, lifecycle notices, and a grant. ──
 LTS = "https://releases.example.test/acme/lts-1.4"  # the LTS family: kernel 1.4.2, forever
@@ -119,8 +134,9 @@ def release_pin(release, channel, predecessor, activated):
             "manifest_hash": manifest_hash, "repository": RELEASES, "object_format": "sha1",
             "commit": RELEASES_COMMIT, "path": path, "activated_utc": activated, **SIGNED}
 
-def notice(rappid, state, since, activated, previous=None, superseded_by=None):
-    return {"type": "lifecycle", "rappid": rappid, "state": state, "superseded_by": superseded_by,
+def notice(subject, state, since, activated, previous=None, superseded_by=None):
+    """A rappid for an organism, the repository URI for a member that has none (§13.6)."""
+    return {"type": "lifecycle", "subject": subject, "state": state, "superseded_by": superseded_by,
             "since_utc": since, "previous": None if previous is None else REG.entry_hash(previous),
             "activated_utc": activated, **SIGNED}
 
@@ -131,8 +147,9 @@ SEPT, OCT, NOV = "2026-09-01T00:00:00.000Z", "2026-10-01T00:00:00.000Z", "2026-1
 lts_release = manifest(LTS, "lts-2026.09", "1.4.2", "1a" * 20, "3a" * 20)
 lts_correction = manifest(LTS, "lts-2026.10", "1.4.2", "1a" * 20, "3b" * 20)  # a widget fix, the same kernel
 newest_2_0 = manifest(V2_0, "acme-2.0.0", "2.0.0", "2a" * 20, "3a" * 20)
-newest_2_1 = manifest(V2_1, "acme-2.1.0", "2.1.0", "2b" * 20, "3b" * 20,
-                      books=("ledger-next", ledger_next, "4b" * 20))  # the 2.1 family moves to ledger-next
+newest_2_1 = manifest(V2_1, "acme-2.1.0", "2.1.0", "2b" * 20, "3b" * 20,  # the 2.1 family moves to
+                      books=("ledger-next", ledger_next, "4b" * 20),     # ledger-next, and the handbook
+                      member=("docs", "5d" * 20), hive_commit="9b" * 20)  # station moved to docs
 lts_1, new_1 = release_pin(lts_release, "lts", None, SEPT), release_pin(newest_2_0, "newest", None, SEPT)
 ledger_active = notice(ledger, "active", SEPT, SEPT)
 pulses = [R.build_frame("body.pulse", network, 0, "2026-09-15T00:00:00.000Z", {"hive": "acme", "beat": 0}, None)]
@@ -152,6 +169,7 @@ grant = {"type": "stream-signer", "stream_id": network, "signer": crawler, "kind
 october = september + [
     grail(V2_1, "2.1.0", "2b" * 20, OCT), lts_2, new_2,
     notice(ledger, "superseded", NOV, OCT, previous=ledger_active, superseded_by=ledger_next),  # from November
+    notice(GIT + "handbook", "superseded", NOV, OCT, superseded_by=GIT + "docs"),  # a station's move
     grant,
 ]
 
@@ -195,13 +213,15 @@ def recording(*locator):
     calls.append(locator)
     return fetch(*locator)
 snapshot = REG.verify_snapshot(reg, recording, channel="lts", allow_draft=True)
-show(f"{len(snapshot)} files, each length- and SHA-256-checked at its pinned commit", len(snapshot) == 9)
+show(f"{len(snapshot)} files, each length- and SHA-256-checked at its pinned commit", len(snapshot) == 12)
 for (cid, path), octets in sorted(snapshot.items()):
     print(f"        {cid:15} {path:32} {len(octets):3} bytes")
 show("the kernel's two companions ride with its entry point",
      {p for c, p in snapshot if c == "brainstem"} == set(kernel_files("1.4.2")))
 show("the transport was asked only for the manifest and pinned commits — never a moving branch",
-     len(calls) == 10 and all(len(call[2]) == 40 for call in calls))
+     len(calls) == 13 and all(len(call[2]) == 40 for call in calls))
+show("the Hive root's index and its pointer are pinned files, so the estate catalog only locates them",
+     {p for c, p in snapshot if c == "hive-root"} == {"PUBLISHED.md", "members/handbook.md"})
 first = REG.verify_snapshot(reg, fetch, manifest_hash=lts_1["manifest_hash"], allow_draft=True)
 WIDGET_AGENT = ("widget-factory", "agents/widget_agent.py")
 show("the superseded first LTS release still verifies by its manifest_hash, on the same kernel bytes",
@@ -253,13 +273,19 @@ show("a member with no notice has no declared lifecycle — never a guessed depr
      reg.lifecycle_state_at(widget, NOV) is None)
 show("the LTS head still pins ledger and the 2.1 family carries ledger-next: a notice rebinds no release",
      ("ledger", "soul.md") in snapshot and ("ledger-next", "soul.md") in newest)
+handbook = next(c for c in pinned["components"] if c["id"] == "handbook")
+subject = REG.lifecycle_subject(handbook)  # no rappid, so its repository is what the notices name
+show("the handbook station, which never minted a rappid, is named by its repository", subject == GIT + "handbook")
+show("its move is a signed notice too: from November it is superseded by the docs repository",
+     reg.lifecycle_state_at(subject, OCT) is None and reg.lifecycle_state_at(subject, NOV) == "superseded"
+     and reg.successor_at(subject, NOV) == GIT + "docs")
 refused("ledger-next superseded by ledger from the same day: the successors in effect never loop",
         lambda: REG.Registry(october + [notice(ledger_next, "superseded", NOV, OCT, superseded_by=ledger)]))
 
 # ── 8. The network organism's pulse: unsigned first, then spoken for by a granted key. ──
 print("\nthe network organism's body.pulse stream (§13.7):")
 for pulse, head in zip(pulses, [None] + pulses):
-    ok, step, why = reg.verify_authorized_frame(pulse, head=head, stream_id_of_record=network)
+    ok, step, why = reg.verify_authorized_frame(pulse, head=head, stream_id_of_record=network, allow_draft=True)
     show(f"unsigned pulse {pulse['seq']} is a valid rapp/1 frame that does not speak for the estate",
          (ok, step) == (False, "authority"), why)
 later = [pulses[1]]
@@ -280,12 +306,14 @@ for pulse in later[1:]:
     ok, why = speaks(reg, crawler, pulse)
     show(f"pulse {pulse['seq']}, signed by the granted crawler, speaks for the estate", ok, why)
 ok, why = speaks(september_reg, crawler, later[1])
-show("against the September registry it did not: a cached refusal is re-evaluated against a newer one", not ok,
-     why)
+show("against the September registry it did not: a cached refusal is re-evaluated against a newer one",
+     not ok and "neither" in why, why)
 ok, why = speaks(reg, station, later[1])
-show("the station's key is registered, yet it does not speak for the estate on this stream", not ok, why)
+show("the station's key is registered, yet it does not speak for the estate on this stream",
+     not ok and "neither" in why, why)
 ok, why = speaks(reg, crawler, pulses[1])
-show("the grant starts at its since_utc: before it, even a crawler-signed pulse would not speak", not ok, why)
+show("the grant starts at its since_utc: before it, even a crawler-signed pulse would not speak",
+     not ok and "outside every stream-signer window" in why, why)
 show("the estate owner in effect needs no grant", speaks(reg, owner, later[1]) == (True, "estate owner"))
 
 print("\nSeeds, beacons, Hive indexes, and moving branches may say where to look; only what a release"

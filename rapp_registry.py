@@ -28,8 +28,8 @@ What is fully specified by §13 and enforced here:
     name, kernel coherence with the family's `grail-kernel`, and an all-or-nothing
     verified snapshot of one selected pinned release through a caller's fetch;
   - lifecycle notices (§13.6): one linear, owner-signed chain of `lifecycle` entries per
-    organism, the state and successor in effect at a time, and no cycle among the successors
-    in effect at any one time;
+    subject — an organism's rappid, or the URI of a repository that has none — the state and
+    successor in effect at a time, and no cycle among the successors in effect at any one time;
   - stream signers (§13.7): each `stream-signer` grant's structure and cross-entry rules,
     and the authority check above §7.5 for a consumer that follows no profile-defined signer
     rule — a verified frame speaks for the estate only when its `kid` is the owner in effect
@@ -96,7 +96,7 @@ ENTRY_MEMBERS = {
                       "activated_utc", "predecessor", "declared_by", "sig"}, set()),
     "release-pin": ({"type", "release_scope", "channel", "predecessor", "manifest_hash", "repository",
                      "object_format", "commit", "path", "activated_utc", "declared_by", "sig"}, set()),
-    "lifecycle": ({"type", "rappid", "state", "superseded_by", "since_utc", "previous",
+    "lifecycle": ({"type", "subject", "state", "superseded_by", "since_utc", "previous",
                    "activated_utc", "declared_by", "sig"}, set()),
     "stream-signer": ({"type", "stream_id", "signer", "kinds", "since_utc", "until_utc",
                        "activated_utc", "declared_by", "sig"}, set()),
@@ -253,22 +253,38 @@ def _validate_release_pin(entry, where):
     _rappid(entry, "declared_by", where); _str(entry, "sig", where)
 
 
+def lifecycle_subject_valid(value):
+    """§13.6: a lifecycle subject is a §6.1 rappid (an organism) or an absolute HTTPS URI naming a
+    repository (one that carries no rappid of its own). The two forms never overlap."""
+    return R.rappid_valid(value) or (isinstance(value, str) and bool(_HTTPS.fullmatch(value)))
+
+
+def lifecycle_subject(component):
+    """The §13.6 subject whose notices speak for one component of a release manifest (§13.5): its
+    `rappid` when it binds one, otherwise its `repository`, byte for byte as the manifest spells it."""
+    return component["rappid"] if component["rappid"] is not None else component["repository"]
+
+
 def _validate_lifecycle(entry, where):
     """The §13.3 `lifecycle` members and the §13.6 rules one entry shows by itself.
     Its chain and the no-cycle rule span entries, so `Registry` checks those."""
-    organism = _rappid(entry, "rappid", where)
+    subject = entry.get("subject")
+    if not lifecycle_subject_valid(subject):
+        raise RegistryError(f"{where}: `subject` must be a §6.1 rappid or an absolute HTTPS repository URI")
     state = entry.get("state")
     if state not in LIFECYCLE_STATES:
         raise RegistryError(f"{where}: `state` must be one of {LIFECYCLE_STATES}")
     successor = entry.get("superseded_by")
-    if successor is not None and not R.rappid_valid(successor):
-        raise RegistryError(f"{where}: `superseded_by` must be null or a §6.1 rappid")
-    if successor == organism:
-        raise RegistryError(f"{where}: `superseded_by` never equals `rappid` (§13.6)")
+    if successor is not None and not lifecycle_subject_valid(successor):
+        raise RegistryError(
+            f"{where}: `superseded_by` must be null, a §6.1 rappid, or an absolute HTTPS repository URI"
+        )
+    if successor == subject:
+        raise RegistryError(f"{where}: `superseded_by` never equals `subject` (§13.6)")
     if state == "active" and successor is not None:
-        raise RegistryError(f"{where}: an active organism has no successor; `superseded_by` must be null (§13.6)")
+        raise RegistryError(f"{where}: an active notice names no successor; `superseded_by` must be null (§13.6)")
     if state == "superseded" and successor is None:
-        raise RegistryError(f"{where}: a superseded organism names its successor in `superseded_by` (§13.6)")
+        raise RegistryError(f"{where}: a superseded notice names its successor in `superseded_by` (§13.6)")
     _utc(entry, "since_utc", where)
     previous = entry.get("previous")
     if previous is not None and not (isinstance(previous, str) and _HEX64.fullmatch(previous)):
@@ -429,7 +445,7 @@ class Registry:
         self.genesis = {}        # stream_id -> list of entries
         self.grail = {}          # grail_id -> entry
         self.release_pins = {}   # manifest_hash -> release-pin entry, append order (§13.5)
-        self.lifecycle = {}      # rappid -> [lifecycle entries, chain order] (§13.6)
+        self.lifecycle = {}      # subject -> [lifecycle entries, chain order] (§13.6)
         self.stream_signers = {}  # stream_id -> [stream-signer grants], append order (§13.7)
         self.protocol_history = {}  # name -> [entries], append order
         self.master_plan = None
@@ -479,7 +495,7 @@ class Registry:
                     )
                 self.release_pins[e["manifest_hash"]] = e
             elif t == "lifecycle":
-                self.lifecycle.setdefault(e["rappid"], []).append(e)
+                self.lifecycle.setdefault(e["subject"], []).append(e)
             elif t == "stream-signer":
                 self.stream_signers.setdefault(e["stream_id"], []).append(e)
             elif t == "protocol":
@@ -901,41 +917,42 @@ class Registry:
 
     # ---- §13.6 lifecycle notices ----
     def _index_lifecycle(self):
-        """Chain each organism's `lifecycle` entries and refuse what §13.6 forbids.
+        """Chain each subject's `lifecycle` entries and refuse what §13.6 forbids.
 
-        One linear chain per `rappid`, every entry after the first naming the one it
-        follows by `previous` = entry_hash (so a chain is its organism's entries in append
-        order); neither `since_utc` nor `activated_utc` decreasing along it; and, at no time,
-        a cycle among the successors named by the notices in effect then."""
+        One linear chain per `subject` (a rappid or a repository URI, compared byte for byte),
+        every entry after the first naming the one it follows by `previous` = entry_hash (so a
+        chain is its subject's entries in append order); neither `since_utc` nor
+        `activated_utc` decreasing along it; and, at no time, a cycle among the successors named
+        by the notices in effect then."""
         collected = [e for notices in self.lifecycle.values() for e in notices]
         self.lifecycle = linear_chains(
-            collected, key=lambda e: e["rappid"], ident=entry_hash,
+            collected, key=lambda e: e["subject"], ident=entry_hash,
             link=lambda e: e["previous"], where="lifecycle chain",
         )
-        for organism, chain in self.lifecycle.items():
+        for subject, chain in self.lifecycle.items():
             for prior, notice in zip(chain, chain[1:]):
                 for member in ("since_utc", "activated_utc"):
                     # The fixed §7.4 form orders bytewise exactly as it orders in time.
                     if notice[member] < prior[member]:
                         raise RegistryError(
-                            f"lifecycle chain {organism!r}: `{member}` decreases along the chain (§13.6)"
+                            f"lifecycle chain {subject!r}: `{member}` decreases along the chain (§13.6)"
                         )
         # The notices in effect change only at a since_utc, so the successor graph is checked at
-        # each distinct since_utc in time order. A cycle there must pass through an organism
-        # whose notice changed then (the graph before that instant had none), so only walks
-        # from those organisms are needed.
-        changes = {}  # since_utc -> [(organism, notice)], each chain's entries in chain order
-        for organism, chain in self.lifecycle.items():
+        # each distinct since_utc in time order. A cycle there must pass through a subject whose
+        # notice changed then (the graph before that instant had none), so only walks from those
+        # subjects are needed.
+        changes = {}  # since_utc -> [(subject, notice)], each chain's entries in chain order
+        for subject, chain in self.lifecycle.items():
             for notice in chain:
-                changes.setdefault(notice["since_utc"], []).append((organism, notice))
-        successors = {}  # organism -> the successor named by its notice in effect
+                changes.setdefault(notice["since_utc"], []).append((subject, notice))
+        successors = {}  # subject -> the successor named by its notice in effect
         for instant in sorted(changes):
-            for organism, notice in changes[instant]:  # a later entry at the same instant wins
+            for subject, notice in changes[instant]:  # a later entry at the same instant wins
                 if notice["superseded_by"] is None:
-                    successors.pop(organism, None)
+                    successors.pop(subject, None)
                 else:
-                    successors[organism] = notice["superseded_by"]
-            settled = set()  # organisms whose walk along the successors in effect is known to end
+                    successors[subject] = notice["superseded_by"]
+            settled = set()  # subjects whose walk along the successors in effect is known to end
             for start, _ in changes[instant]:
                 walk, current = set(), start
                 while current in successors and current not in settled:
@@ -948,41 +965,43 @@ class Registry:
                     current = successors[current]
                 settled |= walk
 
-    def lifecycle_chain(self, rappid):
-        """The organism's `lifecycle` entries in chain order (first notice first); [] when none."""
-        return list(self.lifecycle.get(rappid, ())) if isinstance(rappid, str) else []
+    def lifecycle_chain(self, subject):
+        """The subject's `lifecycle` entries in chain order (first notice first); [] when none.
+        `subject` is a rappid or a repository URI, spelled exactly as the notices spell it."""
+        return list(self.lifecycle.get(subject, ())) if isinstance(subject, str) else []
 
-    def lifecycle_head(self, rappid):
-        """The current notice — the last entry of the organism's chain — or None. A scheduled
+    def lifecycle_head(self, subject):
+        """The current notice — the last entry of the subject's chain — or None. A scheduled
         notice is current before its `since_utc` arrives; `lifecycle_at` and `successor_at`
         say what is in effect."""
-        chain = self.lifecycle_chain(rappid)
+        chain = self.lifecycle_chain(subject)
         return chain[-1] if chain else None
 
-    def lifecycle_at(self, rappid, utc):
+    def lifecycle_at(self, subject, utc):
         """The notice in effect at `utc`: the last chain entry whose `since_utc` <= `utc`
         (bytewise, §7.4). None means no declared lifecycle at `utc` — never deprecation.
-        A `utc` that is not the fixed §7.4 form raises RegistryError (a ValueError)."""
+        A `utc` that is not the fixed §7.4 form raises RegistryError (a ValueError). For a
+        component of a release manifest, ask about `lifecycle_subject(component)`."""
         if not R.utc_valid(utc):
             raise RegistryError("lifecycle query time is not the fixed §7.4 UTC form")
         in_effect = None
-        for notice in self.lifecycle_chain(rappid):
+        for notice in self.lifecycle_chain(subject):
             if notice["since_utc"] > utc:
                 break  # since_utc never decreases along a chain
             in_effect = notice
         return in_effect
 
-    def lifecycle_state_at(self, rappid, utc):
-        """The organism's state in effect at `utc`; None when it has no declared lifecycle then."""
-        notice = self.lifecycle_at(rappid, utc)
+    def lifecycle_state_at(self, subject, utc):
+        """The subject's state in effect at `utc`; None when it has no declared lifecycle then."""
+        notice = self.lifecycle_at(subject, utc)
         return None if notice is None else notice["state"]
 
-    def successor_at(self, rappid, utc):
-        """The `superseded_by` of the notice in effect at `utc`; None when no notice is in effect
-        then or it names no successor, so a scheduled notice names none before its `since_utc`.
-        It names; it grants nothing. The successors in effect at any one time never form a
-        cycle (§13.6), so a walk along them at one time always ends."""
-        notice = self.lifecycle_at(rappid, utc)
+    def successor_at(self, subject, utc):
+        """The `superseded_by` of the notice in effect at `utc` — a rappid or a repository URI —
+        or None when no notice is in effect then or it names no successor, so a scheduled notice
+        names none before its `since_utc`. It names; it grants nothing. The successors in effect
+        at any one time never form a cycle (§13.6), so a walk along them at one time always ends."""
+        notice = self.lifecycle_at(subject, utc)
         return None if notice is None else notice["superseded_by"]
 
     # ---- §13.7 stream signers ----
@@ -1035,8 +1054,11 @@ class Registry:
         `utc`. A grant's `activated_utc` plays no part: a grant may start before it, and then
         adopts frames the signer already published inside its window. It decides authority,
         never validity: the frame must already have passed §7.5 (see frame_authorized). Pure:
-        it reads only this registry, so a refusal holds only against it — a newer registry can
-        add a grant that adopts the frame, and a cached refusal is re-evaluated against it (§13.7)."""
+        it reads only this registry's entries and does not check `status` — it is the rule, not
+        the estate's answer; frame_authorized and verify_authorized_frame give the answer only
+        for a verified registry. A refusal holds only against this registry — a newer registry
+        can add a grant that adopts the frame, and a cached refusal is re-evaluated against it
+        (§13.7)."""
         if kid is None:
             return False, "an unsigned frame never speaks for the estate (§10, §13.7)"
         if not R.rappid_valid(kid):
@@ -1066,20 +1088,34 @@ class Registry:
             return False, f"the granted signer's key is refused at utc (§10): {why}"
         return True, "stream-signer grant"
 
-    def frame_authorized(self, frame):
+    def _authority_status_refusal(self, allow_draft):
+        """None when this registry's authority answers may be given; else the refusal reason.
+        Like verify_snapshot: "verified" always, "draft" only with allow_draft (a rehearsal),
+        and a Registry built directly (status None) never."""
+        accepted = ("verified", "draft") if allow_draft else ("verified",)
+        if self.status in accepted:
+            return None
+        return (f"registry status is {self.status!r}; only a registry that load_document returned as "
+                f"{' or '.join(accepted)} answers who speaks for the estate (§13.1, §13.7)")
+
+    def frame_authorized(self, frame, *, allow_draft=False):
         """The §13.7 authority rule ONLY — does this frame speak for the estate? (ok, reason).
 
         !! IT DOES NOT VERIFY THE FRAME. Call it only for a frame that has ALREADY passed §7.5
         !! — rapp.verify_frame(signature_verifier=self.signature_verifier()) plus
         !! check_frame_binding — or call verify_authorized_frame, which runs all three. It reads
         !! the signer from the protected `kid` without checking the signature, so its answer
-        !! for an unverified frame means nothing. Ask a registry that load_document returned as
-        !! "verified" (its `status`): a draft or a Registry built directly (status None) answers
-        !! structure, never authority.
+        !! for an unverified frame means nothing.
 
-        Refuses an unsigned frame (it never speaks for the estate, §10) and a `sig` whose
-        protected header does not parse; otherwise applies authority_decision to the frame's
-        `stream_id`, `kid`, `kind`, and `utc`. A refusal leaves the frame a valid `rapp/1` frame."""
+        Answers only for a registry that load_document returned as "verified" (its `status`); a
+        "draft" answers only with `allow_draft=True`, for rehearsal, and a Registry built
+        directly (status None) never — as for verify_snapshot. Refuses an unsigned frame (it
+        never speaks for the estate, §10) and a `sig` whose protected header does not parse;
+        otherwise applies authority_decision to the frame's `stream_id`, `kid`, `kind`, and
+        `utc`. A refusal leaves the frame a valid `rapp/1` frame."""
+        refusal = self._authority_status_refusal(allow_draft)
+        if refusal:
+            return False, refusal
         if not isinstance(frame, dict):
             return False, "frame is not a JSON object"
         sig = frame.get("sig")
@@ -1091,7 +1127,7 @@ class Registry:
             return False, f"sig is not a §10 detached JWS: {why}"
         return self.authority_decision(frame.get("stream_id"), kid, frame.get("kind"), frame.get("utc"))
 
-    def verify_authorized_frame(self, frame, *, head, stream_id_of_record):
+    def verify_authorized_frame(self, frame, *, head, stream_id_of_record, allow_draft=False):
         """§7.5 against this registry, then the §13.7 authority check. Returns (ok, step, why).
 
         An invalid frame fails at its §7.5 step, "1" through "6"; the registered-kind and
@@ -1100,9 +1136,9 @@ class Registry:
         step, so a caller can tell "not the estate's statement" from "not a frame". On success
         step is None and why names the authority: "estate owner" or "stream-signer grant".
         `head` is the stream's verified head (None at genesis); `stream_id_of_record` is the
-        stream being read or extended (§7.5 step 1a) and is required. The answer is the estate's
-        only when this registry is one load_document returned as "verified" (§13.1; see
-        `status`)."""
+        stream being read or extended (§7.5 step 1a) and is required. The authority step answers
+        only for a registry load_document returned as "verified" (§13.1; see `status`), or a
+        "draft" with `allow_draft=True` for rehearsal."""
         if not isinstance(frame, dict):
             return False, "1", "frame is not a JSON object"
         if not isinstance(stream_id_of_record, str):
@@ -1116,14 +1152,15 @@ class Registry:
             return False, "1", bound_why
         if not ok:
             return False, step, why
-        authorized, why = self.frame_authorized(frame)
+        authorized, why = self.frame_authorized(frame, allow_draft=allow_draft)
         if not authorized:
             return False, "authority", why
         return True, None, why
 
-    def authorization_verifier(self):
+    def authorization_verifier(self, *, allow_draft=False):
         """A callable `(frame, purpose=None) -> bool` for the `authorization_verifier` parameter of
-        rapp_profile.authoritative_frame_payload: True only when frame_authorized(frame) holds.
+        rapp_profile.authoritative_frame_payload: True only when frame_authorized(frame) holds,
+        so never for a registry that is not "verified" (or a "draft" with `allow_draft=True`).
         That helper asks only after its own rapp.verify_frame — pass it
         signature_verifier=self.signature_verifier() — so the signature is verified first, as
         frame_authorized requires. `purpose` is accepted and never widens authority.
@@ -1132,7 +1169,7 @@ class Registry:
         profile that defines its own signer authorization (rapp-work/1 §1, a rapp-cicd/1 stage
         approver) keeps it and MAY meet it with this verifier; nothing here replaces that rule."""
         def authorized(frame, purpose=None):
-            return self.frame_authorized(frame)[0]
+            return self.frame_authorized(frame, allow_draft=allow_draft)[0]
         return authorized
 
 
@@ -1184,9 +1221,10 @@ def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_uns
     persisted `release-pin` (§13.5: no kernel joins a family after a release of it was accepted).
     Freshness, append provenance, and historical migration proofs remain caller
     responsibilities; a verified registry snapshot alone cannot establish them. A returned
-    registry records its status in `registry.status` ("verified" or "draft"): `verify_snapshot`
-    checks it, and only a "verified" registry's authority answers (§13.7) are the estate's; a
-    Registry constructed directly has status None.
+    registry records its status in `registry.status` ("verified" or "draft"): `verify_snapshot`,
+    `frame_authorized`, and `verify_authorized_frame` check it, so only a "verified" registry's
+    snapshots and authority answers (§13.5, §13.7) are the estate's (a draft only with
+    `allow_draft=True`, as a rehearsal); a Registry constructed directly has status None.
     `tombstone_issued_at(entry_hash)` must resolve authenticated issuance/append
     context to a fixed UTC string. It is trusted caller configuration, never a
     field read from the untrusted document. No resolver means tombstones are

@@ -49,12 +49,12 @@ class LifecycleCase(unittest.TestCase):
     def setUp(self):
         self.estate = MockEstate()
 
-    def notice(self, rappid, state, since=T0, previous=None, superseded_by=None,
+    def notice(self, subject, state, since=T0, previous=None, superseded_by=None,
                activated=T0, declared="owner", signer=None):
         """One owner-declared §13.3 `lifecycle` entry; `previous` may be the entry it follows."""
         if isinstance(previous, dict):
             previous = REG.entry_hash(previous)
-        entry = {"type": "lifecycle", "rappid": rappid, "state": state, "superseded_by": superseded_by,
+        entry = {"type": "lifecycle", "subject": subject, "state": state, "superseded_by": superseded_by,
                  "since_utc": since, "previous": previous, "activated_utc": activated,
                  "declared_by": self.estate.keys[declared]}
         return self.estate.declare(entry, signer or declared)
@@ -78,7 +78,7 @@ class LifecycleEntryTests(LifecycleCase):
     def test_a_notice_is_a_declared_entry_with_exactly_its_members(self):
         good = self.notice(ALPHA, "active")
         self.assertEqual(REG.validate_entry(good), "lifecycle")
-        self.assertEqual(set(good), {"type", "rappid", "state", "superseded_by", "since_utc", "previous",
+        self.assertEqual(set(good), {"type", "subject", "state", "superseded_by", "since_utc", "previous",
                                      "activated_utc", "declared_by", "sig"})
         self.assertEqual(REG.ENTRY_MEMBERS["lifecycle"], (set(good), set()))
         self.assertIn("lifecycle", REG.DECLARED_TYPES)
@@ -93,9 +93,12 @@ class LifecycleEntryTests(LifecycleCase):
 
     def test_each_member_has_its_grammar(self):
         bad = {
-            "rappid": [None, ALPHA.upper(), ALPHA.rsplit(":", 1)[0] + ":" + "a" * 32, "@acme/alpha", 7],
+            "subject": [None, "", ALPHA.upper(), ALPHA.rsplit(":", 1)[0] + ":" + "a" * 32, "@acme/alpha", 7,
+                        "acme/alpha", "http://git.example.test/acme/alpha", "https://",
+                        "https://git.example.test/acme/al pha", ["https://git.example.test/acme/alpha"]],
             "state": [None, "", "Active", "retired", "deleted", ["active"]],
-            "superseded_by": ["", "https://git.example.test/acme/beta", BETA[:-1] + "A", BETA.replace("@", "")],
+            "superseded_by": ["", "http://git.example.test/acme/beta", "acme/beta", "https://",
+                              BETA[:-1] + "A", BETA.replace("@", ""), 7],
             "since_utc": [None, "2026-07-01T00:00:00Z", "2026-07-01T00:00:00.000+00:00",
                           "2026-02-30T00:00:00.000Z", "2026-07-01t00:00:00.000z", 1783000000],
             "previous": ["", "A" * 64, "a" * 63, "a" * 65, 7],
@@ -126,6 +129,61 @@ class LifecycleEntryTests(LifecycleCase):
         for state in ("deprecated", "superseded", "archived"):
             with self.subTest(state=state, superseded_by="itself"):
                 self.assertRefused(self.notice(ALPHA, state, superseded_by=ALPHA), reason="never equals")
+
+
+class LifecycleSubjectTests(LifecycleCase):
+    """§13.6 subjects: an organism's rappid, or the HTTPS URI of a repository with no rappid."""
+    HANDBOOK = "https://git.example.test/acme/handbook"  # a member that never minted an identity
+    DOCS = "https://git.example.test/acme/docs"          # where it moved
+
+    def test_either_form_is_a_subject_and_nothing_else_is(self):
+        for value in (ALPHA, self.HANDBOOK, "https://git.example.test/acme/RAPP_Store"):
+            with self.subTest(value=value):
+                self.assertTrue(REG.lifecycle_subject_valid(value))
+                self.assertEqual(REG.validate_entry(self.notice(value, "active")), "lifecycle")
+        for value in (None, "", 7, "acme/handbook", "git.example.test/acme/handbook",
+                      "http://git.example.test/acme/handbook", "https://", "rappid:@acme/alpha"):
+            with self.subTest(value=value):
+                self.assertFalse(REG.lifecycle_subject_valid(value))
+
+    def test_a_repository_has_its_own_chain_and_a_move_supersedes_it(self):
+        r1 = self.notice(self.HANDBOOK, "active")
+        r2 = self.notice(self.HANDBOOK, "superseded", since=T1, previous=r1, superseded_by=self.DOCS,
+                         activated=T1)
+        registry = self.registry(r1, self.notice(ALPHA, "active"), r2)
+        self.assertEqual(registry.lifecycle_chain(self.HANDBOOK), [r1, r2])
+        self.assertEqual(registry.lifecycle_state_at(self.HANDBOOK, T0), "active")
+        self.assertEqual(registry.lifecycle_state_at(self.HANDBOOK, T1), "superseded")
+        self.assertEqual(registry.successor_at(self.HANDBOOK, T1), self.DOCS)
+        self.assertIsNone(registry.lifecycle_state_at(self.DOCS, T1))  # the new home declares nothing yet
+        self.assertRefused(r1, self.notice(self.HANDBOOK, "archived", since=T1, activated=T1),
+                           reason="exactly one first entry")
+
+    def test_subjects_compare_byte_for_byte(self):
+        spellings = (self.DOCS, "https://git.example.test/acme/Docs", self.DOCS + "/")
+        registry = self.registry(*(self.notice(spelling, state) for spelling, state in
+                                   zip(spellings, ("active", "archived", "deprecated"))))
+        self.assertEqual([registry.lifecycle_state_at(s, T0) for s in spellings],
+                         ["active", "archived", "deprecated"])  # three spellings, three subjects
+        self.assertRefused(self.notice(self.DOCS, "archived", superseded_by=self.DOCS), reason="never equals")
+
+    def test_successors_cross_forms_and_so_do_cycles(self):
+        minted = self.notice(self.HANDBOOK, "superseded", superseded_by=ALPHA)  # it minted an identity
+        pointed = self.notice(BETA, "deprecated", superseded_by=self.DOCS)
+        registry = self.registry(minted, pointed)
+        self.assertEqual((registry.successor_at(self.HANDBOOK, T0), registry.successor_at(BETA, T0)),
+                         (ALPHA, self.DOCS))
+        self.assertRefused(minted, self.notice(ALPHA, "superseded", superseded_by=self.HANDBOOK),
+                           reason=f"in effect at {re.escape(T0)} form a cycle")
+
+    def test_a_components_subject_is_its_rappid_when_bound_else_its_repository(self):
+        bound = {"id": "widget", "rappid": ALPHA, "repository": "https://git.example.test/acme/widget"}
+        unbound = {"id": "handbook", "rappid": None, "repository": self.HANDBOOK}
+        self.assertEqual((REG.lifecycle_subject(bound), REG.lifecycle_subject(unbound)), (ALPHA, self.HANDBOOK))
+        # A notice about the repository never speaks for the organism its release binds there.
+        registry = self.registry(self.notice(bound["repository"], "archived"), self.notice(self.HANDBOOK, "archived"))
+        self.assertIsNone(registry.lifecycle_state_at(REG.lifecycle_subject(bound), T0))
+        self.assertEqual(registry.lifecycle_state_at(REG.lifecycle_subject(unbound), T0), "archived")
 
 
 class LifecycleChainTests(LifecycleCase):
@@ -672,7 +730,7 @@ class RealSignatureLifecycleTests(unittest.TestCase):
         worker = R.mint_rappid("test", "worker", spki_der=worker_der)
 
         def notice(state, since, previous, superseded_by):
-            entry = {"type": "lifecycle", "rappid": worker, "state": state, "superseded_by": superseded_by,
+            entry = {"type": "lifecycle", "subject": worker, "state": state, "superseded_by": superseded_by,
                      "since_utc": since, "previous": previous, "activated_utc": since, "declared_by": owner}
             entry["sig"] = owner_sign(entry, owner)
             return entry

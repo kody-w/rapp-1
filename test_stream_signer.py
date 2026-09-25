@@ -73,7 +73,12 @@ class Base(unittest.TestCase):
         return self.estate.declare(entry, sign_as or declared)
 
     def registry(self, extra=(), entries=None):
-        return REG.Registry((self.base() if entries is None else entries) + list(extra))
+        """The rule under test over these entries. Its `status` stands in for load_document's
+        "verified": the signed path is exercised by the load() tests and the real-key class, and
+        the status gate itself by AuthorityStatusTests."""
+        reg = REG.Registry((self.base() if entries is None else entries) + list(extra))
+        reg.status = "verified"
+        return reg
 
     def load(self, extra=(), owner="owner", entries=None, **kwargs):
         base = self.base(owner) if entries is None else entries
@@ -492,6 +497,48 @@ class VerifyAuthorizedFrameTests(Base):
         self.assertEqual(self.verify(reg, self.pulse(LAST, head=closing), head=closing)[:2], (False, "4"))
         self.assertEqual(self.verify(reg, self.pulse(UNTIL, head=closing), head=closing)[:2],
                          (False, "authority"))
+
+
+class AuthorityStatusTests(Base):
+    """Who speaks for the estate is answered only from a verified registry — as for a snapshot."""
+
+    def test_a_registry_built_directly_never_answers(self):
+        reg = REG.Registry(self.base() + [self.grant()])  # status None: nothing was verified
+        for frame in (self.pulse(INSIDE), self.pulse(INSIDE, signer="owner")):
+            with self.subTest(signer=frame["sig"][:12]):
+                ok, why = reg.frame_authorized(frame)
+                self.assertFalse(ok)
+                self.assertIn("registry status is None", why)
+                self.assertFalse(reg.frame_authorized(frame, allow_draft=True)[0])  # not even as a rehearsal
+                self.assertEqual(self.verify(reg, frame)[:2], (False, "authority"))
+                with self.estate.mocked():
+                    self.assertFalse(reg.authorization_verifier()(frame))
+                    self.assertFalse(reg.authorization_verifier(allow_draft=True)(frame))
+        # The rule itself is pure: it reads the entries, whatever the status.
+        self.assertEqual(reg.authority_decision(self.station, self.keys["signer"], "body.pulse", INSIDE),
+                         (True, "stream-signer grant"))
+
+    def test_a_draft_answers_only_as_a_rehearsal(self):
+        document = self.estate.document(self.base() + [self.grant()], owner="owner", signed=False)
+        status, reg, _ = REG.load_document(document, trust_anchor=self.keys["owner"], allow_unsigned=True)
+        self.assertEqual((status, reg.status), ("draft", "draft"))
+        frame = self.pulse(INSIDE)
+        ok, why = reg.frame_authorized(frame)
+        self.assertFalse(ok)
+        self.assertIn("registry status is 'draft'", why)
+        self.assertEqual(reg.frame_authorized(frame, allow_draft=True), (True, "stream-signer grant"))
+        with self.estate.mocked():
+            self.assertEqual(reg.verify_authorized_frame(frame, head=None, stream_id_of_record=self.station)[:2],
+                             (False, "authority"))
+            self.assertEqual(reg.verify_authorized_frame(frame, head=None, stream_id_of_record=self.station,
+                                                         allow_draft=True), (True, None, "stream-signer grant"))
+            self.assertFalse(reg.authorization_verifier()(frame))
+            self.assertTrue(reg.authorization_verifier(allow_draft=True)(frame))
+
+    def test_a_verified_registry_answers(self):
+        status, reg, why = self.load([self.grant()], verification_utc=LATER)
+        self.assertEqual((status, why, reg.status), ("verified", "ok", "verified"))
+        self.assertEqual(self.verify(reg, self.pulse(INSIDE)), (True, None, "stream-signer grant"))
 
 
 class ProfileAuthorizationTests(Base):
