@@ -44,6 +44,11 @@ internals, customer content and anything a reader here has no business seeing.
       `egg-variant` registry entry. Both cannot be the rule. A vendor variant is registrable but
       not packable by the reference until one is chosen.
 
+- [ ] **`rapp-work/1` §2: one accountable owner, so a group of equals has no natural fit
+      (proposal, not accepted).** Draft, with `rapp-work/1` unchanged: the owner as the Hive's
+      notary, signing only what the Hive approved and naming that approval,
+      [`protocols/rapp-work/1/proposals/0005-owner-as-hive-notary.md`](protocols/rapp-work/1/proposals/0005-owner-as-hive-notary.md).
+
 ## Known limit
 
 `raw.githubusercontent.com/.../main/...` is CDN-cached for several minutes and ignores
