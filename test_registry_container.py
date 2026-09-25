@@ -31,16 +31,31 @@ class RegistryContainerTests(unittest.TestCase):
         cases = {
             "canonical_source": ["http://registry.example.test/r.json", "", 7, None],
             "entries": [{}, "entries", None],
-            "registry_seq": [-1, 2**53, True, "2"],
-            "sig": ["", 5],
+            "registry_seq": [-1, True, "2"],
             "schema": ["rapp/1-registry-v2", None],
         }
+        beyond = self.estate.document(self.estate.base_entries())
+        beyond["registry_seq"] = 2**53  # not even canonicalizable, so it cannot be signed
+        with self.assertRaisesRegex(REG.RegistryError, "uint53"):
+            REG.validate_document(beyond)
+        self.assertEqual(self.estate.load(beyond)[0], "refused")
         for member, values in cases.items():
             for value in values:
                 with self.subTest(member=member, value=value):
-                    doc = self.estate.document(self.estate.base_entries())
-                    doc[member] = value
-                    self.assertEqual(self.estate.load(doc)[0], "refused")
+                    # Signed AFTER the change, so only the container rule can refuse it.
+                    doc = self.estate.document(self.estate.base_entries(), extra={member: value})
+                    status, _, why = self.estate.load(doc)
+                    self.assertEqual(status, "refused")
+                    self.assertNotIn("signature", why)
+                    with self.assertRaises(REG.RegistryError):
+                        REG.validate_document(doc)
+        for value in ("", 5, ["jws"]):
+            with self.subTest(member="sig", value=value):
+                doc = self.estate.document(self.estate.base_entries())
+                doc["sig"] = value
+                with self.assertRaisesRegex(REG.RegistryError, "sig must be"):
+                    REG.validate_document(doc)
+                self.assertEqual(self.estate.load(doc)[0], "refused")
 
     def test_other_top_level_members_are_signed_but_meaningless(self):
         extra = {"estate": "test", "anchor": {"revision": "rev-0"}, "published_utc": T0}
@@ -63,6 +78,14 @@ class RegistryContainerTests(unittest.TestCase):
             self.estate.load(doc, canonical_source="https://mirror.example.test/r.json")[0],
             "refused",
         )
+
+    def test_unhashable_entry_type_is_a_refusal_not_a_crash(self):
+        for bad in ([], {}, 7, None):
+            with self.subTest(type=bad):
+                with self.assertRaises(REG.RegistryError):
+                    REG.validate_entry({"type": bad})
+                doc = self.estate.document(self.estate.base_entries() + [{"type": bad}])
+                self.assertEqual(self.estate.load(doc)[0], "refused")
 
     def test_unsigned_container_is_a_draft_only_when_allowed(self):
         doc = self.estate.document(self.estate.base_entries(), signed=False)
@@ -151,6 +174,33 @@ class DeclaredEntryTests(unittest.TestCase):
         self.assertEqual(self.load([late], verification_utc=T0)[0], "refused")
         self.assertEqual(self.load([entry], verification_utc="not-a-time")[0], "refused")
 
+    def test_first_seen_is_resolved_per_entry(self):
+        early = self.estate.grail_kernel(activated=T0)
+        later = self.estate.grail_kernel(scope="https://releases.example.test/scope/b",
+                                         activated="2026-07-09T00:00:00.000Z")
+        seen = {REG.entry_hash(early): T0, REG.entry_hash(later): "2026-07-09T00:00:00.000Z"}
+        self.assertEqual(self.load([early, later], first_seen=seen.__getitem__)[0], "verified")
+        # One scalar for both would wrongly refuse the entry appended later …
+        self.assertEqual(self.load([early, later], verification_utc=T0)[0], "refused")
+        # … and a resolver that remembers an early first sighting keeps refusing a late-dated one.
+        seen[REG.entry_hash(later)] = T0
+        self.assertEqual(self.load([early, later], first_seen=seen.__getitem__)[0], "refused")
+        self.assertEqual(self.load([early], first_seen={}.__getitem__)[0], "refused")
+        self.assertEqual(
+            self.load([early], first_seen=seen.__getitem__, verification_utc=T0)[0], "refused"
+        )
+
+    def test_declaring_key_must_be_acceptable_at_activated_utc(self):
+        cutoff = "2026-07-15T00:00:00.000Z"
+        tombstone = {"type": "tombstone", "rappid": self.estate.keys["owner"], "revoked_utc": cutoff}
+        tombstone["sig"] = self.estate.sign(tombstone, self.estate.keys["owner"])
+        before = self.estate.grail_kernel(activated=T0)
+        after = self.estate.grail_kernel(scope="https://releases.example.test/scope/b", activated=LATER)
+        self.assertEqual(self.load([tombstone, before])[0], "verified")
+        status, _, why = self.load([tombstone, after])
+        self.assertEqual(status, "refused")
+        self.assertIn("tombstoned", why)
+
     def test_an_exact_copy_verifies_apart_from_its_document(self):
         entry = self.estate.grail_kernel()
         with self.estate.mocked():
@@ -160,7 +210,29 @@ class DeclaredEntryTests(unittest.TestCase):
             altered["commit"] = "3" * 40
             self.assertFalse(reg.declared_entry_ok(altered)[0])
             self.assertFalse(reg.declared_entry_ok({"type": "spki"})[0])
+            self.assertFalse(reg.declared_entry_ok({"type": ["grail-kernel"]})[0])
             self.assertFalse(reg.declared_entry_ok(self.estate.spki("worker"))[0])
+
+    def test_a_well_signed_copy_the_registry_does_not_carry_is_not_a_declaration(self):
+        rotation = self.estate.reanchor("owner", "successor", signer="owner",
+                                        utc="2026-07-15T00:00:00.000Z")
+        carried = self.estate.grail_kernel(declared="successor", activated=LATER)
+        base = self.estate.base_entries(owner="successor")
+        with self.estate.mocked():
+            reg = REG.Registry(base + [rotation, carried])
+            self.assertEqual(reg.declared_entry_ok(carried), (True, "ok"))
+            unregistered = self.estate.grail_kernel(scope="https://releases.example.test/scope/new",
+                                                    declared="successor", activated=LATER)
+            backdated_by_retired_key = self.estate.grail_kernel(
+                scope="https://releases.example.test/scope/old", declared="owner", activated=T0)
+            rebinding = self.estate.grail_kernel(declared="successor", activated=LATER, sha256="b" * 64)
+            for label, forged in (("unregistered", unregistered),
+                                  ("retired key, backdated", backdated_by_retired_key),
+                                  ("rebinds a registered scope", rebinding)):
+                with self.subTest(copy=label):
+                    ok, why = reg.declared_entry_ok(forged)
+                    self.assertFalse(ok)
+                    self.assertIn("not an entry of this registry", why)
 
     def test_persisted_declarations_are_retained_byte_for_byte(self):
         entry = self.estate.grail_kernel()

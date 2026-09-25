@@ -38,6 +38,7 @@ _MAX_WALK_DIRS = 10_000
 _MAX_WALK_DEPTH = 32
 _MAX_JSON_FILES = 10_000
 _MAX_JSON_BYTES = 64 * 1024 * 1024
+_REGISTRY_SCHEMA_TEXT = re.compile(rb'"schema"\s*:\s*"rapp/1-registry"')
 
 
 def _untagged(payload):
@@ -378,6 +379,14 @@ def check_repo(root, signature_verifier=None):
             blob = _read_blob(path, R.MAX_CANONICAL_BYTES)
             value = R._strict_json(blob)
         except Exception as exc:
+            if (
+                not is_required
+                and blob is not None
+                and _REGISTRY_SCHEMA_TEXT.search(blob)
+            ):
+                has_artifact = True
+                finding(rel, "§13 registry document", f"not strict I-JSON (§4): {exc}")
+                return
             candidate = is_required or (
                 blob is not None and _looks_like_frame(blob)
             )

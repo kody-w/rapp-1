@@ -80,9 +80,9 @@ and byte length are provenance and verification data, not alternate identities. 
 the currently served release is immutable even while a separate candidate lineage grows.
 **deployment cell** — an independently observable and isolatable runtime failure domain governed by
 `rapp-deploy/1`. **declared entry** — a §13.3 registry entry that carries its own owner signature made at
-its `activated_utc`, and so verifies apart from the document that carries it (§13.4). **release scope** —
-the owner-selected absolute HTTPS URI naming one release family, bound to at most one Grail kernel
-(§11.1). **release** — one immutable `release-pin` of a family and the manifest it pins (§13.5).
+its `activated_utc`; a byte-identical copy of it verifies against the estate's registry (§13.4). **release
+scope** — the owner-selected absolute HTTPS URI naming one release family, bound to at most one Grail
+kernel (§11.1). **release** — one immutable `release-pin` of a family and the manifest it pins (§13.5).
 **release manifest** — the `rapp/1-release-manifest` object a `release-pin` entry pins by particle hash
 (§13.5). **channel** — an owner-named linear chain of releases whose head is current (§13.5).
 
@@ -962,8 +962,8 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   `canonical(entry \ {sig,old_key_sig})`, REQUIRED for `case:"rotation"`. This is the normative succession record (§13.2).
 - **grail-kernel** `{type:"grail-kernel", release_scope, grail_id, repository, immutable_ref,
   object_format, commit, path, mode, blob, sha256, size_bytes, activated_utc, predecessor, declared_by,
-  sig}` — exactly these members; a persisted declared entry (§13.4). `release_scope` is an absolute HTTPS
-  URI selected by the estate owner;
+  sig}` — exactly these members; a declared entry (§13.4). `release_scope` is an absolute HTTPS URI
+  selected by the estate owner;
   no two `grail-kernel` entries may share it. `grail_id` is
   `"grail:" || Hb("rapp/1:grail", kernel_bytes)`; `repository` is an absolute HTTPS URI;
   `immutable_ref` is a full `refs/tags/...` name that **MUST** resolve exactly to `commit`;
@@ -980,8 +980,8 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   §11.1, and refuses a missing/mutated prior binding, duplicate `grail_id`, or locator whose bytes
   disagree.
 - **release-pin** `{type:"release-pin", release_scope, channel, predecessor, manifest_hash, repository,
-  object_format, commit, path, activated_utc, declared_by, sig}` — exactly these members; a persisted
-  declared entry (§13.4). `release_scope` is an absolute HTTPS URI selected by the estate owner that names a
+  object_format, commit, path, activated_utc, declared_by, sig}` — exactly these members; a declared entry
+  (§13.4). `release_scope` is an absolute HTTPS URI selected by the estate owner that names a
   release family (§11.1); `channel` is an lclabel of 1–64 characters; `predecessor` is `null` or the
   `manifest_hash` of the `release-pin` this one follows in the same `channel`; `manifest_hash` is
   `H("rapp/1:particle", manifest)` of the release manifest (§13.5), and no two `release-pin` entries share
@@ -999,19 +999,19 @@ authenticated at its own `activated_utc`, never at the time it is read.
 ### 13.4 Declared entries (entry-level owner signatures)
 A **declared entry** carries its own `activated_utc` (the §7.4 form), `declared_by` (a keyed rappid), and
 `sig` (a detached §10 JWS whose protected `kid` equals `declared_by`, over `canonical(entry \ {sig})`). The
-declared entry types are `grail-kernel` (persisted) and `release-pin` (persisted). For every declared entry
-a consumer **MUST**:
+declared entry types are `grail-kernel` and `release-pin`. For every declared entry a consumer **MUST**:
 1. require `declared_by` to be the estate owner in effect at `activated_utc` (§13.2), with a §13 `spki`
    entry whose key §10 does not refuse (as superseded or tombstoned) at `activated_utc`;
 2. verify `sig` with that registry key — the enclosing §13.1 signature never substitutes for it;
 3. refuse an entry whose `activated_utc` is more than 300 seconds after the verifier's first-seen time
-   for it; and
+   for that entry; and
 4. refuse the whole registry when any declared entry fails (never skip the entry).
 
-Because the signature binds the exact entry, a copy carried elsewhere — a Hive notice, a member file, a
-release receipt — is authenticated by the same checks against the estate's registry, and a copy that
-differs in any byte is not that entry. `H("rapp/1:particle", entry)` over the complete signed entry names
-it. Once a consumer has accepted an entry of a persisted type it **MUST** persist the canonical entry, and
+A copy carried elsewhere — a Hive notice, a member file, a release receipt — is a declaration only when it
+is byte-identical to an entry of an accepted registry of the estate, and it is then authenticated by the
+same checks; a copy that differs in any byte, or that no accepted registry carries, is not a declaration
+however well it is signed. `H("rapp/1:particle", entry)` over the complete signed entry names it. Every
+declared entry is persisted: once a consumer has accepted one it **MUST** persist the canonical entry, and
 every later accepted registry **MUST** retain it byte-for-byte; removal or mutation is a permanent refusal
 even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-kernel`).
 
@@ -1118,9 +1118,10 @@ snapshot.
 - **Registry container and declared entries:** only the five §13.1 members carry meaning, so a mirror
   cannot relocate the entries or smuggle policy into signed-but-meaningless members; a declared entry's own
   owner signature is checked at its `activated_utc`, so a valid document signature never blesses a forged
-  or mutated declaration, and persisted declarations cannot be dropped by a later registry (§13.4).
-- **Release rebinding and partial snapshots:** a persisted `release-pin` cannot be dropped or re-pointed by a
-  later registry (§13.4), no release is ever rebound, and a verified snapshot is all-or-nothing, so a
+  or mutated declaration, a signed declaration that no accepted registry carries is not one, and no
+  declaration can be dropped by a later registry (§13.4).
+- **Release rebinding and partial snapshots:** an accepted `release-pin` cannot be dropped or re-pointed by
+  a later registry (§13.4), no release is ever rebound, and a verified snapshot is all-or-nothing, so a
   hostile mirror cannot splice stale or unpinned member content into it (§13.5).
 - **Producer-controlled `utc` (DoS/merge bias):** a future-dated head can brick a stream (successors refused
   as earlier) and bias UTC-first merges. A consumer **SHOULD** refuse a frame whose `utc` exceeds receipt
@@ -1150,13 +1151,13 @@ snapshot.
 ### Revision log
 - **rev-17 (registry closure for the distributed Hive)** — names the §13.1 document container
   (`schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; any other member carries no meaning),
-  generalizes the `grail-kernel` entry-level owner signature into §13.4 declared entries with
-  byte-for-byte retention of persisted ones, and adds the `release-pin` declared entry and the
-  `rapp/1-release-manifest`: a release scope names a release family, bound to at most one kernel, whose
-  immutable releases each pin every component by digest at an immutable commit, with door-of-record
-  bindings, kernel coherence and kernel ordering, linear release channels, and all-or-nothing verified
-  snapshots (§13.5). No frozen form (§12) changes: every rev-16 `rapp/1` frame, egg, rappid, and conformance
-  vector verifies unchanged.
+  generalizes the `grail-kernel` entry-level owner signature into §13.4 declared entries, each verified
+  at its own `activated_utc` and retained byte-for-byte once accepted, and adds the `release-pin` declared
+  entry and the `rapp/1-release-manifest`: a release scope names a release family, bound to at most one
+  kernel, whose immutable releases each pin every component by digest at an immutable commit, with
+  door-of-record bindings, kernel coherence and kernel ordering, linear release channels, and
+  all-or-nothing verified snapshots (§13.5). No frozen form (§12) changes: every rev-16 `rapp/1` frame,
+  egg, rappid, and conformance vector verifies unchanged.
 - **rev-16 (RAPP Work profile)** — added the subordinate `rapp-work/1` operational profile
   (`protocols/rapp-work/1/SPEC.md`) to the chain's operational-profile index; this document's normative
   text was unchanged from rev-15.

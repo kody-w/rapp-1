@@ -60,9 +60,11 @@ assumed.
 `load_document` also verifies lifecycle entries: a valid enclosing registry
 signature is not a substitute for a tombstone or re-anchor's own signature. The
 same holds for every declared entry (§13.4, today `grail-kernel` and `release-pin`): its own owner
-signature is checked at its `activated_utc`, `verification_utc=` applies the
-300-second first-seen bound, and `persisted_entries=` refuses a later registry
-that dropped or changed a persisted declaration.
+signature is checked at its `activated_utc`, `first_seen=` (or `verification_utc=`
+for a first sighting) applies the per-entry 300-second first-seen bound, and
+`persisted_entries=` refuses a later registry that dropped or changed a
+declaration. A copy of a declared entry found outside the registry counts only
+when it is byte-identical to one the registry carries.
 The issuer must be the owner in tenure at the authenticated issuance/action
 time; an owner's own succession record is signed by the outgoing owner at that
 boundary, after checking that its tenure is nonempty and chronologically

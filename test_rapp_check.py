@@ -281,6 +281,26 @@ class RappCheckDiscoveryTests(unittest.TestCase):
         self.assertIn("§13.1 registry structure OK", evidence[0]["ok"])
         self.assertIn("unsigned draft", evidence[0]["ok"])
 
+    def test_registry_documents_that_fail_strict_parsing_are_findings(self):
+        repository = self.fixture_repo("clean")
+        text = json.dumps(self.registry_document(), sort_keys=True)
+        duplicate = text[:-1] + ', "entries": []}'
+        (repository / "dup").mkdir()
+        (repository / "dup" / "registry.json").write_text(duplicate, encoding="utf-8")
+        floating = text.replace('"registry_seq": 3', '"registry_seq": 3.5')
+        (repository / "float").mkdir()
+        (repository / "float" / "registry.json").write_text(floating, encoding="utf-8")
+        verdict, findings, _ = C.check_repo(repository)
+
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual(
+            {(item["artifact"], item["rule"]) for item in findings},
+            {
+                ("dup/registry.json", "§13 registry document"),
+                ("float/registry.json", "§13 registry document"),
+            },
+        )
+
     def test_malformed_registry_documents_are_findings(self):
         repository = self.fixture_repo("clean")
         broken = self.registry_document()
