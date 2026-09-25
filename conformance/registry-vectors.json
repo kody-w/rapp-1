@@ -231,7 +231,8 @@
   ],
   "13_4_declared": {
    "declared_types": [
-    "grail-kernel"
+    "grail-kernel",
+    "release-pin"
    ],
    "example": {
     "entry": {
@@ -258,7 +259,2959 @@
    },
    "first_seen_skew_seconds": 300,
    "persisted_types": [
-    "grail-kernel"
+    "grail-kernel",
+    "release-pin"
+   ]
+  },
+  "13_release_pin": {
+   "entry_cases": [
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "3ff301754a5719bbd8180813a69c577b14c2b23cf03cd1d22cafef61b6d14945",
+       "object_format": "sha1",
+       "path": "releases/lts-1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "newest",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "152596d166a35906461ef5aa7d0e1a6b0138257bf870c17d7646f8f33a2fd2df",
+       "object_format": "sha1",
+       "path": "releases/newest-1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/newest/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "a0da1c045148e984a642ec522eebe93ed63b88391532077290048ebb9a2de2da",
+       "object_format": "sha1",
+       "path": "releases/lts-2.json",
+       "predecessor": "https://releases.example.test/vector/lts/1",
+       "release_scope": "https://releases.example.test/vector/lts/2",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "5d4c26844085c9c27c1815f20221c89187388722183a344b35fce353500b7d18",
+       "object_format": "sha1",
+       "path": "releases/lts-3.json",
+       "predecessor": "https://releases.example.test/vector/lts/2",
+       "release_scope": "https://releases.example.test/vector/lts/3",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "accept",
+     "heads": {
+      "lts": "https://releases.example.test/vector/lts/3",
+      "newest": "https://releases.example.test/vector/newest/1"
+     },
+     "label": "two channels; lts carries three scopes"
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "3ff301754a5719bbd8180813a69c577b14c2b23cf03cd1d22cafef61b6d14945",
+       "object_format": "sha1",
+       "path": "releases/lts-1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "a0da1c045148e984a642ec522eebe93ed63b88391532077290048ebb9a2de2da",
+       "object_format": "sha1",
+       "path": "releases/lts-2.json",
+       "predecessor": "https://releases.example.test/vector/lts/1",
+       "release_scope": "https://releases.example.test/vector/lts/2",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "accept",
+     "heads": {
+      "lts": "https://releases.example.test/vector/lts/2"
+     },
+     "label": "equal activation times in one channel"
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+       "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/brainstem",
+       "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+       "sig": "<detached-jws>",
+       "size_bytes": 36,
+       "type": "grail-kernel"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "3ff301754a5719bbd8180813a69c577b14c2b23cf03cd1d22cafef61b6d14945",
+       "object_format": "sha1",
+       "path": "releases/lts-1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "accept",
+     "heads": {
+      "lts": "https://releases.example.test/vector/lts/1"
+     },
+     "label": "a release-pin shares its scope with the scope's grail-kernel"
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "3ff301754a5719bbd8180813a69c577b14c2b23cf03cd1d22cafef61b6d14945",
+       "object_format": "sha1",
+       "path": "releases/lts-1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "newest",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "3ff301754a5719bbd8180813a69c577b14c2b23cf03cd1d22cafef61b6d14945",
+       "object_format": "sha1",
+       "path": "releases/lts-1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "heads": null,
+     "label": "two release-pins with one release_scope"
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "3ff301754a5719bbd8180813a69c577b14c2b23cf03cd1d22cafef61b6d14945",
+       "object_format": "sha1",
+       "path": "releases/lts-1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "a0da1c045148e984a642ec522eebe93ed63b88391532077290048ebb9a2de2da",
+       "object_format": "sha1",
+       "path": "releases/lts-2.json",
+       "predecessor": "https://releases.example.test/vector/lts/1",
+       "release_scope": "https://releases.example.test/vector/lts/2",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "5d4c26844085c9c27c1815f20221c89187388722183a344b35fce353500b7d18",
+       "object_format": "sha1",
+       "path": "releases/lts-3.json",
+       "predecessor": "https://releases.example.test/vector/lts/1",
+       "release_scope": "https://releases.example.test/vector/lts/3",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "heads": null,
+     "label": "a fork: two successors of one scope"
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "3ff301754a5719bbd8180813a69c577b14c2b23cf03cd1d22cafef61b6d14945",
+       "object_format": "sha1",
+       "path": "releases/lts-1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "a0da1c045148e984a642ec522eebe93ed63b88391532077290048ebb9a2de2da",
+       "object_format": "sha1",
+       "path": "releases/lts-2.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/2",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "heads": null,
+     "label": "two first entries in one channel"
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "a0da1c045148e984a642ec522eebe93ed63b88391532077290048ebb9a2de2da",
+       "object_format": "sha1",
+       "path": "releases/lts-2.json",
+       "predecessor": "https://releases.example.test/vector/lts/1",
+       "release_scope": "https://releases.example.test/vector/lts/2",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "3ff301754a5719bbd8180813a69c577b14c2b23cf03cd1d22cafef61b6d14945",
+       "object_format": "sha1",
+       "path": "releases/lts-1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "heads": null,
+     "label": "a predecessor appended after its successor"
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "3ff301754a5719bbd8180813a69c577b14c2b23cf03cd1d22cafef61b6d14945",
+       "object_format": "sha1",
+       "path": "releases/lts-1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "newest",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "152596d166a35906461ef5aa7d0e1a6b0138257bf870c17d7646f8f33a2fd2df",
+       "object_format": "sha1",
+       "path": "releases/newest-1.json",
+       "predecessor": "https://releases.example.test/vector/lts/1",
+       "release_scope": "https://releases.example.test/vector/newest/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "heads": null,
+     "label": "a predecessor in another channel"
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "3ff301754a5719bbd8180813a69c577b14c2b23cf03cd1d22cafef61b6d14945",
+       "object_format": "sha1",
+       "path": "releases/lts-1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "a0da1c045148e984a642ec522eebe93ed63b88391532077290048ebb9a2de2da",
+       "object_format": "sha1",
+       "path": "releases/lts-2.json",
+       "predecessor": "https://releases.example.test/vector/lts/3",
+       "release_scope": "https://releases.example.test/vector/lts/2",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "heads": null,
+     "label": "a predecessor that is no release-pin's release_scope"
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "3ff301754a5719bbd8180813a69c577b14c2b23cf03cd1d22cafef61b6d14945",
+       "object_format": "sha1",
+       "path": "releases/lts-1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "a0da1c045148e984a642ec522eebe93ed63b88391532077290048ebb9a2de2da",
+       "object_format": "sha1",
+       "path": "releases/lts-2.json",
+       "predecessor": "https://releases.example.test/vector/lts/1",
+       "release_scope": "https://releases.example.test/vector/lts/2",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "heads": null,
+     "label": "a successor activated before its predecessor"
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "LTS",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "3ff301754a5719bbd8180813a69c577b14c2b23cf03cd1d22cafef61b6d14945",
+       "object_format": "sha1",
+       "path": "releases/lts-1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "heads": null,
+     "label": "a channel that is not an lclabel"
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "3ff301754a5719bbd8180813a69c577b14c2b23cf03cd1d22cafef61b6d14945",
+       "object_format": "sha1",
+       "path": "releases/lts:1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "heads": null,
+     "label": "a path outside the §9.1 grammar"
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "3ff301754a5719bbd8180813a69c577b14c2b23cf03cd1d22cafef61b6d14945",
+       "object_format": "sha256",
+       "path": "releases/lts-1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "heads": null,
+     "label": "a commit of the wrong length for object_format"
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "deprecated": false,
+       "manifest_hash": "3ff301754a5719bbd8180813a69c577b14c2b23cf03cd1d22cafef61b6d14945",
+       "object_format": "sha1",
+       "path": "releases/lts-1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "heads": null,
+     "label": "an extra member"
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "3ff301754a5719bbd8180813a69c577b14c2b23cf03cd1d22cafef61b6d14945",
+       "object_format": "sha1",
+       "path": "releases/lts-1.json",
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "heads": null,
+     "label": "a missing member"
+    }
+   ],
+   "example": {
+    "canonical": "{\"components\":[{\"commit\":\"1111111111111111111111111111111111111111\",\"files\":[{\"path\":\"kernel/VERSION\",\"sha256\":\"6378a2f0f862dfbd894799c13030445a9464dd56046328ceeb093b5491665e35\",\"size_bytes\":10},{\"path\":\"kernel/agents/basic_agent.py\",\"sha256\":\"c148203b5f51d866ba50238d2083d8746513c176e0b782391c5848aadf3a7524\",\"size_bytes\":56},{\"path\":\"kernel/brainstem.py\",\"sha256\":\"6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07\",\"size_bytes\":36}],\"id\":\"brainstem\",\"identity_path\":null,\"immutable_ref\":\"refs/tags/brainstem-v1.0.0-lts\",\"kind\":\"kernel\",\"object_format\":\"sha1\",\"rappid\":null,\"repository\":\"https://git.example.test/vector/brainstem\"},{\"commit\":\"5555555555555555555555555555555555555555\",\"files\":[{\"path\":\"rappid.json\",\"sha256\":\"8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c\",\"size_bytes\":125},{\"path\":\"soul.md\",\"sha256\":\"f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583\",\"size_bytes\":17}],\"id\":\"organism-alpha\",\"identity_path\":\"rappid.json\",\"immutable_ref\":null,\"kind\":\"organism\",\"object_format\":\"sha1\",\"rappid\":\"rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d\",\"repository\":\"https://git.example.test/vector/alpha\"},{\"commit\":\"6666666666666666666666666666666666666666666666666666666666666666\",\"files\":[{\"path\":\"agents/beta_agent.py\",\"sha256\":\"6ecd649d719e1121e6860554c488cf4d470e796897a2a35439eefc2ac5516cbf\",\"size_bytes\":22},{\"path\":\"rappid.json\",\"sha256\":\"55ceb07e6d60e86483edb96343af5537ffa84f34e44bdb7daabe3db89a96e558\",\"size_bytes\":124}],\"id\":\"organism-beta\",\"identity_path\":\"rappid.json\",\"immutable_ref\":null,\"kind\":\"organism\",\"object_format\":\"sha256\",\"rappid\":\"rappid:@vector/organism-beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744\",\"repository\":\"https://git.example.test/vector/beta\"},{\"commit\":\"4444444444444444444444444444444444444444\",\"files\":[{\"path\":\"SPEC.md\",\"sha256\":\"c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406\",\"size_bytes\":26}],\"id\":\"rapp-1\",\"identity_path\":null,\"immutable_ref\":\"refs/tags/rev-17\",\"kind\":\"protocol\",\"object_format\":\"sha1\",\"rappid\":null,\"repository\":\"https://git.example.test/vector/protocol\"}],\"release_scope\":\"https://releases.example.test/vector/lts/1\",\"schema\":\"rapp/1-release-manifest\"}",
+    "files": [
+     {
+      "component": "brainstem",
+      "octets_utf8": "1.0.0-lts\n",
+      "path": "kernel/VERSION"
+     },
+     {
+      "component": "brainstem",
+      "octets_utf8": "class BasicAgent:\n    \"\"\"Synthetic kernel companion.\"\"\"\n",
+      "path": "kernel/agents/basic_agent.py"
+     },
+     {
+      "component": "brainstem",
+      "octets_utf8": "\"\"\"Synthetic kernel entry point.\"\"\"\n",
+      "path": "kernel/brainstem.py"
+     },
+     {
+      "component": "organism-alpha",
+      "octets_utf8": "{\"rappid\":\"rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d\",\"schema\":\"rapp/1\"}",
+      "path": "rappid.json"
+     },
+     {
+      "component": "organism-alpha",
+      "octets_utf8": "# organism alpha\n",
+      "path": "soul.md"
+     },
+     {
+      "component": "organism-beta",
+      "octets_utf8": "# organism beta agent\n",
+      "path": "agents/beta_agent.py"
+     },
+     {
+      "component": "organism-beta",
+      "octets_utf8": "{\"rappid\":\"rappid:@vector/organism-beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744\",\"schema\":\"rapp/1\"}",
+      "path": "rappid.json"
+     },
+     {
+      "component": "rapp-1",
+      "octets_utf8": "# Synthetic protocol text\n",
+      "path": "SPEC.md"
+     }
+    ],
+    "grail_kernel": {
+     "activated_utc": "2026-07-01T00:00:00.000Z",
+     "blob": "2222222222222222222222222222222222222222",
+     "commit": "1111111111111111111111111111111111111111",
+     "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+     "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+     "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+     "mode": "100644",
+     "object_format": "sha1",
+     "path": "kernel/brainstem.py",
+     "predecessor": null,
+     "release_scope": "https://releases.example.test/vector/lts/1",
+     "repository": "https://git.example.test/vector/brainstem",
+     "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+     "sig": "<detached-jws>",
+     "size_bytes": 36,
+     "type": "grail-kernel"
+    },
+    "manifest": {
+     "components": [
+      {
+       "commit": "1111111111111111111111111111111111111111",
+       "files": [
+        {
+         "path": "kernel/VERSION",
+         "sha256": "6378a2f0f862dfbd894799c13030445a9464dd56046328ceeb093b5491665e35",
+         "size_bytes": 10
+        },
+        {
+         "path": "kernel/agents/basic_agent.py",
+         "sha256": "c148203b5f51d866ba50238d2083d8746513c176e0b782391c5848aadf3a7524",
+         "size_bytes": 56
+        },
+        {
+         "path": "kernel/brainstem.py",
+         "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+         "size_bytes": 36
+        }
+       ],
+       "id": "brainstem",
+       "identity_path": null,
+       "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+       "kind": "kernel",
+       "object_format": "sha1",
+       "rappid": null,
+       "repository": "https://git.example.test/vector/brainstem"
+      },
+      {
+       "commit": "5555555555555555555555555555555555555555",
+       "files": [
+        {
+         "path": "rappid.json",
+         "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+         "size_bytes": 125
+        },
+        {
+         "path": "soul.md",
+         "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+         "size_bytes": 17
+        }
+       ],
+       "id": "organism-alpha",
+       "identity_path": "rappid.json",
+       "immutable_ref": null,
+       "kind": "organism",
+       "object_format": "sha1",
+       "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "repository": "https://git.example.test/vector/alpha"
+      },
+      {
+       "commit": "6666666666666666666666666666666666666666666666666666666666666666",
+       "files": [
+        {
+         "path": "agents/beta_agent.py",
+         "sha256": "6ecd649d719e1121e6860554c488cf4d470e796897a2a35439eefc2ac5516cbf",
+         "size_bytes": 22
+        },
+        {
+         "path": "rappid.json",
+         "sha256": "55ceb07e6d60e86483edb96343af5537ffa84f34e44bdb7daabe3db89a96e558",
+         "size_bytes": 124
+        }
+       ],
+       "id": "organism-beta",
+       "identity_path": "rappid.json",
+       "immutable_ref": null,
+       "kind": "organism",
+       "object_format": "sha256",
+       "rappid": "rappid:@vector/organism-beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "repository": "https://git.example.test/vector/beta"
+      },
+      {
+       "commit": "4444444444444444444444444444444444444444",
+       "files": [
+        {
+         "path": "SPEC.md",
+         "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+         "size_bytes": 26
+        }
+       ],
+       "id": "rapp-1",
+       "identity_path": null,
+       "immutable_ref": "refs/tags/rev-17",
+       "kind": "protocol",
+       "object_format": "sha1",
+       "rappid": null,
+       "repository": "https://git.example.test/vector/protocol"
+      }
+     ],
+     "release_scope": "https://releases.example.test/vector/lts/1",
+     "schema": "rapp/1-release-manifest"
+    },
+    "manifest_hash": "e817abb56991d3f58a9d1e1f05d951f67d42f3c85988c46702275653c61ed6fe",
+    "raw_sha256": "72ac4ab9eb0cc6d5c603b81dbf2840ac6b597553ca5c060b6114fd9300d3f70a",
+    "release_pin": {
+     "activated_utc": "2026-07-01T00:00:00.000Z",
+     "channel": "lts",
+     "commit": "3333333333333333333333333333333333333333",
+     "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+     "manifest_hash": "e817abb56991d3f58a9d1e1f05d951f67d42f3c85988c46702275653c61ed6fe",
+     "object_format": "sha1",
+     "path": "releases/lts-1.json",
+     "predecessor": null,
+     "release_scope": "https://releases.example.test/vector/lts/1",
+     "repository": "https://git.example.test/vector/releases",
+     "sig": "<detached-jws>",
+     "type": "release-pin"
+    },
+    "release_pin_entry_hash": "c9d775eb0d20f5c035981e86c396f5accbe96d6cfb121ccbe5fa44f8145bda74",
+    "release_pin_signing_payload": "{\"activated_utc\":\"2026-07-01T00:00:00.000Z\",\"channel\":\"lts\",\"commit\":\"3333333333333333333333333333333333333333\",\"declared_by\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"manifest_hash\":\"e817abb56991d3f58a9d1e1f05d951f67d42f3c85988c46702275653c61ed6fe\",\"object_format\":\"sha1\",\"path\":\"releases/lts-1.json\",\"predecessor\":null,\"release_scope\":\"https://releases.example.test/vector/lts/1\",\"repository\":\"https://git.example.test/vector/releases\",\"type\":\"release-pin\"}",
+    "rule": "the release-pin's manifest_hash = H('rapp/1:particle', manifest); the stored manifest octets are exactly canonical(manifest), so raw_sha256 is their SHA-256; each file's sha256 and size_bytes are the raw SHA-256 and length of octets_utf8's UTF-8 bytes; the verified snapshot is exactly these files, keyed by (component id, path)"
+   },
+   "kernel_coherence_cases": [
+    {
+     "expect": "accept",
+     "grail_kernel": {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "blob": "2222222222222222222222222222222222222222",
+      "commit": "1111111111111111111111111111111111111111",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+      "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+      "mode": "100644",
+      "object_format": "sha1",
+      "path": "kernel/brainstem.py",
+      "predecessor": null,
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "repository": "https://git.example.test/vector/brainstem",
+      "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+      "sig": "<detached-jws>",
+      "size_bytes": 36,
+      "type": "grail-kernel"
+     },
+     "label": "the kernel component equals the scope's grail-kernel",
+     "manifest": {
+      "components": [
+       {
+        "commit": "1111111111111111111111111111111111111111",
+        "files": [
+         {
+          "path": "kernel/VERSION",
+          "sha256": "6378a2f0f862dfbd894799c13030445a9464dd56046328ceeb093b5491665e35",
+          "size_bytes": 10
+         },
+         {
+          "path": "kernel/agents/basic_agent.py",
+          "sha256": "c148203b5f51d866ba50238d2083d8746513c176e0b782391c5848aadf3a7524",
+          "size_bytes": 56
+         },
+         {
+          "path": "kernel/brainstem.py",
+          "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+          "size_bytes": 36
+         }
+        ],
+        "id": "brainstem",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+        "kind": "kernel",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/brainstem"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "accept",
+     "grail_kernel": null,
+     "label": "neither a grail-kernel nor a kernel component",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "grail_kernel": {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "blob": "2222222222222222222222222222222222222222",
+      "commit": "1111111111111111111111111111111111111111",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+      "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+      "mode": "100644",
+      "object_format": "sha1",
+      "path": "kernel/brainstem.py",
+      "predecessor": null,
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "repository": "https://git.example.test/vector/brainstem",
+      "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+      "sig": "<detached-jws>",
+      "size_bytes": 36,
+      "type": "grail-kernel"
+     },
+     "label": "a grail-kernel but no kernel component",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "grail_kernel": {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "blob": "2222222222222222222222222222222222222222",
+      "commit": "1111111111111111111111111111111111111111",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+      "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+      "mode": "100644",
+      "object_format": "sha1",
+      "path": "kernel/brainstem.py",
+      "predecessor": null,
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "repository": "https://git.example.test/vector/brainstem",
+      "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+      "sig": "<detached-jws>",
+      "size_bytes": 36,
+      "type": "grail-kernel"
+     },
+     "label": "two kernel components",
+     "manifest": {
+      "components": [
+       {
+        "commit": "1111111111111111111111111111111111111111",
+        "files": [
+         {
+          "path": "kernel/VERSION",
+          "sha256": "6378a2f0f862dfbd894799c13030445a9464dd56046328ceeb093b5491665e35",
+          "size_bytes": 10
+         },
+         {
+          "path": "kernel/agents/basic_agent.py",
+          "sha256": "c148203b5f51d866ba50238d2083d8746513c176e0b782391c5848aadf3a7524",
+          "size_bytes": 56
+         },
+         {
+          "path": "kernel/brainstem.py",
+          "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+          "size_bytes": 36
+         }
+        ],
+        "id": "brainstem",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+        "kind": "kernel",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/brainstem"
+       },
+       {
+        "commit": "1111111111111111111111111111111111111111",
+        "files": [
+         {
+          "path": "kernel/VERSION",
+          "sha256": "6378a2f0f862dfbd894799c13030445a9464dd56046328ceeb093b5491665e35",
+          "size_bytes": 10
+         },
+         {
+          "path": "kernel/agents/basic_agent.py",
+          "sha256": "c148203b5f51d866ba50238d2083d8746513c176e0b782391c5848aadf3a7524",
+          "size_bytes": 56
+         },
+         {
+          "path": "kernel/brainstem.py",
+          "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+          "size_bytes": 36
+         }
+        ],
+        "id": "brainstem-copy",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+        "kind": "kernel",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/brainstem"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "grail_kernel": {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "blob": "2222222222222222222222222222222222222222",
+      "commit": "1111111111111111111111111111111111111111",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+      "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+      "mode": "100644",
+      "object_format": "sha1",
+      "path": "kernel/brainstem.py",
+      "predecessor": null,
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "repository": "https://git.example.test/vector/brainstem",
+      "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+      "sig": "<detached-jws>",
+      "size_bytes": 36,
+      "type": "grail-kernel"
+     },
+     "label": "another repository",
+     "manifest": {
+      "components": [
+       {
+        "commit": "1111111111111111111111111111111111111111",
+        "files": [
+         {
+          "path": "kernel/VERSION",
+          "sha256": "6378a2f0f862dfbd894799c13030445a9464dd56046328ceeb093b5491665e35",
+          "size_bytes": 10
+         },
+         {
+          "path": "kernel/agents/basic_agent.py",
+          "sha256": "c148203b5f51d866ba50238d2083d8746513c176e0b782391c5848aadf3a7524",
+          "size_bytes": 56
+         },
+         {
+          "path": "kernel/brainstem.py",
+          "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+          "size_bytes": 36
+         }
+        ],
+        "id": "brainstem",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+        "kind": "kernel",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/mirror"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "grail_kernel": {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "blob": "2222222222222222222222222222222222222222",
+      "commit": "1111111111111111111111111111111111111111",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+      "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+      "mode": "100644",
+      "object_format": "sha1",
+      "path": "kernel/brainstem.py",
+      "predecessor": null,
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "repository": "https://git.example.test/vector/brainstem",
+      "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+      "sig": "<detached-jws>",
+      "size_bytes": 36,
+      "type": "grail-kernel"
+     },
+     "label": "another object_format",
+     "manifest": {
+      "components": [
+       {
+        "commit": "1111111111111111111111111111111111111111111111111111111111111111",
+        "files": [
+         {
+          "path": "kernel/VERSION",
+          "sha256": "6378a2f0f862dfbd894799c13030445a9464dd56046328ceeb093b5491665e35",
+          "size_bytes": 10
+         },
+         {
+          "path": "kernel/agents/basic_agent.py",
+          "sha256": "c148203b5f51d866ba50238d2083d8746513c176e0b782391c5848aadf3a7524",
+          "size_bytes": 56
+         },
+         {
+          "path": "kernel/brainstem.py",
+          "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+          "size_bytes": 36
+         }
+        ],
+        "id": "brainstem",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+        "kind": "kernel",
+        "object_format": "sha256",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/brainstem"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "grail_kernel": {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "blob": "2222222222222222222222222222222222222222",
+      "commit": "1111111111111111111111111111111111111111",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+      "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+      "mode": "100644",
+      "object_format": "sha1",
+      "path": "kernel/brainstem.py",
+      "predecessor": null,
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "repository": "https://git.example.test/vector/brainstem",
+      "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+      "sig": "<detached-jws>",
+      "size_bytes": 36,
+      "type": "grail-kernel"
+     },
+     "label": "another commit",
+     "manifest": {
+      "components": [
+       {
+        "commit": "9999999999999999999999999999999999999999",
+        "files": [
+         {
+          "path": "kernel/VERSION",
+          "sha256": "6378a2f0f862dfbd894799c13030445a9464dd56046328ceeb093b5491665e35",
+          "size_bytes": 10
+         },
+         {
+          "path": "kernel/agents/basic_agent.py",
+          "sha256": "c148203b5f51d866ba50238d2083d8746513c176e0b782391c5848aadf3a7524",
+          "size_bytes": 56
+         },
+         {
+          "path": "kernel/brainstem.py",
+          "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+          "size_bytes": 36
+         }
+        ],
+        "id": "brainstem",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+        "kind": "kernel",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/brainstem"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "grail_kernel": {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "blob": "2222222222222222222222222222222222222222",
+      "commit": "1111111111111111111111111111111111111111",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+      "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+      "mode": "100644",
+      "object_format": "sha1",
+      "path": "kernel/brainstem.py",
+      "predecessor": null,
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "repository": "https://git.example.test/vector/brainstem",
+      "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+      "sig": "<detached-jws>",
+      "size_bytes": 36,
+      "type": "grail-kernel"
+     },
+     "label": "another immutable_ref",
+     "manifest": {
+      "components": [
+       {
+        "commit": "1111111111111111111111111111111111111111",
+        "files": [
+         {
+          "path": "kernel/VERSION",
+          "sha256": "6378a2f0f862dfbd894799c13030445a9464dd56046328ceeb093b5491665e35",
+          "size_bytes": 10
+         },
+         {
+          "path": "kernel/agents/basic_agent.py",
+          "sha256": "c148203b5f51d866ba50238d2083d8746513c176e0b782391c5848aadf3a7524",
+          "size_bytes": 56
+         },
+         {
+          "path": "kernel/brainstem.py",
+          "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+          "size_bytes": 36
+         }
+        ],
+        "id": "brainstem",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/brainstem-v1.0.1-lts",
+        "kind": "kernel",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/brainstem"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "grail_kernel": {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "blob": "2222222222222222222222222222222222222222",
+      "commit": "1111111111111111111111111111111111111111",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+      "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+      "mode": "100644",
+      "object_format": "sha1",
+      "path": "kernel/brainstem.py",
+      "predecessor": null,
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "repository": "https://git.example.test/vector/brainstem",
+      "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+      "sig": "<detached-jws>",
+      "size_bytes": 36,
+      "type": "grail-kernel"
+     },
+     "label": "no immutable_ref",
+     "manifest": {
+      "components": [
+       {
+        "commit": "1111111111111111111111111111111111111111",
+        "files": [
+         {
+          "path": "kernel/VERSION",
+          "sha256": "6378a2f0f862dfbd894799c13030445a9464dd56046328ceeb093b5491665e35",
+          "size_bytes": 10
+         },
+         {
+          "path": "kernel/agents/basic_agent.py",
+          "sha256": "c148203b5f51d866ba50238d2083d8746513c176e0b782391c5848aadf3a7524",
+          "size_bytes": 56
+         },
+         {
+          "path": "kernel/brainstem.py",
+          "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+          "size_bytes": 36
+         }
+        ],
+        "id": "brainstem",
+        "identity_path": null,
+        "immutable_ref": null,
+        "kind": "kernel",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/brainstem"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "grail_kernel": {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "blob": "2222222222222222222222222222222222222222",
+      "commit": "1111111111111111111111111111111111111111",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+      "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+      "mode": "100644",
+      "object_format": "sha1",
+      "path": "kernel/brainstem.py",
+      "predecessor": null,
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "repository": "https://git.example.test/vector/brainstem",
+      "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+      "sig": "<detached-jws>",
+      "size_bytes": 36,
+      "type": "grail-kernel"
+     },
+     "label": "the grail-kernel path is not pinned",
+     "manifest": {
+      "components": [
+       {
+        "commit": "1111111111111111111111111111111111111111",
+        "files": [
+         {
+          "path": "kernel/VERSION",
+          "sha256": "6378a2f0f862dfbd894799c13030445a9464dd56046328ceeb093b5491665e35",
+          "size_bytes": 10
+         },
+         {
+          "path": "kernel/agents/basic_agent.py",
+          "sha256": "c148203b5f51d866ba50238d2083d8746513c176e0b782391c5848aadf3a7524",
+          "size_bytes": 56
+         },
+         {
+          "path": "kernel/main.py",
+          "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+          "size_bytes": 36
+         }
+        ],
+        "id": "brainstem",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+        "kind": "kernel",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/brainstem"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "grail_kernel": {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "blob": "2222222222222222222222222222222222222222",
+      "commit": "1111111111111111111111111111111111111111",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+      "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+      "mode": "100644",
+      "object_format": "sha1",
+      "path": "kernel/brainstem.py",
+      "predecessor": null,
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "repository": "https://git.example.test/vector/brainstem",
+      "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+      "sig": "<detached-jws>",
+      "size_bytes": 36,
+      "type": "grail-kernel"
+     },
+     "label": "the grail-kernel path pinned with other bytes",
+     "manifest": {
+      "components": [
+       {
+        "commit": "1111111111111111111111111111111111111111",
+        "files": [
+         {
+          "path": "kernel/VERSION",
+          "sha256": "6378a2f0f862dfbd894799c13030445a9464dd56046328ceeb093b5491665e35",
+          "size_bytes": 10
+         },
+         {
+          "path": "kernel/agents/basic_agent.py",
+          "sha256": "c148203b5f51d866ba50238d2083d8746513c176e0b782391c5848aadf3a7524",
+          "size_bytes": 56
+         },
+         {
+          "path": "kernel/brainstem.py",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "size_bytes": 36
+         }
+        ],
+        "id": "brainstem",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+        "kind": "kernel",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/brainstem"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "grail_kernel": {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "blob": "2222222222222222222222222222222222222222",
+      "commit": "1111111111111111111111111111111111111111",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+      "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+      "mode": "100644",
+      "object_format": "sha1",
+      "path": "kernel/brainstem.py",
+      "predecessor": null,
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "repository": "https://git.example.test/vector/brainstem",
+      "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+      "sig": "<detached-jws>",
+      "size_bytes": 36,
+      "type": "grail-kernel"
+     },
+     "label": "the grail-kernel path pinned with another length",
+     "manifest": {
+      "components": [
+       {
+        "commit": "1111111111111111111111111111111111111111",
+        "files": [
+         {
+          "path": "kernel/VERSION",
+          "sha256": "6378a2f0f862dfbd894799c13030445a9464dd56046328ceeb093b5491665e35",
+          "size_bytes": 10
+         },
+         {
+          "path": "kernel/agents/basic_agent.py",
+          "sha256": "c148203b5f51d866ba50238d2083d8746513c176e0b782391c5848aadf3a7524",
+          "size_bytes": 56
+         },
+         {
+          "path": "kernel/brainstem.py",
+          "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+          "size_bytes": 1
+         }
+        ],
+        "id": "brainstem",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+        "kind": "kernel",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/brainstem"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "grail_kernel": null,
+     "label": "a kernel component without a grail-kernel for its scope",
+     "manifest": {
+      "components": [
+       {
+        "commit": "1111111111111111111111111111111111111111",
+        "files": [
+         {
+          "path": "kernel/VERSION",
+          "sha256": "6378a2f0f862dfbd894799c13030445a9464dd56046328ceeb093b5491665e35",
+          "size_bytes": 10
+         },
+         {
+          "path": "kernel/agents/basic_agent.py",
+          "sha256": "c148203b5f51d866ba50238d2083d8746513c176e0b782391c5848aadf3a7524",
+          "size_bytes": 56
+         },
+         {
+          "path": "kernel/brainstem.py",
+          "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+          "size_bytes": 36
+         }
+        ],
+        "id": "brainstem",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+        "kind": "kernel",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/brainstem"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    }
+   ],
+   "manifest_cases": [
+    {
+     "expect": "accept",
+     "label": "a door-of-record organism and a protocol component",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "accept",
+     "label": "a component that pins only a commit (files [])",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "accept",
+     "label": "object_format sha256 with a 64-hex commit",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha256",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an extra top-level member",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "note": "x",
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "another schema",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest-v2"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "a release_scope that is not an absolute HTTPS URI",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "http://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "no components",
+     "manifest": {
+      "components": [],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "components out of id order",
+     "manifest": {
+      "components": [
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       },
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "a duplicate component id",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an id that is not an lclabel",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "Rapp_1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an id of 101 characters",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "a kind of 65 characters",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "a commit of the wrong length for its object_format",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an immutable_ref that is not a full refs/tags/ name",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "a file with an extra member",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "mode": "100644",
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "a path outside the §9.1 grammar (a reserved device name)",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "docs/CON.md",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "size_bytes": 1
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "files out of UTF-8 byte order",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "b.md",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "size_bytes": 1
+         },
+         {
+          "path": "a.md",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "size_bytes": 1
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "two paths equal case-insensitively",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "README.md",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "size_bytes": 1
+         },
+         {
+          "path": "readme.md",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "size_bytes": 1
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "a file that is also a directory above another",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "docs",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "size_bytes": 1
+         },
+         {
+          "path": "docs/index.md",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "size_bytes": 1
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "a size_bytes beyond uint53",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 9007199254740992
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "a sha256 that is not 64 lowercase hex",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "a rappid without its identity_path",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": null,
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an identity_path that is not one of the component's files",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "identity.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "one rappid bound by two components",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": "SPEC.md",
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/lts/1",
+      "schema": "rapp/1-release-manifest"
+     }
+    }
+   ],
+   "manifest_schema": "rapp/1-release-manifest",
+   "octets_cases": [
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "c4ec438051761098ff3ea5f984ff550c83f38124fd4e64a03b55eae9bf1026c3",
+       "object_format": "sha1",
+       "path": "releases/lts-1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "accept",
+     "label": "exactly canonical(manifest)",
+     "octets_hex": "7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235353535353535353535353535353535353535353535353535353535353535353535353535353535222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c2273697a655f6279746573223a31377d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2234343434343434343434343434343434343434343434343434343434343434343434343434343434222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f6c74732f31222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d",
+     "release_scope": "https://releases.example.test/vector/lts/1"
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "c4ec438051761098ff3ea5f984ff550c83f38124fd4e64a03b55eae9bf1026c3",
+       "object_format": "sha1",
+       "path": "releases/lts-1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "label": "pretty-printed",
+     "octets_hex": "7b0a202022636f6d706f6e656e7473223a205b0a202020207b0a20202020202022636f6d6d6974223a202235353535353535353535353535353535353535353535353535353535353535353535353535353535222c0a2020202020202266696c6573223a205b0a20202020202020207b0a202020202020202020202270617468223a20227261707069642e6a736f6e222c0a2020202020202020202022736861323536223a202238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c0a202020202020202020202273697a655f6279746573223a203132350a20202020202020207d2c0a20202020202020207b0a202020202020202020202270617468223a2022736f756c2e6d64222c0a2020202020202020202022736861323536223a202266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c0a202020202020202020202273697a655f6279746573223a2031370a20202020202020207d0a2020202020205d2c0a202020202020226964223a20226f7267616e69736d2d616c706861222c0a202020202020226964656e746974795f70617468223a20227261707069642e6a736f6e222c0a20202020202022696d6d757461626c655f726566223a206e756c6c2c0a202020202020226b696e64223a20226f7267616e69736d222c0a202020202020226f626a6563745f666f726d6174223a202273686131222c0a20202020202022726170706964223a20227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c0a202020202020227265706f7369746f7279223a202268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861220a202020207d2c0a202020207b0a20202020202022636f6d6d6974223a202234343434343434343434343434343434343434343434343434343434343434343434343434343434222c0a2020202020202266696c6573223a205b0a20202020202020207b0a202020202020202020202270617468223a2022535045432e6d64222c0a2020202020202020202022736861323536223a202263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c0a202020202020202020202273697a655f6279746573223a2032360a20202020202020207d0a2020202020205d2c0a202020202020226964223a2022726170702d31222c0a202020202020226964656e746974795f70617468223a206e756c6c2c0a20202020202022696d6d757461626c655f726566223a2022726566732f746167732f7265762d3137222c0a202020202020226b696e64223a202270726f746f636f6c222c0a202020202020226f626a6563745f666f726d6174223a202273686131222c0a20202020202022726170706964223a206e756c6c2c0a202020202020227265706f7369746f7279223a202268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c220a202020207d0a20205d2c0a20202272656c656173655f73636f7065223a202268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f6c74732f31222c0a202022736368656d61223a2022726170702f312d72656c656173652d6d616e6966657374220a7d",
+     "release_scope": "https://releases.example.test/vector/lts/1"
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "c4ec438051761098ff3ea5f984ff550c83f38124fd4e64a03b55eae9bf1026c3",
+       "object_format": "sha1",
+       "path": "releases/lts-1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "label": "a trailing line terminator",
+     "octets_hex": "7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235353535353535353535353535353535353535353535353535353535353535353535353535353535222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c2273697a655f6279746573223a31377d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2234343434343434343434343434343434343434343434343434343434343434343434343434343434222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f6c74732f31222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d0a",
+     "release_scope": "https://releases.example.test/vector/lts/1"
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "c4ec438051761098ff3ea5f984ff550c83f38124fd4e64a03b55eae9bf1026c3",
+       "object_format": "sha1",
+       "path": "releases/lts-1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "label": "a UTF-8 byte-order mark",
+     "octets_hex": "efbbbf7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235353535353535353535353535353535353535353535353535353535353535353535353535353535222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c2273697a655f6279746573223a31377d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2234343434343434343434343434343434343434343434343434343434343434343434343434343434222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f6c74732f31222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d",
+     "release_scope": "https://releases.example.test/vector/lts/1"
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "c4ec438051761098ff3ea5f984ff550c83f38124fd4e64a03b55eae9bf1026c3",
+       "object_format": "sha1",
+       "path": "releases/lts-1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "label": "the canonical bytes of a manifest other than the pinned one",
+     "octets_hex": "7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235353535353535353535353535353535353535353535353535353535353535353535353535353535222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c2273697a655f6279746573223a31377d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2237373737373737373737373737373737373737373737373737373737373737373737373737373737222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f6c74732f31222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d",
+     "release_scope": "https://releases.example.test/vector/lts/1"
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "24de7357a5e91e0c631c9fc7cf279d98ae9200dc7a529d9a27ba2d555733fd1f",
+       "object_format": "sha1",
+       "path": "releases/lts-1.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/lts/1",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "label": "the pinned manifest names another release_scope",
+     "octets_hex": "7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235353535353535353535353535353535353535353535353535353535353535353535353535353535222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c2273697a655f6279746573223a31377d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2234343434343434343434343434343434343434343434343434343434343434343434343434343434222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f6c74732f32222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d",
+     "release_scope": "https://releases.example.test/vector/lts/1"
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "expect": "refuse",
+     "label": "no release-pin for the release_scope",
+     "octets_hex": "7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235353535353535353535353535353535353535353535353535353535353535353535353535353535222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c2273697a655f6279746573223a31377d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2234343434343434343434343434343434343434343434343434343434343434343434343434343434222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f6c74732f31222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d",
+     "release_scope": "https://releases.example.test/vector/lts/1"
+    }
    ]
   }
  },

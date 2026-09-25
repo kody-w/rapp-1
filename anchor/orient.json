@@ -1,24 +1,24 @@
 {
  "schema": "rapp/1-anchor",
- "generated_utc": "2026-09-25T17:36:22.000Z",
+ "generated_utc": "2026-09-25T18:12:28.000Z",
  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
  "head": {
   "seq": 17,
-  "frame_hash": "f145ed50c935c686ed77c86eb91ca46caf915c5f8280d404a5c4711d9cc4b487",
-  "payload_hash": "1d898540ced06d3aa4719d53f6fc4108521341674fc14993bfc1b63aa04e140a"
+  "frame_hash": "daaf07239737e7b048aaec64b0d8b5d59199d10c07af22524f5a95357b765c21",
+  "payload_hash": "918791a2bfd5ed0fe079aea5d82e7c78c75dc03324ac8c60ccf51f63031217fb"
  },
  "spec": {
   "revision": "rev-17",
-  "revision_frame_hash": "f145ed50c935c686ed77c86eb91ca46caf915c5f8280d404a5c4711d9cc4b487",
-  "revision_payload_hash": "1d898540ced06d3aa4719d53f6fc4108521341674fc14993bfc1b63aa04e140a",
+  "revision_frame_hash": "daaf07239737e7b048aaec64b0d8b5d59199d10c07af22524f5a95357b765c21",
+  "revision_payload_hash": "918791a2bfd5ed0fe079aea5d82e7c78c75dc03324ac8c60ccf51f63031217fb",
   "schema": "rapp-spec-revision/1",
   "materialized_path": "SPEC.md",
   "normative_path": "SPEC.md",
   "media_type": "text/markdown; charset=utf-8",
-  "normative_sha256": "4afe3b27d82f7ea7efbbdcf2f57d67dc72445916e27892b1d7715f65ff97f9f7",
-  "normative_bytes": 83434,
+  "normative_sha256": "e0115e40e2825ef5f1605508c8531ba866edd3e90664256066ba8541298faf30",
+  "normative_bytes": 90508,
   "canonical_repo": "https://github.com/kody-w/rapp-1",
-  "commit": "fb25d957b3568431de4923d654f1ec1067de9570"
+  "commit": "9fe078ac521da68f7fb5e49cffa943fbf669fd2f"
  },
  "registered_kinds": [
   "body.pulse",
@@ -140,6 +140,18 @@
   "declared-entry": {
    "status": "live",
    "where": "§13.4 — a registry entry carrying its own owner signature at its activated_utc"
+  },
+  "release-pin": {
+   "status": "live",
+   "where": "§13.5 — the declared entry pinning one release scope's manifest"
+  },
+  "release-manifest": {
+   "status": "live",
+   "where": "§13.5 — rapp/1-release-manifest: every component by digest at an immutable commit"
+  },
+  "release-channel": {
+   "status": "live",
+   "where": "§13.5 — an owner-named linear chain of release scopes; its head is current"
   }
  },
  "operational_profiles": {
@@ -208,7 +220,7 @@
  },
  "index": {
   "path": "anchor/index.json",
-  "sha256": "f50411b670c8c5b70a0c090d6abfba31674f4453c28bb6718b11badffcd1f2c3",
+  "sha256": "35f6efb8cba272058f2dd24d625ac236c97aaffa4d6bfa3c5bf022b7ffb741c8",
   "bytes": 8488
  }
 }
