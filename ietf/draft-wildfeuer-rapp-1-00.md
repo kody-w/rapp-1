@@ -48,8 +48,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame c716a0f733dc33c9cd093533f7f60a3b7e1877f29325544fb3302f591d63fb5a, normative
-SHA-256 9d1d4ede882961a872dd233600c7f3b16e02c16a9c38f542b32fa2c93949d7b3. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame ae1b0e7248176bb77896b27c959b9ee9e1021d04b024cd933a2e118afaa7e25b, normative
+SHA-256 46d51bc0254dab4a25453b61cc5b0e647630da7c841fa4c469369d437f2360b3. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -111,9 +111,9 @@ the currently served release is immutable even while a separate candidate lineag
 `rapp-deploy/1`. **declared entry** — a §13.3 registry entry that carries its own owner signature made at
 its `activated_utc`; a byte-identical copy of it verifies against the estate's registry (§13.4).
 **release scope** — the owner-selected absolute HTTPS URI naming one release family, bound to at most one
-Grail kernel (§11.1). **release manifest** — the `rapp/1-release-manifest` object a `release-pin` entry
-pins by particle hash (§13.5). **channel** — an owner-named linear chain of `release-pin` entries whose
-head pins the channel's current release (§13.5).
+Grail kernel (§11.1, §13.5). **release manifest** — the `rapp/1-release-manifest` object a `release-pin`
+entry pins by particle hash (§13.5). **channel** — an owner-named linear chain of `release-pin` entries
+whose head pins the channel's current release (§13.5).
 
 # Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **{{RFC8785}} JCS** for the value `v`, defined **only**
@@ -1021,9 +1021,10 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
 - **estate_owner** `{type:"estate_owner", rappid}` (exactly one non-deprecated) · **master-plan**
   `{type:"master-plan", repo, path}` (Fed. Const. Art. VII).
 
-§7.5 steps 1–5 are time-independent (append-only lookups); **only** step 6 (tombstones) and §13.2 owner
-tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule. A declared entry (§13.4) is
-authenticated at its own `activated_utc`, never at the time it is read.
+§7.5 steps 1–5 are time-independent (append-only lookups); step 6 (tombstones) and §13.2 owner tenure are
+time-scoped, and both are monotone given the §13.1 no-rollback rule. A declared entry (§13.4) is
+authenticated at its own `activated_utc`, never at the time it is read. The rules of §13.5 — release pins —
+sit above §7.5 and never add a §7.5 step.
 
 ## Declared entries (entry-level owner signatures)
 A **declared entry** carries its own `activated_utc` (the §7.4 form), `declared_by` (a keyed rappid), and
@@ -1067,12 +1068,12 @@ that pins every component of that release:
   `lts-2026.09` or `brainstem-v0.6.16`). It is informational — the release's identity stays its
   `manifest_hash`, and no consumer selects or trusts a release by its name — but it makes every release's
   manifest distinct: returning to earlier content is a new release of the family with a new `release`
-  name, never a second pin of an earlier manifest (§13.3). `components` is non-empty and sorted ascending by
-  `id`, with no duplicate `id`; an `id` is an lclabel of 1–100 characters. `kind` is an lclabel of 1–64
-  characters and an extension point (`protocol`, `organism`, `hive`, `repository`, `document`, …); only
-  `kernel` is reserved (below). `object_format` fixes the lowercase hexadecimal length of `commit` exactly
-  as for `grail-kernel`; a non-null `immutable_ref` is a full `refs/tags/...` name that **MUST** resolve
-  exactly to `commit`.
+  name, never a second pin of an earlier manifest (§13.3). An estate **SHOULD NOT** reuse a `release` name
+  within one family. `components` is non-empty and sorted ascending by `id`, with no duplicate `id`; an `id`
+  is an lclabel of 1–100 characters. `kind` is an lclabel of 1–64 characters and an extension point
+  (`protocol`, `organism`, `hive`, `repository`, `document`, …); only `kernel` is reserved (below).
+  `object_format` fixes the lowercase hexadecimal length of `commit` exactly as for `grail-kernel`; a
+  non-null `immutable_ref` is a full `refs/tags/...` name that **MUST** resolve exactly to `commit`.
 - `files` is sorted ascending by the UTF-8 bytes of `path`; each `path` obeys the §9.1 path grammar, and no
   two paths of one component are equal case-insensitively or name a file and a directory above it (each
   segment compared after Unicode NFD normalization and full case folding). `sha256` is the raw SHA-256 of
