@@ -48,8 +48,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame f145ed50c935c686ed77c86eb91ca46caf915c5f8280d404a5c4711d9cc4b487, normative
-SHA-256 4afe3b27d82f7ea7efbbdcf2f57d67dc72445916e27892b1d7715f65ff97f9f7. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame 3e13a408b7f99b27a291011b15ebf352ef978c07a0c5d58f309dca371f9ed8b0, normative
+SHA-256 5d3ba894381e962ed3d30337460c39a83103a313108e557fc280a9f72aab7a31. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -110,6 +110,8 @@ the currently served release is immutable even while a separate candidate lineag
 **deployment cell** — an independently observable and isolatable runtime failure domain governed by
 `rapp-deploy/1`. **declared entry** — a §13.3 registry entry that carries its own owner signature made at
 its `activated_utc`, and so verifies apart from the document that carries it (§13.4).
+**lifecycle notice** — an estate-signed `lifecycle` entry stating whether an organism is active,
+deprecated, superseded, or archived, and since when (§13.5).
 
 # Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **{{RFC8785}} JCS** for the value `v`, defined **only**
@@ -1004,6 +1006,11 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   referenced bytes, recomputes both hashes, persists the canonical entry on first activation, applies
   §11.1, and refuses a missing/mutated prior binding, duplicate `grail_id`, or locator whose bytes
   disagree.
+- **lifecycle** `{type:"lifecycle", rappid, state, superseded_by, since_utc, previous, activated_utc,
+  declared_by, sig}` — exactly these members; a declared entry (§13.4). `rappid` is the organism the notice
+  is about; `state` is `"active"`, `"deprecated"`, `"superseded"`, or `"archived"`; `superseded_by` is `null`
+  or another §6.1 rappid; `since_utc` has the §7.4 form; `previous` is `null` or `H("rapp/1:particle", e)`
+  of the earlier `lifecycle` entry `e` for the same `rappid` that this one follows (§13.5).
 - **estate_owner** `{type:"estate_owner", rappid}` (exactly one non-deprecated) · **master-plan**
   `{type:"master-plan", repo, path}` (Fed. Const. Art. VII).
 
@@ -1014,7 +1021,8 @@ authenticated at its own `activated_utc`, never at the time it is read.
 ## Declared entries (entry-level owner signatures)
 A **declared entry** carries its own `activated_utc` (the §7.4 form), `declared_by` (a keyed rappid), and
 `sig` (a detached §10 JWS whose protected `kid` equals `declared_by`, over `canonical(entry \ {sig})`). The
-declared entry types are `grail-kernel` (persisted). For every declared entry a consumer **MUST**:
+declared entry types are `grail-kernel` (persisted) and `lifecycle`. For every declared entry a consumer
+**MUST**:
 1. require `declared_by` to be the estate owner in effect at `activated_utc` (§13.2), with a §13 `spki`
    entry whose key §10 does not refuse (as superseded or tombstoned) at `activated_utc`;
 2. verify `sig` with that registry key — the enclosing §13.1 signature never substitutes for it;
@@ -1028,6 +1036,29 @@ differs in any byte is not that entry. `H("rapp/1:particle", entry)` over the co
 it. Once a consumer has accepted an entry of a persisted type it **MUST** persist the canonical entry, and
 every later accepted registry **MUST** retain it byte-for-byte; removal or mutation is a permanent refusal
 even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-kernel`).
+
+## Lifecycle notices
+A `lifecycle` entry is the estate's authoritative notice about one organism:
+- `active` — maintained; `superseded_by` **MUST** be `null`.
+- `deprecated` — still available, but new use should not start; `superseded_by` **MAY** name a
+  recommended successor.
+- `superseded` — replaced; `superseded_by` **MUST** name the successor.
+- `archived` — kept readable and given no further releases; `superseded_by` **MAY** name a successor.
+
+`superseded_by` never equals `rappid`. The `lifecycle` entries for one `rappid` form one linear chain:
+exactly one has `previous:null`, every other names an entry that appears earlier in `entries` for the same
+`rappid`, no two name the same entry, and neither `since_utc` nor `activated_utc` decreases along it. The
+state **in effect at** time `t` is that of the last entry in the chain whose `since_utc` ≤ `t` (bytewise,
+§7.4); an organism with no such entry has no declared lifecycle at `t`, and a consumer **MUST NOT** infer
+deprecation from absence. The chain's last entry is the current notice, and the organisms named by current
+notices' `superseded_by` **MUST NOT** form a cycle. A registry that breaks these rules is refused whole.
+
+A notice is metadata about an organism, not trust: it revokes no key (§10 tombstones do), re-anchors no
+identity (§6.3), changes no frame's §7.5 result, and `superseded_by` transfers no key, signature
+authority, entitlement, or ownership — like §9.4 lineage, it names a successor and grants nothing. A
+lifecycle statement anywhere else — a README, a member file, a Hive notice, a portfolio card, a pointer —
+is a copy: a consumer **MUST** take the state from the verified entry, and a copy that disagrees with it is
+a drift finding. A copy that carries the exact signed entry verifies by §13.4.
 
 # Security considerations
 - **Integrity:** every object is domain-separated content-addressed (§5); a hostile mirror cannot alter
@@ -1053,6 +1084,9 @@ even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-ker
   cannot relocate the entries or smuggle policy into signed-but-meaningless members; a declared entry's own
   owner signature is checked at its `activated_utc`, so a valid document signature never blesses a forged
   or mutated declaration, and persisted declarations cannot be dropped by a later registry (§13.4).
+- **Lifecycle is not revocation:** deprecating, superseding, or archiving an organism leaves its valid
+  frames valid and its keys unrevoked; a compromise is a §10 tombstone, and a copied notice that disagrees
+  with the registry is drift, not authority (§13.5).
 - **Producer-controlled `utc` (DoS/merge bias):** a future-dated head can brick a stream (successors refused
   as earlier) and bias UTC-first merges. A consumer **SHOULD** refuse a frame whose `utc` exceeds receipt
   time by >300 s, and adversarial-scope merges **SHOULD** rank by `min(utc, first-seen)`; a bricked stream
