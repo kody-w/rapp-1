@@ -1,24 +1,24 @@
 {
  "schema": "rapp/1-anchor",
- "generated_utc": "2026-09-25T20:10:09.000Z",
+ "generated_utc": "2026-09-25T20:21:09.000Z",
  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
  "head": {
   "seq": 17,
-  "frame_hash": "3734282a196408474d470c9a13ac797a48b81105f1a63f85b6ae4c6533091a16",
-  "payload_hash": "6bba456ceb614d1515a746f1411b4134d2ee64fa204c3531756dd060aa76ff56"
+  "frame_hash": "0b07f54d107ebb9a94780be4fcd3f415064bf08242702b35480f574bedf2bf5a",
+  "payload_hash": "3c427a0524b35982b0eded31e48db28abb60404fac87b90d906bb880e05cd4c1"
  },
  "spec": {
   "revision": "rev-17",
-  "revision_frame_hash": "3734282a196408474d470c9a13ac797a48b81105f1a63f85b6ae4c6533091a16",
-  "revision_payload_hash": "6bba456ceb614d1515a746f1411b4134d2ee64fa204c3531756dd060aa76ff56",
+  "revision_frame_hash": "0b07f54d107ebb9a94780be4fcd3f415064bf08242702b35480f574bedf2bf5a",
+  "revision_payload_hash": "3c427a0524b35982b0eded31e48db28abb60404fac87b90d906bb880e05cd4c1",
   "schema": "rapp-spec-revision/1",
   "materialized_path": "SPEC.md",
   "normative_path": "SPEC.md",
   "media_type": "text/markdown; charset=utf-8",
-  "normative_sha256": "044478d81fcea31d3d9624f1ea9a2fb89f335f94554165980fcadf12778f0436",
-  "normative_bytes": 101173,
+  "normative_sha256": "a8cb24f86c90308d91c92c14feeda896b6e0843733381dda3e103c7215a46113",
+  "normative_bytes": 101180,
   "canonical_repo": "https://github.com/kody-w/rapp-1",
-  "commit": "18dabe4e950b88149ad03c9ad08da44a5f09c6f9"
+  "commit": "f63568cb7ac757841b2b01ae4735b0c371828b73"
  },
  "registered_kinds": [
   "body.pulse",
@@ -232,7 +232,7 @@
  },
  "index": {
   "path": "anchor/index.json",
-  "sha256": "ae2fac6356bff14a89d69b0d83c920ad6817d322d7e4b419eab2ab9daa1106c6",
+  "sha256": "cad025ce9941a04b2964a563b442956e06a28fd28daf29d05fc86b4348be4b3b",
   "bytes": 8489
  }
 }
