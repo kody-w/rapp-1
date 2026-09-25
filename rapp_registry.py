@@ -15,7 +15,7 @@ What is fully specified by §13 and enforced here:
   - kind grammar and family binding; family ↔ stream_id-form compatibility (§6.1.1, §7.2);
   - owner succession by re-anchor records, owner-in-effect at a time (§13.2);
   - key discovery, superseded-key and tombstone refusal at a time (§10);
-  - stream signers (§13.5): each `stream-signer` grant's structure and cross-entry rules,
+  - stream signers (§13.7): each `stream-signer` grant's structure and cross-entry rules,
     and the authority check above §7.5 for a consumer that follows no profile-defined signer
     rule — a verified frame speaks for the estate only when its `kid` is the owner in effect
     or a signer granted its stream, kind, and time;
@@ -31,7 +31,7 @@ What is fully specified by §13 and enforced here:
     the family was accepted; the `rapp/1-release-manifest` structure and its `release`
     name, kernel coherence with the family's `grail-kernel`, and an all-or-nothing
     verified snapshot of one selected pinned release through a caller's fetch;
-  - lifecycle notices (§13.5): one linear, owner-signed chain of `lifecycle` entries per
+  - lifecycle notices (§13.6): one linear, owner-signed chain of `lifecycle` entries per
     organism, the state and successor in effect at a time, and no cycle among current successors;
   - owner-signature verification over canonical(document \\ {sig}).
 
@@ -55,7 +55,7 @@ import rapp as R
 FAMILIES = ("memory", "swarm", "body")
 STREAM_FORMS = {"memory": "memory-stream", "swarm": "swarm-stream", "body": "body-stream"}
 REANCHOR_CASES = ("upgrade", "rotation", "compromise", "tag-migrate")
-LIFECYCLE_STATES = ("active", "deprecated", "superseded", "archived")  # §13.5
+LIFECYCLE_STATES = ("active", "deprecated", "superseded", "archived")  # §13.6
 # §7.2 / §12.1 — the three re-genesis kinds; only the owner signs them, so no grant may list one.
 REGENESIS_KINDS = ("memory.re-genesis", "swarm.re-genesis", "body.re-genesis")
 
@@ -213,7 +213,7 @@ def _hex64(entry, member, where):
 
 
 def _validate_lifecycle(entry, where):
-    """The §13.3 `lifecycle` members and the §13.5 rules one entry shows by itself.
+    """The §13.3 `lifecycle` members and the §13.6 rules one entry shows by itself.
     Its chain and the no-cycle rule span entries, so `Registry` checks those."""
     organism = _rappid(entry, "rappid", where)
     state = entry.get("state")
@@ -223,11 +223,11 @@ def _validate_lifecycle(entry, where):
     if successor is not None and not R.rappid_valid(successor):
         raise RegistryError(f"{where}: `superseded_by` must be null or a §6.1 rappid")
     if successor == organism:
-        raise RegistryError(f"{where}: `superseded_by` never equals `rappid` (§13.5)")
+        raise RegistryError(f"{where}: `superseded_by` never equals `rappid` (§13.6)")
     if state == "active" and successor is not None:
-        raise RegistryError(f"{where}: an active organism has no successor; `superseded_by` must be null (§13.5)")
+        raise RegistryError(f"{where}: an active organism has no successor; `superseded_by` must be null (§13.6)")
     if state == "superseded" and successor is None:
-        raise RegistryError(f"{where}: a superseded organism names its successor in `superseded_by` (§13.5)")
+        raise RegistryError(f"{where}: a superseded organism names its successor in `superseded_by` (§13.6)")
     _utc(entry, "since_utc", where)
     previous = entry.get("previous")
     if previous is not None and not (isinstance(previous, str) and _HEX64.fullmatch(previous)):
@@ -258,7 +258,7 @@ def _validate_stream_signer(entry, where):
             raise RegistryError(f"{where}: `kinds` must ascend bytewise ({kind!r} follows {prior!r})")
     since = _utc(entry, "since_utc", where)
     if entry.get("until_utc") is not None and _utc(entry, "until_utc", where) <= since:
-        raise RegistryError(f"{where}: `until_utc` must be null or after `since_utc` (§13.5)")
+        raise RegistryError(f"{where}: `until_utc` must be null or after `since_utc` (§13.7)")
     _utc(entry, "activated_utc", where)
     _rappid(entry, "declared_by", where); _str(entry, "sig", where)
 
@@ -383,13 +383,13 @@ class Registry:
         self.egg_variants = {}   # variant -> entry
         self.error_codes = set()
         self.spki = {}           # rappid -> entry
-        self.stream_signers = {}  # stream_id -> [stream-signer grants], append order (§13.5)
+        self.stream_signers = {}  # stream_id -> [stream-signer grants], append order (§13.7)
         self.tombstones = {}     # rappid -> revoked_utc (earliest)
         self.reanchors = []      # entries, in order
         self.genesis = {}        # stream_id -> list of entries
         self.grail = {}          # grail_id -> entry
         self.release_pins = {}   # manifest_hash -> release-pin entry, append order (§13.5)
-        self.lifecycle = {}      # rappid -> [lifecycle entries, chain order] (§13.5)
+        self.lifecycle = {}      # rappid -> [lifecycle entries, chain order] (§13.6)
         self.protocol_history = {}  # name -> [entries], append order
         self.master_plan = None
         self.canonical_source = None  # set by load_document from the §13.1 container
@@ -679,7 +679,7 @@ class Registry:
         """Check the signatures on key-lifecycle entries, not only their outer registry.
 
         Key-lifecycle entries are tombstones and re-anchors (§10); `lifecycle` notices
-        (§13.5) are declared entries, checked by `check_declared_signatures`.
+        (§13.6) are declared entries, checked by `check_declared_signatures`.
         This checks owner tenure and old-key continuity. A snapshot cannot prove
         which entries arrived in the same append; callers must retain append
         provenance for the additional §6.3 compromise requirement. Tombstones
@@ -855,9 +855,9 @@ class Registry:
         chain = self.release_channels.get(channel) if isinstance(channel, str) else None
         return chain[-1] if chain else None
 
-    # ---- §13.5 lifecycle notices ----
+    # ---- §13.6 lifecycle notices ----
     def _index_lifecycle(self):
-        """Chain each organism's `lifecycle` entries and refuse what §13.5 forbids.
+        """Chain each organism's `lifecycle` entries and refuse what §13.6 forbids.
 
         One linear chain per `rappid`, every entry after the first naming the one it
         follows by `previous` = entry_hash (so a chain is its organism's entries in append
@@ -874,7 +874,7 @@ class Registry:
                     # The fixed §7.4 form orders bytewise exactly as it orders in time.
                     if notice[member] < prior[member]:
                         raise RegistryError(
-                            f"lifecycle chain {organism!r}: `{member}` decreases along the chain (§13.5)"
+                            f"lifecycle chain {organism!r}: `{member}` decreases along the chain (§13.6)"
                         )
         successors = {organism: chain[-1]["superseded_by"] for organism, chain in self.lifecycle.items()
                       if chain[-1]["superseded_by"] is not None}
@@ -884,7 +884,7 @@ class Registry:
             while current in successors and current not in settled:
                 if current in walk:
                     raise RegistryError(
-                        f"lifecycle: current notices' `superseded_by` form a cycle through {current!r} (§13.5)"
+                        f"lifecycle: current notices' `superseded_by` form a cycle through {current!r} (§13.6)"
                     )
                 walk.add(current)
                 current = successors[current]
@@ -922,12 +922,12 @@ class Registry:
     def successor_at(self, rappid, utc):
         """The `superseded_by` of the notice in effect at `utc`; None when no notice is in effect
         then or it names no successor, so a scheduled notice names none before its `since_utc`.
-        It names; it grants nothing. Only current notices are acyclic (§13.5): successors in
+        It names; it grants nothing. Only current notices are acyclic (§13.6): successors in
         effect at one time may loop, so a walk along them must stop where it has already been."""
         notice = self.lifecycle_at(rappid, utc)
         return None if notice is None else notice["superseded_by"]
 
-    # ---- §13.5 stream signers ----
+    # ---- §13.7 stream signers ----
     def _index_stream_signers(self):
         """Check every grant the constructor collected against the rules that span entries
         (§13.3): its signer has a §13 `spki` entry here — so it is keyed; a keyless rappid never
@@ -969,7 +969,7 @@ class Registry:
                    for grant in self.stream_grants(stream_id))
 
     def authority_decision(self, stream_id, kid, kind, utc):
-        """The §13.5 rule over a frame summary: may `kid` speak for this estate on `stream_id`
+        """The §13.7 rule over a frame summary: may `kid` speak for this estate on `stream_id`
         with `kind` at `utc`? Returns (ok, reason); `kid` None means the frame is unsigned.
 
         Authorized iff `kid` is the estate owner in effect at `utc` (§13.2), or a grant covers
@@ -979,7 +979,7 @@ class Registry:
         never validity: the frame must already have passed §7.5 (see frame_authorized). Pure:
         it reads only this registry."""
         if kid is None:
-            return False, "an unsigned frame never speaks for the estate (§10, §13.5)"
+            return False, "an unsigned frame never speaks for the estate (§10, §13.7)"
         if not R.rappid_valid(kid):
             return False, "kid is not a §6.1 rappid"
         if not R.utc_valid(utc):
@@ -996,19 +996,19 @@ class Registry:
         named = [grant for grant in self.stream_grants(stream_id) if grant["signer"] == kid]
         if not named:
             return False, ("kid is neither the estate owner in effect at utc (§13.2) nor granted "
-                           "this stream by a stream-signer entry (§13.5)")
+                           "this stream by a stream-signer entry (§13.7)")
         listing = [grant for grant in named if kind in grant["kinds"]]
         if not listing:
-            return False, f"no stream-signer grant to kid on this stream lists kind {kind!r} (§13.5)"
+            return False, f"no stream-signer grant to kid on this stream lists kind {kind!r} (§13.7)"
         if not any(self._window_covers(grant, utc) for grant in listing):
-            return False, "utc is outside every stream-signer window for kid, stream, and kind (§13.5)"
+            return False, "utc is outside every stream-signer window for kid, stream, and kind (§13.7)"
         ok, why = self.signer_acceptable(kid, utc)
         if not ok:
             return False, f"the granted signer's key is refused at utc (§10): {why}"
         return True, "stream-signer grant"
 
     def frame_authorized(self, frame):
-        """The §13.5 authority rule ONLY — does this frame speak for the estate? (ok, reason).
+        """The §13.7 authority rule ONLY — does this frame speak for the estate? (ok, reason).
 
         !! IT DOES NOT VERIFY THE FRAME. Call it only for a frame that has ALREADY passed §7.5
         !! — rapp.verify_frame(signature_verifier=self.signature_verifier()) plus
@@ -1024,7 +1024,7 @@ class Registry:
             return False, "frame is not a JSON object"
         sig = frame.get("sig")
         if sig is None:
-            return False, "an unsigned frame never speaks for the estate (§10, §13.5)"
+            return False, "an unsigned frame never speaks for the estate (§10, §13.7)"
         try:
             kid = R.parse_detached_jws(sig)[0]["kid"]
         except (ValueError, TypeError) as why:
@@ -1032,7 +1032,7 @@ class Registry:
         return self.authority_decision(frame.get("stream_id"), kid, frame.get("kind"), frame.get("utc"))
 
     def verify_authorized_frame(self, frame, *, head, stream_id_of_record):
-        """§7.5 against this registry, then the §13.5 authority check. Returns (ok, step, why).
+        """§7.5 against this registry, then the §13.7 authority check. Returns (ok, step, why).
 
         An invalid frame fails at its §7.5 step, "1" through "6"; the registered-kind and
         family binding (check_frame_binding) is part of step 1. A valid `rapp/1` frame that does
@@ -1067,7 +1067,7 @@ class Registry:
         signature_verifier=self.signature_verifier() — so the signature is verified first, as
         frame_authorized requires. `purpose` is accepted and never widens authority.
 
-        §13.5 binds only a consumer that follows no profile-defined signer rule. A subordinate
+        §13.7 binds only a consumer that follows no profile-defined signer rule. A subordinate
         profile that defines its own signer authorization (rapp-work/1 §1, a rapp-cicd/1 stage
         approver) keeps it and MAY meet it with this verifier; nothing here replaces that rule."""
         def authorized(frame, purpose=None):

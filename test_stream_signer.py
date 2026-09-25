@@ -1,4 +1,4 @@
-"""§13.5 stream-signer grants and the authority check above §7.5 (stdlib; JWS boundary mocked).
+"""§13.7 stream-signer grants and the authority check above §7.5 (stdlib; JWS boundary mocked).
 
 Frames are real `rapp.build_frame` frames. Their `sig` is shaped like a detached JWS, so the
 registry can read the protected `kid` (`rapp.parse_detached_jws`), while the mocked
@@ -522,7 +522,7 @@ class ProfileAuthorizationTests(Base):
         self.assertIs(verifier(self.pulse(INSIDE, signer="crawler"), "test-pulse"), False)
 
     def test_a_profile_defined_signer_rule_is_kept(self):
-        # §13.5 binds only a consumer with no profile-defined signer rule; a profile's own rule (here
+        # §13.7 binds only a consumer with no profile-defined signer rule; a profile's own rule (here
         # a stage-approver set) keeps governing its payload, with or without a grant.
         reg = self.registry([self.grant()])
         payload = {"schema": "test-pulse/1", "crawl": 1}
@@ -548,7 +548,7 @@ class ProfileAuthorizationTests(Base):
         approvers.add(self.keys["signer"])
         grant_check = reg.authorization_verifier()
 
-        def approver_and_grant(frame, purpose=None):  # a profile MAY also require the §13.5 check
+        def approver_and_grant(frame, purpose=None):  # a profile MAY also require the §13.7 check
             return approver(frame, purpose) and grant_check(frame, purpose)
 
         self.assertEqual(accept(by_grantee, approver_and_grant), payload)

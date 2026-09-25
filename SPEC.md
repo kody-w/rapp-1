@@ -86,9 +86,9 @@ Grail kernel (§11.1). **release manifest** — the `rapp/1-release-manifest` ob
 pins by particle hash (§13.5). **channel** — an owner-named linear chain of `release-pin` entries whose
 head pins the channel's current release (§13.5).
 **lifecycle notice** — an estate-signed `lifecycle` entry stating whether an organism is active,
-deprecated, superseded, or archived, and since when (§13.5).
+deprecated, superseded, or archived, and since when (§13.6).
 **stream signer** — a keyed signer an estate has granted, by a `stream-signer` entry, to speak for it on
-one stream (§13.5).
+one stream (§13.7).
 
 ## 4. Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **[RFC 8785] JCS** for the value `v`, defined **only**
@@ -997,19 +997,19 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   declared_by, sig}` — exactly these members; a declared entry (§13.4). `rappid` is the organism the notice
   is about; `state` is `"active"`, `"deprecated"`, `"superseded"`, or `"archived"`; `superseded_by` is `null`
   or another §6.1 rappid; `since_utc` has the §7.4 form; `previous` is `null` or `H("rapp/1:particle", e)`
-  of the earlier `lifecycle` entry `e` for the same `rappid` that this one follows (§13.5).
+  of the earlier `lifecycle` entry `e` for the same `rappid` that this one follows (§13.6).
 - **stream-signer** `{type:"stream-signer", stream_id, signer, kinds, since_utc, until_utc,
   activated_utc, declared_by, sig}` — exactly these members; a declared entry (§13.4). `stream_id` has a
   §6.1.1 form; `signer` is a keyed rappid with a §13 `spki` entry (deprecated or not) in the same
   registry; `kinds` is a non-empty array of distinct kinds in ascending bytewise order, each registered
   (deprecated or not) in the same registry with a family compatible with `stream_id`'s form (§7.2) and
   none a `*.re-genesis` kind (§12.1 reserves those for the owner); `since_utc` has the §7.4 form;
-  `until_utc` is `null` or a §7.4 time after `since_utc` (§13.5).
+  `until_utc` is `null` or a §7.4 time after `since_utc` (§13.7).
 - **estate_owner** `{type:"estate_owner", rappid}` (exactly one non-deprecated) · **master-plan**
   `{type:"master-plan", repo, path}` (Fed. Const. Art. VII).
 
 §7.5 steps 1–5 are time-independent (append-only lookups); **only** step 6 (tombstones), §13.2 owner
-tenure, and §13.5 grant windows are time-scoped, and all three are monotone given the §13.1 no-rollback
+tenure, and §13.7 grant windows are time-scoped, and all three are monotone given the §13.1 no-rollback
 rule. A declared entry (§13.4) is authenticated at its own `activated_utc`, never at the time it is read.
 
 ### 13.4 Declared entries (entry-level owner signatures)
@@ -1120,7 +1120,7 @@ them is verified only when a manifest pins it, and a locator that disagrees with
 finding, never a second opinion. A consumer **MUST NOT** present unpinned content as part of a verified
 snapshot.
 
-### 13.5 Lifecycle notices
+### 13.6 Lifecycle notices
 A `lifecycle` entry is the estate's authoritative notice about one organism:
 - `active` — maintained; `superseded_by` **MUST** be `null`.
 - `deprecated` — still available, but new use should not start; `superseded_by` **MAY** name a
@@ -1147,7 +1147,7 @@ a drift finding. A lifecycle claim that no verified entry supports is unverified
 A verified copy of an earlier notice is authentic but historical: the chain, not the copy, decides the state
 in effect. A copy that carries the exact signed entry verifies by §13.4.
 
-### 13.5 Stream signers (who speaks for the estate on a stream)
+### 13.7 Stream signers (who speaks for the estate on a stream)
 §7.5 step 6 proves that a registry-discoverable key signed a frame; it does not say whether that key
 speaks for the stream. A `stream-signer` entry is the estate's grant that `signer` may sign frames of the
 listed `kinds` on `stream_id` whose `utc` satisfies `since_utc` ≤ `utc` and, unless `until_utc` is `null`,
@@ -1203,11 +1203,11 @@ identity; §6.2 and §6.3 are unchanged.
   (§13.5).
 - **Lifecycle is not revocation:** deprecating, superseding, or archiving an organism leaves its valid
   frames valid and its keys unrevoked; a compromise is a §10 tombstone, and a copied notice that disagrees
-  with the registry is drift, not authority (§13.5).
+  with the registry is drift, not authority (§13.6).
 - **Signer scope:** any registered key can yield a §7.5-valid signature on any stream. Where no
   subordinate profile defines who signs a payload, only the owner in effect or a `stream-signer` grant
   makes a frame the estate's statement, so a station, crawler, or careless key cannot speak for another
-  stream (§13.5). Like a tombstone, a grant's window gates on the frame's producer-controlled `utc`, so a
+  stream (§13.7). Like a tombstone, a grant's window gates on the frame's producer-controlled `utc`, so a
   signer can still stamp frames just below `until_utc` after that time passes; an owner relying on that
   end **SHOULD** advance the stream's head past `until_utc`.
 - **Producer-controlled `utc` (DoS/merge bias):** a future-dated head can brick a stream (successors refused
@@ -1245,9 +1245,9 @@ identity; §6.2 and §6.3 are unchanged.
   door-of-record bindings, kernel coherence and kernel ordering, linear channels, and all-or-nothing
   verified snapshots (§13.5); the `lifecycle` declared entry: estate-signed, chained notices that an
   organism is active, deprecated, superseded (with `superseded_by`), or archived since a given time
-  (§13.5); and the `stream-signer` declared entry: an estate grant, above §7.5, that lets a keyed signer
+  (§13.6); and the `stream-signer` declared entry: an estate grant, above §7.5, that lets a keyed signer
   speak for the estate on one stream and its listed kinds within a time window — including a keyless
-  organism's streams, with no re-anchor (§13.5). No frozen form (§12) changes: every rev-16 `rapp/1`
+  organism's streams, with no re-anchor (§13.7). No frozen form (§12) changes: every rev-16 `rapp/1`
   frame, egg, rappid, and conformance vector verifies unchanged.
 - **rev-16 (RAPP Work profile)** — added the subordinate `rapp-work/1` operational profile
   (`protocols/rapp-work/1/SPEC.md`) to the chain's operational-profile index; this document's normative

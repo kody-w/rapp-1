@@ -578,7 +578,7 @@ def registry_sections():
         }
 
     def lifecycle_cases():
-        """§13.5 lifecycle notices: entry rules, one chain per rappid, times, cycles, and the state
+        """§13.6 lifecycle notices: entry rules, one chain per rappid, times, cycles, and the state
         and successor in effect."""
         earlier, just_before_t1 = "2026-06-01T00:00:00.000Z", "2026-07-31T23:59:59.999Z"
         t1, t2, t3 = "2026-08-01T00:00:00.000Z", "2026-09-01T00:00:00.000Z", "2026-10-01T00:00:00.000Z"
@@ -810,7 +810,7 @@ def registry_sections():
                        [grant(stream_id="net:wire", kinds=["swarm.echo"])], "accept"),
             grant_case("two grants for one stream and signer",
                        [grant(until_utc=inside), grant(since_utc=revoked, until_utc=None)], "accept"),
-            grant_case("a grant that starts before its activated_utc (§13.5 MAY)",
+            grant_case("a grant that starts before its activated_utc (§13.7 MAY)",
                        [grant(activated_utc=inside)], "accept"),
             grant_case("a grant whose whole window precedes its activated_utc",
                        [grant(activated_utc=adopted)], "accept"),
@@ -874,9 +874,9 @@ def registry_sections():
                         "kid is the estate owner in effect at utc (§13.2) or a stream-signer entry names kid as "
                         "signer on stream_id, lists kind, and has since_utc <= utc < until_utc (bytewise; null "
                         "never ends), and in both cases §10 does not refuse kid's key at utc; a grant's "
-                        "activated_utc plays no part (a grant may start before it, §13.5); kid null means "
+                        "activated_utc plays no part (a grant may start before it, §13.7); kid null means "
                         "unsigned and is never authorized. Every frame is assumed to have passed §7.5, step 6 "
-                        "included (§13.5); signatures are out of scope for these vectors",
+                        "included (§13.7); signatures are out of scope for these vectors",
                 "entries": entries,
                 "cases": [
                     decision("the estate owner, with no grant", station, "body.twin-pulse", T0, owner, "authorized"),

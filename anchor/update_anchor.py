@@ -669,15 +669,15 @@ def revision_payload(
     }
     payload["vocabulary"]["lifecycle"] = {
         "status": "live",
-        "where": "§13.5 — estate-signed notice: active, deprecated, superseded, or archived since a time",
+        "where": "§13.6 — estate-signed notice: active, deprecated, superseded, or archived since a time",
     }
     payload["vocabulary"]["superseded-by"] = {
         "status": "live",
-        "where": "§13.5 — names an organism's successor; transfers nothing",
+        "where": "§13.6 — names an organism's successor; transfers nothing",
     }
     payload["vocabulary"]["stream-signer"] = {
         "status": "live",
-        "where": "§13.5 — an estate grant letting a keyed signer speak for it on one stream, above §7.5",
+        "where": "§13.7 — an estate grant letting a keyed signer speak for it on one stream, above §7.5",
     }
     rules = [
         {

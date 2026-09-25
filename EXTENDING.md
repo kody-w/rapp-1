@@ -15,11 +15,11 @@ signs. This page is the lane. Nothing on it needs a change to `rapp/1`.
 | your signers and their keys | `spki` entries; rotation by `re-anchor`; compromise by `tombstone` | §10, §13.2 |
 | your production runtime pinned | a `grail-kernel` entry | §11.1 |
 | every component of one release of a family pinned together (an LTS line and its corrections, a newest channel) | one `release-pin` entry per pinned release + its `rapp/1-release-manifest` (`schema`, `release_scope`, `release`, `components`); the `release_scope` names the release family, and `release` names the release for people | §13.5 |
-| to let a key speak for you on one stream (a pulse, a notice feed) | stream-signer grants — keyless organisms stay keyless | §13.5 |
+| to let a key speak for you on one stream (a pulse, a notice feed) | stream-signer grants — keyless organisms stay keyless | §13.7 |
 | a subordinate profile (`acme-factory/1`) with its own normative text | **your** repository; adopted by a `protocol` entry pinning repo, path, and SHA-256 | §11.2, `protocols/README.md` |
 | tooling that needs a library (Ed25519 signing, HSMs, a database) | **your** repository; it imports `rapp.py`'s canonicalizer, never re-types it | Art. 10 |
 | to say which RAPP/1 you implement | a `protocol` entry `name:"rapp/1"` whose `spec_hash` comes from **this** repository's anchor | §13.3 |
-| to say an organism is deprecated, superseded, or archived | `lifecycle` entries (one signed chain per rappid) | §13.5 |
+| to say an organism is deprecated, superseded, or archived | `lifecycle` entries (one signed chain per rappid) | §13.6 |
 | the registry document itself | exactly `schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; other members carry no meaning | §13.1 |
 
 Every estate pins RAPP/1 the same way, so two estates interoperate on bytes while
@@ -56,10 +56,10 @@ set, binds kinds to families and families to stream forms, walks owner successio
 applies superseded-key and tombstone refusal at a time. Feed `Registry.signature_verifier()`
 to `rapp.verify_frame(signature_verifier=…)` and signed frames resolve their keys from
 your registry. `Registry.verify_authorized_frame(frame, head=…, stream_id_of_record=…)` runs
-§7.5 that way, kind binding included, and then §13.5: a valid frame whose signer is neither
+§7.5 that way, kind binding included, and then §13.7: a valid frame whose signer is neither
 your owner nor granted its stream, kind, and time fails at step `"authority"`, never at a §7.5
 step, and `Registry.authorization_verifier()` hands the same rule to a profile's
-`authorization_verifier`. §13.5 binds a consumer that follows no profile-defined signer rule; a
+`authorization_verifier`. §13.7 binds a consumer that follows no profile-defined signer rule; a
 profile with its own (`rapp-work/1` §1, a `rapp-cicd/1` stage approver) keeps it and may meet it
 this way. A grant may start before its `activated_utc` and so adopt frames already published in
 its window. Signature verification itself uses the optional `cryptography` import
@@ -67,7 +67,7 @@ inside `rapp.verify_detached_jws`; without it, signed artifacts are refused, nev
 assumed.
 
 `Registry.lifecycle_state_at(rappid, utc)` answers from an organism's signed
-`lifecycle` chain (§13.5) whether it was active, deprecated, superseded, or archived
+`lifecycle` chain (§13.6) whether it was active, deprecated, superseded, or archived
 at that time, and returns `None` — never a guessed deprecation — when none of the
 estate's notices is in effect then. `Registry.successor_at(rappid, utc)` returns the
 successor that the notice in effect then names, or `None` (a scheduled notice names

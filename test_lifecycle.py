@@ -1,4 +1,4 @@
-"""§13.5 lifecycle notice tests (stdlib; the detached-JWS boundary is mocked as in
+"""§13.6 lifecycle notice tests (stdlib; the detached-JWS boundary is mocked as in
 test_registry_lifecycle.py, plus an optional class that signs with a real Ed25519 key)."""
 import base64
 import copy
@@ -552,7 +552,7 @@ class LifecycleRetentionTests(LifecycleCase):
 
 
 class LifecycleIsNotTrustTests(LifecycleCase):
-    """§13.5: a notice revokes no key, re-anchors no identity, and changes no §7.5 result."""
+    """§13.6: a notice revokes no key, re-anchors no identity, and changes no §7.5 result."""
 
     def setUp(self):
         super().setUp()
