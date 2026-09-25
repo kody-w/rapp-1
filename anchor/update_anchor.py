@@ -657,11 +657,11 @@ def revision_payload(
     }
     payload["vocabulary"]["lifecycle"] = {
         "status": "live",
-        "where": "§13.5 — estate-signed notice: active, deprecated, superseded, or archived since a time",
+        "where": "§13.5 — estate-signed notice about a rappid or a rappid-less repository: active, deprecated, superseded, or archived since a time",
     }
     payload["vocabulary"]["superseded-by"] = {
         "status": "live",
-        "where": "§13.5 — names an organism's successor; transfers nothing",
+        "where": "§13.5 — names a successor, a rappid or a repository URI; transfers nothing",
     }
     rules = [
         {
@@ -742,17 +742,19 @@ def revision_payload(
         {
             "t": "fact",
             "c": (
-                "An organism's lifecycle comes from its estate-signed lifecycle chain: the state and "
-                "successor in effect at t are those of the last notice whose since_utc <= t; no notice is "
-                "no declared lifecycle, a claim no verified notice supports is unverified, and a README, "
-                "member file, or Hive notice that disagrees is drift."
+                "A lifecycle comes from the estate-signed chain of its subject, an organism's rappid or "
+                "the URI of a repository that has none; the state and successor in effect at t are those "
+                "of the last notice whose since_utc <= t; no notice is no declared lifecycle, a claim no "
+                "verified notice supports is unverified, and a README, member file, or Hive notice that "
+                "disagrees is drift."
             ),
         },
         {
             "t": "gotcha",
             "c": (
                 "A lifecycle notice is not revocation: a superseded organism's frames still verify; "
-                "revoke keys with a §10 tombstone."
+                "revoke keys with a §10 tombstone, and a repository that changes hands keeps its old "
+                "notices until the estate declares a new one."
             ),
         },
         {

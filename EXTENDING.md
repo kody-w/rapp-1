@@ -14,7 +14,7 @@ signs. This page is the lane. Nothing on it needs a change to `rapp/1`.
 | your own egg variant or error code | `egg-variant` / `error-code` entries in your registry | §13.3 (see the open question below) |
 | your signers and their keys | `spki` entries; rotation by `re-anchor`; compromise by `tombstone` | §10, §13.2 |
 | your production runtime pinned | a `grail-kernel` entry | §11.1 |
-| to say an organism is deprecated, superseded, or archived, and since when | `lifecycle` notices (one signed chain per rappid) | §13.5 |
+| to say an organism — or a repository that never minted a rappid — is deprecated, superseded, or archived, and since when | `lifecycle` notices (one signed chain per subject: a rappid, or a repository's HTTPS URI) | §13.5 |
 | your own signature on each of those two (a kernel, a notice) | a declared entry: signed by the owner in effect at its `activated_utc`, retained byte-for-byte once accepted; a copy elsewhere counts only when byte-identical | §13.4 |
 | a subordinate profile (`acme-factory/1`) with its own normative text | **your** repository; adopted by a `protocol` entry pinning repo, path, and SHA-256 | §11.2, `protocols/README.md` |
 | tooling that needs a library (Ed25519 signing, HSMs, a database) | **your** repository; it imports `rapp.py`'s canonicalizer, never re-types it | Art. 10 |
@@ -89,11 +89,17 @@ timestamp. Without this evidence the loader refuses to guess. In particular,
 `revoked_utc` is an effective revocation cutoff, not proof of when the tombstone
 was issued.
 
-`Registry.lifecycle_state_at(rappid, utc)` answers from an organism's signed
+`Registry.lifecycle_state_at(subject, utc)` answers from a subject's signed
 `lifecycle` chain (§13.5) whether it was active, deprecated, superseded, or archived
 at that time, and returns `None` — never a guessed deprecation — when none of the
-estate's notices is in effect then. `Registry.successor_at(rappid, utc)` returns the
-successor that the notice in effect then names, or `None` (a scheduled notice names
+estate's notices is in effect then. It answers only for a registry `load_document`
+returned as "verified" (a draft only with `allow_draft=True`); a `Registry` you built
+directly raises instead, so a `None` always means "no notice", never "not checked". A subject is an organism's rappid or, for a
+repository that never minted one, its HTTPS URI in one exact spelling, so a station
+keeps a signed lifecycle without an identity of its own, and moving it is a
+`superseded` notice naming its new repository.
+`Registry.successor_at(subject, utc)` returns the successor — a rappid or a repository
+URI — that the notice in effect then names, or `None` (a scheduled notice names
 none before its `since_utc`); naming grants nothing, and because a registry whose
 successors in effect at any one time form a cycle is refused whole, a walk along the
 successors in effect at one time always ends.

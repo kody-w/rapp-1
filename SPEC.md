@@ -81,8 +81,8 @@ the currently served release is immutable even while a separate candidate lineag
 **deployment cell** — an independently observable and isolatable runtime failure domain governed by
 `rapp-deploy/1`. **declared entry** — a §13.3 registry entry that carries its own owner signature made at
 its `activated_utc`; a copy with its canonical form (§4) verifies against the estate's registry (§13.4).
-**lifecycle notice** — an estate-signed `lifecycle` entry stating whether an organism is active,
-deprecated, superseded, or archived, and since when (§13.5).
+**lifecycle notice** — an estate-signed `lifecycle` entry stating whether an organism, or a repository
+that has no rappid, is active, deprecated, superseded, or archived, and since when (§13.5).
 
 ## 4. Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **[RFC 8785] JCS** for the value `v`, defined **only**
@@ -977,20 +977,21 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   referenced bytes, recomputes both hashes, persists the canonical entry on first activation, applies
   §11.1, and refuses a missing/mutated prior binding, duplicate `grail_id`, or locator whose bytes
   disagree.
-- **lifecycle** `{type:"lifecycle", rappid, state, superseded_by, since_utc, previous, activated_utc,
-  declared_by, sig}` — exactly these members; a declared entry (§13.4). `rappid` is the organism the notice
-  is about; `state` is `"active"`, `"deprecated"`, `"superseded"`, or `"archived"`; `superseded_by` is `null`
-  or another §6.1 rappid; `since_utc` has the §7.4 form; `previous` is `null` or `H("rapp/1:particle", e)`
-  of the earlier `lifecycle` entry `e` for the same `rappid` that this one follows (§13.5).
+- **lifecycle** `{type:"lifecycle", subject, state, superseded_by, since_utc, previous, activated_utc,
+  declared_by, sig}` — exactly these members; a declared entry (§13.4). `subject` is what the notice is
+  about: a §6.1 rappid (an organism) or an absolute HTTPS URI naming a repository (§13.5); `state` is
+  `"active"`, `"deprecated"`, `"superseded"`, or `"archived"`; `superseded_by` is `null` or another subject
+  of either form; `since_utc` has the §7.4 form; `previous` is `null` or `H("rapp/1:particle", e)` of the
+  earlier `lifecycle` entry `e` for the same `subject` that this one follows (§13.5).
 - **estate_owner** `{type:"estate_owner", rappid}` (exactly one non-deprecated) · **master-plan**
   `{type:"master-plan", repo, path}` (Fed. Const. Art. VII).
 
 §7.5 steps 1–5 are time-independent (append-only lookups); step 6 (tombstones) and §13.2 owner tenure are
 time-scoped, and both are monotone given the §13.1 no-rollback rule. A declared entry (§13.4) is
 authenticated at its own `activated_utc`, never at the time it is read. The lifecycle state in effect
-(§13.5) is evaluated at a given time — for a frame, its `utc` — and, because every declared entry is
-retained (§13.4), a later registry can add a notice but never withdraw one. The rules of §13.5 —
-lifecycle notices — sit above §7.5 and never add a §7.5 step.
+(§13.5) is evaluated at the time asked about; because every declared entry is retained (§13.4), a later
+registry can add a notice but never withdraw one. The rules of §13.5 — lifecycle notices — sit above §7.5
+and never add a §7.5 step.
 
 ### 13.4 Declared entries (entry-level owner signatures)
 A **declared entry** carries its own `activated_utc` (the §7.4 form), `declared_by` (a keyed rappid), and
@@ -1014,33 +1015,41 @@ canonical entry, and every later accepted registry **MUST** retain it byte-for-b
 a permanent refusal even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-kernel`).
 
 ### 13.5 Lifecycle notices
-A `lifecycle` entry is the estate's authoritative notice about one organism:
+A `lifecycle` entry is the estate's authoritative notice about one **subject**: an organism, named by its
+rappid, or a repository that carries no rappid of its own — a member of a distributed Hive that never
+minted an identity — named by its absolute HTTPS URI:
 - `active` — maintained; `superseded_by` **MUST** be `null`.
 - `deprecated` — still available, but new use should not start; `superseded_by` **MAY** name a
   recommended successor.
 - `superseded` — replaced; `superseded_by` **MUST** name the successor.
 - `archived` — kept readable and given no further releases; `superseded_by` **MAY** name a successor.
 
-`superseded_by` never equals `rappid`. The `lifecycle` entries for one `rappid` form one linear chain:
+Subjects compare byte-for-byte: an estate uses one exact spelling of each repository URI. A notice about a
+rappid is about the organism wherever its door of record is; a notice about a repository is about that
+location, so moving a repository that has no rappid is a `superseded` notice naming the new repository. A
+re-anchor (§6.3) moves no chain: an organism that re-anchors has a lifecycle under its new rappid only
+through notices the estate declares for that rappid.
+
+`superseded_by` never equals `subject`. The `lifecycle` entries for one `subject` form one linear chain:
 exactly one has `previous:null`, every other names an entry that appears earlier in `entries` for the same
-`rappid`, no two name the same entry, and neither `since_utc` nor `activated_utc` decreases along it. The
+`subject`, no two name the same entry, and neither `since_utc` nor `activated_utc` decreases along it. The
 notice **in effect at** time `t` is the last entry in the chain whose `since_utc` ≤ `t` (bytewise, §7.4);
 its `state` is the state in effect at `t` and its `superseded_by` the successor named at `t`, so a notice
-whose `since_utc` is later than `t` names no successor at `t`. An organism with no such entry has no
+whose `since_utc` is later than `t` names no successor at `t`. A subject with no such entry has no
 declared lifecycle at `t`, and a consumer **MUST NOT** infer deprecation from absence. The chain's last
-entry is the current notice. The organisms named by the `superseded_by` of the notices in effect at any
+entry is the current notice. The subjects named by the `superseded_by` of the notices in effect at any
 one time **MUST NOT** form a cycle; since the notices in effect change only at a `since_utc`, checking the
 notices in effect at each distinct `since_utc` of the registry checks every time. A registry that breaks
 these rules is refused whole.
 
-A notice is metadata about an organism, not trust: it revokes no key (§10 tombstones do), re-anchors no
-identity (§6.3), changes no frame's §7.5 result, and `superseded_by` transfers no key, signature
-authority, entitlement, or ownership — like §9.4 lineage, it names a successor and grants nothing. A
-lifecycle statement anywhere else — a README, a member file, a Hive notice, a portfolio card, a pointer —
-is a copy: a consumer **MUST** take the state from the verified entry, and a copy that disagrees with it is
-a drift finding. A lifecycle claim that no verified entry supports is unverified, never evidence of a state.
-A verified copy of an earlier notice is authentic but historical: the chain, not the copy, decides the state
-in effect. A copy that carries the exact signed entry verifies by §13.4.
+A notice is metadata about an organism or a repository, not trust: it revokes no key (§10 tombstones
+do), re-anchors no identity (§6.3), changes no frame's §7.5 result, and `superseded_by` transfers no key,
+signature authority, entitlement, or ownership — like §9.4 lineage, it names a successor and grants
+nothing. A lifecycle statement anywhere else — a README, a member file, a Hive notice, a portfolio card,
+a pointer — is a copy: a consumer **MUST** take the state from the verified entry, and a copy that
+disagrees with it is a drift finding. A lifecycle claim that no verified entry supports is unverified,
+never evidence of a state. A verified copy of an earlier notice is authentic but historical: the chain,
+not the copy, decides the state in effect. A copy that carries the exact signed entry verifies by §13.4.
 
 ## 14. Security considerations
 - **Integrity:** every object is domain-separated content-addressed (§5); a hostile mirror cannot alter
@@ -1069,7 +1078,10 @@ in effect. A copy that carries the exact signed entry verifies by §13.4.
   declaration can be dropped by a later registry (§13.4).
 - **Lifecycle is not revocation:** deprecating, superseding, or archiving an organism leaves its valid
   frames valid and its keys unrevoked; a compromise is a §10 tombstone, and a copied notice that disagrees
-  with the registry is drift, not authority (§13.5).
+  with the registry is drift, not authority (§13.5). A repository subject names a location, not an
+  identity: if its URI later reaches another party's repository, the estate's notices about it still read
+  as written, so an estate that loses control of a repository **SHOULD** declare it `archived` or
+  `superseded` at once.
 - **Producer-controlled `utc` (DoS/merge bias):** a future-dated head can brick a stream (successors refused
   as earlier) and bias UTC-first merges. A consumer **SHOULD** refuse a frame whose `utc` exceeds receipt
   time by >300 s, and adversarial-scope merges **SHOULD** rank by `min(utc, first-seen)`; a bricked stream
@@ -1100,9 +1112,10 @@ in effect. A copy that carries the exact signed entry verifies by §13.4.
   (`schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; any other member carries no meaning);
   generalizes the `grail-kernel` entry-level owner signature into §13.4 declared entries, each verified
   at its own `activated_utc` and retained byte-for-byte once accepted; and adds one declared entry type.
-  **Lifecycle notices** (§13.5): estate-signed, chained notices that an organism is active, deprecated,
-  superseded (with `superseded_by`), or archived since a given time. No frozen form (§12) changes: every
-  rev-16 `rapp/1` frame, egg, rappid, and conformance vector verifies unchanged.
+  **Lifecycle notices** (§13.5): estate-signed, chained notices that an organism — or a repository that
+  has no rappid — is active, deprecated, superseded (with `superseded_by`), or archived since a given
+  time. No frozen form (§12) changes: every rev-16 `rapp/1` frame, egg, rappid, and conformance vector
+  verifies unchanged.
 - **rev-16 (RAPP Work profile)** — added the subordinate `rapp-work/1` operational profile
   (`protocols/rapp-work/1/SPEC.md`) to the chain's operational-profile index; this document's normative
   text was unchanged from rev-15.

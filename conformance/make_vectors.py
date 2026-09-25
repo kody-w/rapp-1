@@ -190,8 +190,8 @@ def registry_sections():
         }
 
     def lifecycle_cases():
-        """§13.5 lifecycle notices: entry rules, one chain per rappid, times, cycles, and the state
-        and successor in effect."""
+        """§13.5 lifecycle notices: entry rules, one chain per subject (a rappid or a repository URI),
+        times, cycles, and the state and successor in effect."""
         earlier, just_before_t1 = "2026-06-01T00:00:00.000Z", "2026-07-31T23:59:59.999Z"
         t1, t2, t3 = "2026-08-01T00:00:00.000Z", "2026-09-01T00:00:00.000Z", "2026-10-01T00:00:00.000Z"
         future = "2027-01-01T00:00:00.000Z"
@@ -202,10 +202,12 @@ def registry_sections():
 
         alpha, beta, gamma, delta, epsilon = (
             organism(slug, n) for n, slug in enumerate(("alpha", "beta", "gamma", "delta", "epsilon"), 1))
+        # Repositories with no rappid of their own are subjects too, named by their HTTPS URI.
+        handbook, docs = "https://git.example.test/vector/handbook", "https://git.example.test/vector/docs"
 
-        def notice(rappid, state, since=T0, previous=None, superseded_by=None, activated=T0, **changes):
+        def notice(subject, state, since=T0, previous=None, superseded_by=None, activated=T0, **changes):
             """A lifecycle entry with a placeholder sig; `previous` may be the entry it follows."""
-            entry = {"type": "lifecycle", "rappid": rappid, "state": state, "superseded_by": superseded_by,
+            entry = {"type": "lifecycle", "subject": subject, "state": state, "superseded_by": superseded_by,
                      "since_utc": since,
                      "previous": REG.entry_hash(previous) if isinstance(previous, dict) else previous,
                      "activated_utc": activated, "declared_by": owner, "sig": SIG}
@@ -213,10 +215,10 @@ def registry_sections():
             return {k: v for k, v in entry.items() if v is not _DROP}
 
         def current(registry):
-            """Each organism's current notice (its chain's last entry), scheduled or in effect."""
-            heads = {rappid: registry.lifecycle_head(rappid) for rappid in sorted(registry.lifecycle)}
-            return {rappid: {"state": head["state"], "superseded_by": head["superseded_by"]}
-                    for rappid, head in heads.items()}
+            """Each subject's current notice (its chain's last entry), scheduled or in effect."""
+            heads = {subject: registry.lifecycle_head(subject) for subject in sorted(registry.lifecycle)}
+            return {subject: {"state": head["state"], "superseded_by": head["superseded_by"]}
+                    for subject, head in heads.items()}
 
         def case(label, notices, expect):
             """`expect` is "accept", or text the reference's refusal must contain, so every refusal
@@ -257,6 +259,16 @@ def registry_sections():
                  [s1, notice(beta, "superseded", superseded_by=gamma), notice(gamma, "active")], "accept"),
             case("a successor that declares no lifecycle of its own",
                  [notice(alpha, "superseded", superseded_by=delta)], "accept"),
+            case("a repository with no rappid: active, then superseded by the repository it moved to",
+                 [notice(handbook, "active"),
+                  notice(handbook, "superseded", since=t1, previous=notice(handbook, "active"),
+                         superseded_by=docs, activated=t1)], "accept"),
+            case("a repository superseded by an organism (the member minted an identity), and an organism "
+                 "deprecated in favour of a repository",
+                 [notice(handbook, "superseded", superseded_by=alpha),
+                  notice(beta, "deprecated", superseded_by=docs)], "accept"),
+            case("two spellings of one repository are two subjects, each with its own first notice",
+                 [notice(docs, "active"), notice(docs.replace("/docs", "/Docs"), "archived")], "accept"),
             case("a supersession withdrawn as the reverse one takes effect: the two never loop at one time",
                  [s1, notice(alpha, "active", since=t1, previous=s1, activated=t1),
                   notice(beta, "superseded", since=t1, superseded_by=alpha, activated=t1)], "accept"),
@@ -265,13 +277,19 @@ def registry_sections():
                   notice(beta, "superseded", since=future, superseded_by=alpha, activated=t1)], "accept"),
             case("a missing member (previous)", [notice(alpha, "active", previous=_DROP)], "member set"),
             case("an extra member (deprecated)", [notice(alpha, "active", deprecated=False)], "member set"),
-            case("a rappid with a provisional 32-hex tail",
-                 [notice(alpha.rsplit(":", 1)[0] + ":" + "a" * 32, "active")], "`rappid`"),
+            case("a subject rappid with a provisional 32-hex tail",
+                 [notice(alpha.rsplit(":", 1)[0] + ":" + "a" * 32, "active")], "`subject`"),
+            case("a subject that is an http (not https) URI",
+                 [notice("http://git.example.test/vector/handbook", "active")], "`subject`"),
+            case("a subject that is a bare owner/repository name", [notice("vector/handbook", "active")],
+                 "`subject`"),
             case("a state outside the four", [notice(alpha, "retired")], "`state`"),
-            case("a superseded_by that is not a rappid",
-                 [notice(alpha, "deprecated", superseded_by="https://git.example.test/vector/beta")],
+            case("a superseded_by that is neither a rappid nor an HTTPS URI",
+                 [notice(alpha, "deprecated", superseded_by="http://git.example.test/vector/beta")],
                  "`superseded_by`"),
-            case("superseded_by equal to rappid", [notice(alpha, "archived", superseded_by=alpha)], "never equals"),
+            case("superseded_by equal to subject", [notice(alpha, "archived", superseded_by=alpha)], "never equals"),
+            case("a repository superseded by itself", [notice(docs, "superseded", superseded_by=docs)],
+                 "never equals"),
             case("active naming a successor", [notice(alpha, "active", superseded_by=beta)], "must be null"),
             case("superseded naming no successor", [notice(alpha, "superseded")], "names its successor"),
             case("a since_utc without milliseconds", [notice(alpha, "active", since="2026-07-01T00:00:00Z")],
@@ -286,11 +304,11 @@ def registry_sections():
             case("a declared_by that is not a rappid", [notice(alpha, "active", declared_by="owner")],
                  "`declared_by`"),
             case("an empty sig", [notice(alpha, "active", sig="")], "`sig`"),
-            case("two first notices for one rappid", [a1, c1], "exactly one first entry"),
+            case("two first notices for one subject", [a1, c1], "exactly one first entry"),
             case("a fork: two notices follow one",
                  [a1, a2, notice(alpha, "archived", since=t1, previous=a1, activated=t1)], "fork"),
             case("previous names a notice appended after it", [a2, a1], "does not precede"),
-            case("previous names another rappid's notice",
+            case("previous names another subject's notice",
                  [a1, b1, notice(beta, "deprecated", since=t1, previous=a1, activated=t1)], "does not precede"),
             case("previous names an entry that is not a lifecycle notice (the owner's spki)",
                  [a1, notice(alpha, "archived", since=t1, previous=base[1], activated=t1)], "does not precede"),
@@ -306,6 +324,9 @@ def registry_sections():
             case("a three-organism cycle through a deprecation's recommended successor",
                  [s1, notice(beta, "archived", superseded_by=gamma),
                   notice(gamma, "deprecated", superseded_by=alpha)], "cycle"),
+            case("a cycle across forms: a repository superseded by an organism that names the repository",
+                 [notice(handbook, "superseded", superseded_by=alpha), notice(alpha, "superseded", superseded_by=handbook)],
+                 f"in effect at {T0} form a cycle"),
             case("delta leads into the alpha-beta cycle",
                  [notice(delta, "superseded", superseded_by=alpha), s1,
                   notice(beta, "superseded", superseded_by=alpha)], "cycle"),
@@ -332,15 +353,21 @@ def registry_sections():
         g1 = notice(gamma, "active")
         d1 = notice(delta, "active", since=t1, activated=t1)
         e1 = notice(epsilon, "deprecated", since=t1, superseded_by=gamma, activated=t1)
+        h1 = notice(handbook, "active")
         timeline = base + [
-            a1, g1, a2, d1, e1, a3,
+            a1, g1, a2, d1, e1, a3, h1,
             notice(gamma, "archived", since=t1, previous=g1, activated=t3),  # retroactive
             notice(delta, "superseded", since=future, previous=d1, superseded_by=beta, activated=t2),  # scheduled
             notice(epsilon, "active", since=t1, previous=e1, activated=t2),  # a correction withdraws gamma
+            notice(handbook, "superseded", since=t2, previous=h1, superseded_by=docs, activated=t1),  # a move
         ]
-        registry = REG.Registry(timeline)
+        # The lifecycle in effect is an answer, given only by a loaded registry; these vectors are
+        # unsigned, so the timeline loads as a draft and is asked as a rehearsal (allow_draft=True).
+        status, registry, why = REG.load_document(document(timeline, sig=None), trust_anchor=owner,
+                                                  allow_unsigned=True)
+        assert status == "draft", why
         times = (earlier, T0, just_before_t1, t1, t2, t3, future)
-        intended = {  # rappid -> (state, superseded_by) in effect at each of `times`
+        intended = {  # subject -> (state, superseded_by) in effect at each of `times`
             alpha: ((None, None), ("active", None), ("active", None), ("deprecated", beta),
                     ("superseded", beta), ("superseded", beta), ("superseded", beta)),
             beta: ((None, None),) * len(times),
@@ -350,13 +377,17 @@ def registry_sections():
                     ("active", None), ("active", None), ("superseded", beta)),
             epsilon: ((None, None), (None, None), (None, None), ("active", None),
                       ("active", None), ("active", None), ("active", None)),
+            handbook: ((None, None), ("active", None), ("active", None), ("active", None),
+                       ("superseded", docs), ("superseded", docs), ("superseded", docs)),
+            docs: ((None, None),) * len(times),
         }
         queries = []
-        for rappid, answers in intended.items():
+        for subject, answers in intended.items():
             for utc, expected in zip(times, answers):
-                answer = (registry.lifecycle_state_at(rappid, utc), registry.successor_at(rappid, utc))
-                assert answer == expected, (rappid, utc, answer)
-                queries.append({"rappid": rappid, "utc": utc, "state": answer[0], "superseded_by": answer[1]})
+                answer = (registry.lifecycle_state_at(subject, utc, allow_draft=True),
+                          registry.successor_at(subject, utc, allow_draft=True))
+                assert answer == expected, (subject, utc, answer)
+                queries.append({"subject": subject, "utc": utc, "state": answer[0], "superseded_by": answer[1]})
 
         return {
             "states": list(REG.LIFECYCLE_STATES),
