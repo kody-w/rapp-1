@@ -1,24 +1,24 @@
 {
  "schema": "rapp/1-anchor",
- "generated_utc": "2026-09-25T17:36:22.000Z",
+ "generated_utc": "2026-09-25T18:50:06.000Z",
  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
  "head": {
   "seq": 17,
-  "frame_hash": "f145ed50c935c686ed77c86eb91ca46caf915c5f8280d404a5c4711d9cc4b487",
-  "payload_hash": "1d898540ced06d3aa4719d53f6fc4108521341674fc14993bfc1b63aa04e140a"
+  "frame_hash": "3d36f84a48a952110b335933efce150a2356622960396fa2aa320a04d4615abf",
+  "payload_hash": "3c34e0915bb566649ffa3ed71ab5cfbde24673156d35140093772a6abec2ca05"
  },
  "spec": {
   "revision": "rev-17",
-  "revision_frame_hash": "f145ed50c935c686ed77c86eb91ca46caf915c5f8280d404a5c4711d9cc4b487",
-  "revision_payload_hash": "1d898540ced06d3aa4719d53f6fc4108521341674fc14993bfc1b63aa04e140a",
+  "revision_frame_hash": "3d36f84a48a952110b335933efce150a2356622960396fa2aa320a04d4615abf",
+  "revision_payload_hash": "3c34e0915bb566649ffa3ed71ab5cfbde24673156d35140093772a6abec2ca05",
   "schema": "rapp-spec-revision/1",
   "materialized_path": "SPEC.md",
   "normative_path": "SPEC.md",
   "media_type": "text/markdown; charset=utf-8",
-  "normative_sha256": "4afe3b27d82f7ea7efbbdcf2f57d67dc72445916e27892b1d7715f65ff97f9f7",
-  "normative_bytes": 83434,
+  "normative_sha256": "9aff1b09825e92b6da76f50718ba94be872a2bb32ca263935f81fae74a77ffe4",
+  "normative_bytes": 86867,
   "canonical_repo": "https://github.com/kody-w/rapp-1",
-  "commit": "fb25d957b3568431de4923d654f1ec1067de9570"
+  "commit": "37eaa8d75738ee09ffd541e5a8e9cd3411df576c"
  },
  "registered_kinds": [
   "body.pulse",
@@ -140,6 +140,10 @@
   "declared-entry": {
    "status": "live",
    "where": "§13.4 — a registry entry carrying its own owner signature at its activated_utc"
+  },
+  "stream-signer": {
+   "status": "live",
+   "where": "§13.5 — an estate grant letting a keyed signer speak for it on one stream, above §7.5"
   }
  },
  "operational_profiles": {
@@ -208,7 +212,7 @@
  },
  "index": {
   "path": "anchor/index.json",
-  "sha256": "f50411b670c8c5b70a0c090d6abfba31674f4453c28bb6718b11badffcd1f2c3",
+  "sha256": "702fcf59b6002976f1cf1b606ad404376a34a3b84cab74e5c7be68e305d8daf7",
   "bytes": 8488
  }
 }
