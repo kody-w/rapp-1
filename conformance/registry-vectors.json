@@ -416,6 +416,80 @@
     },
     {
      "channels": {
+      "newest": [
+       "d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710",
+       "8b8eeb28c1c800215dbfb97433505ba612b3348c76d2aade3855c91c58cf5c66",
+       "95176f87c8c5636fe476863d7a3f36c6ddc5c090eb020a8fc0a5d37a8a31c82b"
+      ]
+     },
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "newest",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710",
+       "object_format": "sha1",
+       "path": "releases/d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "channel": "newest",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "8b8eeb28c1c800215dbfb97433505ba612b3348c76d2aade3855c91c58cf5c66",
+       "object_format": "sha1",
+       "path": "releases/8b8eeb28c1c800215dbfb97433505ba612b3348c76d2aade3855c91c58cf5c66.json",
+       "predecessor": "d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710",
+       "release_scope": "https://releases.example.test/vector/3.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "channel": "newest",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "95176f87c8c5636fe476863d7a3f36c6ddc5c090eb020a8fc0a5d37a8a31c82b",
+       "object_format": "sha1",
+       "path": "releases/95176f87c8c5636fe476863d7a3f36c6ddc5c090eb020a8fc0a5d37a8a31c82b.json",
+       "predecessor": "8b8eeb28c1c800215dbfb97433505ba612b3348c76d2aade3855c91c58cf5c66",
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "accept",
+     "families": {
+      "https://releases.example.test/vector/2.0": [
+       "d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710",
+       "95176f87c8c5636fe476863d7a3f36c6ddc5c090eb020a8fc0a5d37a8a31c82b"
+      ],
+      "https://releases.example.test/vector/3.0": [
+       "8b8eeb28c1c800215dbfb97433505ba612b3348c76d2aade3855c91c58cf5c66"
+      ]
+     },
+     "label": "a newest channel returning to an earlier family"
+    },
+    {
+     "channels": {
       "lts": [
        "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
        "c8d1d8089f5d28f117b0d8ed309748a7c63d281fb81af76566161e919fc9328a"
@@ -1352,11 +1426,11 @@
     }
    ],
    "example": {
-    "canonical": "{\"components\":[{\"commit\":\"1111111111111111111111111111111111111111\",\"files\":[{\"path\":\"kernel/VERSION\",\"sha256\":\"6378a2f0f862dfbd894799c13030445a9464dd56046328ceeb093b5491665e35\",\"size_bytes\":10},{\"path\":\"kernel/agents/basic_agent.py\",\"sha256\":\"c148203b5f51d866ba50238d2083d8746513c176e0b782391c5848aadf3a7524\",\"size_bytes\":56},{\"path\":\"kernel/brainstem.py\",\"sha256\":\"6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07\",\"size_bytes\":36}],\"id\":\"brainstem\",\"identity_path\":null,\"immutable_ref\":\"refs/tags/brainstem-v1.0.0-lts\",\"kind\":\"kernel\",\"object_format\":\"sha1\",\"rappid\":null,\"repository\":\"https://git.example.test/vector/brainstem\"},{\"commit\":\"5555555555555555555555555555555555555555\",\"files\":[{\"path\":\"rappid.json\",\"sha256\":\"8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c\",\"size_bytes\":125},{\"path\":\"soul.md\",\"sha256\":\"f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583\",\"size_bytes\":17}],\"id\":\"organism-alpha\",\"identity_path\":\"rappid.json\",\"immutable_ref\":null,\"kind\":\"organism\",\"object_format\":\"sha1\",\"rappid\":\"rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d\",\"repository\":\"https://git.example.test/vector/alpha\"},{\"commit\":\"6666666666666666666666666666666666666666666666666666666666666666\",\"files\":[{\"path\":\"agents/beta_agent.py\",\"sha256\":\"6ecd649d719e1121e6860554c488cf4d470e796897a2a35439eefc2ac5516cbf\",\"size_bytes\":22},{\"path\":\"rappid.json\",\"sha256\":\"55ceb07e6d60e86483edb96343af5537ffa84f34e44bdb7daabe3db89a96e558\",\"size_bytes\":124}],\"id\":\"organism-beta\",\"identity_path\":\"rappid.json\",\"immutable_ref\":null,\"kind\":\"organism\",\"object_format\":\"sha256\",\"rappid\":\"rappid:@vector/organism-beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744\",\"repository\":\"https://git.example.test/vector/beta\"},{\"commit\":\"4444444444444444444444444444444444444444\",\"files\":[{\"path\":\"SPEC.md\",\"sha256\":\"c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406\",\"size_bytes\":26}],\"id\":\"rapp-1\",\"identity_path\":null,\"immutable_ref\":\"refs/tags/rev-17\",\"kind\":\"protocol\",\"object_format\":\"sha1\",\"rappid\":null,\"repository\":\"https://git.example.test/vector/protocol\"}],\"release_scope\":\"https://releases.example.test/vector/1.0\",\"schema\":\"rapp/1-release-manifest\"}",
+    "canonical": "{\"components\":[{\"commit\":\"1111111111111111111111111111111111111111\",\"files\":[{\"path\":\"kernel/VERSION\",\"sha256\":\"6378a2f0f862dfbd894799c13030445a9464dd56046328ceeb093b5491665e35\",\"size_bytes\":10},{\"path\":\"kernel/agents/basic_agent.py\",\"sha256\":\"c148203b5f51d866ba50238d2083d8746513c176e0b782391c5848aadf3a7524\",\"size_bytes\":56},{\"path\":\"kernel/brainstem.py\",\"sha256\":\"6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07\",\"size_bytes\":36}],\"id\":\"brainstem\",\"identity_path\":null,\"immutable_ref\":\"refs/tags/brainstem-v1.0.0-lts\",\"kind\":\"kernel\",\"object_format\":\"sha1\",\"rappid\":null,\"repository\":\"https://git.example.test/vector/brainstem\"},{\"commit\":\"5555555555555555555555555555555555555555\",\"files\":[{\"path\":\"rappid.json\",\"sha256\":\"8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c\",\"size_bytes\":125},{\"path\":\"soul.md\",\"sha256\":\"f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583\",\"size_bytes\":17}],\"id\":\"organism-alpha\",\"identity_path\":\"rappid.json\",\"immutable_ref\":null,\"kind\":\"organism\",\"object_format\":\"sha1\",\"rappid\":\"rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d\",\"repository\":\"https://git.example.test/vector/alpha\"},{\"commit\":\"6666666666666666666666666666666666666666666666666666666666666666\",\"files\":[{\"path\":\"agents/beta_agent.py\",\"sha256\":\"6ecd649d719e1121e6860554c488cf4d470e796897a2a35439eefc2ac5516cbf\",\"size_bytes\":22},{\"path\":\"rappid.json\",\"sha256\":\"55ceb07e6d60e86483edb96343af5537ffa84f34e44bdb7daabe3db89a96e558\",\"size_bytes\":124}],\"id\":\"organism-beta\",\"identity_path\":\"rappid.json\",\"immutable_ref\":null,\"kind\":\"organism\",\"object_format\":\"sha256\",\"rappid\":\"rappid:@vector/organism-beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744\",\"repository\":\"https://git.example.test/vector/beta\"},{\"commit\":\"4444444444444444444444444444444444444444\",\"files\":[{\"path\":\"SPEC.md\",\"sha256\":\"c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406\",\"size_bytes\":26}],\"id\":\"rapp-1\",\"identity_path\":null,\"immutable_ref\":\"refs/tags/rev-17\",\"kind\":\"protocol\",\"object_format\":\"sha1\",\"rappid\":null,\"repository\":\"https://git.example.test/vector/protocol\"}],\"release\":\"vector-1.0.0\",\"release_scope\":\"https://releases.example.test/vector/1.0\",\"schema\":\"rapp/1-release-manifest\"}",
     "channels": {
      "lts": [
-      "15a2812e6be36ff982d00a983f3285f75b7c6df2172eb710ae48e98dd9d48993",
-      "5b15428598f43232f853021329f8ba8b7383cf5a3d73e4e1299f16b449ff26b7"
+      "f712ed847642b82e20eff18fe2aace3052ae79dddfb4f278d3d0c54869c25f2c",
+      "9c40251aa7bd4700ff1fdf569cebc23827e9f8a01f357e71b1d4eb0610d1909b"
      ]
     },
     "correction": {
@@ -1451,19 +1525,20 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.1",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      },
-     "manifest_hash": "5b15428598f43232f853021329f8ba8b7383cf5a3d73e4e1299f16b449ff26b7",
+     "manifest_hash": "9c40251aa7bd4700ff1fdf569cebc23827e9f8a01f357e71b1d4eb0610d1909b",
      "release_pin": {
       "activated_utc": "2026-08-01T00:00:00.000Z",
       "channel": "lts",
       "commit": "3333333333333333333333333333333333333333",
       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
-      "manifest_hash": "5b15428598f43232f853021329f8ba8b7383cf5a3d73e4e1299f16b449ff26b7",
+      "manifest_hash": "9c40251aa7bd4700ff1fdf569cebc23827e9f8a01f357e71b1d4eb0610d1909b",
       "object_format": "sha1",
-      "path": "releases/5b15428598f43232f853021329f8ba8b7383cf5a3d73e4e1299f16b449ff26b7.json",
-      "predecessor": "15a2812e6be36ff982d00a983f3285f75b7c6df2172eb710ae48e98dd9d48993",
+      "path": "releases/9c40251aa7bd4700ff1fdf569cebc23827e9f8a01f357e71b1d4eb0610d1909b.json",
+      "predecessor": "f712ed847642b82e20eff18fe2aace3052ae79dddfb4f278d3d0c54869c25f2c",
       "release_scope": "https://releases.example.test/vector/1.0",
       "repository": "https://git.example.test/vector/releases",
       "sig": "<detached-jws>",
@@ -1472,8 +1547,8 @@
     },
     "families": {
      "https://releases.example.test/vector/1.0": [
-      "15a2812e6be36ff982d00a983f3285f75b7c6df2172eb710ae48e98dd9d48993",
-      "5b15428598f43232f853021329f8ba8b7383cf5a3d73e4e1299f16b449ff26b7"
+      "f712ed847642b82e20eff18fe2aace3052ae79dddfb4f278d3d0c54869c25f2c",
+      "9c40251aa7bd4700ff1fdf569cebc23827e9f8a01f357e71b1d4eb0610d1909b"
      ]
     },
     "files": [
@@ -1627,29 +1702,536 @@
        "repository": "https://git.example.test/vector/protocol"
       }
      ],
+     "release": "vector-1.0.0",
      "release_scope": "https://releases.example.test/vector/1.0",
      "schema": "rapp/1-release-manifest"
     },
-    "manifest_hash": "15a2812e6be36ff982d00a983f3285f75b7c6df2172eb710ae48e98dd9d48993",
-    "raw_sha256": "c545836499169b36eb8ce4bbf79b3e039fe0a6d9f5ea100325307519156180f8",
+    "manifest_hash": "f712ed847642b82e20eff18fe2aace3052ae79dddfb4f278d3d0c54869c25f2c",
+    "raw_sha256": "48dc552b9f780661b1bfe59be5acc8eaeb2ac682f84a000a5346bf4b1e907dcc",
     "release_pin": {
      "activated_utc": "2026-07-01T00:00:00.000Z",
      "channel": "lts",
      "commit": "3333333333333333333333333333333333333333",
      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
-     "manifest_hash": "15a2812e6be36ff982d00a983f3285f75b7c6df2172eb710ae48e98dd9d48993",
+     "manifest_hash": "f712ed847642b82e20eff18fe2aace3052ae79dddfb4f278d3d0c54869c25f2c",
      "object_format": "sha1",
-     "path": "releases/15a2812e6be36ff982d00a983f3285f75b7c6df2172eb710ae48e98dd9d48993.json",
+     "path": "releases/f712ed847642b82e20eff18fe2aace3052ae79dddfb4f278d3d0c54869c25f2c.json",
      "predecessor": null,
      "release_scope": "https://releases.example.test/vector/1.0",
      "repository": "https://git.example.test/vector/releases",
      "sig": "<detached-jws>",
      "type": "release-pin"
     },
-    "release_pin_entry_hash": "618ad927d06604f90cd31fdf85f75a146907930e20b5574d1ed44e8d26e9b981",
-    "release_pin_signing_payload": "{\"activated_utc\":\"2026-07-01T00:00:00.000Z\",\"channel\":\"lts\",\"commit\":\"3333333333333333333333333333333333333333\",\"declared_by\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"manifest_hash\":\"15a2812e6be36ff982d00a983f3285f75b7c6df2172eb710ae48e98dd9d48993\",\"object_format\":\"sha1\",\"path\":\"releases/15a2812e6be36ff982d00a983f3285f75b7c6df2172eb710ae48e98dd9d48993.json\",\"predecessor\":null,\"release_scope\":\"https://releases.example.test/vector/1.0\",\"repository\":\"https://git.example.test/vector/releases\",\"type\":\"release-pin\"}",
-    "rule": "the release-pin's manifest_hash = H('rapp/1:particle', manifest); the stored manifest octets are exactly canonical(manifest), so raw_sha256 is their SHA-256; each file's sha256 and size_bytes are the raw SHA-256 and length of octets_utf8's UTF-8 bytes; the verified snapshot is exactly these files, keyed by (component id, path). The correction is the family's next release: its predecessor is the first release's manifest_hash, its kernel component is the same, and it becomes the head of channel lts and the family's current release while the first release stays verifiable by its manifest_hash"
+    "release_pin_entry_hash": "6a599c0adebd900c0f718cb84f820f77ef93058626e8b7cbb53af0066a07cb46",
+    "release_pin_signing_payload": "{\"activated_utc\":\"2026-07-01T00:00:00.000Z\",\"channel\":\"lts\",\"commit\":\"3333333333333333333333333333333333333333\",\"declared_by\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"manifest_hash\":\"f712ed847642b82e20eff18fe2aace3052ae79dddfb4f278d3d0c54869c25f2c\",\"object_format\":\"sha1\",\"path\":\"releases/f712ed847642b82e20eff18fe2aace3052ae79dddfb4f278d3d0c54869c25f2c.json\",\"predecessor\":null,\"release_scope\":\"https://releases.example.test/vector/1.0\",\"repository\":\"https://git.example.test/vector/releases\",\"type\":\"release-pin\"}",
+    "rule": "the release-pin's manifest_hash = H('rapp/1:particle', manifest), whose `release` name is part of those bytes but never selects a release; the stored manifest octets are exactly canonical(manifest), so raw_sha256 is their SHA-256; each file's sha256 and size_bytes are the raw SHA-256 and length of octets_utf8's UTF-8 bytes; the verified snapshot is exactly these files, keyed by (component id, path). The correction is the family's next release, with its own release name: its predecessor is the first release's manifest_hash, its kernel component is the same, and it supersedes the first release as the head of channel lts and the family's current release, while the first release stays verifiable by its manifest_hash"
    },
+   "history_cases": [
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "c8d1d8089f5d28f117b0d8ed309748a7c63d281fb81af76566161e919fc9328a",
+       "object_format": "sha1",
+       "path": "releases/c8d1d8089f5d28f117b0d8ed309748a7c63d281fb81af76566161e919fc9328a.json",
+       "predecessor": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "accept",
+     "label": "a correction appended after the accepted release",
+     "persisted": [
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ]
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+       "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/brainstem",
+       "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+       "sig": "<detached-jws>",
+       "size_bytes": 36,
+       "type": "grail-kernel"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "c8d1d8089f5d28f117b0d8ed309748a7c63d281fb81af76566161e919fc9328a",
+       "object_format": "sha1",
+       "path": "releases/c8d1d8089f5d28f117b0d8ed309748a7c63d281fb81af76566161e919fc9328a.json",
+       "predecessor": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "accept",
+     "label": "the accepted kernel and release retained, and a correction appended",
+     "persisted": [
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+       "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/brainstem",
+       "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+       "sig": "<detached-jws>",
+       "size_bytes": 36,
+       "type": "grail-kernel"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ]
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22",
+       "immutable_ref": "refs/tags/kernel-v1",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/estate/kernel",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "sig": "<detached-jws>",
+       "size_bytes": 1024,
+       "type": "grail-kernel"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "newest",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710",
+       "object_format": "sha1",
+       "path": "releases/d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "accept",
+     "label": "a grail-kernel for a family with no accepted release",
+     "persisted": [
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ]
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+       "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/brainstem",
+       "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+       "sig": "<detached-jws>",
+       "size_bytes": 36,
+       "type": "grail-kernel"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "label": "a grail-kernel inserted ahead of an accepted release of its family",
+     "persisted": [
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ]
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+       "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/brainstem",
+       "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+       "sig": "<detached-jws>",
+       "size_bytes": 36,
+       "type": "grail-kernel"
+      }
+     ],
+     "expect": "refuse",
+     "label": "a grail-kernel appended after an accepted release of its family",
+     "persisted": [
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ]
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "expect": "refuse",
+     "label": "an accepted release dropped",
+     "persisted": [
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ]
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "4444444444444444444444444444444444444444",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "label": "an accepted release moved to another locator",
+     "persisted": [
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ]
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "label": "an accepted kernel dropped",
+     "persisted": [
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+       "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/brainstem",
+       "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+       "sig": "<detached-jws>",
+       "size_bytes": 36,
+       "type": "grail-kernel"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ]
+    }
+   ],
    "kernel_coherence_cases": [
     {
      "expect": "accept",
@@ -1702,6 +2284,7 @@
         "repository": "https://git.example.test/vector/brainstem"
        }
       ],
+      "release": "vector-1.0.0-kernel",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -1752,6 +2335,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -1819,6 +2403,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -1901,6 +2486,7 @@
         "repository": "https://git.example.test/vector/brainstem"
        }
       ],
+      "release": "vector-1.0.0-kernel",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -1956,6 +2542,7 @@
         "repository": "https://git.example.test/vector/mirror"
        }
       ],
+      "release": "vector-1.0.0-kernel",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -2011,6 +2598,7 @@
         "repository": "https://git.example.test/vector/brainstem.git"
        }
       ],
+      "release": "vector-1.0.0-kernel",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -2066,6 +2654,7 @@
         "repository": "https://git.example.test/vector/brainstem"
        }
       ],
+      "release": "vector-1.0.0-kernel",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -2121,6 +2710,7 @@
         "repository": "https://git.example.test/vector/brainstem"
        }
       ],
+      "release": "vector-1.0.0-kernel",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -2176,6 +2766,7 @@
         "repository": "https://git.example.test/vector/brainstem"
        }
       ],
+      "release": "vector-1.0.0-kernel",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -2231,6 +2822,7 @@
         "repository": "https://git.example.test/vector/brainstem"
        }
       ],
+      "release": "vector-1.0.0-kernel",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -2286,6 +2878,7 @@
         "repository": "https://git.example.test/vector/brainstem"
        }
       ],
+      "release": "vector-1.0.0-kernel",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -2341,6 +2934,7 @@
         "repository": "https://git.example.test/vector/brainstem"
        }
       ],
+      "release": "vector-1.0.0-kernel",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -2396,6 +2990,7 @@
         "repository": "https://git.example.test/vector/brainstem"
        }
       ],
+      "release": "vector-1.0.0-kernel",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -2434,6 +3029,7 @@
         "repository": "https://git.example.test/vector/brainstem"
        }
       ],
+      "release": "vector-1.0.0-kernel",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -2485,6 +3081,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -2528,6 +3125,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -2577,6 +3175,57 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "accept",
+     "label": "a release name of 64 characters with capitals, dots, dashes, and underscores",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "LTS-2026.09_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -2627,6 +3276,356 @@
        }
       ],
       "note": "x",
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "no release member",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an empty release name",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "a release name of 65 characters",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "a release name beginning with a dot",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": ".lts-2026.09",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "a release name with a space",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "lts 2026.09",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "a release name outside ASCII",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "lts-2026.09-é",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "a release name that is not a string",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": 202609,
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -2676,6 +3675,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest-v2"
      }
@@ -2725,6 +3725,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "http://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -2734,6 +3735,7 @@
      "label": "no components",
      "manifest": {
       "components": [],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -2783,6 +3785,7 @@
         "repository": "https://git.example.test/vector/alpha"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -2849,6 +3852,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -2898,6 +3902,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -2947,6 +3952,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -2996,6 +4002,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -3045,6 +4052,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -3094,6 +4102,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -3144,6 +4153,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -3193,6 +4203,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -3247,6 +4258,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -3301,6 +4313,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -3355,6 +4368,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -3404,6 +4418,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -3453,6 +4468,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -3502,6 +4518,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -3551,6 +4568,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -3600,6 +4618,7 @@
         "repository": "https://git.example.test/vector/protocol"
        }
       ],
+      "release": "vector-1.0.0-compact",
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
@@ -3624,9 +4643,9 @@
        "channel": "lts",
        "commit": "3333333333333333333333333333333333333333",
        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
-       "manifest_hash": "8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943",
+       "manifest_hash": "d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1",
        "object_format": "sha1",
-       "path": "releases/8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943.json",
+       "path": "releases/d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1.json",
        "predecessor": null,
        "release_scope": "https://releases.example.test/vector/1.0",
        "repository": "https://git.example.test/vector/releases",
@@ -3636,8 +4655,8 @@
      ],
      "expect": "accept",
      "label": "exactly canonical(manifest)",
-     "manifest_hash": "8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943",
-     "octets_hex": "7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235353535353535353535353535353535353535353535353535353535353535353535353535353535222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c2273697a655f6279746573223a31377d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2234343434343434343434343434343434343434343434343434343434343434343434343434343434222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f312e30222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d"
+     "manifest_hash": "d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1",
+     "octets_hex": "7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235353535353535353535353535353535353535353535353535353535353535353535353535353535222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c2273697a655f6279746573223a31377d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2234343434343434343434343434343434343434343434343434343434343434343434343434343434222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c65617365223a22766563746f722d312e302e302d636f6d70616374222c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f312e30222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d"
     },
     {
      "entries": [
@@ -3656,9 +4675,9 @@
        "channel": "lts",
        "commit": "3333333333333333333333333333333333333333",
        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
-       "manifest_hash": "8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943",
+       "manifest_hash": "d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1",
        "object_format": "sha1",
-       "path": "releases/8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943.json",
+       "path": "releases/d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1.json",
        "predecessor": null,
        "release_scope": "https://releases.example.test/vector/1.0",
        "repository": "https://git.example.test/vector/releases",
@@ -3668,8 +4687,8 @@
      ],
      "expect": "refuse",
      "label": "pretty-printed",
-     "manifest_hash": "8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943",
-     "octets_hex": "7b0a202022636f6d706f6e656e7473223a205b0a202020207b0a20202020202022636f6d6d6974223a202235353535353535353535353535353535353535353535353535353535353535353535353535353535222c0a2020202020202266696c6573223a205b0a20202020202020207b0a202020202020202020202270617468223a20227261707069642e6a736f6e222c0a2020202020202020202022736861323536223a202238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c0a202020202020202020202273697a655f6279746573223a203132350a20202020202020207d2c0a20202020202020207b0a202020202020202020202270617468223a2022736f756c2e6d64222c0a2020202020202020202022736861323536223a202266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c0a202020202020202020202273697a655f6279746573223a2031370a20202020202020207d0a2020202020205d2c0a202020202020226964223a20226f7267616e69736d2d616c706861222c0a202020202020226964656e746974795f70617468223a20227261707069642e6a736f6e222c0a20202020202022696d6d757461626c655f726566223a206e756c6c2c0a202020202020226b696e64223a20226f7267616e69736d222c0a202020202020226f626a6563745f666f726d6174223a202273686131222c0a20202020202022726170706964223a20227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c0a202020202020227265706f7369746f7279223a202268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861220a202020207d2c0a202020207b0a20202020202022636f6d6d6974223a202234343434343434343434343434343434343434343434343434343434343434343434343434343434222c0a2020202020202266696c6573223a205b0a20202020202020207b0a202020202020202020202270617468223a2022535045432e6d64222c0a2020202020202020202022736861323536223a202263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c0a202020202020202020202273697a655f6279746573223a2032360a20202020202020207d0a2020202020205d2c0a202020202020226964223a2022726170702d31222c0a202020202020226964656e746974795f70617468223a206e756c6c2c0a20202020202022696d6d757461626c655f726566223a2022726566732f746167732f7265762d3137222c0a202020202020226b696e64223a202270726f746f636f6c222c0a202020202020226f626a6563745f666f726d6174223a202273686131222c0a20202020202022726170706964223a206e756c6c2c0a202020202020227265706f7369746f7279223a202268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c220a202020207d0a20205d2c0a20202272656c656173655f73636f7065223a202268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f312e30222c0a202022736368656d61223a2022726170702f312d72656c656173652d6d616e6966657374220a7d"
+     "manifest_hash": "d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1",
+     "octets_hex": "7b0a202022636f6d706f6e656e7473223a205b0a202020207b0a20202020202022636f6d6d6974223a202235353535353535353535353535353535353535353535353535353535353535353535353535353535222c0a2020202020202266696c6573223a205b0a20202020202020207b0a202020202020202020202270617468223a20227261707069642e6a736f6e222c0a2020202020202020202022736861323536223a202238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c0a202020202020202020202273697a655f6279746573223a203132350a20202020202020207d2c0a20202020202020207b0a202020202020202020202270617468223a2022736f756c2e6d64222c0a2020202020202020202022736861323536223a202266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c0a202020202020202020202273697a655f6279746573223a2031370a20202020202020207d0a2020202020205d2c0a202020202020226964223a20226f7267616e69736d2d616c706861222c0a202020202020226964656e746974795f70617468223a20227261707069642e6a736f6e222c0a20202020202022696d6d757461626c655f726566223a206e756c6c2c0a202020202020226b696e64223a20226f7267616e69736d222c0a202020202020226f626a6563745f666f726d6174223a202273686131222c0a20202020202022726170706964223a20227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c0a202020202020227265706f7369746f7279223a202268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861220a202020207d2c0a202020207b0a20202020202022636f6d6d6974223a202234343434343434343434343434343434343434343434343434343434343434343434343434343434222c0a2020202020202266696c6573223a205b0a20202020202020207b0a202020202020202020202270617468223a2022535045432e6d64222c0a2020202020202020202022736861323536223a202263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c0a202020202020202020202273697a655f6279746573223a2032360a20202020202020207d0a2020202020205d2c0a202020202020226964223a2022726170702d31222c0a202020202020226964656e746974795f70617468223a206e756c6c2c0a20202020202022696d6d757461626c655f726566223a2022726566732f746167732f7265762d3137222c0a202020202020226b696e64223a202270726f746f636f6c222c0a202020202020226f626a6563745f666f726d6174223a202273686131222c0a20202020202022726170706964223a206e756c6c2c0a202020202020227265706f7369746f7279223a202268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c220a202020207d0a20205d2c0a20202272656c65617365223a2022766563746f722d312e302e302d636f6d70616374222c0a20202272656c656173655f73636f7065223a202268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f312e30222c0a202022736368656d61223a2022726170702f312d72656c656173652d6d616e6966657374220a7d"
     },
     {
      "entries": [
@@ -3688,9 +4707,9 @@
        "channel": "lts",
        "commit": "3333333333333333333333333333333333333333",
        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
-       "manifest_hash": "8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943",
+       "manifest_hash": "d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1",
        "object_format": "sha1",
-       "path": "releases/8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943.json",
+       "path": "releases/d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1.json",
        "predecessor": null,
        "release_scope": "https://releases.example.test/vector/1.0",
        "repository": "https://git.example.test/vector/releases",
@@ -3700,8 +4719,8 @@
      ],
      "expect": "refuse",
      "label": "a trailing line terminator",
-     "manifest_hash": "8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943",
-     "octets_hex": "7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235353535353535353535353535353535353535353535353535353535353535353535353535353535222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c2273697a655f6279746573223a31377d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2234343434343434343434343434343434343434343434343434343434343434343434343434343434222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f312e30222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d0a"
+     "manifest_hash": "d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1",
+     "octets_hex": "7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235353535353535353535353535353535353535353535353535353535353535353535353535353535222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c2273697a655f6279746573223a31377d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2234343434343434343434343434343434343434343434343434343434343434343434343434343434222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c65617365223a22766563746f722d312e302e302d636f6d70616374222c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f312e30222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d0a"
     },
     {
      "entries": [
@@ -3720,9 +4739,9 @@
        "channel": "lts",
        "commit": "3333333333333333333333333333333333333333",
        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
-       "manifest_hash": "8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943",
+       "manifest_hash": "d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1",
        "object_format": "sha1",
-       "path": "releases/8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943.json",
+       "path": "releases/d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1.json",
        "predecessor": null,
        "release_scope": "https://releases.example.test/vector/1.0",
        "repository": "https://git.example.test/vector/releases",
@@ -3732,8 +4751,8 @@
      ],
      "expect": "refuse",
      "label": "a UTF-8 byte-order mark",
-     "manifest_hash": "8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943",
-     "octets_hex": "efbbbf7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235353535353535353535353535353535353535353535353535353535353535353535353535353535222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c2273697a655f6279746573223a31377d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2234343434343434343434343434343434343434343434343434343434343434343434343434343434222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f312e30222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d"
+     "manifest_hash": "d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1",
+     "octets_hex": "efbbbf7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235353535353535353535353535353535353535353535353535353535353535353535353535353535222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c2273697a655f6279746573223a31377d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2234343434343434343434343434343434343434343434343434343434343434343434343434343434222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c65617365223a22766563746f722d312e302e302d636f6d70616374222c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f312e30222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d"
     },
     {
      "entries": [
@@ -3752,9 +4771,9 @@
        "channel": "lts",
        "commit": "3333333333333333333333333333333333333333",
        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
-       "manifest_hash": "8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943",
+       "manifest_hash": "d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1",
        "object_format": "sha1",
-       "path": "releases/8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943.json",
+       "path": "releases/d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1.json",
        "predecessor": null,
        "release_scope": "https://releases.example.test/vector/1.0",
        "repository": "https://git.example.test/vector/releases",
@@ -3764,8 +4783,8 @@
      ],
      "expect": "refuse",
      "label": "the canonical bytes of a manifest other than the pinned one",
-     "manifest_hash": "8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943",
-     "octets_hex": "7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235353535353535353535353535353535353535353535353535353535353535353535353535353535222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c2273697a655f6279746573223a31377d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2237373737373737373737373737373737373737373737373737373737373737373737373737373737222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f312e30222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d"
+     "manifest_hash": "d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1",
+     "octets_hex": "7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235353535353535353535353535353535353535353535353535353535353535353535353535353535222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c2273697a655f6279746573223a31377d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2237373737373737373737373737373737373737373737373737373737373737373737373737373737222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c65617365223a22766563746f722d312e302e302d636f6d70616374222c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f312e30222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d"
     },
     {
      "entries": [
@@ -3784,9 +4803,9 @@
        "channel": "lts",
        "commit": "3333333333333333333333333333333333333333",
        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
-       "manifest_hash": "9e6848088e2c5131f37edf5454c9c859247bddc5bb8102476375038b3d2ec95e",
+       "manifest_hash": "b305f0b62aa21f22a0efd2a2598ec1b06d114639ab0a8d8acb92f238b0506bb8",
        "object_format": "sha1",
-       "path": "releases/9e6848088e2c5131f37edf5454c9c859247bddc5bb8102476375038b3d2ec95e.json",
+       "path": "releases/b305f0b62aa21f22a0efd2a2598ec1b06d114639ab0a8d8acb92f238b0506bb8.json",
        "predecessor": null,
        "release_scope": "https://releases.example.test/vector/1.0",
        "repository": "https://git.example.test/vector/releases",
@@ -3796,8 +4815,8 @@
      ],
      "expect": "refuse",
      "label": "the pinned manifest names another release_scope",
-     "manifest_hash": "9e6848088e2c5131f37edf5454c9c859247bddc5bb8102476375038b3d2ec95e",
-     "octets_hex": "7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235353535353535353535353535353535353535353535353535353535353535353535353535353535222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c2273697a655f6279746573223a31377d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2234343434343434343434343434343434343434343434343434343434343434343434343434343434222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f322e30222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d"
+     "manifest_hash": "b305f0b62aa21f22a0efd2a2598ec1b06d114639ab0a8d8acb92f238b0506bb8",
+     "octets_hex": "7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235353535353535353535353535353535353535353535353535353535353535353535353535353535222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c2273697a655f6279746573223a31377d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2234343434343434343434343434343434343434343434343434343434343434343434343434343434222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c65617365223a22766563746f722d322e302e302d636f6d70616374222c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f322e30222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d"
     },
     {
      "entries": [
@@ -3814,8 +4833,8 @@
      ],
      "expect": "refuse",
      "label": "no release-pin pins the manifest_hash",
-     "manifest_hash": "8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943",
-     "octets_hex": "7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235353535353535353535353535353535353535353535353535353535353535353535353535353535222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c2273697a655f6279746573223a31377d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2234343434343434343434343434343434343434343434343434343434343434343434343434343434222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f312e30222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d"
+     "manifest_hash": "d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1",
+     "octets_hex": "7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235353535353535353535353535353535353535353535353535353535353535353535353535353535222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c2273697a655f6279746573223a31377d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2234343434343434343434343434343434343434343434343434343434343434343434343434343434222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c65617365223a22766563746f722d312e302e302d636f6d70616374222c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f312e30222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d"
     },
     {
      "entries": [
@@ -3834,9 +4853,9 @@
        "channel": "lts",
        "commit": "3333333333333333333333333333333333333333",
        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
-       "manifest_hash": "8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943",
+       "manifest_hash": "d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1",
        "object_format": "sha1",
-       "path": "releases/8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943.json",
+       "path": "releases/d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1.json",
        "predecessor": null,
        "release_scope": "https://releases.example.test/vector/1.0",
        "repository": "https://git.example.test/vector/releases",
@@ -3848,10 +4867,10 @@
        "channel": "lts",
        "commit": "3333333333333333333333333333333333333333",
        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
-       "manifest_hash": "523f045c2e4a222bb0a1d6ee715b7febe4b58712ff71adaf56aff0161ec80a2e",
+       "manifest_hash": "b4227d5a94d4b4b4e6d71447725dfec1b0418ef116eca2e9be7deb84a3c226a8",
        "object_format": "sha1",
-       "path": "releases/523f045c2e4a222bb0a1d6ee715b7febe4b58712ff71adaf56aff0161ec80a2e.json",
-       "predecessor": "8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943",
+       "path": "releases/b4227d5a94d4b4b4e6d71447725dfec1b0418ef116eca2e9be7deb84a3c226a8.json",
+       "predecessor": "d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1",
        "release_scope": "https://releases.example.test/vector/1.0",
        "repository": "https://git.example.test/vector/releases",
        "sig": "<detached-jws>",
@@ -3860,8 +4879,8 @@
      ],
      "expect": "accept",
      "label": "an earlier release of the family, selected by its manifest_hash after a correction",
-     "manifest_hash": "8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943",
-     "octets_hex": "7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235353535353535353535353535353535353535353535353535353535353535353535353535353535222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c2273697a655f6279746573223a31377d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2234343434343434343434343434343434343434343434343434343434343434343434343434343434222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f312e30222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d"
+     "manifest_hash": "d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1",
+     "octets_hex": "7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235353535353535353535353535353535353535353535353535353535353535353535353535353535222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c2273697a655f6279746573223a31377d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2234343434343434343434343434343434343434343434343434343434343434343434343434343434222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c65617365223a22766563746f722d312e302e302d636f6d70616374222c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f312e30222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d"
     },
     {
      "entries": [
@@ -3880,9 +4899,9 @@
        "channel": "lts",
        "commit": "3333333333333333333333333333333333333333",
        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
-       "manifest_hash": "8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943",
+       "manifest_hash": "d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1",
        "object_format": "sha1",
-       "path": "releases/8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943.json",
+       "path": "releases/d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1.json",
        "predecessor": null,
        "release_scope": "https://releases.example.test/vector/1.0",
        "repository": "https://git.example.test/vector/releases",
@@ -3894,10 +4913,10 @@
        "channel": "lts",
        "commit": "3333333333333333333333333333333333333333",
        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
-       "manifest_hash": "523f045c2e4a222bb0a1d6ee715b7febe4b58712ff71adaf56aff0161ec80a2e",
+       "manifest_hash": "b4227d5a94d4b4b4e6d71447725dfec1b0418ef116eca2e9be7deb84a3c226a8",
        "object_format": "sha1",
-       "path": "releases/523f045c2e4a222bb0a1d6ee715b7febe4b58712ff71adaf56aff0161ec80a2e.json",
-       "predecessor": "8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943",
+       "path": "releases/b4227d5a94d4b4b4e6d71447725dfec1b0418ef116eca2e9be7deb84a3c226a8.json",
+       "predecessor": "d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1",
        "release_scope": "https://releases.example.test/vector/1.0",
        "repository": "https://git.example.test/vector/releases",
        "sig": "<detached-jws>",
@@ -3906,8 +4925,8 @@
      ],
      "expect": "refuse",
      "label": "the correction's octets for the earlier release's manifest_hash",
-     "manifest_hash": "8fa0ffd6ae41523ef20be0051c5c6b28c6ba79b72e1ffaa5cd882e29b12bb943",
-     "octets_hex": "7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235313531353135313531353135313531353135313531353135313531353135313531353135313531222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266326665643633323061306135303232363036616665636333363436316661376133653032643064663366396262386134383663373636623663316363666338222c2273697a655f6279746573223a33317d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2234343434343434343434343434343434343434343434343434343434343434343434343434343434222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f312e30222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d"
+     "manifest_hash": "d64fbc2560c47cf98c9679f5ac6819cbc1642693ddf3f773e6f84726a0fdcbf1",
+     "octets_hex": "7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235313531353135313531353135313531353135313531353135313531353135313531353135313531222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266326665643633323061306135303232363036616665636333363436316661376133653032643064663366396262386134383663373636623663316363666338222c2273697a655f6279746573223a33317d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2234343434343434343434343434343434343434343434343434343434343434343434343434343434222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c65617365223a22766563746f722d312e302e312d636f6d70616374222c2272656c656173655f73636f7065223a2268747470733a2f2f72656c65617365732e6578616d706c652e746573742f766563746f722f312e30222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d"
     }
    ]
   }
