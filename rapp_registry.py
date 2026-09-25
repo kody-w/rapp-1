@@ -15,10 +15,6 @@ What is fully specified by §13 and enforced here:
   - kind grammar and family binding; family ↔ stream_id-form compatibility (§6.1.1, §7.2);
   - owner succession by re-anchor records, owner-in-effect at a time (§13.2);
   - key discovery, superseded-key and tombstone refusal at a time (§10);
-  - stream signers (§13.7): each `stream-signer` grant's structure and cross-entry rules,
-    and the authority check above §7.5 for a consumer that follows no profile-defined signer
-    rule — a verified frame speaks for the estate only when its `kid` is the owner in effect
-    or a signer granted its stream, kind, and time;
   - one non-deprecated genesis per stream (§7.6); one grail-kernel per grail_id (§11.1);
   - declared entries (§13.4): each entry-level owner signature at its own
     `activated_utc`, never blessed by the enclosing document signature, and
@@ -34,11 +30,17 @@ What is fully specified by §13 and enforced here:
   - lifecycle notices (§13.6): one linear, owner-signed chain of `lifecycle` entries per
     organism, the state and successor in effect at a time, and no cycle among the successors
     in effect at any one time;
+  - stream signers (§13.7): each `stream-signer` grant's structure and cross-entry rules,
+    and the authority check above §7.5 for a consumer that follows no profile-defined signer
+    rule — a verified frame speaks for the estate only when its `kid` is the owner in effect
+    or a signer granted its stream, kind, and time;
   - owner-signature verification over canonical(document \\ {sig}).
 
 What stays the caller's responsibility, because a snapshot cannot prove it:
   - freshness, trusted heads, registry high-water marks, first-seen times, and the
-    append provenance of each entry (see `load_document`).
+    append provenance of each entry (see `load_document`);
+  - re-evaluating a cached authority refusal against a newer registry, which can add a
+    grant that adopts earlier frames but never withdraw one (§13.7).
 
 Nothing here can make an unsigned registry authoritative. `load_document` reports
 "verified" only after a §10 signature by the estate owner verifies AND that owner is the
@@ -66,6 +68,7 @@ _LABEL = re.compile(_LCLABEL)
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 _HEX40 = re.compile(r"[0-9a-f]{40}")
 _HTTPS = re.compile(r"https://[^\s]+")
+_OBJECT_ID = {"sha1": _HEX40, "sha256": _HEX64}  # object_format -> commit/blob grammar
 
 # §13.1 — the registry document container (rev-17 closure).
 DOCUMENT_SCHEMA = "rapp/1-registry"
@@ -95,10 +98,10 @@ ENTRY_MEMBERS = {
                      "object_format", "commit", "path", "activated_utc", "declared_by", "sig"}, set()),
     "lifecycle": ({"type", "rappid", "state", "superseded_by", "since_utc", "previous",
                    "activated_utc", "declared_by", "sig"}, set()),
-    "estate_owner": ({"type", "rappid"}, set()),
-    "master-plan": ({"type", "repo", "path"}, set()),
     "stream-signer": ({"type", "stream_id", "signer", "kinds", "since_utc", "until_utc",
                        "activated_utc", "declared_by", "sig"}, set()),
+    "estate_owner": ({"type", "rappid"}, set()),
+    "master-plan": ({"type", "repo", "path"}, set()),
 }
 
 
@@ -211,6 +214,43 @@ def _hex64(entry, member, where):
     if not (isinstance(v, str) and _HEX64.fullmatch(v)):
         raise RegistryError(f"{where}: `{member}` must be 64 lowercase hex")
     return v
+
+
+def _lclabel(value, maximum):
+    return isinstance(value, str) and bool(_LABEL.fullmatch(value)) and len(value) <= maximum
+
+
+def _object_id(object_format, value):
+    """`object_format` fixes the lowercase-hex length of `value` (40 for sha1, 64 for sha256)."""
+    pattern = _OBJECT_ID.get(object_format) if isinstance(object_format, str) else None
+    return pattern is not None and isinstance(value, str) and bool(pattern.fullmatch(value))
+
+
+def _validate_release_pin(entry, where):
+    """The §13.3 release-pin members. Uniqueness, channels, families, and kernel order span
+    entries, so `Registry` checks those."""
+    for member in ("release_scope", "repository"):
+        if not _HTTPS.fullmatch(_str(entry, member, where)):
+            raise RegistryError(f"{where}: `{member}` must be an absolute HTTPS URI")
+    if not _lclabel(entry.get("channel"), 64):
+        raise RegistryError(f"{where}: `channel` must be an lclabel of 1-64 characters")
+    named = entry.get("predecessor")
+    if named is not None and not (isinstance(named, str) and _HEX64.fullmatch(named)):
+        raise RegistryError(
+            f"{where}: `predecessor` must be null or the manifest_hash of the release-pin it follows"
+        )
+    _hex64(entry, "manifest_hash", where)
+    if entry.get("object_format") not in ("sha1", "sha256"):
+        raise RegistryError(f"{where}: `object_format` must be sha1 or sha256")
+    if not _object_id(entry["object_format"], entry.get("commit")):
+        raise RegistryError(f"{where}: `commit` must be lowercase hex of the {entry['object_format']} length")
+    # R._path_valid is the §9.1 path grammar: the grail-kernel path rule (relative NFC POSIX,
+    # no empty/"."/".." component) plus the segment rules every file path of the manifest
+    # obeys, so the manifest's own locator is as safe to fetch and store as what it pins.
+    if not R._path_valid(entry.get("path")):
+        raise RegistryError(f"{where}: `path` must be a relative NFC path obeying the §9.1 path grammar")
+    _utc(entry, "activated_utc", where)
+    _rappid(entry, "declared_by", where); _str(entry, "sig", where)
 
 
 def _validate_lifecycle(entry, where):
@@ -364,12 +404,12 @@ def validate_entry(entry, where="entry"):
         _validate_release_pin(entry, where)
     elif t == "lifecycle":
         _validate_lifecycle(entry, where)
+    elif t == "stream-signer":
+        _validate_stream_signer(entry, where)
     elif t == "estate_owner":
         _rappid(entry, "rappid", where)
     elif t == "master-plan":
         _str(entry, "repo", where); _str(entry, "path", where)
-    elif t == "stream-signer":
-        _validate_stream_signer(entry, where)
     return t
 
 
@@ -384,13 +424,13 @@ class Registry:
         self.egg_variants = {}   # variant -> entry
         self.error_codes = set()
         self.spki = {}           # rappid -> entry
-        self.stream_signers = {}  # stream_id -> [stream-signer grants], append order (§13.7)
         self.tombstones = {}     # rappid -> revoked_utc (earliest)
         self.reanchors = []      # entries, in order
         self.genesis = {}        # stream_id -> list of entries
         self.grail = {}          # grail_id -> entry
         self.release_pins = {}   # manifest_hash -> release-pin entry, append order (§13.5)
         self.lifecycle = {}      # rappid -> [lifecycle entries, chain order] (§13.6)
+        self.stream_signers = {}  # stream_id -> [stream-signer grants], append order (§13.7)
         self.protocol_history = {}  # name -> [entries], append order
         self.master_plan = None
         self.canonical_source = None  # set by load_document from the §13.1 container
@@ -440,14 +480,14 @@ class Registry:
                 self.release_pins[e["manifest_hash"]] = e
             elif t == "lifecycle":
                 self.lifecycle.setdefault(e["rappid"], []).append(e)
+            elif t == "stream-signer":
+                self.stream_signers.setdefault(e["stream_id"], []).append(e)
             elif t == "protocol":
                 self.protocol_history.setdefault(e["name"], []).append(e)
             elif t == "estate_owner":
                 owners.append(e["rappid"])
             elif t == "master-plan":
                 self.master_plan = e
-            elif t == "stream-signer":
-                self.stream_signers.setdefault(e["stream_id"], []).append(e)
         if len(owners) != 1:
             raise RegistryError(f"exactly one estate_owner entry is required, found {len(owners)}")
         self.estate_owner = owners[0]
@@ -474,7 +514,6 @@ class Registry:
                     raise RegistryError(f"grail-kernel predecessor cycle through {gid}")
                 seen.add(cur)
                 cur = self.grail[cur]["predecessor"]
-        self._index_stream_signers()
         self._declared = {R.canonical(e) for e in entries if e["type"] in DECLARED_TYPES}
         self._succession = {r["new_rappid"]: r for r in self.reanchors}
         succession_by_tail = {}
@@ -495,8 +534,11 @@ class Registry:
                     break
                 current = R.rappid_parts(record["old_rappid"])["hash"]
             walked |= path
+        # The §13.5–§13.7 rules span entries, so they run once every entry is indexed: release
+        # pins look up their predecessors and the kernels before them, grants their spki and kinds.
         self._index_release_pins()
         self._index_lifecycle()
+        self._index_stream_signers()
 
     # ---- §7.2 / §6.1.1 kind binding ----
     def family(self, kind):
@@ -676,6 +718,7 @@ class Registry:
                 return False, f"a persisted {entry['type']} entry was removed or mutated (§13.4)"
         return self._check_release_history(persisted_entries)
 
+    # ---- §10 / §13.3 key-lifecycle entries (tombstones and re-anchors) ----
     def check_lifecycle_signatures(self, *, tombstone_issued_at=None):
         """Check the signatures on key-lifecycle entries, not only their outer registry.
 
@@ -992,7 +1035,8 @@ class Registry:
         `utc`. A grant's `activated_utc` plays no part: a grant may start before it, and then
         adopts frames the signer already published inside its window. It decides authority,
         never validity: the frame must already have passed §7.5 (see frame_authorized). Pure:
-        it reads only this registry."""
+        it reads only this registry, so a refusal holds only against it — a newer registry can
+        add a grant that adopts the frame, and a cached refusal is re-evaluated against it (§13.7)."""
         if kid is None:
             return False, "an unsigned frame never speaks for the estate (§10, §13.7)"
         if not R.rappid_valid(kid):
@@ -1030,7 +1074,8 @@ class Registry:
         !! check_frame_binding — or call verify_authorized_frame, which runs all three. It reads
         !! the signer from the protected `kid` without checking the signature, so its answer
         !! for an unverified frame means nothing. Ask a registry that load_document returned as
-        !! "verified": a draft or a Registry built directly answers structure, never authority.
+        !! "verified" (its `status`): a draft or a Registry built directly (status None) answers
+        !! structure, never authority.
 
         Refuses an unsigned frame (it never speaks for the estate, §10) and a `sig` whose
         protected header does not parse; otherwise applies authority_decision to the frame's
@@ -1056,7 +1101,8 @@ class Registry:
         step is None and why names the authority: "estate owner" or "stream-signer grant".
         `head` is the stream's verified head (None at genesis); `stream_id_of_record` is the
         stream being read or extended (§7.5 step 1a) and is required. The answer is the estate's
-        only when this registry is one load_document returned as "verified" (§13.1)."""
+        only when this registry is one load_document returned as "verified" (§13.1; see
+        `status`)."""
         if not isinstance(frame, dict):
             return False, "1", "frame is not a JSON object"
         if not isinstance(stream_id_of_record, str):
@@ -1138,8 +1184,9 @@ def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_uns
     persisted `release-pin` (§13.5: no kernel joins a family after a release of it was accepted).
     Freshness, append provenance, and historical migration proofs remain caller
     responsibilities; a verified registry snapshot alone cannot establish them. A returned
-    registry records its status in `registry.status` ("verified" or "draft"), which
-    `verify_snapshot` checks; a Registry constructed directly has status None.
+    registry records its status in `registry.status` ("verified" or "draft"): `verify_snapshot`
+    checks it, and only a "verified" registry's authority answers (§13.7) are the estate's; a
+    Registry constructed directly has status None.
     `tombstone_issued_at(entry_hash)` must resolve authenticated issuance/append
     context to a fixed UTC string. It is trusted caller configuration, never a
     field read from the untrusted document. No resolver means tombstones are
@@ -1205,48 +1252,10 @@ COMPONENT_MEMBERS = ("id", "kind", "rappid", "identity_path", "repository", "obj
                      "commit", "immutable_ref", "files")
 FILE_MEMBERS = ("path", "sha256", "size_bytes")
 _RELEASE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")  # 1-64 characters, ASCII only
-_OBJECT_ID = {"sha1": _HEX40, "sha256": _HEX64}
 _TAG_PREFIX = "refs/tags/"
 _GITHUB_REPOSITORY = re.compile(
     r"https://github\.com/([A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?)/([A-Za-z0-9._-]{1,100})"
 )
-
-
-def _lclabel(value, maximum):
-    return isinstance(value, str) and bool(_LABEL.fullmatch(value)) and len(value) <= maximum
-
-
-def _object_id(object_format, value):
-    """`object_format` fixes the lowercase-hex length of `value` (40 for sha1, 64 for sha256)."""
-    pattern = _OBJECT_ID.get(object_format) if isinstance(object_format, str) else None
-    return pattern is not None and isinstance(value, str) and bool(pattern.fullmatch(value))
-
-
-def _validate_release_pin(entry, where):
-    """The §13.3 release-pin members. Uniqueness, channels, families, and kernel order span
-    entries, so `Registry` checks those."""
-    for member in ("release_scope", "repository"):
-        if not _HTTPS.fullmatch(_str(entry, member, where)):
-            raise RegistryError(f"{where}: `{member}` must be an absolute HTTPS URI")
-    if not _lclabel(entry.get("channel"), 64):
-        raise RegistryError(f"{where}: `channel` must be an lclabel of 1-64 characters")
-    named = entry.get("predecessor")
-    if named is not None and not (isinstance(named, str) and _HEX64.fullmatch(named)):
-        raise RegistryError(
-            f"{where}: `predecessor` must be null or the manifest_hash of the release-pin it follows"
-        )
-    _hex64(entry, "manifest_hash", where)
-    if entry.get("object_format") not in ("sha1", "sha256"):
-        raise RegistryError(f"{where}: `object_format` must be sha1 or sha256")
-    if not _object_id(entry["object_format"], entry.get("commit")):
-        raise RegistryError(f"{where}: `commit` must be lowercase hex of the {entry['object_format']} length")
-    # R._path_valid is the §9.1 path grammar: the grail-kernel path rule (relative NFC POSIX,
-    # no empty/"."/".." component) plus the segment rules every file path of the manifest
-    # obeys, so the manifest's own locator is as safe to fetch and store as what it pins.
-    if not R._path_valid(entry.get("path")):
-        raise RegistryError(f"{where}: `path` must be a relative NFC path obeying the §9.1 path grammar")
-    _utc(entry, "activated_utc", where)
-    _rappid(entry, "declared_by", where); _str(entry, "sig", where)
 
 
 def _validate_component(component, where):

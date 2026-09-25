@@ -134,6 +134,15 @@ class DeclaredEntryTests(unittest.TestCase):
         doc = self.estate.document(base + extra_entries, owner=owner)
         return self.estate.load(doc, owner=owner, **kwargs)
 
+    def test_the_declared_entry_types_are_exactly_the_four_and_all_persist(self):
+        self.assertEqual(REG.DECLARED_TYPES, ("grail-kernel", "release-pin", "lifecycle", "stream-signer"))
+        self.assertIs(REG.PERSISTED_TYPES, REG.DECLARED_TYPES)  # every declared entry is persisted (§13.4)
+        for kind in REG.DECLARED_TYPES:
+            with self.subTest(type=kind):
+                required, optional = REG.ENTRY_MEMBERS[kind]
+                self.assertLessEqual({"activated_utc", "declared_by", "sig"}, required)
+                self.assertEqual(optional, set())
+
     def test_owner_declared_grail_kernel_verifies(self):
         self.assertEqual(self.load([self.estate.grail_kernel()])[0], "verified")
 
