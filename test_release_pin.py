@@ -1290,14 +1290,16 @@ class RealSignatureReleasePinTests(unittest.TestCase):
             doc["sig"] = sign(doc, owner)
             return doc
 
-        status, reg, why = REG.load_document(signed(entries), trust_anchor=owner)
+        status, reg, why = REG.load_document(signed(entries), trust_anchor=owner, verification_utc=LATER)
         self.assertEqual((status, why), ("verified", "ok"))
         self.assertEqual(reg.channel_head("lts"), second)
         self.assertEqual(len(REG.verify_snapshot(reg, world.fetch, release_scope=LTS)), 5)
         self.assertEqual(len(REG.verify_snapshot(reg, world.fetch, manifest_hash=first["manifest_hash"])), 5)
         repointed = copy.deepcopy(entries)
         repointed[3]["manifest_hash"] = "e" * 64  # a valid document signature cannot bless it
-        self.assertEqual(REG.load_document(signed(repointed), trust_anchor=owner)[0], "refused")
+        status, _, why = REG.load_document(signed(repointed), trust_anchor=owner, verification_utc=LATER)
+        self.assertEqual(status, "refused")
+        self.assertIn("release-pin entry signature refused", why)
 
 
 if __name__ == "__main__":

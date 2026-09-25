@@ -61,7 +61,8 @@ assumed.
 signature is not a substitute for a tombstone or re-anchor's own signature. The
 same holds for every declared entry (§13.4, today `grail-kernel` and `release-pin`): its own owner
 signature is checked at its `activated_utc`, `first_seen=` (or `verification_utc=`
-for a first sighting) applies the per-entry 300-second first-seen bound, and
+for a first sighting) applies the per-entry 300-second first-seen bound — a
+signed registry carrying a declared entry is refused without one — and
 `persisted_entries=` refuses a later registry that dropped or changed a
 declaration. A copy of a declared entry found outside the registry counts only
 when it is byte-identical to one the registry carries.
