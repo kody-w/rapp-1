@@ -27,7 +27,7 @@ reach; the section name is the SPEC subsection it proves:
 
 | section | must produce / decide |
 |---|---|
-| `13_1_document` | accept or refuse each `document` exactly as §13.1 and §13.3 require (container and member shapes) |
+| `13_1_document` | accept or refuse each `document` (or, for a value that is not I-JSON at all, each `json_text`) exactly as §4, §13.1 and §13.3 require |
 | `13_4_declared` | the exact `signing_payload` and `entry_hash` for `example.entry`; the declared and persisted entry types |
 | `13_lifecycle` | `example.first_entry_hash` (= `example.second.previous`) and `example.second_signing_payload`; accept or refuse each `cases[].entries` registry exactly as §13.3 and §13.5 require, and for each accepted one its `current` state and `superseded_by` per rappid; over `state_at.entries`, the `state` in effect for every `state_at.queries` item (`null`: no declared lifecycle, never deprecation) and the `current` notices |
 
