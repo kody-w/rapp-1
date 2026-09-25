@@ -1140,8 +1140,10 @@ notice **in effect at** time `t` is the last entry in the chain whose `since_utc
 its `state` is the state in effect at `t` and its `superseded_by` the successor named at `t`, so a notice
 whose `since_utc` is later than `t` names no successor at `t`. An organism with no such entry has no
 declared lifecycle at `t`, and a consumer **MUST NOT** infer deprecation from absence. The chain's last
-entry is the current notice, and the organisms named by current notices' `superseded_by` **MUST NOT** form
-a cycle. A registry that breaks these rules is refused whole.
+entry is the current notice. The organisms named by the `superseded_by` of the notices in effect at any
+one time **MUST NOT** form a cycle; since the notices in effect change only at a `since_utc`, checking the
+notices in effect at each distinct `since_utc` of the registry checks every time. A registry that breaks
+these rules is refused whole.
 
 A notice is metadata about an organism, not trust: it revokes no key (§10 tombstones do), re-anchors no
 identity (§6.3), changes no frame's §7.5 result, and `superseded_by` transfers no key, signature

@@ -71,8 +71,9 @@ assumed.
 at that time, and returns `None` — never a guessed deprecation — when none of the
 estate's notices is in effect then. `Registry.successor_at(rappid, utc)` returns the
 successor that the notice in effect then names, or `None` (a scheduled notice names
-none before its `since_utc`); naming grants nothing, and because only current notices
-are acyclic, a walk along successors at one time stops where it has already been.
+none before its `since_utc`); naming grants nothing, and because a registry whose
+successors in effect at any one time form a cycle is refused whole, a walk along the
+successors in effect at one time always ends.
 Notices are persisted like every declared entry: pass the ones you accepted back as
 `persisted_entries=`, and a later registry that drops or rewrites one is refused, so a
 state changes only by a new notice on the record.

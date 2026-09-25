@@ -32,7 +32,8 @@ What is fully specified by §13 and enforced here:
     name, kernel coherence with the family's `grail-kernel`, and an all-or-nothing
     verified snapshot of one selected pinned release through a caller's fetch;
   - lifecycle notices (§13.6): one linear, owner-signed chain of `lifecycle` entries per
-    organism, the state and successor in effect at a time, and no cycle among current successors;
+    organism, the state and successor in effect at a time, and no cycle among the successors
+    in effect at any one time;
   - owner-signature verification over canonical(document \\ {sig}).
 
 What stays the caller's responsibility, because a snapshot cannot prove it:
@@ -861,8 +862,8 @@ class Registry:
 
         One linear chain per `rappid`, every entry after the first naming the one it
         follows by `previous` = entry_hash (so a chain is its organism's entries in append
-        order); neither `since_utc` nor `activated_utc` decreasing along it; and no cycle
-        among the successors named by current notices (each chain's last entry)."""
+        order); neither `since_utc` nor `activated_utc` decreasing along it; and, at no time,
+        a cycle among the successors named by the notices in effect then."""
         collected = [e for notices in self.lifecycle.values() for e in notices]
         self.lifecycle = linear_chains(
             collected, key=lambda e: e["rappid"], ident=entry_hash,
@@ -876,19 +877,33 @@ class Registry:
                         raise RegistryError(
                             f"lifecycle chain {organism!r}: `{member}` decreases along the chain (§13.6)"
                         )
-        successors = {organism: chain[-1]["superseded_by"] for organism, chain in self.lifecycle.items()
-                      if chain[-1]["superseded_by"] is not None}
-        settled = set()  # organisms whose walk along current successors is known to end
-        for start in successors:
-            walk, current = set(), start
-            while current in successors and current not in settled:
-                if current in walk:
-                    raise RegistryError(
-                        f"lifecycle: current notices' `superseded_by` form a cycle through {current!r} (§13.6)"
-                    )
-                walk.add(current)
-                current = successors[current]
-            settled |= walk
+        # The notices in effect change only at a since_utc, so the successor graph is checked at
+        # each distinct since_utc in time order. A cycle there must pass through an organism
+        # whose notice changed then (the graph before that instant had none), so only walks
+        # from those organisms are needed.
+        changes = {}  # since_utc -> [(organism, notice)], each chain's entries in chain order
+        for organism, chain in self.lifecycle.items():
+            for notice in chain:
+                changes.setdefault(notice["since_utc"], []).append((organism, notice))
+        successors = {}  # organism -> the successor named by its notice in effect
+        for instant in sorted(changes):
+            for organism, notice in changes[instant]:  # a later entry at the same instant wins
+                if notice["superseded_by"] is None:
+                    successors.pop(organism, None)
+                else:
+                    successors[organism] = notice["superseded_by"]
+            settled = set()  # organisms whose walk along the successors in effect is known to end
+            for start, _ in changes[instant]:
+                walk, current = set(), start
+                while current in successors and current not in settled:
+                    if current in walk:
+                        raise RegistryError(
+                            f"lifecycle: the `superseded_by` of the notices in effect at {instant} form a "
+                            f"cycle through {current!r} (§13.6)"
+                        )
+                    walk.add(current)
+                    current = successors[current]
+                settled |= walk
 
     def lifecycle_chain(self, rappid):
         """The organism's `lifecycle` entries in chain order (first notice first); [] when none."""
@@ -922,8 +937,8 @@ class Registry:
     def successor_at(self, rappid, utc):
         """The `superseded_by` of the notice in effect at `utc`; None when no notice is in effect
         then or it names no successor, so a scheduled notice names none before its `since_utc`.
-        It names; it grants nothing. Only current notices are acyclic (§13.6): successors in
-        effect at one time may loop, so a walk along them must stop where it has already been."""
+        It names; it grants nothing. The successors in effect at any one time never form a
+        cycle (§13.6), so a walk along them at one time always ends."""
         notice = self.lifecycle_at(rappid, utc)
         return None if notice is None else notice["superseded_by"]
 

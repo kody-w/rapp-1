@@ -625,6 +625,8 @@ def registry_sections():
         b2 = notice(beta, "archived", since=t2, previous=b1, activated=t2)
         c1 = notice(alpha, "deprecated", since=t1, activated=t1)
         s1 = notice(alpha, "superseded", superseded_by=beta)
+        a2_loop = notice(alpha, "superseded", since=t1, previous=a1, superseded_by=beta, activated=t1)
+        b_loop = notice(beta, "superseded", superseded_by=alpha)
         cases = [
             case("one active notice", [a1], "accept"),
             case("a chain: active, then deprecated recommending beta, then superseded by beta", [a1, a2, a3],
@@ -643,13 +645,12 @@ def registry_sections():
                  [s1, notice(beta, "superseded", superseded_by=gamma), notice(gamma, "active")], "accept"),
             case("a successor that declares no lifecycle of its own",
                  [notice(alpha, "superseded", superseded_by=delta)], "accept"),
-            case("a withdrawn supersession does not close a cycle",
+            case("a supersession withdrawn as the reverse one takes effect: the two never loop at one time",
                  [s1, notice(alpha, "active", since=t1, previous=s1, activated=t1),
-                  notice(beta, "superseded", superseded_by=alpha)], "accept"),
-            case("a scheduled withdrawal: only current notices are acyclic, so the loop in effect until "
-                 "its since_utc is accepted",
+                  notice(beta, "superseded", since=t1, superseded_by=alpha, activated=t1)], "accept"),
+            case("a scheduled reinstatement and a scheduled reverse supersession taking effect together",
                  [s1, notice(alpha, "active", since=future, previous=s1, activated=t1),
-                  notice(beta, "superseded", superseded_by=alpha)], "accept"),
+                  notice(beta, "superseded", since=future, superseded_by=alpha, activated=t1)], "accept"),
             case("a missing member (previous)", [notice(alpha, "active", previous=_DROP)], "member set"),
             case("an extra member (deprecated)", [notice(alpha, "active", deprecated=False)], "member set"),
             case("a rappid with a provisional 32-hex tail",
@@ -698,7 +699,22 @@ def registry_sections():
                   notice(beta, "superseded", superseded_by=alpha)], "cycle"),
             case("a scheduled notice closes a cycle",
                  [a1, notice(alpha, "superseded", since=future, previous=a1, superseded_by=beta, activated=t1),
-                  notice(beta, "superseded", superseded_by=alpha)], "cycle"),
+                  notice(beta, "superseded", superseded_by=alpha)], f"in effect at {future} form a cycle"),
+            case("a supersession withdrawn only after the reverse one took effect: they loop until then",
+                 [s1, notice(alpha, "active", since=t1, previous=s1, activated=t1),
+                  notice(beta, "superseded", superseded_by=alpha)], f"in effect at {T0} form a cycle"),
+            case("a scheduled reinstatement leaves the loop in effect until its since_utc",
+                 [s1, notice(alpha, "active", since=future, previous=s1, activated=t1),
+                  notice(beta, "superseded", superseded_by=alpha)], f"in effect at {T0} form a cycle"),
+            case("a retroactive notice closes a loop in the past",
+                 [s1, notice(alpha, "active", since=t2, previous=s1, activated=t2),
+                  notice(beta, "superseded", since=t1, superseded_by=alpha, activated=t3)],
+                 f"in effect at {t1} form a cycle"),
+            case("a loop in effect only between two later since_utc instants: neither the first nor the "
+                 "current notices loop",
+                 [a1, a2_loop, notice(alpha, "active", since=t2, previous=a2_loop, activated=t2),
+                  b_loop, notice(beta, "active", since=t3, previous=b_loop, activated=t3)],
+                 f"in effect at {t1} form a cycle"),
         ]
 
         g1 = notice(gamma, "active")
