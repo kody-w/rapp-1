@@ -55,10 +55,10 @@ DOCUMENT_SCHEMA = "rapp/1-registry"
 ENTRIES_MEMBER = "entries"
 DOCUMENT_MEMBERS = ("schema", "registry_seq", "canonical_source", ENTRIES_MEMBER, "sig")
 
-# §13.4 — entry types that carry their own owner signature at `activated_utc`,
-# and the subset a consumer retains byte-for-byte once it has accepted one.
+# §13.4 — entry types that carry their own owner signature at `activated_utc`.
+# Every declared entry is persisted: once accepted, it is retained byte-for-byte.
 DECLARED_TYPES = ("grail-kernel", "lifecycle")
-PERSISTED_TYPES = ("grail-kernel",)
+PERSISTED_TYPES = DECLARED_TYPES
 FIRST_SEEN_SKEW_SECONDS = 300
 
 # §13.3 — exact members per entry type: (required, optional)
@@ -221,7 +221,7 @@ def validate_entry(entry, where="entry"):
     if not isinstance(entry, dict):
         raise RegistryError(f"{where}: not an object")
     t = entry.get("type")
-    if t not in ENTRY_MEMBERS:
+    if not isinstance(t, str) or t not in ENTRY_MEMBERS:
         raise RegistryError(f"{where}: unknown entry type {t!r}")
     required, optional = ENTRY_MEMBERS[t]
     keys = set(entry.keys())
@@ -340,7 +340,7 @@ class Registry:
         self.protocol_history = {}  # name -> [entries], append order
         self.master_plan = None
         self.canonical_source = None  # set by load_document from the §13.1 container
-        owners = []
+        owners, reanchored = [], set()
         for i, e in enumerate(entries):
             where = f"entries[{i}]"
             t = validate_entry(e, where)
@@ -364,8 +364,9 @@ class Registry:
             elif t == "re-anchor":
                 if R.rappid_parts(e["old_rappid"])["hash"] == R.rappid_parts(e["new_rappid"])["hash"]:
                     raise RegistryError(f"{where}: re-anchor requires a fresh identity tail")
-                if any(r["new_rappid"] == e["new_rappid"] for r in self.reanchors):
+                if e["new_rappid"] in reanchored:
                     raise RegistryError(f"{where}: more than one predecessor for a re-anchored identity")
+                reanchored.add(e["new_rappid"])
                 self.reanchors.append(e)
             elif t == "genesis":
                 self.genesis.setdefault(e["stream_id"], []).append(e)
@@ -409,6 +410,7 @@ class Registry:
                     raise RegistryError(f"grail-kernel predecessor cycle through {gid}")
                 seen.add(cur)
                 cur = self.grail[cur]["predecessor"]
+        self._declared = {R.canonical(e) for e in entries if e["type"] in DECLARED_TYPES}
         self._succession = {r["new_rappid"]: r for r in self.reanchors}
         succession_by_tail = {}
         for record in self.reanchors:
@@ -416,16 +418,18 @@ class Registry:
             if tail in succession_by_tail:
                 raise RegistryError("re-anchor must mint a fresh tail, not another name for one")
             succession_by_tail[tail] = record
+        walked = set()  # tails whose walk back to a first identity already finished
         for successor in succession_by_tail:
-            seen, current = set(), successor
-            while True:
-                if current in seen:
+            path, current = set(), successor
+            while current not in walked:
+                if current in path:
                     raise RegistryError("re-anchor succession reuses an ancestral identity tail")
-                seen.add(current)
+                path.add(current)
                 record = succession_by_tail.get(current)
                 if record is None:
                     break
                 current = R.rappid_parts(record["old_rappid"])["hash"]
+            walked |= path
         self._index_lifecycle()
 
     # ---- §7.2 / §6.1.1 kind binding ----
@@ -522,19 +526,26 @@ class Registry:
 
     # ---- §13.4 declared entries ----
     def declared_entry_ok(self, entry, *, verification_utc=None):
-        """Check one declared entry's own owner signature (§13.4 items 1–3).
+        """Check one declared entry of this registry (§13.4 items 1–3).
 
-        Works for an entry carried by this registry and for an exact copy found
-        elsewhere (a Hive notice, a member file): the copy is authenticated against
-        this registry's owner succession and keys, never against itself.
-        `verification_utc`, when given, is the verifier's first-seen time for the
-        entry; `activated_utc` may not exceed it by more than 300 seconds."""
+        `entry` may be the registry's own entry or a copy found elsewhere (a Hive
+        notice, a member file); a copy counts only when it is byte-for-byte an entry
+        this registry carries — a declaration no accepted registry carries is not a
+        declaration, however well signed. `verification_utc`, when given, is the
+        verifier's first-seen time for the entry; `activated_utc` may not exceed it by
+        more than 300 seconds."""
         try:
             kind = validate_entry(entry, "declared entry")
         except RegistryError as why:
             return False, str(why)
         if kind not in DECLARED_TYPES:
             return False, f"{kind} is not a declared entry type (§13.4)"
+        try:
+            carried = R.canonical(entry) in self._declared
+        except ValueError as why:
+            return False, str(why)
+        if not carried:
+            return False, f"{kind}: not an entry of this registry (§13.4 — a copy must be byte-identical)"
         activated, signer = entry["activated_utc"], entry["declared_by"]
         try:
             owner = self.owner_at(activated)
@@ -547,7 +558,7 @@ class Registry:
             return False, f"{kind}: declared_by key refused at activated_utc: {why}"
         if verification_utc is not None:
             try:
-                skew = _utc_seconds(activated, "activated_utc") - _utc_seconds(verification_utc, "verification_utc")
+                skew = _utc_seconds(activated, "activated_utc") - _utc_seconds(verification_utc, "first-seen time")
             except RegistryError as why:
                 return False, str(why)
             if skew > FIRST_SEEN_SKEW_SECONDS:
@@ -558,11 +569,24 @@ class Registry:
             return False, f"{kind} entry signature refused: {why}"
         return True, "ok"
 
-    def check_declared_signatures(self, *, verification_utc=None):
-        """Every declared entry's own signature; the document signature never substitutes."""
+    def check_declared_signatures(self, *, verification_utc=None, first_seen=None):
+        """Every declared entry's own signature; the document signature never substitutes.
+
+        The 300-second rule compares each entry with the verifier's first-seen time for
+        THAT entry: pass `first_seen(entry_hash) -> utc` from persisted state (returning
+        the current time for an entry never seen before), or `verification_utc` when every
+        declared entry is being seen for the first time now. Never both."""
+        if verification_utc is not None and first_seen is not None:
+            return False, "pass either verification_utc or first_seen, not both"
         for entry in self.entries:
             if entry["type"] in DECLARED_TYPES:
-                ok, why = self.declared_entry_ok(entry, verification_utc=verification_utc)
+                seen = verification_utc
+                if first_seen is not None:
+                    try:
+                        seen = first_seen(entry_hash(entry))
+                    except (KeyError, ValueError) as why:
+                        return False, f"first-seen context refused: {why}"
+                ok, why = self.declared_entry_ok(entry, verification_utc=seen)
                 if not ok:
                     return False, why
         return True, "ok"
@@ -740,7 +764,7 @@ def validate_document(doc):
 
 def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_unsigned=False,
                   persisted_seq=None, tombstone_issued_at=None, verification_utc=None,
-                  canonical_source=None, persisted_entries=None):
+                  first_seen=None, canonical_source=None, persisted_entries=None):
     """Load a `rapp/1-registry` document. Returns (status, registry, reason) where status is
     "verified" (owner signature verified AGAINST THE TRUST ANCHOR), "draft" (unsigned and
     allow_unsigned), or "refused".
@@ -755,10 +779,11 @@ def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_uns
     document naming another is refused. `persisted_seq` implements §13.1 no-rollback: a lower
     `registry_seq` is refused. Signed documents also verify each key-lifecycle entry's owner
     signature and any old-key continuity signature, and every declared entry's own owner
-    signature at its `activated_utc` (§13.4); `verification_utc` is the caller's first-seen
-    time for those checks' 300-second rule. `persisted_entries` are the canonical declared
-    entries of persisted types the caller accepted before; each must still be present byte for
-    byte. Freshness, append provenance, and historical migration proofs remain caller
+    signature at its `activated_utc` (§13.4). The 300-second rule is per entry:
+    `first_seen(entry_hash)` returns the caller's persisted first-seen time for an entry (and
+    the current time for one never seen before); `verification_utc` is the shortcut when every
+    declared entry is being seen for the first time now. `persisted_entries` are the canonical
+    declared entries the caller accepted before; each must still be present byte for byte. Freshness, append provenance, and historical migration proofs remain caller
     responsibilities; a verified snapshot alone cannot establish them.
     `tombstone_issued_at(entry_hash)` must resolve authenticated issuance/append
     context to a fixed UTC string. It is trusted caller configuration, never a
@@ -800,7 +825,8 @@ def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_uns
     try:
         ok, why = reg.check_lifecycle_signatures(tombstone_issued_at=tombstone_issued_at)
         if ok:
-            ok, why = reg.check_declared_signatures(verification_utc=verification_utc)
+            ok, why = reg.check_declared_signatures(verification_utc=verification_utc,
+                                                    first_seen=first_seen)
         if ok and persisted_entries is not None:
             ok, why = reg.check_retained(persisted_entries)
     except RegistryError as why:
