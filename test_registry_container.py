@@ -1,6 +1,7 @@
 """§13.1 registry container and §13.4 declared-entry tests (stdlib; JWS boundary mocked)."""
 import base64
 import copy
+import json
 import re
 import unittest
 from pathlib import Path
@@ -333,6 +334,37 @@ class SectionNumberingTests(unittest.TestCase):
         ok, why = REG.Registry(estate.base_entries()).authority_decision(worker, worker, "body.pulse", T0)
         self.assertFalse(ok)
         self.assertIn("(§13.7)", why)
+
+
+class DesignRecordSchemaTests(unittest.TestCase):
+    """REV-17-DESIGN.md's informative JSON Schemas name exactly the reference's members."""
+
+    def test_the_design_records_schemas_match_the_reference(self):
+        text = (Path(__file__).resolve().parent / "REV-17-DESIGN.md").read_text(encoding="utf-8")
+        block = re.search(r"<!-- schemas:begin -->\s*```json\n(.*?)\n```\s*<!-- schemas:end -->", text, re.S)
+        self.assertIsNotNone(block, "the design record's schema block is missing")
+        defs = json.loads(block.group(1))["$defs"]
+        for name in ("release-pin", "lifecycle", "stream-signer"):
+            with self.subTest(entry=name):
+                required, optional = REG.ENTRY_MEMBERS[name]
+                self.assertEqual((set(defs[name]["required"]), optional), (required, set()))
+                self.assertEqual(set(defs[name]["properties"]), required)
+                self.assertIs(defs[name]["additionalProperties"], False)
+                self.assertEqual(defs[name]["properties"]["type"], {"const": name})
+        manifest = defs["release-manifest"]
+        component = manifest["properties"]["components"]["items"]
+        file_schema = component["properties"]["files"]["items"]
+        for schema, members in ((manifest, REG.MANIFEST_MEMBERS), (component, REG.COMPONENT_MEMBERS),
+                                (file_schema, REG.FILE_MEMBERS)):
+            self.assertEqual(schema["required"], list(members))
+            self.assertIs(schema["additionalProperties"], False)
+        self.assertEqual(manifest["properties"]["schema"], {"const": REG.MANIFEST_SCHEMA})
+        document = defs["registry-document"]
+        self.assertEqual(document["required"], list(REG.DOCUMENT_MEMBERS))
+        self.assertEqual(document["properties"]["schema"], {"const": REG.DOCUMENT_SCHEMA})
+        self.assertEqual(defs["lifecycle"]["properties"]["state"]["enum"], list(REG.LIFECYCLE_STATES))
+        excluded = defs["stream-signer"]["properties"]["kinds"]["items"]["allOf"][1]["not"]["enum"]
+        self.assertEqual(excluded, list(REG.REGENESIS_KINDS))
 
 
 @unittest.skipUnless(real_ed25519_signer(), "optional cryptography import is absent")

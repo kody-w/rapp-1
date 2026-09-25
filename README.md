@@ -272,8 +272,9 @@ come back, because everyone building on it turns the same bytes into the same tr
 
 RAPP rev-17 (draft for owner ratification) closes the §13 registry container and adds
 declared entries — release pins, lifecycle notices, and stream signers — so an estate can
-pin every component of an LTS release, retire organisms authoritatively, and let a key
-speak for it on one stream, without changing any frozen form.
+pin every component of an LTS release, retire organisms and repositories authoritatively,
+and let a key speak for it on one stream, without changing any frozen form. The design of
+record, with the decision behind each entry, is [`REV-17-DESIGN.md`](REV-17-DESIGN.md).
 
 RAPP rev-14 makes selected `anchor/chain.jsonl` frames carry normative content,
 while owner-ratified protected-main acceptance selects the authoritative chain.
