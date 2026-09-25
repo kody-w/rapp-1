@@ -15,6 +15,7 @@ signs. This page is the lane. Nothing on it needs a change to `rapp/1`.
 | your signers and their keys | `spki` entries; rotation by `re-anchor`; compromise by `tombstone` | §10, §13.2 |
 | your production runtime pinned | a `grail-kernel` entry | §11.1 |
 | every component of one release of a family pinned together (an LTS line and its corrections, a newest channel) | one `release-pin` entry per pinned release + its `rapp/1-release-manifest` (`schema`, `release_scope`, `release`, `components`); the `release_scope` names the release family, and `release` names the release for people | §13.5 |
+| to let a key speak for you on one stream (a pulse, a notice feed) | stream-signer grants — keyless organisms stay keyless | §13.5 |
 | a subordinate profile (`acme-factory/1`) with its own normative text | **your** repository; adopted by a `protocol` entry pinning repo, path, and SHA-256 | §11.2, `protocols/README.md` |
 | tooling that needs a library (Ed25519 signing, HSMs, a database) | **your** repository; it imports `rapp.py`'s canonicalizer, never re-types it | Art. 10 |
 | to say which RAPP/1 you implement | a `protocol` entry `name:"rapp/1"` whose `spec_hash` comes from **this** repository's anchor | §13.3 |
@@ -54,7 +55,14 @@ python3 examples/07_your_own_estate.py      # a complete fictional estate, check
 set, binds kinds to families and families to stream forms, walks owner succession, and
 applies superseded-key and tombstone refusal at a time. Feed `Registry.signature_verifier()`
 to `rapp.verify_frame(signature_verifier=…)` and signed frames resolve their keys from
-your registry. Signature verification itself uses the optional `cryptography` import
+your registry. `Registry.verify_authorized_frame(frame, head=…, stream_id_of_record=…)` runs
+§7.5 that way, kind binding included, and then §13.5: a valid frame whose signer is neither
+your owner nor granted its stream, kind, and time fails at step `"authority"`, never at a §7.5
+step, and `Registry.authorization_verifier()` hands the same rule to a profile's
+`authorization_verifier`. §13.5 binds a consumer that follows no profile-defined signer rule; a
+profile with its own (`rapp-work/1` §1, a `rapp-cicd/1` stage approver) keeps it and may meet it
+this way. A grant may start before its `activated_utc` and so adopt frames already published in
+its window. Signature verification itself uses the optional `cryptography` import
 inside `rapp.verify_detached_jws`; without it, signed artifacts are refused, never
 assumed.
 
@@ -71,7 +79,7 @@ state changes only by a new notice on the record.
 
 `load_document` also verifies key-lifecycle entries: a valid enclosing registry
 signature is not a substitute for a tombstone or re-anchor's own signature. The
-same holds for every declared entry (§13.4, today `grail-kernel`, `release-pin`, and `lifecycle`): its own owner
+same holds for every declared entry (§13.4, today `grail-kernel`, `release-pin`, `lifecycle`, and `stream-signer`): its own owner
 signature is checked at its `activated_utc`, `first_seen=` (or `verification_utc=`
 for a first sighting) applies the per-entry 300-second first-seen bound — a
 signed registry carrying a declared entry is refused without one — and

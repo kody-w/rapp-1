@@ -675,6 +675,10 @@ def revision_payload(
         "status": "live",
         "where": "§13.5 — names an organism's successor; transfers nothing",
     }
+    payload["vocabulary"]["stream-signer"] = {
+        "status": "live",
+        "where": "§13.5 — an estate grant letting a keyed signer speak for it on one stream, above §7.5",
+    }
     rules = [
         {
             "t": "gotcha",
@@ -791,6 +795,23 @@ def revision_payload(
             "c": (
                 "A lifecycle notice is not revocation: a superseded organism's frames still verify; "
                 "revoke keys with a §10 tombstone."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
+                "A stream-signer entry is the estate owner's grant that one keyed signer speaks for the "
+                "estate on one stream, for the listed kinds, from since_utc (which may precede its "
+                "activated_utc) until an optional until_utc; a keyless organism's streams gain a signer "
+                "that way without re-anchoring the organism."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "A §7.5-valid signature is not the estate's word: unless a profile defines the payload's "
+                "signers, require the owner or a stream-signer grant for the stream, kind, and time; "
+                "unsigned frames never speak for the estate."
             ),
         },
     ]
