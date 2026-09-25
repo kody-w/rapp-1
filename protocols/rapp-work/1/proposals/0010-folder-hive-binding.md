@@ -136,7 +136,9 @@ SHA-256 `283359355c3fe2858e28744368255683af3ed28a68e290e56c231e7d4b13c08e`.
 
 The convention is `HIVE-MD.md` in `kody-w/rapp-model-hive`, branch
 `experimental/hive-md`, commit `2bd7c95` (SHA-256 `f3186e0d…fd96`). Its checker and
-Brainstem agent is one file, `agents/hive_agent.py` (SHA-256 `e9a2d724…e8dd`).
+Brainstem agent is one file, `agents/hive_agent.py` (SHA-256 `e9a2d724…e8dd`). Its
+own docstring says it "Needs Python 3.11+, cryptography and git", unlike the
+stdlib-only reference validators here, which CI runs on Python 3.9 and 3.13.
 
 - `HIVE.md` holds `hive` ("a random id fixed by the first commit"), `version`,
   `approvals` (new Hives start at 2), and optional `fields` and `previous`.
@@ -884,7 +886,8 @@ None in this proposal. The gap is an idea, and ideas get a proposal only. A late
 reference would be a stdlib-only `rapp_work_folder_hive.py` that imports `rapp.py`'s
 canonicalizer (Art. 10) and takes the git replay as an injected verifier, so the
 protocol validators stay stdlib-only. The verifier would run the checker only from
-bytes equal to the estate's checker pin. It would ship under its own token, off by
+bytes equal to the estate's checker pin, with the checker's own runtime (Python 3.11
+or later, `cryptography` and git). It would ship under its own token, off by
 default. An estate turns it on only by adopting the profile, and without adoption
 every frame of these kinds is refused. It is never part of `rapp-work/1`
 conformance.
