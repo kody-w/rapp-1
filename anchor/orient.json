@@ -1,24 +1,24 @@
 {
  "schema": "rapp/1-anchor",
- "generated_utc": "2026-09-25T21:47:57.000Z",
+ "generated_utc": "2026-09-25T23:03:16.000Z",
  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
  "head": {
   "seq": 17,
-  "frame_hash": "8240a227d45a808481ee543b9cf7ade520d8e8914f87624324dce1c97e32bae5",
-  "payload_hash": "a098e44b16a2f8562eb15cf7da40bcaa5b526397adf54774e324ce196c7960ff"
+  "frame_hash": "84f69397f1faf88c583d8135500a3a443c5c15da299affddea3cbd38bd173d9d",
+  "payload_hash": "79fe04f414390519f5bba84af023173b7a8b57f52efaa36c6c2ef95ae1996c29"
  },
  "spec": {
   "revision": "rev-17",
-  "revision_frame_hash": "8240a227d45a808481ee543b9cf7ade520d8e8914f87624324dce1c97e32bae5",
-  "revision_payload_hash": "a098e44b16a2f8562eb15cf7da40bcaa5b526397adf54774e324ce196c7960ff",
+  "revision_frame_hash": "84f69397f1faf88c583d8135500a3a443c5c15da299affddea3cbd38bd173d9d",
+  "revision_payload_hash": "79fe04f414390519f5bba84af023173b7a8b57f52efaa36c6c2ef95ae1996c29",
   "schema": "rapp-spec-revision/1",
   "materialized_path": "SPEC.md",
   "normative_path": "SPEC.md",
   "media_type": "text/markdown; charset=utf-8",
-  "normative_sha256": "f07a86f9559f7d31a9331caaa25ecd7b18d351c7f055aaadac3896982063d4a3",
-  "normative_bytes": 87471,
+  "normative_sha256": "07b39ea4b4717da1039398732493a9685bd637db7bbd72e4499c25daf584093e",
+  "normative_bytes": 88811,
   "canonical_repo": "https://github.com/kody-w/rapp-1",
-  "commit": "dbb1736cc743e93bc57036adcae40e62e3defbd4"
+  "commit": "c365f9345f496c6756ad3d74b343ea6d5b04f7a1"
  },
  "registered_kinds": [
   "body.pulse",
@@ -143,11 +143,11 @@
   },
   "lifecycle": {
    "status": "live",
-   "where": "§13.5 — estate-signed notice: active, deprecated, superseded, or archived since a time"
+   "where": "§13.5 — estate-signed notice about a rappid or a rappid-less repository: active, deprecated, superseded, or archived since a time"
   },
   "superseded-by": {
    "status": "live",
-   "where": "§13.5 — names an organism's successor; transfers nothing"
+   "where": "§13.5 — names a successor, a rappid or a repository URI; transfers nothing"
   }
  },
  "operational_profiles": {
@@ -216,7 +216,7 @@
  },
  "index": {
   "path": "anchor/index.json",
-  "sha256": "005299c87f1914ab514752cbf377b1501283a746d9b4316b6b21d422ada41f12",
+  "sha256": "05ef01765cf4cfa69493bedce73f40bddb968c554d58946980751bbed77afd0d",
   "bytes": 8488
  }
 }
