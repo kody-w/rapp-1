@@ -169,25 +169,8 @@
     "label": "missing sig member"
    },
    {
-    "document": {
-     "canonical_source": "https://registry.example.test/rapp-registry.json",
-     "entries": [
-      {
-       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
-       "type": "estate_owner"
-      },
-      {
-       "deprecated": false,
-       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
-       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
-       "type": "spki"
-      }
-     ],
-     "registry_seq": 9007199254740992,
-     "schema": "rapp/1-registry",
-     "sig": "<detached-jws>"
-    },
     "expect": "refuse",
+    "json_text": "{\"canonical_source\":\"https://registry.example.test/rapp-registry.json\",\"entries\":[{\"rappid\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"type\":\"estate_owner\"},{\"deprecated\":false,\"rappid\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"spki_der_b64\":\"dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5\",\"type\":\"spki\"}],\"registry_seq\":9007199254740992,\"schema\":\"rapp/1-registry\",\"sig\":\"<detached-jws>\"}",
     "label": "registry_seq beyond uint53"
    },
    {
