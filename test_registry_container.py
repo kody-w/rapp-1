@@ -292,6 +292,41 @@ class DeclaredEntryTests(unittest.TestCase):
             self.load([entry], persisted_entries=[self.estate.spki("worker")])[0], "refused"
         )
 
+    def test_time_values_are_the_ascii_fixed_form(self):
+        year = "\u0662\u0660\u0662\u0666-07-01T00:00:00.000Z"  # Arabic-Indic digits pass rapp.utc_valid
+        self.assertTrue(R.utc_valid(year))
+        worker = self.estate.keys["worker"]
+        for member, entry in (
+                ("activated_utc", dict(self.estate.grail_kernel(), activated_utc=year)),
+                ("revoked_utc", {"type": "tombstone", "rappid": worker, "revoked_utc": year, "sig": "s"}),
+                ("utc", dict(self.estate.reanchor("owner", "successor", signer="owner"), utc=year))):
+            with self.subTest(member=member):
+                with self.assertRaisesRegex(REG.RegistryError, f"`{member}` is not the fixed §7.4 UTC form"):
+                    REG.validate_entry(entry)
+        # The caller's first-seen and tombstone issuance contexts are time values too.
+        entry = self.estate.grail_kernel()
+        for context in ({"verification_utc": year}, {"first_seen": lambda entry_hash: year}):
+            with self.subTest(context=sorted(context)):
+                status, _, why = self.load([entry], **context)
+                self.assertEqual(status, "refused")
+                self.assertIn("first-seen context did not supply a valid UTC", why)
+        tombstone = {"type": "tombstone", "rappid": worker, "revoked_utc": LATER}
+        tombstone["sig"] = self.estate.sign(tombstone, self.estate.keys["owner"])
+        self.assertEqual(self.load([tombstone])[0], "verified")
+        status, _, why = self.load([tombstone], tombstone_issued_at=lambda entry_hash: year)
+        self.assertEqual(status, "refused")
+        self.assertIn("tombstone issuance context did not supply a valid UTC", why)
+        status, reg, _ = self.load([entry])
+        with self.estate.mocked():
+            ok, why = reg.declared_entry_ok(entry, verification_utc=year)
+        self.assertFalse(ok)
+        self.assertIn("first-seen time: not the fixed §7.4 UTC form", why)
+        # Owner tenure and key acceptability compare times bytewise, so they refuse the form too.
+        with self.assertRaisesRegex(REG.RegistryError, "not the fixed §7.4 UTC form"):
+            reg.owner_at(year)
+        self.assertEqual(reg.signer_acceptable(self.estate.keys["owner"], year),
+                         (False, "the artifact's time is not the fixed §7.4 UTC form"))
+
 
 class LinearChainTests(unittest.TestCase):
     def chains(self, items):

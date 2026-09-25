@@ -589,7 +589,10 @@ class Registry:
 
     # ---- §13.2 owner succession ----
     def owner_at(self, utc):
-        """The estate-owner rappid in effect at `utc` (walks re-anchor records backwards)."""
+        """The estate-owner rappid in effect at `utc` (walks re-anchor records backwards). A `utc`
+        that is not the fixed, ASCII §7.4 form raises RegistryError: tenure compares bytewise."""
+        if not _utc_form(utc):
+            raise RegistryError("owner_at: the time is not the fixed §7.4 UTC form")
         owner, seen = self.estate_owner, set()
         while True:
             if owner in seen:
@@ -607,6 +610,8 @@ class Registry:
         return self._signer_acceptable(kid, utc)
 
     def _signer_acceptable(self, kid, utc, ignored_reanchor=None, match_key_aliases=False):
+        if not _utc_form(utc):
+            return False, "the artifact's time is not the fixed §7.4 UTC form"
         e = self.spki.get(kid)
         if e is None:
             return False, "no spki entry for kid (registry absence is refusal)"
@@ -1255,9 +1260,11 @@ def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_uns
     Freshness, append provenance, and historical migration proofs remain caller
     responsibilities; a verified registry snapshot alone cannot establish them. A returned
     registry records its status in `registry.status` ("verified" or "draft"): `verify_snapshot`,
-    `frame_authorized`, and `verify_authorized_frame` check it, so only a "verified" registry's
-    snapshots and authority answers (§13.5, §13.7) are the estate's (a draft only with
-    `allow_draft=True`, as a rehearsal); a Registry constructed directly has status None.
+    `frame_authorized`, `verify_authorized_frame`, `authorization_verifier`, `declared_entry_ok`,
+    `lifecycle_at`, `lifecycle_state_at`, and `successor_at` check it, so only a "verified"
+    registry's snapshots, authority answers, copy checks, and lifecycle answers (§13.4–§13.7) are
+    the estate's (a draft only with `allow_draft=True`, as a rehearsal); a Registry constructed
+    directly has status None.
     `tombstone_issued_at(entry_hash)` must resolve authenticated issuance/append
     context to a fixed UTC string. It is trusted caller configuration, never a
     field read from the untrusted document. No resolver means tombstones are
