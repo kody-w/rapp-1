@@ -27,7 +27,7 @@ reach; the section name is the SPEC subsection it proves:
 
 | section | must produce / decide |
 |---|---|
-| `13_1_document` | accept or refuse each `document` exactly as §13.1 and §13.3 require (container and member shapes) |
+| `13_1_document` | accept or refuse each `document` (or, for a value that is not I-JSON at all, each `json_text`) exactly as §4, §13.1 and §13.3 require |
 | `13_4_declared` | the exact `signing_payload` and `entry_hash` for `example.entry`; the declared and persisted entry types |
 
 Signatures in the registry vectors are opaque placeholders. Signature verification needs a
