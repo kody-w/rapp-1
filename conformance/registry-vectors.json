@@ -231,7 +231,8 @@
   ],
   "13_4_declared": {
    "declared_types": [
-    "grail-kernel"
+    "grail-kernel",
+    "lifecycle"
    ],
    "example": {
     "entry": {
@@ -259,6 +260,1843 @@
    "first_seen_skew_seconds": 300,
    "persisted_types": [
     "grail-kernel"
+   ]
+  },
+  "13_lifecycle": {
+   "cases": [
+    {
+     "current": {
+      "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d": {
+       "state": "active",
+       "superseded_by": null
+      }
+     },
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "accept",
+     "label": "one active notice"
+    },
+    {
+     "current": {
+      "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d": {
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744"
+      }
+     },
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "41cb56828388d83d08bbc1a630e34062da36ca684f42b69be25800d0b8f3099e",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-08-01T00:00:00.000Z",
+       "state": "deprecated",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-09-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "eb70852d0708af068d858b7267621977064242f57eae83dcf7faa1474b9c7f7e",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-09-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "accept",
+     "label": "a chain: active, then deprecated recommending beta, then superseded by beta"
+    },
+    {
+     "current": {
+      "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d": {
+       "state": "deprecated",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744"
+      },
+      "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744": {
+       "state": "archived",
+       "superseded_by": null
+      }
+     },
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "41cb56828388d83d08bbc1a630e34062da36ca684f42b69be25800d0b8f3099e",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-08-01T00:00:00.000Z",
+       "state": "deprecated",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-09-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "8b7b6214b863d82cc64d87aaf6b9a76615d0bbc718da651a433894db4e92eb6f",
+       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-09-01T00:00:00.000Z",
+       "state": "archived",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "accept",
+     "label": "two organisms' chains interleaved in entries"
+    },
+    {
+     "current": {
+      "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d": {
+       "state": "deprecated",
+       "superseded_by": null
+      },
+      "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744": {
+       "state": "archived",
+       "superseded_by": null
+      }
+     },
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "deprecated",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "archived",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "accept",
+     "label": "deprecated and archived without a successor"
+    },
+    {
+     "current": {
+      "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d": {
+       "state": "archived",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744"
+      }
+     },
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "archived",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "accept",
+     "label": "archived naming a successor"
+    },
+    {
+     "current": {
+      "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d": {
+       "state": "active",
+       "superseded_by": null
+      }
+     },
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-08-01T00:00:00.000Z",
+       "state": "deprecated",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "2c4fbb44e496b1c3ddb5a2883673f65d36facdbe309d929ed021aa3a5d25352e",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-08-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "accept",
+     "label": "a correction: equal since_utc and activated_utc along a chain"
+    },
+    {
+     "current": {
+      "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d": {
+       "state": "archived",
+       "superseded_by": null
+      }
+     },
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-10-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "41cb56828388d83d08bbc1a630e34062da36ca684f42b69be25800d0b8f3099e",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-08-01T00:00:00.000Z",
+       "state": "archived",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "accept",
+     "label": "a retroactive notice: since_utc before its activated_utc"
+    },
+    {
+     "current": {
+      "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d": {
+       "state": "archived",
+       "superseded_by": null
+      }
+     },
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "41cb56828388d83d08bbc1a630e34062da36ca684f42b69be25800d0b8f3099e",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2027-01-01T00:00:00.000Z",
+       "state": "archived",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "accept",
+     "label": "a scheduled notice: since_utc after its activated_utc"
+    },
+    {
+     "current": {
+      "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d": {
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744"
+      },
+      "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744": {
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55"
+      },
+      "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55": {
+       "state": "active",
+       "superseded_by": null
+      }
+     },
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "accept",
+     "label": "a line of successors: alpha to beta to gamma, gamma active"
+    },
+    {
+     "current": {
+      "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d": {
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/delta:b2ea7ee507508202411e2c6057abe82a5f08c71cb7c287c8ea8268f8a7c34741"
+      }
+     },
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/delta:b2ea7ee507508202411e2c6057abe82a5f08c71cb7c287c8ea8268f8a7c34741",
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "accept",
+     "label": "a successor that declares no lifecycle of its own"
+    },
+    {
+     "current": {
+      "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d": {
+       "state": "active",
+       "superseded_by": null
+      },
+      "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744": {
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d"
+      }
+     },
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "3ba4abde88febb814696da01036a1778f2af55f8498089dd52e256d19e821df5",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-08-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "accept",
+     "label": "a withdrawn supersession does not close a cycle"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "a missing member (previous)"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "deprecated": false,
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "an extra member (deprecated)"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "a rappid with a provisional 32-hex tail"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "retired",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "a state outside the four"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "deprecated",
+       "superseded_by": "https://git.example.test/vector/beta",
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "a superseded_by that is not a rappid"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "archived",
+       "superseded_by": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "superseded_by equal to rappid"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "active naming a successor"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "superseded naming no successor"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "a since_utc without milliseconds"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-02-30T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "a since_utc that is not a calendar time"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000+00:00",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "an activated_utc with a numeric offset"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "41CB56828388D83D08BBC1A630E34062DA36CA684F42B69BE25800D0B8F3099E",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-08-01T00:00:00.000Z",
+       "state": "archived",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "a previous that is not 64 lowercase hex"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "owner",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "a declared_by that is not a rappid"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "an empty sig"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-08-01T00:00:00.000Z",
+       "state": "deprecated",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "two first notices for one rappid"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "41cb56828388d83d08bbc1a630e34062da36ca684f42b69be25800d0b8f3099e",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-08-01T00:00:00.000Z",
+       "state": "deprecated",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "41cb56828388d83d08bbc1a630e34062da36ca684f42b69be25800d0b8f3099e",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-08-01T00:00:00.000Z",
+       "state": "archived",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "a fork: two notices follow one"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "41cb56828388d83d08bbc1a630e34062da36ca684f42b69be25800d0b8f3099e",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-08-01T00:00:00.000Z",
+       "state": "deprecated",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "previous names a notice appended after it"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "41cb56828388d83d08bbc1a630e34062da36ca684f42b69be25800d0b8f3099e",
+       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-08-01T00:00:00.000Z",
+       "state": "deprecated",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "previous names another rappid's notice"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "ed3a43a4ac0348129bfb805573d7c0ac19d377d570ab63e5e7cd603b671e2f9a",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-08-01T00:00:00.000Z",
+       "state": "archived",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "previous names an entry that is not a lifecycle notice (the owner's spki)"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "0000000000000000000000000000000000000000000000000000000000000000",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-08-01T00:00:00.000Z",
+       "state": "archived",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "previous names no entry"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "the same notice twice"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-08-01T00:00:00.000Z",
+       "state": "deprecated",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "2c4fbb44e496b1c3ddb5a2883673f65d36facdbe309d929ed021aa3a5d25352e",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "archived",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "since_utc decreases along a chain"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-08-01T00:00:00.000Z",
+       "state": "deprecated",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "2c4fbb44e496b1c3ddb5a2883673f65d36facdbe309d929ed021aa3a5d25352e",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-08-01T00:00:00.000Z",
+       "state": "archived",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "activated_utc decreases along a chain"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "alpha and beta supersede each other"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "archived",
+       "superseded_by": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "deprecated",
+       "superseded_by": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "a three-organism cycle through a deprecation's recommended successor"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/delta:b2ea7ee507508202411e2c6057abe82a5f08c71cb7c287c8ea8268f8a7c34741",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "delta leads into the alpha-beta cycle"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "41cb56828388d83d08bbc1a630e34062da36ca684f42b69be25800d0b8f3099e",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2027-01-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "a scheduled notice closes a cycle"
+    }
+   ],
+   "example": {
+    "first": {
+     "activated_utc": "2026-07-01T00:00:00.000Z",
+     "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+     "previous": null,
+     "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+     "sig": "<detached-jws>",
+     "since_utc": "2026-07-01T00:00:00.000Z",
+     "state": "active",
+     "superseded_by": null,
+     "type": "lifecycle"
+    },
+    "first_entry_hash": "41cb56828388d83d08bbc1a630e34062da36ca684f42b69be25800d0b8f3099e",
+    "rule": "second.previous = H('rapp/1:particle', first), over the complete entry with its sig; each notice is a declared entry signed over canonical(entry \\ {sig})",
+    "second": {
+     "activated_utc": "2026-08-01T00:00:00.000Z",
+     "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+     "previous": "41cb56828388d83d08bbc1a630e34062da36ca684f42b69be25800d0b8f3099e",
+     "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+     "sig": "<detached-jws>",
+     "since_utc": "2026-08-01T00:00:00.000Z",
+     "state": "deprecated",
+     "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+     "type": "lifecycle"
+    },
+    "second_signing_payload": "{\"activated_utc\":\"2026-08-01T00:00:00.000Z\",\"declared_by\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"previous\":\"41cb56828388d83d08bbc1a630e34062da36ca684f42b69be25800d0b8f3099e\",\"rappid\":\"rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d\",\"since_utc\":\"2026-08-01T00:00:00.000Z\",\"state\":\"deprecated\",\"superseded_by\":\"rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744\",\"type\":\"lifecycle\"}"
+   },
+   "state_at": {
+    "current": {
+     "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d": {
+      "state": "superseded",
+      "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744"
+     },
+     "rappid:@vector/delta:b2ea7ee507508202411e2c6057abe82a5f08c71cb7c287c8ea8268f8a7c34741": {
+      "state": "superseded",
+      "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744"
+     },
+     "rappid:@vector/epsilon:31cce780aa6a19c8d9e1b5b92326cebaff9d4f14397afcff00504115984d5d54": {
+      "state": "active",
+      "superseded_by": null
+     },
+     "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55": {
+      "state": "archived",
+      "superseded_by": null
+     }
+    },
+    "entries": [
+     {
+      "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "type": "estate_owner"
+     },
+     {
+      "deprecated": false,
+      "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+      "type": "spki"
+     },
+     {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "previous": null,
+      "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+      "sig": "<detached-jws>",
+      "since_utc": "2026-07-01T00:00:00.000Z",
+      "state": "active",
+      "superseded_by": null,
+      "type": "lifecycle"
+     },
+     {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "previous": null,
+      "rappid": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
+      "sig": "<detached-jws>",
+      "since_utc": "2026-07-01T00:00:00.000Z",
+      "state": "active",
+      "superseded_by": null,
+      "type": "lifecycle"
+     },
+     {
+      "activated_utc": "2026-08-01T00:00:00.000Z",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "previous": "41cb56828388d83d08bbc1a630e34062da36ca684f42b69be25800d0b8f3099e",
+      "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+      "sig": "<detached-jws>",
+      "since_utc": "2026-08-01T00:00:00.000Z",
+      "state": "deprecated",
+      "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+      "type": "lifecycle"
+     },
+     {
+      "activated_utc": "2026-08-01T00:00:00.000Z",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "previous": null,
+      "rappid": "rappid:@vector/delta:b2ea7ee507508202411e2c6057abe82a5f08c71cb7c287c8ea8268f8a7c34741",
+      "sig": "<detached-jws>",
+      "since_utc": "2026-08-01T00:00:00.000Z",
+      "state": "active",
+      "superseded_by": null,
+      "type": "lifecycle"
+     },
+     {
+      "activated_utc": "2026-08-01T00:00:00.000Z",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "previous": null,
+      "rappid": "rappid:@vector/epsilon:31cce780aa6a19c8d9e1b5b92326cebaff9d4f14397afcff00504115984d5d54",
+      "sig": "<detached-jws>",
+      "since_utc": "2026-08-01T00:00:00.000Z",
+      "state": "deprecated",
+      "superseded_by": null,
+      "type": "lifecycle"
+     },
+     {
+      "activated_utc": "2026-09-01T00:00:00.000Z",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "previous": "eb70852d0708af068d858b7267621977064242f57eae83dcf7faa1474b9c7f7e",
+      "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+      "sig": "<detached-jws>",
+      "since_utc": "2026-09-01T00:00:00.000Z",
+      "state": "superseded",
+      "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+      "type": "lifecycle"
+     },
+     {
+      "activated_utc": "2026-10-01T00:00:00.000Z",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "previous": "4773613272101501ff37ef79f1c46ed9f85d176e38c4f895624f09b9a16548ea",
+      "rappid": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
+      "sig": "<detached-jws>",
+      "since_utc": "2026-08-01T00:00:00.000Z",
+      "state": "archived",
+      "superseded_by": null,
+      "type": "lifecycle"
+     },
+     {
+      "activated_utc": "2026-09-01T00:00:00.000Z",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "previous": "7b23e31a9d0556c6c42568e0902bd3f2b462340295725d7873c6f09a3341753a",
+      "rappid": "rappid:@vector/delta:b2ea7ee507508202411e2c6057abe82a5f08c71cb7c287c8ea8268f8a7c34741",
+      "sig": "<detached-jws>",
+      "since_utc": "2027-01-01T00:00:00.000Z",
+      "state": "superseded",
+      "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+      "type": "lifecycle"
+     },
+     {
+      "activated_utc": "2026-09-01T00:00:00.000Z",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "previous": "ca4adeb44bbbe60d1d5c4b81ffa8e8142834a4e8bb902f88336ed46a2c56f9bd",
+      "rappid": "rappid:@vector/epsilon:31cce780aa6a19c8d9e1b5b92326cebaff9d4f14397afcff00504115984d5d54",
+      "sig": "<detached-jws>",
+      "since_utc": "2026-08-01T00:00:00.000Z",
+      "state": "active",
+      "superseded_by": null,
+      "type": "lifecycle"
+     }
+    ],
+    "queries": [
+     {
+      "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+      "state": null,
+      "utc": "2026-06-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+      "state": "active",
+      "utc": "2026-07-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+      "state": "active",
+      "utc": "2026-07-31T23:59:59.999Z"
+     },
+     {
+      "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+      "state": "deprecated",
+      "utc": "2026-08-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+      "state": "superseded",
+      "utc": "2026-09-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+      "state": "superseded",
+      "utc": "2026-10-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+      "state": "superseded",
+      "utc": "2027-01-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+      "state": null,
+      "utc": "2026-06-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+      "state": null,
+      "utc": "2026-07-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+      "state": null,
+      "utc": "2026-07-31T23:59:59.999Z"
+     },
+     {
+      "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+      "state": null,
+      "utc": "2026-08-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+      "state": null,
+      "utc": "2026-09-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+      "state": null,
+      "utc": "2026-10-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+      "state": null,
+      "utc": "2027-01-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
+      "state": null,
+      "utc": "2026-06-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
+      "state": "active",
+      "utc": "2026-07-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
+      "state": "active",
+      "utc": "2026-07-31T23:59:59.999Z"
+     },
+     {
+      "rappid": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
+      "state": "archived",
+      "utc": "2026-08-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
+      "state": "archived",
+      "utc": "2026-09-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
+      "state": "archived",
+      "utc": "2026-10-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
+      "state": "archived",
+      "utc": "2027-01-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/delta:b2ea7ee507508202411e2c6057abe82a5f08c71cb7c287c8ea8268f8a7c34741",
+      "state": null,
+      "utc": "2026-06-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/delta:b2ea7ee507508202411e2c6057abe82a5f08c71cb7c287c8ea8268f8a7c34741",
+      "state": null,
+      "utc": "2026-07-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/delta:b2ea7ee507508202411e2c6057abe82a5f08c71cb7c287c8ea8268f8a7c34741",
+      "state": null,
+      "utc": "2026-07-31T23:59:59.999Z"
+     },
+     {
+      "rappid": "rappid:@vector/delta:b2ea7ee507508202411e2c6057abe82a5f08c71cb7c287c8ea8268f8a7c34741",
+      "state": "active",
+      "utc": "2026-08-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/delta:b2ea7ee507508202411e2c6057abe82a5f08c71cb7c287c8ea8268f8a7c34741",
+      "state": "active",
+      "utc": "2026-09-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/delta:b2ea7ee507508202411e2c6057abe82a5f08c71cb7c287c8ea8268f8a7c34741",
+      "state": "active",
+      "utc": "2026-10-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/delta:b2ea7ee507508202411e2c6057abe82a5f08c71cb7c287c8ea8268f8a7c34741",
+      "state": "superseded",
+      "utc": "2027-01-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/epsilon:31cce780aa6a19c8d9e1b5b92326cebaff9d4f14397afcff00504115984d5d54",
+      "state": null,
+      "utc": "2026-06-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/epsilon:31cce780aa6a19c8d9e1b5b92326cebaff9d4f14397afcff00504115984d5d54",
+      "state": null,
+      "utc": "2026-07-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/epsilon:31cce780aa6a19c8d9e1b5b92326cebaff9d4f14397afcff00504115984d5d54",
+      "state": null,
+      "utc": "2026-07-31T23:59:59.999Z"
+     },
+     {
+      "rappid": "rappid:@vector/epsilon:31cce780aa6a19c8d9e1b5b92326cebaff9d4f14397afcff00504115984d5d54",
+      "state": "active",
+      "utc": "2026-08-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/epsilon:31cce780aa6a19c8d9e1b5b92326cebaff9d4f14397afcff00504115984d5d54",
+      "state": "active",
+      "utc": "2026-09-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/epsilon:31cce780aa6a19c8d9e1b5b92326cebaff9d4f14397afcff00504115984d5d54",
+      "state": "active",
+      "utc": "2026-10-01T00:00:00.000Z"
+     },
+     {
+      "rappid": "rappid:@vector/epsilon:31cce780aa6a19c8d9e1b5b92326cebaff9d4f14397afcff00504115984d5d54",
+      "state": "active",
+      "utc": "2027-01-01T00:00:00.000Z"
+     }
+    ],
+    "rule": "the state in effect at utc is that of the last chain entry whose since_utc <= utc (bytewise); null is no declared lifecycle, never deprecation"
+   },
+   "states": [
+    "active",
+    "deprecated",
+    "superseded",
+    "archived"
    ]
   }
  },

@@ -179,7 +179,170 @@ def registry_sections():
             },
         }
 
-    return [("13_1_document", document_cases), ("13_4_declared", declared_cases)]
+    def lifecycle_cases():
+        """§13.5 lifecycle notices: entry rules, one chain per rappid, times, cycles, state in effect."""
+        earlier, just_before_t1 = "2026-06-01T00:00:00.000Z", "2026-07-31T23:59:59.999Z"
+        t1, t2, t3 = "2026-08-01T00:00:00.000Z", "2026-09-01T00:00:00.000Z", "2026-10-01T00:00:00.000Z"
+        future = "2027-01-01T00:00:00.000Z"
+
+        def organism(slug, n):
+            """A reproducible keyless rappid: the §6.2 mint over a fixed UUIDv4, for vectors only."""
+            return f"rappid:@vector/{slug}:" + R.Hb("rapp/1:rappid", bytes.fromhex("00000000000040008000%012x" % n))
+
+        alpha, beta, gamma, delta, epsilon = (
+            organism(slug, n) for n, slug in enumerate(("alpha", "beta", "gamma", "delta", "epsilon"), 1))
+
+        def notice(rappid, state, since=T0, previous=None, superseded_by=None, activated=T0, **changes):
+            """A lifecycle entry with a placeholder sig; `previous` may be the entry it follows."""
+            entry = {"type": "lifecycle", "rappid": rappid, "state": state, "superseded_by": superseded_by,
+                     "since_utc": since,
+                     "previous": REG.entry_hash(previous) if isinstance(previous, dict) else previous,
+                     "activated_utc": activated, "declared_by": owner, "sig": SIG}
+            entry.update(changes)
+            return {k: v for k, v in entry.items() if v is not _DROP}
+
+        def current(registry):
+            return {rappid: {"state": registry.lifecycle_head(rappid)["state"],
+                             "superseded_by": registry.successor_of(rappid)} for rappid in sorted(registry.lifecycle)}
+
+        def case(label, notices, expect):
+            """`expect` is "accept", or text the reference's refusal must contain, so every refusal
+            vector is proven to fail for the rule its label names."""
+            entries = base + notices
+            try:
+                registry = REG.Registry(entries)
+            except REG.RegistryError as why:
+                assert expect != "accept" and expect in str(why), (label, str(why))
+                return {"label": label, "entries": entries, "expect": "refuse", "current": None}
+            assert expect == "accept", label
+            return {"label": label, "entries": entries, "expect": "accept", "current": current(registry)}
+
+        a1 = notice(alpha, "active")
+        a2 = notice(alpha, "deprecated", since=t1, previous=a1, superseded_by=beta, activated=t1)
+        a3 = notice(alpha, "superseded", since=t2, previous=a2, superseded_by=beta, activated=t2)
+        b1 = notice(beta, "active")
+        b2 = notice(beta, "archived", since=t2, previous=b1, activated=t2)
+        c1 = notice(alpha, "deprecated", since=t1, activated=t1)
+        s1 = notice(alpha, "superseded", superseded_by=beta)
+        cases = [
+            case("one active notice", [a1], "accept"),
+            case("a chain: active, then deprecated recommending beta, then superseded by beta", [a1, a2, a3],
+                 "accept"),
+            case("two organisms' chains interleaved in entries", [a1, b1, a2, b2], "accept"),
+            case("deprecated and archived without a successor",
+                 [notice(alpha, "deprecated"), notice(beta, "archived")], "accept"),
+            case("archived naming a successor", [notice(alpha, "archived", superseded_by=beta)], "accept"),
+            case("a correction: equal since_utc and activated_utc along a chain",
+                 [c1, notice(alpha, "active", since=t1, previous=c1, activated=t1)], "accept"),
+            case("a retroactive notice: since_utc before its activated_utc",
+                 [a1, notice(alpha, "archived", since=t1, previous=a1, activated=t3)], "accept"),
+            case("a scheduled notice: since_utc after its activated_utc",
+                 [a1, notice(alpha, "archived", since=future, previous=a1, activated=t1)], "accept"),
+            case("a line of successors: alpha to beta to gamma, gamma active",
+                 [s1, notice(beta, "superseded", superseded_by=gamma), notice(gamma, "active")], "accept"),
+            case("a successor that declares no lifecycle of its own",
+                 [notice(alpha, "superseded", superseded_by=delta)], "accept"),
+            case("a withdrawn supersession does not close a cycle",
+                 [s1, notice(alpha, "active", since=t1, previous=s1, activated=t1),
+                  notice(beta, "superseded", superseded_by=alpha)], "accept"),
+            case("a missing member (previous)", [notice(alpha, "active", previous=_DROP)], "member set"),
+            case("an extra member (deprecated)", [notice(alpha, "active", deprecated=False)], "member set"),
+            case("a rappid with a provisional 32-hex tail",
+                 [notice(alpha.rsplit(":", 1)[0] + ":" + "a" * 32, "active")], "`rappid`"),
+            case("a state outside the four", [notice(alpha, "retired")], "`state`"),
+            case("a superseded_by that is not a rappid",
+                 [notice(alpha, "deprecated", superseded_by="https://git.example.test/vector/beta")],
+                 "`superseded_by`"),
+            case("superseded_by equal to rappid", [notice(alpha, "archived", superseded_by=alpha)], "never equals"),
+            case("active naming a successor", [notice(alpha, "active", superseded_by=beta)], "must be null"),
+            case("superseded naming no successor", [notice(alpha, "superseded")], "names its successor"),
+            case("a since_utc without milliseconds", [notice(alpha, "active", since="2026-07-01T00:00:00Z")],
+                 "`since_utc`"),
+            case("a since_utc that is not a calendar time",
+                 [notice(alpha, "active", since="2026-02-30T00:00:00.000Z")], "`since_utc`"),
+            case("an activated_utc with a numeric offset",
+                 [notice(alpha, "active", activated="2026-07-01T00:00:00.000+00:00")], "`activated_utc`"),
+            case("a previous that is not 64 lowercase hex",
+                 [a1, notice(alpha, "archived", since=t1, previous=REG.entry_hash(a1).upper(), activated=t1)],
+                 "`previous`"),
+            case("a declared_by that is not a rappid", [notice(alpha, "active", declared_by="owner")],
+                 "`declared_by`"),
+            case("an empty sig", [notice(alpha, "active", sig="")], "`sig`"),
+            case("two first notices for one rappid", [a1, c1], "exactly one first entry"),
+            case("a fork: two notices follow one",
+                 [a1, a2, notice(alpha, "archived", since=t1, previous=a1, activated=t1)], "fork"),
+            case("previous names a notice appended after it", [a2, a1], "does not precede"),
+            case("previous names another rappid's notice",
+                 [a1, b1, notice(beta, "deprecated", since=t1, previous=a1, activated=t1)], "does not precede"),
+            case("previous names an entry that is not a lifecycle notice (the owner's spki)",
+                 [a1, notice(alpha, "archived", since=t1, previous=base[1], activated=t1)], "does not precede"),
+            case("previous names no entry",
+                 [a1, notice(alpha, "archived", since=t1, previous="0" * 64, activated=t1)], "does not precede"),
+            case("the same notice twice", [a1, a1], "duplicate"),
+            case("since_utc decreases along a chain",
+                 [c1, notice(alpha, "archived", since=T0, previous=c1, activated=t1)], "`since_utc` decreases"),
+            case("activated_utc decreases along a chain",
+                 [c1, notice(alpha, "archived", since=t1, previous=c1, activated=T0)], "`activated_utc` decreases"),
+            case("alpha and beta supersede each other", [s1, notice(beta, "superseded", superseded_by=alpha)],
+                 "cycle"),
+            case("a three-organism cycle through a deprecation's recommended successor",
+                 [s1, notice(beta, "archived", superseded_by=gamma),
+                  notice(gamma, "deprecated", superseded_by=alpha)], "cycle"),
+            case("delta leads into the alpha-beta cycle",
+                 [notice(delta, "superseded", superseded_by=alpha), s1,
+                  notice(beta, "superseded", superseded_by=alpha)], "cycle"),
+            case("a scheduled notice closes a cycle",
+                 [a1, notice(alpha, "superseded", since=future, previous=a1, superseded_by=beta, activated=t1),
+                  notice(beta, "superseded", superseded_by=alpha)], "cycle"),
+        ]
+
+        g1 = notice(gamma, "active")
+        d1 = notice(delta, "active", since=t1, activated=t1)
+        e1 = notice(epsilon, "deprecated", since=t1, activated=t1)
+        timeline = base + [
+            a1, g1, a2, d1, e1, a3,
+            notice(gamma, "archived", since=t1, previous=g1, activated=t3),  # retroactive
+            notice(delta, "superseded", since=future, previous=d1, superseded_by=beta, activated=t2),  # scheduled
+            notice(epsilon, "active", since=t1, previous=e1, activated=t2),  # a correction
+        ]
+        registry = REG.Registry(timeline)
+        times = (earlier, T0, just_before_t1, t1, t2, t3, future)
+        intended = {
+            alpha: (None, "active", "active", "deprecated", "superseded", "superseded", "superseded"),
+            beta: (None,) * len(times),
+            gamma: (None, "active", "active", "archived", "archived", "archived", "archived"),
+            delta: (None, None, None, "active", "active", "active", "superseded"),
+            epsilon: (None, None, None, "active", "active", "active", "active"),
+        }
+        queries = []
+        for rappid, states in intended.items():
+            for utc, state in zip(times, states):
+                answer = registry.lifecycle_state_at(rappid, utc)
+                assert answer == state, (rappid, utc, answer)
+                queries.append({"rappid": rappid, "utc": utc, "state": answer})
+
+        return {
+            "states": list(REG.LIFECYCLE_STATES),
+            "example": {
+                "first": a1,
+                "first_entry_hash": REG.entry_hash(a1),
+                "second": a2,
+                "second_signing_payload": R.canonical({k: v for k, v in a2.items() if k != "sig"}),
+                "rule": "second.previous = H('rapp/1:particle', first), over the complete entry with its sig; "
+                        "each notice is a declared entry signed over canonical(entry \\ {sig})",
+            },
+            "cases": cases,
+            "state_at": {
+                "entries": timeline,
+                "current": current(registry),
+                "queries": queries,
+                "rule": "the state in effect at utc is that of the last chain entry whose since_utc <= utc "
+                        "(bytewise); null is no declared lifecycle, never deprecation",
+            },
+        }
+
+    return [("13_1_document", document_cases), ("13_4_declared", declared_cases),
+            ("13_lifecycle", lifecycle_cases)]
 
 
 class _Drop:

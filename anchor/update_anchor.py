@@ -655,6 +655,14 @@ def revision_payload(
         "status": "live",
         "where": "§13.4 — a registry entry carrying its own owner signature at its activated_utc",
     }
+    payload["vocabulary"]["lifecycle"] = {
+        "status": "live",
+        "where": "§13.5 — estate-signed notice: active, deprecated, superseded, or archived since a time",
+    }
+    payload["vocabulary"]["superseded-by"] = {
+        "status": "live",
+        "where": "§13.5 — names an organism's successor; transfers nothing",
+    }
     rules = [
         {
             "t": "gotcha",
@@ -728,6 +736,21 @@ def revision_payload(
             "c": (
                 "A valid registry signature never blesses a declared entry: each one carries its own "
                 "owner signature at its activated_utc, and persisted ones are retained byte-for-byte."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
+                "An organism's lifecycle state comes from its estate-signed lifecycle chain: the state in "
+                "effect at t is the last notice whose since_utc <= t; no notice is no declared lifecycle, "
+                "and a README, member file, or Hive notice that disagrees is drift."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "A lifecycle notice is not revocation: a superseded organism's frames still verify; "
+                "revoke keys with a §10 tombstone."
             ),
         },
     ]
