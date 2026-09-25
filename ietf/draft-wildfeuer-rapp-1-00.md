@@ -48,8 +48,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame 155e8f4b0bb9b875e01a1a1e73451df79eda61cd98a0e90174dc8f2e8cc299b2, normative
-SHA-256 b1ce115a67f3a00bc57e7205f69a99e8e1d4dc2a219b130fbe04e285946c53a3. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame 8240a227d45a808481ee543b9cf7ade520d8e8914f87624324dce1c97e32bae5, normative
+SHA-256 f07a86f9559f7d31a9331caaa25ecd7b18d351c7f055aaadac3896982063d4a3. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -1014,9 +1014,12 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
 - **estate_owner** `{type:"estate_owner", rappid}` (exactly one non-deprecated) · **master-plan**
   `{type:"master-plan", repo, path}` (Fed. Const. Art. VII).
 
-§7.5 steps 1–5 are time-independent (append-only lookups); **only** step 6 (tombstones) and §13.2 owner
-tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule. A declared entry (§13.4) is
-authenticated at its own `activated_utc`, never at the time it is read.
+§7.5 steps 1–5 are time-independent (append-only lookups); step 6 (tombstones) and §13.2 owner tenure are
+time-scoped, and both are monotone given the §13.1 no-rollback rule. A declared entry (§13.4) is
+authenticated at its own `activated_utc`, never at the time it is read. The lifecycle state in effect
+(§13.5) is evaluated at a given time — for a frame, its `utc` — and, because every declared entry is
+retained (§13.4), a later registry can add a notice but never withdraw one. The rules of §13.5 —
+lifecycle notices — sit above §7.5 and never add a §7.5 step.
 
 ## Declared entries (entry-level owner signatures)
 A **declared entry** carries its own `activated_utc` (the §7.4 form), `declared_by` (a keyed rappid), and
@@ -1052,8 +1055,10 @@ notice **in effect at** time `t` is the last entry in the chain whose `since_utc
 its `state` is the state in effect at `t` and its `superseded_by` the successor named at `t`, so a notice
 whose `since_utc` is later than `t` names no successor at `t`. An organism with no such entry has no
 declared lifecycle at `t`, and a consumer **MUST NOT** infer deprecation from absence. The chain's last
-entry is the current notice, and the organisms named by current notices' `superseded_by` **MUST NOT** form
-a cycle. A registry that breaks these rules is refused whole.
+entry is the current notice. The organisms named by the `superseded_by` of the notices in effect at any
+one time **MUST NOT** form a cycle; since the notices in effect change only at a `since_utc`, checking the
+notices in effect at each distinct `since_utc` of the registry checks every time. A registry that breaks
+these rules is refused whole.
 
 A notice is metadata about an organism, not trust: it revokes no key (§10 tombstones do), re-anchors no
 identity (§6.3), changes no frame's §7.5 result, and `superseded_by` transfers no key, signature

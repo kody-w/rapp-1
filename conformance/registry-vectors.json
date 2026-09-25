@@ -760,19 +760,19 @@
        "type": "lifecycle"
       },
       {
-       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "activated_utc": "2026-08-01T00:00:00.000Z",
        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
        "previous": null,
        "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
        "sig": "<detached-jws>",
-       "since_utc": "2026-07-01T00:00:00.000Z",
+       "since_utc": "2026-08-01T00:00:00.000Z",
        "state": "superseded",
        "superseded_by": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
        "type": "lifecycle"
       }
      ],
      "expect": "accept",
-     "label": "a withdrawn supersession does not close a cycle"
+     "label": "a supersession withdrawn as the reverse one takes effect: the two never loop at one time"
     },
     {
      "current": {
@@ -819,19 +819,19 @@
        "type": "lifecycle"
       },
       {
-       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "activated_utc": "2026-08-01T00:00:00.000Z",
        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
        "previous": null,
        "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
        "sig": "<detached-jws>",
-       "since_utc": "2026-07-01T00:00:00.000Z",
+       "since_utc": "2027-01-01T00:00:00.000Z",
        "state": "superseded",
        "superseded_by": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
        "type": "lifecycle"
       }
      ],
      "expect": "accept",
-     "label": "a scheduled withdrawal: only current notices are acyclic, so the loop in effect until its since_utc is accepted"
+     "label": "a scheduled reinstatement and a scheduled reverse supersession taking effect together"
     },
     {
      "current": null,
@@ -1797,6 +1797,228 @@
      ],
      "expect": "refuse",
      "label": "a scheduled notice closes a cycle"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "3ba4abde88febb814696da01036a1778f2af55f8498089dd52e256d19e821df5",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-08-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "a supersession withdrawn only after the reverse one took effect: they loop until then"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "3ba4abde88febb814696da01036a1778f2af55f8498089dd52e256d19e821df5",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2027-01-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "a scheduled reinstatement leaves the loop in effect until its since_utc"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-09-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "3ba4abde88febb814696da01036a1778f2af55f8498089dd52e256d19e821df5",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-09-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-10-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-08-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "a retroactive notice closes a loop in the past"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "41cb56828388d83d08bbc1a630e34062da36ca684f42b69be25800d0b8f3099e",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-08-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-09-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "449d6e2c9dc0d938b77ceb6d1b2fc5becfbb2b0eb5d6ac5a2269df249864dbd0",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-09-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-10-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "514618901d001802835bbccec9ae34cf2994edaf070f22f11fa00c531b16cd60",
+       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-10-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "a loop in effect only between two later since_utc instants: neither the first nor the current notices loop"
     }
    ],
    "example": {
