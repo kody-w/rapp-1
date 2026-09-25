@@ -1,7 +1,9 @@
 """§13.1 registry container and §13.4 declared-entry tests (stdlib; JWS boundary mocked)."""
 import base64
 import copy
+import re
 import unittest
+from pathlib import Path
 
 import rapp as R
 import rapp_registry as REG
@@ -304,6 +306,33 @@ class LinearChainTests(unittest.TestCase):
         self.assertEqual(REG.entry_hash(entry), R.H("rapp/1:particle", entry))
         altered = dict(entry, sig="other")
         self.assertNotEqual(REG.entry_hash(entry), REG.entry_hash(altered))
+
+
+class SectionNumberingTests(unittest.TestCase):
+    """The reference cites the SPEC's own numbers for the declared entry types it enforces."""
+
+    def test_refusals_cite_the_subsection_that_specifies_them(self):
+        spec = (Path(__file__).resolve().parent / "SPEC.md").read_text(encoding="utf-8")
+        headings = dict(re.findall(r"^### (13\.[5-7]) (.+)$", spec, flags=re.M))
+        self.assertEqual(sorted(headings), ["13.5", "13.6", "13.7"])
+        self.assertTrue(headings["13.5"].startswith("Release pins"))
+        self.assertTrue(headings["13.6"].startswith("Lifecycle notices"))
+        self.assertTrue(headings["13.7"].startswith("Stream signers"))
+        estate = MockEstate()
+        owner, worker = estate.keys["owner"], estate.keys["worker"]
+        with self.assertRaisesRegex(REG.RegistryError, re.escape("(§13.5)")):
+            REG.validate_release_manifest({"schema": REG.MANIFEST_SCHEMA})
+        notice = {"type": "lifecycle", "rappid": worker, "state": "active", "superseded_by": owner,
+                  "since_utc": T0, "previous": None, "activated_utc": T0, "declared_by": owner, "sig": "s"}
+        with self.assertRaisesRegex(REG.RegistryError, re.escape("(§13.6)")):
+            REG.validate_entry(notice)
+        grant = {"type": "stream-signer", "stream_id": worker, "signer": owner, "kinds": ["body.pulse"],
+                 "since_utc": T0, "until_utc": T0, "activated_utc": T0, "declared_by": owner, "sig": "s"}
+        with self.assertRaisesRegex(REG.RegistryError, re.escape("(§13.7)")):
+            REG.validate_entry(grant)
+        ok, why = REG.Registry(estate.base_entries()).authority_decision(worker, worker, "body.pulse", T0)
+        self.assertFalse(ok)
+        self.assertIn("(§13.7)", why)
 
 
 @unittest.skipUnless(real_ed25519_signer(), "optional cryptography import is absent")
