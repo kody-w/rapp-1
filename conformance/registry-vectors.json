@@ -242,7 +242,8 @@
    },
    "first_seen_skew_seconds": 300,
    "persisted_types": [
-    "grail-kernel"
+    "grail-kernel",
+    "lifecycle"
    ]
   },
   "13_lifecycle": {
@@ -772,6 +773,65 @@
      ],
      "expect": "accept",
      "label": "a withdrawn supersession does not close a cycle"
+    },
+    {
+     "current": {
+      "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d": {
+       "state": "active",
+       "superseded_by": null
+      },
+      "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744": {
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d"
+      }
+     },
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "3ba4abde88febb814696da01036a1778f2af55f8498089dd52e256d19e821df5",
+       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "sig": "<detached-jws>",
+       "since_utc": "2027-01-01T00:00:00.000Z",
+       "state": "active",
+       "superseded_by": null,
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "accept",
+     "label": "a scheduled withdrawal: only current notices are acyclic, so the loop in effect until its since_utc is accepted"
     },
     {
      "current": null,
@@ -1848,7 +1908,7 @@
       "sig": "<detached-jws>",
       "since_utc": "2026-08-01T00:00:00.000Z",
       "state": "deprecated",
-      "superseded_by": null,
+      "superseded_by": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
       "type": "lifecycle"
      },
      {
@@ -1887,7 +1947,7 @@
      {
       "activated_utc": "2026-09-01T00:00:00.000Z",
       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
-      "previous": "ca4adeb44bbbe60d1d5c4b81ffa8e8142834a4e8bb902f88336ed46a2c56f9bd",
+      "previous": "f657c341a6df832b2a7b6c7c6a26fddb218ba81569d39b2f20776c723620b599",
       "rappid": "rappid:@vector/epsilon:31cce780aa6a19c8d9e1b5b92326cebaff9d4f14397afcff00504115984d5d54",
       "sig": "<detached-jws>",
       "since_utc": "2026-08-01T00:00:00.000Z",
@@ -1900,180 +1960,215 @@
      {
       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
       "state": null,
+      "superseded_by": null,
       "utc": "2026-06-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
       "state": "active",
+      "superseded_by": null,
       "utc": "2026-07-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
       "state": "active",
+      "superseded_by": null,
       "utc": "2026-07-31T23:59:59.999Z"
      },
      {
       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
       "state": "deprecated",
+      "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
       "utc": "2026-08-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
       "state": "superseded",
+      "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
       "utc": "2026-09-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
       "state": "superseded",
+      "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
       "utc": "2026-10-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
       "state": "superseded",
+      "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
       "utc": "2027-01-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
       "state": null,
+      "superseded_by": null,
       "utc": "2026-06-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
       "state": null,
+      "superseded_by": null,
       "utc": "2026-07-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
       "state": null,
+      "superseded_by": null,
       "utc": "2026-07-31T23:59:59.999Z"
      },
      {
       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
       "state": null,
+      "superseded_by": null,
       "utc": "2026-08-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
       "state": null,
+      "superseded_by": null,
       "utc": "2026-09-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
       "state": null,
+      "superseded_by": null,
       "utc": "2026-10-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
       "state": null,
+      "superseded_by": null,
       "utc": "2027-01-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
       "state": null,
+      "superseded_by": null,
       "utc": "2026-06-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
       "state": "active",
+      "superseded_by": null,
       "utc": "2026-07-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
       "state": "active",
+      "superseded_by": null,
       "utc": "2026-07-31T23:59:59.999Z"
      },
      {
       "rappid": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
       "state": "archived",
+      "superseded_by": null,
       "utc": "2026-08-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
       "state": "archived",
+      "superseded_by": null,
       "utc": "2026-09-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
       "state": "archived",
+      "superseded_by": null,
       "utc": "2026-10-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
       "state": "archived",
+      "superseded_by": null,
       "utc": "2027-01-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/delta:b2ea7ee507508202411e2c6057abe82a5f08c71cb7c287c8ea8268f8a7c34741",
       "state": null,
+      "superseded_by": null,
       "utc": "2026-06-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/delta:b2ea7ee507508202411e2c6057abe82a5f08c71cb7c287c8ea8268f8a7c34741",
       "state": null,
+      "superseded_by": null,
       "utc": "2026-07-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/delta:b2ea7ee507508202411e2c6057abe82a5f08c71cb7c287c8ea8268f8a7c34741",
       "state": null,
+      "superseded_by": null,
       "utc": "2026-07-31T23:59:59.999Z"
      },
      {
       "rappid": "rappid:@vector/delta:b2ea7ee507508202411e2c6057abe82a5f08c71cb7c287c8ea8268f8a7c34741",
       "state": "active",
+      "superseded_by": null,
       "utc": "2026-08-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/delta:b2ea7ee507508202411e2c6057abe82a5f08c71cb7c287c8ea8268f8a7c34741",
       "state": "active",
+      "superseded_by": null,
       "utc": "2026-09-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/delta:b2ea7ee507508202411e2c6057abe82a5f08c71cb7c287c8ea8268f8a7c34741",
       "state": "active",
+      "superseded_by": null,
       "utc": "2026-10-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/delta:b2ea7ee507508202411e2c6057abe82a5f08c71cb7c287c8ea8268f8a7c34741",
       "state": "superseded",
+      "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
       "utc": "2027-01-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/epsilon:31cce780aa6a19c8d9e1b5b92326cebaff9d4f14397afcff00504115984d5d54",
       "state": null,
+      "superseded_by": null,
       "utc": "2026-06-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/epsilon:31cce780aa6a19c8d9e1b5b92326cebaff9d4f14397afcff00504115984d5d54",
       "state": null,
+      "superseded_by": null,
       "utc": "2026-07-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/epsilon:31cce780aa6a19c8d9e1b5b92326cebaff9d4f14397afcff00504115984d5d54",
       "state": null,
+      "superseded_by": null,
       "utc": "2026-07-31T23:59:59.999Z"
      },
      {
       "rappid": "rappid:@vector/epsilon:31cce780aa6a19c8d9e1b5b92326cebaff9d4f14397afcff00504115984d5d54",
       "state": "active",
+      "superseded_by": null,
       "utc": "2026-08-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/epsilon:31cce780aa6a19c8d9e1b5b92326cebaff9d4f14397afcff00504115984d5d54",
       "state": "active",
+      "superseded_by": null,
       "utc": "2026-09-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/epsilon:31cce780aa6a19c8d9e1b5b92326cebaff9d4f14397afcff00504115984d5d54",
       "state": "active",
+      "superseded_by": null,
       "utc": "2026-10-01T00:00:00.000Z"
      },
      {
       "rappid": "rappid:@vector/epsilon:31cce780aa6a19c8d9e1b5b92326cebaff9d4f14397afcff00504115984d5d54",
       "state": "active",
+      "superseded_by": null,
       "utc": "2027-01-01T00:00:00.000Z"
      }
     ],
-    "rule": "the state in effect at utc is that of the last chain entry whose since_utc <= utc (bytewise); null is no declared lifecycle, never deprecation"
+    "rule": "the notice in effect at utc is the last chain entry whose since_utc <= utc (bytewise); its state and superseded_by are those in effect at utc. A null state is no declared lifecycle, never deprecation; a null superseded_by names no successor at utc, and a scheduled notice names none before its since_utc"
    },
    "states": [
     "active",

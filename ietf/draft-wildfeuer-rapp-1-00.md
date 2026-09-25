@@ -48,8 +48,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame 3e13a408b7f99b27a291011b15ebf352ef978c07a0c5d58f309dca371f9ed8b0, normative
-SHA-256 5d3ba894381e962ed3d30337460c39a83103a313108e557fc280a9f72aab7a31. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame 155e8f4b0bb9b875e01a1a1e73451df79eda61cd98a0e90174dc8f2e8cc299b2, normative
+SHA-256 b1ce115a67f3a00bc57e7205f69a99e8e1d4dc2a219b130fbe04e285946c53a3. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -109,7 +109,7 @@ and byte length are provenance and verification data, not alternate identities. 
 the currently served release is immutable even while a separate candidate lineage grows.
 **deployment cell** — an independently observable and isolatable runtime failure domain governed by
 `rapp-deploy/1`. **declared entry** — a §13.3 registry entry that carries its own owner signature made at
-its `activated_utc`, and so verifies apart from the document that carries it (§13.4).
+its `activated_utc`; a byte-identical copy of it verifies against the estate's registry (§13.4).
 **lifecycle notice** — an estate-signed `lifecycle` entry stating whether an organism is active,
 deprecated, superseded, or archived, and since when (§13.5).
 
@@ -989,8 +989,8 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   `canonical(entry \ {sig,old_key_sig})`, REQUIRED for `case:"rotation"`. This is the normative succession record (§13.2).
 - **grail-kernel** `{type:"grail-kernel", release_scope, grail_id, repository, immutable_ref,
   object_format, commit, path, mode, blob, sha256, size_bytes, activated_utc, predecessor, declared_by,
-  sig}` — exactly these members; a persisted declared entry (§13.4). `release_scope` is an absolute HTTPS
-  URI selected by the estate owner;
+  sig}` — exactly these members; a declared entry (§13.4). `release_scope` is an absolute HTTPS URI
+  selected by the estate owner;
   no two entries may share it. `grail_id` is
   `"grail:" || Hb("rapp/1:grail", kernel_bytes)`; `repository` is an absolute HTTPS URI;
   `immutable_ref` is a full `refs/tags/...` name that **MUST** resolve exactly to `commit`;
@@ -1021,19 +1021,19 @@ authenticated at its own `activated_utc`, never at the time it is read.
 ## Declared entries (entry-level owner signatures)
 A **declared entry** carries its own `activated_utc` (the §7.4 form), `declared_by` (a keyed rappid), and
 `sig` (a detached §10 JWS whose protected `kid` equals `declared_by`, over `canonical(entry \ {sig})`). The
-declared entry types are `grail-kernel` (persisted) and `lifecycle`. For every declared entry a consumer
-**MUST**:
+declared entry types are `grail-kernel` and `lifecycle`. For every declared entry a consumer **MUST**:
 1. require `declared_by` to be the estate owner in effect at `activated_utc` (§13.2), with a §13 `spki`
    entry whose key §10 does not refuse (as superseded or tombstoned) at `activated_utc`;
 2. verify `sig` with that registry key — the enclosing §13.1 signature never substitutes for it;
 3. refuse an entry whose `activated_utc` is more than 300 seconds after the verifier's first-seen time
-   for it; and
+   for that entry; and
 4. refuse the whole registry when any declared entry fails (never skip the entry).
 
-Because the signature binds the exact entry, a copy carried elsewhere — a Hive notice, a member file, a
-release receipt — is authenticated by the same checks against the estate's registry, and a copy that
-differs in any byte is not that entry. `H("rapp/1:particle", entry)` over the complete signed entry names
-it. Once a consumer has accepted an entry of a persisted type it **MUST** persist the canonical entry, and
+A copy carried elsewhere — a Hive notice, a member file, a release receipt — is a declaration only when it
+is byte-identical to an entry of an accepted registry of the estate, and it is then authenticated by the
+same checks; a copy that differs in any byte, or that no accepted registry carries, is not a declaration
+however well it is signed. `H("rapp/1:particle", entry)` over the complete signed entry names it. Every
+declared entry is persisted: once a consumer has accepted one it **MUST** persist the canonical entry, and
 every later accepted registry **MUST** retain it byte-for-byte; removal or mutation is a permanent refusal
 even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-kernel`).
 
@@ -1048,17 +1048,21 @@ A `lifecycle` entry is the estate's authoritative notice about one organism:
 `superseded_by` never equals `rappid`. The `lifecycle` entries for one `rappid` form one linear chain:
 exactly one has `previous:null`, every other names an entry that appears earlier in `entries` for the same
 `rappid`, no two name the same entry, and neither `since_utc` nor `activated_utc` decreases along it. The
-state **in effect at** time `t` is that of the last entry in the chain whose `since_utc` ≤ `t` (bytewise,
-§7.4); an organism with no such entry has no declared lifecycle at `t`, and a consumer **MUST NOT** infer
-deprecation from absence. The chain's last entry is the current notice, and the organisms named by current
-notices' `superseded_by` **MUST NOT** form a cycle. A registry that breaks these rules is refused whole.
+notice **in effect at** time `t` is the last entry in the chain whose `since_utc` ≤ `t` (bytewise, §7.4);
+its `state` is the state in effect at `t` and its `superseded_by` the successor named at `t`, so a notice
+whose `since_utc` is later than `t` names no successor at `t`. An organism with no such entry has no
+declared lifecycle at `t`, and a consumer **MUST NOT** infer deprecation from absence. The chain's last
+entry is the current notice, and the organisms named by current notices' `superseded_by` **MUST NOT** form
+a cycle. A registry that breaks these rules is refused whole.
 
 A notice is metadata about an organism, not trust: it revokes no key (§10 tombstones do), re-anchors no
 identity (§6.3), changes no frame's §7.5 result, and `superseded_by` transfers no key, signature
 authority, entitlement, or ownership — like §9.4 lineage, it names a successor and grants nothing. A
 lifecycle statement anywhere else — a README, a member file, a Hive notice, a portfolio card, a pointer —
 is a copy: a consumer **MUST** take the state from the verified entry, and a copy that disagrees with it is
-a drift finding. A copy that carries the exact signed entry verifies by §13.4.
+a drift finding. A lifecycle claim that no verified entry supports is unverified, never evidence of a state.
+A verified copy of an earlier notice is authentic but historical: the chain, not the copy, decides the state
+in effect. A copy that carries the exact signed entry verifies by §13.4.
 
 # Security considerations
 - **Integrity:** every object is domain-separated content-addressed (§5); a hostile mirror cannot alter
@@ -1083,7 +1087,8 @@ a drift finding. A copy that carries the exact signed entry verifies by §13.4.
 - **Registry container and declared entries:** only the five §13.1 members carry meaning, so a mirror
   cannot relocate the entries or smuggle policy into signed-but-meaningless members; a declared entry's own
   owner signature is checked at its `activated_utc`, so a valid document signature never blesses a forged
-  or mutated declaration, and persisted declarations cannot be dropped by a later registry (§13.4).
+  or mutated declaration, a signed declaration that no accepted registry carries is not one, and no
+  declaration can be dropped by a later registry (§13.4).
 - **Lifecycle is not revocation:** deprecating, superseding, or archiving an organism leaves its valid
   frames valid and its keys unrevoked; a compromise is a §10 tombstone, and a copied notice that disagrees
   with the registry is drift, not authority (§13.5).
