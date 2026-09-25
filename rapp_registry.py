@@ -18,7 +18,7 @@ What is fully specified by §13 and enforced here:
   - one non-deprecated genesis per stream (§7.6); one grail-kernel per grail_id (§11.1);
   - declared entries (§13.4): each entry-level owner signature at its own
     `activated_utc`, never blessed by the enclosing document signature, and
-    byte-for-byte retention of persisted entries once a caller has accepted them;
+    retention of persisted entries, unchanged in canonical form (§4), once a caller has accepted them;
   - release pins (§13.5): a release scope names a release family; each pinned release of it
     is one `release-pin` entry naming its manifest by a `manifest_hash` no other
     release-pin shares; a family lives in one channel, each channel is one linear chain of
@@ -28,6 +28,10 @@ What is fully specified by §13 and enforced here:
     name, kernel coherence with the family's `grail-kernel`, and an all-or-nothing
     verified snapshot of one selected pinned release through a caller's fetch;
   - owner-signature verification over canonical(document \\ {sig}).
+
+Structural accessors read whatever registry you hold. Answers — whether a copy is a declaration —
+come only from a registry `load_document` returned as "verified"; a "draft" gives them only with
+`allow_draft=True`, as a rehearsal, and a Registry built directly never.
 
 What stays the caller's responsibility, because a snapshot cannot prove it:
   - freshness, trusted heads, registry high-water marks, first-seen times, and the
@@ -64,7 +68,7 @@ ENTRIES_MEMBER = "entries"
 DOCUMENT_MEMBERS = ("schema", "registry_seq", "canonical_source", ENTRIES_MEMBER, "sig")
 
 # §13.4 — entry types that carry their own owner signature at `activated_utc`.
-# Every declared entry is persisted: once accepted, it is retained byte-for-byte.
+# Every declared entry is persisted: once accepted, it is retained with its canonical form unchanged.
 DECLARED_TYPES = ("grail-kernel", "release-pin")
 PERSISTED_TYPES = DECLARED_TYPES
 FIRST_SEEN_SKEW_SECONDS = 300
@@ -101,8 +105,15 @@ def entry_hash(entry):
     return R.H("rapp/1:particle", entry)
 
 
+def _utc_form(value):
+    """`rapp.utc_valid`, restricted to ASCII. Python's `\\d` also matches other scripts' digits, but the
+    fixed §7.4 form is 24 ASCII octets, and only for those does bytewise order equal time order —
+    which every time comparison in this module relies on."""
+    return R.utc_valid(value) and value.isascii()
+
+
 def _utc_seconds(value, where):
-    if not R.utc_valid(value):
+    if not _utc_form(value):
         raise RegistryError(f"{where}: not the fixed §7.4 UTC form")
     parsed = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
     return parsed.timestamp()
@@ -188,7 +199,7 @@ def _rappid(entry, member, where):
 
 
 def _utc(entry, member, where):
-    if not R.utc_valid(entry.get(member)):
+    if not _utc_form(entry.get(member)):
         raise RegistryError(f"{where}: `{member}` is not the fixed §7.4 UTC form")
     return entry[member]
 
@@ -554,17 +565,36 @@ class Registry:
         return self.protocols.get(name)
 
     # ---- §13.4 declared entries ----
-    def declared_entry_ok(self, entry, *, verification_utc=None):
-        """Check one declared entry of this registry (§13.4 items 1–3).
+    def _status_refusal(self, allow_draft, question):
+        """None when this registry may answer `question` for the estate; else the refusal reason:
+        "verified" always, "draft" only with allow_draft (a rehearsal), and a Registry built
+        directly (status None) never."""
+        accepted = ("verified", "draft") if allow_draft else ("verified",)
+        if self.status in accepted:
+            return None
+        return (f"registry status is {self.status!r}; only a registry that load_document returned as "
+                f"{' or '.join(accepted)} answers {question}")
+
+    def declared_entry_ok(self, entry, *, verification_utc=None, allow_draft=False):
+        """Is `entry` a declaration of this estate? (ok, why) — §13.4 items 1–3 for one entry.
 
         `entry` may be the registry's own entry or a copy found elsewhere (a Hive
-        notice, a member file); a copy counts only when it is byte-for-byte an entry
-        this registry carries — a declaration no accepted registry carries is not a
-        declaration, however well signed. `verification_utc`, when given, is the
-        verifier's first-seen time for the entry; `activated_utc` may not exceed it by
-        more than 300 seconds. Without it this method does not apply that rule; the
-        loader does (`check_declared_signatures` refuses when no first-seen context is
-        supplied)."""
+        notice, a member file); a copy counts only when its canonical form (§4) equals an
+        entry this registry carries — a declaration no accepted registry carries is not a
+        declaration, however well signed. It answers only for a registry load_document
+        returned as "verified" (a "draft" only with `allow_draft=True`, as a rehearsal; a
+        Registry built directly never), since only an accepted registry makes a copy count.
+        `verification_utc`, when given, is the verifier's first-seen time for the entry;
+        `activated_utc` may not exceed it by more than 300 seconds. Without it this method
+        does not apply that rule; the loader does (`check_declared_signatures` refuses when no
+        first-seen context is supplied)."""
+        refusal = self._status_refusal(allow_draft, "whether a copy is one of its declarations (§13.4)")
+        if refusal:
+            return False, refusal
+        return self._declared_entry_check(entry, verification_utc)
+
+    def _declared_entry_check(self, entry, verification_utc):
+        """§13.4 items 1–3 against these entries, whatever this registry's status (the loader's step)."""
         try:
             kind = validate_entry(entry, "declared entry")
         except RegistryError as why:
@@ -576,7 +606,7 @@ class Registry:
         except ValueError as why:
             return False, str(why)
         if not carried:
-            return False, f"{kind}: not an entry of this registry (§13.4 — a copy must be byte-identical)"
+            return False, f"{kind}: not an entry of this registry (§13.4 — a copy must have a carried entry's canonical form)"
         activated, signer = entry["activated_utc"], entry["declared_by"]
         try:
             owner = self.owner_at(activated)
@@ -620,15 +650,15 @@ class Registry:
                         seen = first_seen(entry_hash(entry))
                     except (KeyError, ValueError) as why:
                         return False, f"first-seen context refused: {why}"
-                if not R.utc_valid(seen):
+                if not _utc_form(seen):
                     return False, "first-seen context did not supply a valid UTC (§13.4 item 3)"
-                ok, why = self.declared_entry_ok(entry, verification_utc=seen)
+                ok, why = self._declared_entry_check(entry, seen)
                 if not ok:
                     return False, why
         return True, "ok"
 
     def check_retained(self, persisted_entries):
-        """§13.4 retention: every previously accepted persisted entry is still here, byte for byte;
+        """§13.4 retention: every previously accepted persisted entry is still here, canonical form unchanged;
         then the §13.5 release history against those same entries."""
         persisted_entries = list(persisted_entries)  # read twice: presence, then release history
         present = {R.canonical(e) for e in self.entries if e["type"] in PERSISTED_TYPES}
@@ -677,7 +707,7 @@ class Registry:
                     utc = tombstone_issued_at(R.H("rapp/1:particle", entry))
                 except (KeyError, ValueError) as why:
                     return False, f"tombstone issuance context refused: {why}"
-                if not R.utc_valid(utc):
+                if not _utc_form(utc):
                     return False, "tombstone issuance context did not supply a valid UTC"
             else:
                 utc = entry["utc"]
@@ -866,8 +896,10 @@ def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_uns
     persisted `release-pin` (§13.5: no kernel joins a family after a release of it was accepted).
     Freshness, append provenance, and historical migration proofs remain caller
     responsibilities; a verified registry snapshot alone cannot establish them. A returned
-    registry records its status in `registry.status` ("verified" or "draft"), which
-    `verify_snapshot` checks; a Registry constructed directly has status None.
+    registry records its status in `registry.status` ("verified" or "draft"): `verify_snapshot`
+    and `declared_entry_ok` check it, so only a "verified" registry gives the estate's snapshots
+    and says for the estate whether a copy is a declaration (a draft only with
+    `allow_draft=True`, as a rehearsal); a Registry constructed directly has status None.
     `tombstone_issued_at(entry_hash)` must resolve authenticated issuance/append
     context to a fixed UTC string. It is trusted caller configuration, never a
     field read from the untrusted document. No resolver means tombstones are
