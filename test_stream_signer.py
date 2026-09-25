@@ -426,12 +426,14 @@ class VerifyAuthorizedFrameTests(Base):
         reg = self.registry([self.grant(kinds=["body.pulse", "body.twin-pulse"])], entries=entries)
         good = self.pulse(INSIDE)
         forged = dict(good, sig=jws_shaped(self.keys["signer"], "never-recorded"))
+        transplanted = dict(self.pulse(INSIDE, payload={"pulse": 7}, signer=None), sig=good["sig"])
         memory = self.station + ":main"
         cases = (
             ("payload changed after hashing", dict(good, payload={"pulse": 99}), None, self.station, "2"),
             ("frame_hash changed", dict(good, frame_hash="0" * 64), None, self.station, "3"),
             ("read as another stream", good, None, R.mint_rappid("test", "elsewhere"), "1a"),
             ("forged signature", forged, None, self.station, "6"),
+            ("a valid signature moved onto another frame", transplanted, None, self.station, "6"),
             ("genesis presented as a successor", good, self.pulse(SINCE), self.station, "4"),
             ("unregistered kind", self.pulse(INSIDE, kind="body.heartbeat"), None, self.station, "1"),
             ("retired kind", self.pulse(INSIDE, kind="body.twin-pulse"), None, self.station, "1"),

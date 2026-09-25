@@ -736,7 +736,8 @@ class Registry:
         !! — rapp.verify_frame(signature_verifier=self.signature_verifier()) plus
         !! check_frame_binding — or call verify_authorized_frame, which runs all three. It reads
         !! the signer from the protected `kid` without checking the signature, so its answer
-        !! for an unverified frame means nothing.
+        !! for an unverified frame means nothing. Ask a registry that load_document returned as
+        !! "verified": a draft or a Registry built directly answers structure, never authority.
 
         Refuses an unsigned frame (it never speaks for the estate, §10) and a `sig` whose
         protected header does not parse; otherwise applies authority_decision to the frame's
@@ -761,7 +762,8 @@ class Registry:
         step, so a caller can tell "not the estate's statement" from "not a frame". On success
         step is None and why names the authority: "estate owner" or "stream-signer grant".
         `head` is the stream's verified head (None at genesis); `stream_id_of_record` is the
-        stream being read or extended (§7.5 step 1a) and is required."""
+        stream being read or extended (§7.5 step 1a) and is required. The answer is the estate's
+        only when this registry is one load_document returned as "verified" (§13.1)."""
         if not isinstance(frame, dict):
             return False, "1", "frame is not a JSON object"
         if not isinstance(stream_id_of_record, str):
