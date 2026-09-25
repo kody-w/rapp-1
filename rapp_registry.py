@@ -29,9 +29,10 @@ What is fully specified by §13 and enforced here:
     verified snapshot of one selected pinned release through a caller's fetch;
   - owner-signature verification over canonical(document \\ {sig}).
 
-Structural accessors read whatever registry you hold. Answers — whether a copy is a declaration —
-come only from a registry `load_document` returned as "verified"; a "draft" gives them only with
-`allow_draft=True`, as a rehearsal, and a Registry built directly never.
+Structural accessors — chains, heads, pins — read whatever registry you hold. Answers — a verified
+snapshot, whether a copy is a declaration — come only from a registry `load_document` returned as
+"verified"; a "draft" gives them only with `allow_draft=True`, as a rehearsal, and a Registry built
+directly never.
 
 What stays the caller's responsibility, because a snapshot cannot prove it:
   - freshness, trusted heads, registry high-water marks, first-seen times, and the
