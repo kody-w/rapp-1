@@ -683,22 +683,27 @@ class RealSignatureLifecycleTests(unittest.TestCase):
             return value
 
         # Carried by a registry the owner signs, the worker-signed notice fails its own signature.
-        status, _, why = REG.load_document(signed_document([a1, worker_signed]), trust_anchor=owner)
+        status, _, why = REG.load_document(signed_document([a1, worker_signed]), trust_anchor=owner,
+                                           verification_utc=T1)
         self.assertEqual(status, "refused")
         self.assertIn("lifecycle entry signature refused", why)
         # A later registry cannot drop the accepted notice, even when the owner signs it.
         persisted = [R._strict_json(R.canonical(e)) for e in (a1, a2)]
-        self.assertEqual(REG.load_document(signed_document([a1], seq=2), trust_anchor=owner)[0], "verified")
-        self.assertEqual(REG.load_document(signed_document([a1], seq=2), trust_anchor=owner,
-                                           persisted_seq=1, persisted_entries=persisted)[0], "refused")
-        self.assertEqual(REG.load_document(signed_document([a1, a2], seq=2), trust_anchor=owner,
-                                           persisted_seq=1, persisted_entries=persisted)[0], "verified")
+        def reload(notices, **history):
+            return REG.load_document(signed_document(notices, seq=2), trust_anchor=owner,
+                                     verification_utc=T1, **history)[0]
+
+        self.assertEqual(reload([a1]), "verified")
+        self.assertEqual(reload([a1], persisted_seq=1, persisted_entries=persisted), "refused")
+        self.assertEqual(reload([a1, a2], persisted_seq=1, persisted_entries=persisted), "verified")
 
         tampered = copy.deepcopy(doc)
         tampered["entries"][-1]["state"] = "archived"
         tampered.pop("sig")
         tampered["sig"] = owner_sign(tampered, owner)  # a valid document signature cannot bless it
-        self.assertEqual(REG.load_document(tampered, trust_anchor=owner)[0], "refused")
+        status, _, why = REG.load_document(tampered, trust_anchor=owner, verification_utc=T1)
+        self.assertEqual(status, "refused")
+        self.assertIn("lifecycle entry signature refused", why)
 
         frame = R.build_frame("body.pulse", worker, 0, T2, {"pulse": 1}, None)
         frame["sig"] = worker_sign({k: v for k, v in frame.items() if k != "sig"}, worker)

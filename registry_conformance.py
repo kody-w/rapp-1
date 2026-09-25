@@ -9,6 +9,7 @@ the same reference. Stdlib only. Exit 0 = every check passes.
 from __future__ import annotations
 
 import json
+import os
 import sys
 import unittest
 from pathlib import Path
@@ -39,6 +40,10 @@ suite = unittest.TestSuite(
 )
 result = unittest.TextTestRunner(verbosity=2).run(suite)
 failed = len(result.failures) + len(result.errors) + (0 if vectors_ok else 1)
+if os.environ.get("RAPP_REQUIRE_CRYPTOGRAPHY") and result.skipped:
+    # A signature job that silently skipped the real-key tests proved nothing.
+    print(f"  [FAIL] {len(result.skipped)} real-signature checks were skipped")
+    failed += len(result.skipped)
 checks = result.testsRun + 1
 print("-" * 72)
 print(f"{checks} registry checks | {checks - failed} PASS | {failed} FAIL"

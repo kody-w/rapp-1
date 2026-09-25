@@ -533,7 +533,9 @@ class Registry:
         this registry carries — a declaration no accepted registry carries is not a
         declaration, however well signed. `verification_utc`, when given, is the
         verifier's first-seen time for the entry; `activated_utc` may not exceed it by
-        more than 300 seconds."""
+        more than 300 seconds. Without it this method does not apply that rule; the
+        loader does (`check_declared_signatures` refuses when no first-seen context is
+        supplied)."""
         try:
             kind = validate_entry(entry, "declared entry")
         except RegistryError as why:
@@ -580,12 +582,17 @@ class Registry:
             return False, "pass either verification_utc or first_seen, not both"
         for entry in self.entries:
             if entry["type"] in DECLARED_TYPES:
+                if verification_utc is None and first_seen is None:
+                    return False, ("a declared entry needs first-seen context: pass first_seen= or "
+                                   "verification_utc= (§13.4 item 3)")
                 seen = verification_utc
                 if first_seen is not None:
                     try:
                         seen = first_seen(entry_hash(entry))
                     except (KeyError, ValueError) as why:
                         return False, f"first-seen context refused: {why}"
+                if not R.utc_valid(seen):
+                    return False, "first-seen context did not supply a valid UTC (§13.4 item 3)"
                 ok, why = self.declared_entry_ok(entry, verification_utc=seen)
                 if not ok:
                     return False, why
@@ -786,7 +793,8 @@ def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_uns
     signature at its `activated_utc` (§13.4). The 300-second rule is per entry:
     `first_seen(entry_hash)` returns the caller's persisted first-seen time for an entry (and
     the current time for one never seen before); `verification_utc` is the shortcut when every
-    declared entry is being seen for the first time now. `persisted_entries` are the canonical
+    declared entry is being seen for the first time now; a signed registry that carries a declared
+    entry is refused when neither is supplied. `persisted_entries` are the canonical
     declared entries the caller accepted before; each must still be present byte for byte. Freshness, append provenance, and historical migration proofs remain caller
     responsibilities; a verified snapshot alone cannot establish them.
     `tombstone_issued_at(entry_hash)` must resolve authenticated issuance/append

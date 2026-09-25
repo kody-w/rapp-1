@@ -186,9 +186,22 @@ class DeclaredEntryTests(unittest.TestCase):
         seen[REG.entry_hash(later)] = T0
         self.assertEqual(self.load([early, later], first_seen=seen.__getitem__)[0], "refused")
         self.assertEqual(self.load([early], first_seen={}.__getitem__)[0], "refused")
+        self.assertEqual(self.load([early], first_seen={}.get)[0], "refused")  # None is no time
+        self.assertEqual(self.load([early], first_seen=lambda h: "yesterday")[0], "refused")
         self.assertEqual(
             self.load([early], first_seen=seen.__getitem__, verification_utc=T0)[0], "refused"
         )
+
+    def test_a_declared_entry_without_first_seen_context_is_refused(self):
+        doc = self.estate.document(self.estate.base_entries() + [self.estate.grail_kernel()])
+        with self.estate.mocked():
+            status, _, why = REG.load_document(doc, trust_anchor=self.estate.keys["owner"])
+        self.assertEqual(status, "refused")
+        self.assertIn("first-seen context", why)
+        plain = self.estate.document(self.estate.base_entries())
+        with self.estate.mocked():
+            self.assertEqual(REG.load_document(plain, trust_anchor=self.estate.keys["owner"])[0],
+                             "verified")
 
     def test_declaring_key_must_be_acceptable_at_activated_utc(self):
         cutoff = "2026-07-15T00:00:00.000Z"
@@ -266,6 +279,8 @@ class LinearChainTests(unittest.TestCase):
             "forward": [{"k": "a", "id": 2, "prev": 1}, {"k": "a", "id": 1, "prev": None}],
             "self": [{"k": "a", "id": 1, "prev": 1}],
             "duplicate": [{"k": "a", "id": 1, "prev": None}, {"k": "a", "id": 1, "prev": None}],
+            "duplicate that would loop": [{"k": "a", "id": 1, "prev": None}, {"k": "a", "id": 2, "prev": 1},
+                                          {"k": "a", "id": 1, "prev": 2}],
             "two roots": [{"k": "a", "id": 1, "prev": None}, {"k": "a", "id": 2, "prev": None}],
             "cross-chain link": [{"k": "a", "id": 1, "prev": None}, {"k": "b", "id": 2, "prev": 1}],
         }
@@ -306,12 +321,12 @@ class RealSignatureTests(unittest.TestCase):
         doc = {"schema": "rapp/1-registry", "registry_seq": 1, "canonical_source": SOURCE,
                "entries": entries}
         doc["sig"] = sign(doc, owner)
-        self.assertEqual(REG.load_document(doc, trust_anchor=owner)[0], "verified")
+        self.assertEqual(REG.load_document(doc, trust_anchor=owner, verification_utc=T0)[0], "verified")
         tampered = copy.deepcopy(doc)
         tampered["entries"][2]["size_bytes"] = 7
         tampered.pop("sig")
         tampered["sig"] = sign(tampered, owner)  # a valid document signature cannot bless it
-        self.assertEqual(REG.load_document(tampered, trust_anchor=owner)[0], "refused")
+        self.assertEqual(REG.load_document(tampered, trust_anchor=owner, verification_utc=T0)[0], "refused")
 
 
 if __name__ == "__main__":

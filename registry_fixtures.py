@@ -15,6 +15,7 @@ import rapp_registry as REG
 
 SOURCE = "https://registry.example.test/rapp-registry.json"
 T0 = "2026-07-01T00:00:00.000Z"
+LATE = "2099-12-31T23:59:59.999Z"
 
 
 class MockEstate:
@@ -72,6 +73,9 @@ class MockEstate:
 
     def load(self, document, owner="owner", **kwargs):
         kwargs.setdefault("tombstone_issued_at", lambda entry_hash: T0)
+        if "first_seen" not in kwargs and "verification_utc" not in kwargs:
+            # Fixture default: every declared entry first seen late enough for the 300 s rule.
+            kwargs["verification_utc"] = LATE
         with self.mocked():
             return REG.load_document(document, trust_anchor=self.keys[owner], **kwargs)
 
