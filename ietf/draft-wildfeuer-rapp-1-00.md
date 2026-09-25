@@ -48,8 +48,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame 3d36f84a48a952110b335933efce150a2356622960396fa2aa320a04d4615abf, normative
-SHA-256 9aff1b09825e92b6da76f50718ba94be872a2bb32ca263935f81fae74a77ffe4. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame 3635fcd8bc624807e0b666fdbaa348de647e702c32f14e16d89fd2ef8a853e8d, normative
+SHA-256 ffb3edd534b3c7673bd45a03c9220681a47da6dd0381248032441898c1c15ef5. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -109,8 +109,9 @@ and byte length are provenance and verification data, not alternate identities. 
 the currently served release is immutable even while a separate candidate lineage grows.
 **deployment cell** — an independently observable and isolatable runtime failure domain governed by
 `rapp-deploy/1`. **declared entry** — a §13.3 registry entry that carries its own owner signature made at
-its `activated_utc`, and so verifies apart from the document that carries it (§13.4). **stream signer** —
-a keyed signer an estate has granted, by a `stream-signer` entry, to speak for it on one stream (§13.5).
+its `activated_utc`; a byte-identical copy of it verifies against the estate's registry (§13.4).
+**stream signer** — a keyed signer an estate has granted, by a `stream-signer` entry, to speak for it on
+one stream (§13.5).
 
 # Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **{{RFC8785}} JCS** for the value `v`, defined **only**
@@ -988,8 +989,8 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   `canonical(entry \ {sig,old_key_sig})`, REQUIRED for `case:"rotation"`. This is the normative succession record (§13.2).
 - **grail-kernel** `{type:"grail-kernel", release_scope, grail_id, repository, immutable_ref,
   object_format, commit, path, mode, blob, sha256, size_bytes, activated_utc, predecessor, declared_by,
-  sig}` — exactly these members; a persisted declared entry (§13.4). `release_scope` is an absolute HTTPS
-  URI selected by the estate owner;
+  sig}` — exactly these members; a declared entry (§13.4). `release_scope` is an absolute HTTPS URI
+  selected by the estate owner;
   no two entries may share it. `grail_id` is
   `"grail:" || Hb("rapp/1:grail", kernel_bytes)`; `repository` is an absolute HTTPS URI;
   `immutable_ref` is a full `refs/tags/...` name that **MUST** resolve exactly to `commit`;
@@ -1022,19 +1023,19 @@ rule. A declared entry (§13.4) is authenticated at its own `activated_utc`, nev
 ## Declared entries (entry-level owner signatures)
 A **declared entry** carries its own `activated_utc` (the §7.4 form), `declared_by` (a keyed rappid), and
 `sig` (a detached §10 JWS whose protected `kid` equals `declared_by`, over `canonical(entry \ {sig})`). The
-declared entry types are `grail-kernel` (persisted) and `stream-signer`. For every declared entry a
-consumer **MUST**:
+declared entry types are `grail-kernel` and `stream-signer`. For every declared entry a consumer **MUST**:
 1. require `declared_by` to be the estate owner in effect at `activated_utc` (§13.2), with a §13 `spki`
    entry whose key §10 does not refuse (as superseded or tombstoned) at `activated_utc`;
 2. verify `sig` with that registry key — the enclosing §13.1 signature never substitutes for it;
 3. refuse an entry whose `activated_utc` is more than 300 seconds after the verifier's first-seen time
-   for it; and
+   for that entry; and
 4. refuse the whole registry when any declared entry fails (never skip the entry).
 
-Because the signature binds the exact entry, a copy carried elsewhere — a Hive notice, a member file, a
-release receipt — is authenticated by the same checks against the estate's registry, and a copy that
-differs in any byte is not that entry. `H("rapp/1:particle", entry)` over the complete signed entry names
-it. Once a consumer has accepted an entry of a persisted type it **MUST** persist the canonical entry, and
+A copy carried elsewhere — a Hive notice, a member file, a release receipt — is a declaration only when it
+is byte-identical to an entry of an accepted registry of the estate, and it is then authenticated by the
+same checks; a copy that differs in any byte, or that no accepted registry carries, is not a declaration
+however well it is signed. `H("rapp/1:particle", entry)` over the complete signed entry names it. Every
+declared entry is persisted: once a consumer has accepted one it **MUST** persist the canonical entry, and
 every later accepted registry **MUST** retain it byte-for-byte; removal or mutation is a permanent refusal
 even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-kernel`).
 
@@ -1042,23 +1043,26 @@ even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-ker
 §7.5 step 6 proves that a registry-discoverable key signed a frame; it does not say whether that key
 speaks for the stream. A `stream-signer` entry is the estate's grant that `signer` may sign frames of the
 listed `kinds` on `stream_id` whose `utc` satisfies `since_utc` ≤ `utc` and, unless `until_utc` is `null`,
-`utc` < `until_utc` (bytewise, §7.4).
+`utc` < `until_utc` (bytewise, §7.4). A grant **MAY** start before its `activated_utc`; it then adopts
+frames the signer already published inside its window.
 
-A consumer that relies on a frame as the estate's statement — a network pulse, a notice, a profile
-record — **MUST**, after the frame passes §7.5 including step 6, also require that the frame's `kid` is the
-estate owner in effect at its `utc` (§13.2) or is covered by a `stream-signer` entry of the verified
-registry for that `stream_id`, `kind`, and `utc`. This authority check sits above §7.5: it adds no §7.5
-step, and a frame that fails it is still a valid `rapp/1` frame that does not speak for the estate. An
-unsigned frame never speaks for the estate (§10); its hash chain proves integrity only. A body or memory
-stream may therefore run unsigned (§8) until a signer is granted and carry signed frames after; both stay
-valid links of one chain.
+A consumer that relies on a frame as the estate's statement — a network pulse, a notice — and follows no
+profile-defined signer rule for that payload **MUST**, after the frame passes §7.5 including step 6, also
+require that the frame's `kid` is the estate owner in effect at its `utc` (§13.2) or is covered by a
+`stream-signer` entry of the verified registry for that `stream_id`, `kind`, and `utc`. This authority
+check sits above §7.5: it adds no §7.5 step, and a frame that fails it is still a valid `rapp/1` frame
+that does not speak for the estate. A subordinate profile that defines its own signer authorization (for
+example `rapp-work/1` §1, or a `rapp-cicd/1` stage approver) keeps it and **MAY** meet it with this check.
+An unsigned frame never speaks for the estate (§10); its hash chain proves integrity only. A body or
+memory stream may therefore run unsigned (§8) until a signer is granted and carry signed frames after;
+both stay valid links of one chain.
 
-Grants are permanent records of the registry and are never inherited: one ends at its `until_utc`, or
-earlier when §10 refuses the signer's key at the frame's `utc` (a rotation re-anchor supersedes it; a
-tombstone revokes it), and a rotated signer needs a new grant for its successor rappid. A keyless rappid
-(§6.2) never signs as itself — its tail is no key — so a grant is how a keyed signer speaks on a keyless
-organism's streams without re-anchoring or re-minting that identity; §6.2 and §6.3 are unchanged. A
-profile that requires signer authorization (for example `rapp-work/1` §1) **MAY** meet it with this check.
+Grants are permanent records of the registry (§13.4 retains each one byte-for-byte) and are never
+inherited: one ends at its `until_utc`, or earlier when §10 refuses the signer's key at the frame's `utc`
+(a rotation re-anchor supersedes it; a tombstone revokes it), and a rotated signer needs a new grant for
+its successor rappid. A keyless rappid (§6.2) never signs as itself — its tail is no key — so a grant is
+how a keyed signer speaks on a keyless organism's streams without re-anchoring or re-minting that
+identity; §6.2 and §6.3 are unchanged.
 
 # Security considerations
 - **Integrity:** every object is domain-separated content-addressed (§5); a hostile mirror cannot alter
@@ -1083,12 +1087,14 @@ profile that requires signer authorization (for example `rapp-work/1` §1) **MAY
 - **Registry container and declared entries:** only the five §13.1 members carry meaning, so a mirror
   cannot relocate the entries or smuggle policy into signed-but-meaningless members; a declared entry's own
   owner signature is checked at its `activated_utc`, so a valid document signature never blesses a forged
-  or mutated declaration, and persisted declarations cannot be dropped by a later registry (§13.4).
-- **Signer scope:** any registered key can yield a §7.5-valid signature on any stream; only the owner in
-  effect or a `stream-signer` grant makes a frame the estate's statement, so a station, crawler, or careless
-  key cannot speak for another stream (§13.5). Like a tombstone, a grant's window gates on the frame's
-  producer-controlled `utc`, so a signer can still stamp frames just below `until_utc` after that time
-  passes; an owner relying on that end **SHOULD** advance the stream's head past `until_utc`.
+  or mutated declaration, a signed declaration that no accepted registry carries is not one, and no
+  declaration can be dropped by a later registry (§13.4).
+- **Signer scope:** any registered key can yield a §7.5-valid signature on any stream. Where no
+  subordinate profile defines who signs a payload, only the owner in effect or a `stream-signer` grant
+  makes a frame the estate's statement, so a station, crawler, or careless key cannot speak for another
+  stream (§13.5). Like a tombstone, a grant's window gates on the frame's producer-controlled `utc`, so a
+  signer can still stamp frames just below `until_utc` after that time passes; an owner relying on that
+  end **SHOULD** advance the stream's head past `until_utc`.
 - **Producer-controlled `utc` (DoS/merge bias):** a future-dated head can brick a stream (successors refused
   as earlier) and bias UTC-first merges. A consumer **SHOULD** refuse a frame whose `utc` exceeds receipt
   time by >300 s, and adversarial-scope merges **SHOULD** rank by `min(utc, first-seen)`; a bricked stream

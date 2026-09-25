@@ -242,7 +242,8 @@
    },
    "first_seen_skew_seconds": 300,
    "persisted_types": [
-    "grail-kernel"
+    "grail-kernel",
+    "stream-signer"
    ]
   },
   "13_stream_signer": {
@@ -457,6 +458,26 @@
        "utc": "2026-07-28T00:00:00.000Z"
       },
       "label": "its successor, with no grant of its own"
+     },
+     {
+      "expect": "authorized",
+      "frame_summary": {
+       "kid": "rappid:@vector/backfill-signer:ef170ec57b3ff6f6c179289fa8ffb805f88b820d045b35ce93f6a90f520810e0",
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+       "utc": "2026-07-20T00:00:00.000Z"
+      },
+      "label": "a backdated grant adopts a frame published before its activated_utc"
+     },
+     {
+      "expect": "refused",
+      "frame_summary": {
+       "kid": "rappid:@vector/backfill-signer:ef170ec57b3ff6f6c179289fa8ffb805f88b820d045b35ce93f6a90f520810e0",
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+       "utc": "2026-09-01T00:00:00.000Z"
+      },
+      "label": "a backdated grant at its activated_utc, after its window"
      }
     ],
     "entries": [
@@ -498,6 +519,12 @@
       "deprecated": false,
       "rappid": "rappid:@vector/rotating-signer-next:a2a6728c190af46debc6c233773e42f292e9aed52adbb44c0ba5e78c13008e2c",
       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogcm90YXRpbmctc2lnbmVyLW5leHQ=",
+      "type": "spki"
+     },
+     {
+      "deprecated": false,
+      "rappid": "rappid:@vector/backfill-signer:ef170ec57b3ff6f6c179289fa8ffb805f88b820d045b35ce93f6a90f520810e0",
+      "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYmFja2ZpbGwtc2lnbmVy",
       "type": "spki"
      },
      {
@@ -628,9 +655,22 @@
       "sig": "<detached-jws>",
       "type": "re-anchor",
       "utc": "2026-07-28T00:00:00.000Z"
+     },
+     {
+      "activated_utc": "2026-09-01T00:00:00.000Z",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "kinds": [
+       "body.pulse"
+      ],
+      "sig": "<detached-jws>",
+      "signer": "rappid:@vector/backfill-signer:ef170ec57b3ff6f6c179289fa8ffb805f88b820d045b35ce93f6a90f520810e0",
+      "since_utc": "2026-07-10T00:00:00.000Z",
+      "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+      "type": "stream-signer",
+      "until_utc": "2026-08-10T00:00:00.000Z"
      }
     ],
-    "note": "decide each frame_summary against a registry holding exactly `entries`: authorized iff kid is the estate owner in effect at utc (§13.2) or a stream-signer entry names kid as signer on stream_id, lists kind, and has since_utc <= utc < until_utc (bytewise; null never ends), and in both cases §10 does not refuse kid's key at utc; kid null means unsigned and is never authorized. Every frame is assumed to have passed §7.5, step 6 included (§13.5); signatures are out of scope for these vectors"
+    "note": "decide each frame_summary against a registry holding exactly `entries`: authorized iff kid is the estate owner in effect at utc (§13.2) or a stream-signer entry names kid as signer on stream_id, lists kind, and has since_utc <= utc < until_utc (bytewise; null never ends), and in both cases §10 does not refuse kid's key at utc; a grant's activated_utc plays no part (a grant may start before it, §13.5); kid null means unsigned and is never authorized. Every frame is assumed to have passed §7.5, step 6 included (§13.5); signatures are out of scope for these vectors"
    },
    "example": {
     "entry": {
@@ -690,6 +730,12 @@
       "deprecated": false,
       "rappid": "rappid:@vector/rotating-signer-next:a2a6728c190af46debc6c233773e42f292e9aed52adbb44c0ba5e78c13008e2c",
       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogcm90YXRpbmctc2lnbmVyLW5leHQ=",
+      "type": "spki"
+     },
+     {
+      "deprecated": false,
+      "rappid": "rappid:@vector/backfill-signer:ef170ec57b3ff6f6c179289fa8ffb805f88b820d045b35ce93f6a90f520810e0",
+      "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYmFja2ZpbGwtc2lnbmVy",
       "type": "spki"
      },
      {
@@ -913,6 +959,46 @@
       ],
       "expect": "accept",
       "label": "two grants for one stream and signer"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-20T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.notice",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "accept",
+      "label": "a grant that starts before its activated_utc (§13.5 MAY)"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-09-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.notice",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "accept",
+      "label": "a grant whose whole window precedes its activated_utc"
      },
      {
       "entries": [
