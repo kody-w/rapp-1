@@ -56,6 +56,7 @@ _LABEL = re.compile(_LCLABEL)
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 _HEX40 = re.compile(r"[0-9a-f]{40}")
 _HTTPS = re.compile(r"https://[^\s]+")
+_OBJECT_ID = {"sha1": _HEX40, "sha256": _HEX64}  # object_format -> commit/blob grammar
 
 # §13.1 — the registry document container (rev-17 closure).
 DOCUMENT_SCHEMA = "rapp/1-registry"
@@ -197,6 +198,43 @@ def _hex64(entry, member, where):
     if not (isinstance(v, str) and _HEX64.fullmatch(v)):
         raise RegistryError(f"{where}: `{member}` must be 64 lowercase hex")
     return v
+
+
+def _lclabel(value, maximum):
+    return isinstance(value, str) and bool(_LABEL.fullmatch(value)) and len(value) <= maximum
+
+
+def _object_id(object_format, value):
+    """`object_format` fixes the lowercase-hex length of `value` (40 for sha1, 64 for sha256)."""
+    pattern = _OBJECT_ID.get(object_format) if isinstance(object_format, str) else None
+    return pattern is not None and isinstance(value, str) and bool(pattern.fullmatch(value))
+
+
+def _validate_release_pin(entry, where):
+    """The §13.3 release-pin members. Uniqueness, channels, families, and kernel order span
+    entries, so `Registry` checks those."""
+    for member in ("release_scope", "repository"):
+        if not _HTTPS.fullmatch(_str(entry, member, where)):
+            raise RegistryError(f"{where}: `{member}` must be an absolute HTTPS URI")
+    if not _lclabel(entry.get("channel"), 64):
+        raise RegistryError(f"{where}: `channel` must be an lclabel of 1-64 characters")
+    named = entry.get("predecessor")
+    if named is not None and not (isinstance(named, str) and _HEX64.fullmatch(named)):
+        raise RegistryError(
+            f"{where}: `predecessor` must be null or the manifest_hash of the release-pin it follows"
+        )
+    _hex64(entry, "manifest_hash", where)
+    if entry.get("object_format") not in ("sha1", "sha256"):
+        raise RegistryError(f"{where}: `object_format` must be sha1 or sha256")
+    if not _object_id(entry["object_format"], entry.get("commit")):
+        raise RegistryError(f"{where}: `commit` must be lowercase hex of the {entry['object_format']} length")
+    # R._path_valid is the §9.1 path grammar: the grail-kernel path rule (relative NFC POSIX,
+    # no empty/"."/".." component) plus the segment rules every file path of the manifest
+    # obeys, so the manifest's own locator is as safe to fetch and store as what it pins.
+    if not R._path_valid(entry.get("path")):
+        raise RegistryError(f"{where}: `path` must be a relative NFC path obeying the §9.1 path grammar")
+    _utc(entry, "activated_utc", where)
+    _rappid(entry, "declared_by", where); _str(entry, "sig", where)
 
 
 def validate_entry(entry, where="entry"):
@@ -419,6 +457,8 @@ class Registry:
                     break
                 current = R.rappid_parts(record["old_rappid"])["hash"]
             walked |= path
+        # The §13.5 rules span entries, so they run once every entry is indexed: release pins
+        # look up their predecessors and the kernels before them.
         self._index_release_pins()
 
     # ---- §7.2 / §6.1.1 kind binding ----
@@ -893,48 +933,10 @@ COMPONENT_MEMBERS = ("id", "kind", "rappid", "identity_path", "repository", "obj
                      "commit", "immutable_ref", "files")
 FILE_MEMBERS = ("path", "sha256", "size_bytes")
 _RELEASE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")  # 1-64 characters, ASCII only
-_OBJECT_ID = {"sha1": _HEX40, "sha256": _HEX64}
 _TAG_PREFIX = "refs/tags/"
 _GITHUB_REPOSITORY = re.compile(
     r"https://github\.com/([A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?)/([A-Za-z0-9._-]{1,100})"
 )
-
-
-def _lclabel(value, maximum):
-    return isinstance(value, str) and bool(_LABEL.fullmatch(value)) and len(value) <= maximum
-
-
-def _object_id(object_format, value):
-    """`object_format` fixes the lowercase-hex length of `value` (40 for sha1, 64 for sha256)."""
-    pattern = _OBJECT_ID.get(object_format) if isinstance(object_format, str) else None
-    return pattern is not None and isinstance(value, str) and bool(pattern.fullmatch(value))
-
-
-def _validate_release_pin(entry, where):
-    """The §13.3 release-pin members. Uniqueness, channels, families, and kernel order span
-    entries, so `Registry` checks those."""
-    for member in ("release_scope", "repository"):
-        if not _HTTPS.fullmatch(_str(entry, member, where)):
-            raise RegistryError(f"{where}: `{member}` must be an absolute HTTPS URI")
-    if not _lclabel(entry.get("channel"), 64):
-        raise RegistryError(f"{where}: `channel` must be an lclabel of 1-64 characters")
-    named = entry.get("predecessor")
-    if named is not None and not (isinstance(named, str) and _HEX64.fullmatch(named)):
-        raise RegistryError(
-            f"{where}: `predecessor` must be null or the manifest_hash of the release-pin it follows"
-        )
-    _hex64(entry, "manifest_hash", where)
-    if entry.get("object_format") not in ("sha1", "sha256"):
-        raise RegistryError(f"{where}: `object_format` must be sha1 or sha256")
-    if not _object_id(entry["object_format"], entry.get("commit")):
-        raise RegistryError(f"{where}: `commit` must be lowercase hex of the {entry['object_format']} length")
-    # R._path_valid is the §9.1 path grammar: the grail-kernel path rule (relative NFC POSIX,
-    # no empty/"."/".." component) plus the segment rules every file path of the manifest
-    # obeys, so the manifest's own locator is as safe to fetch and store as what it pins.
-    if not R._path_valid(entry.get("path")):
-        raise RegistryError(f"{where}: `path` must be a relative NFC path obeying the §9.1 path grammar")
-    _utc(entry, "activated_utc", where)
-    _rappid(entry, "declared_by", where); _str(entry, "sig", where)
 
 
 def _validate_component(component, where):

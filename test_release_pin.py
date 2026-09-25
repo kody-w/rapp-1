@@ -8,6 +8,7 @@ import base64
 import copy
 import hashlib
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -1260,6 +1261,21 @@ class RappCheckReleaseManifestTests(unittest.TestCase):
                           ("b/registry.json", "§13 registry document")])
         self.assertIn("exactly one channel", findings[0]["detail"] + findings[1]["detail"])
         self.assertEqual([item["artifact"] for item in evidence], ["c/registry.json"])
+
+
+class SectionNumberingTests(unittest.TestCase):
+    """The reference cites the SPEC's own number for release pins, the only §13.5 of this draft."""
+
+    def test_refusals_cite_the_subsection_that_specifies_them(self):
+        spec = (Path(__file__).resolve().parent / "SPEC.md").read_text(encoding="utf-8")
+        headings = dict(re.findall(r"^### (13\.[5-9]) (.+)$", spec, flags=re.M))
+        self.assertEqual(sorted(headings), ["13.5"])
+        self.assertTrue(headings["13.5"].startswith("Release pins"))
+        with self.assertRaisesRegex(REG.RegistryError, re.escape("(§13.5)")):
+            REG.validate_release_manifest({"schema": REG.MANIFEST_SCHEMA})
+        entries = MockEstate().base_entries() + [unsigned_pin(1), unsigned_pin(2, channel="newest")]
+        with self.assertRaisesRegex(REG.RegistryError, re.escape("(§13.5)")):
+            REG.Registry(entries)
 
 
 @unittest.skipUnless(real_ed25519_signer(), "optional cryptography import is absent")

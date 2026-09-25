@@ -15,6 +15,7 @@ signs. This page is the lane. Nothing on it needs a change to `rapp/1`.
 | your signers and their keys | `spki` entries; rotation by `re-anchor`; compromise by `tombstone` | §10, §13.2 |
 | your production runtime pinned | a `grail-kernel` entry | §11.1 |
 | every component of one release of a family pinned together (an LTS line and its corrections, a newest channel) | one `release-pin` entry per pinned release + its `rapp/1-release-manifest` (`schema`, `release_scope`, `release`, `components`); the `release_scope` names the release family, and `release` names the release for people | §13.5 |
+| your own signature on each of those two (a kernel, a release) | a declared entry: signed by the owner in effect at its `activated_utc`, retained byte-for-byte once accepted; a copy elsewhere counts only when byte-identical | §13.4 |
 | a subordinate profile (`acme-factory/1`) with its own normative text | **your** repository; adopted by a `protocol` entry pinning repo, path, and SHA-256 | §11.2, `protocols/README.md` |
 | tooling that needs a library (Ed25519 signing, HSMs, a database) | **your** repository; it imports `rapp.py`'s canonicalizer, never re-types it | Art. 10 |
 | to say which RAPP/1 you implement | a `protocol` entry `name:"rapp/1"` whose `spec_hash` comes from **this** repository's anchor | §13.3 |
@@ -47,6 +48,7 @@ disagreeing on everything else. That is the point.
 
 ```bash
 python3 examples/07_your_own_estate.py      # a complete fictional estate, checked end to end
+python3 examples/09_release_pin.py          # pinned releases, verified together or not at all
 ```
 
 `rapp_registry.py` (stdlib only) validates every §13.3 entry type to its exact member
@@ -59,13 +61,13 @@ assumed.
 
 `load_document` also verifies lifecycle entries: a valid enclosing registry
 signature is not a substitute for a tombstone or re-anchor's own signature. The
-same holds for every declared entry (§13.4, today `grail-kernel` and `release-pin`): its own owner
-signature is checked at its `activated_utc`, `first_seen=` (or `verification_utc=`
-for a first sighting) applies the per-entry 300-second first-seen bound — a
-signed registry carrying a declared entry is refused without one — and
-`persisted_entries=` refuses a later registry that dropped or changed a
-declaration. A copy of a declared entry found outside the registry counts only
-when it is byte-identical to one the registry carries.
+same holds for every declared entry (§13.4: `grail-kernel` and `release-pin`): its own
+owner signature is checked at its `activated_utc`, `first_seen=` (or `verification_utc=`
+for a first sighting) applies the per-entry 300-second first-seen bound — a signed
+registry carrying a declared entry is refused without one — and `persisted_entries=`
+refuses a later registry that dropped or changed a declaration. A copy of a declared
+entry found outside the registry counts only when it is byte-identical to one the
+registry carries.
 The issuer must be the owner in tenure at the authenticated issuance/action
 time; an owner's own succession record is signed by the outgoing owner at that
 boundary, after checking that its tenure is nonempty and chronologically
@@ -97,6 +99,9 @@ hash, and kernel coherence, every file's length and SHA-256, and every
 door-of-record binding verify (`examples/09_release_pin.py`). Pass every declared
 entry you accepted as `persisted_entries=`: `load_document` then also refuses a later
 registry that adds a `grail-kernel` to a family one of whose releases you accepted.
+`rapp_check.py` lints a committed release manifest's structure and canonical bytes and
+reports it as unverified evidence: it has authority only through a verified
+`release-pin`.
 
 This is still not a complete distributed consumer. The caller retains trusted
 heads and registry high-water marks, enforces freshness, and verifies the history
