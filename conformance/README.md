@@ -29,6 +29,7 @@ reach; the section name is the SPEC subsection it proves:
 |---|---|
 | `13_1_document` | accept or refuse each `document` exactly as §13.1 and §13.3 require (container and member shapes) |
 | `13_4_declared` | the exact `signing_payload` and `entry_hash` for `example.entry`; the declared and persisted entry types |
+| `13_stream_signer` | the exact `signing_payload` and `entry_hash` for `example.entry`; accept or refuse each `grant_cases` registry (`base_entries` then the case's `entries`) exactly as §13.3 requires; decide `authorized` or `refused` for each `authority.cases` `frame_summary` against `authority.entries` exactly as §13.5 requires, taking §7.5 as already passed |
 
 Signatures in the registry vectors are opaque placeholders. Signature verification needs a
 real key, so prove your §10 and §13.4 checks with your own keys; `registry_conformance.py`

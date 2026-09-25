@@ -231,7 +231,8 @@
   ],
   "13_4_declared": {
    "declared_types": [
-    "grail-kernel"
+    "grail-kernel",
+    "stream-signer"
    ],
    "example": {
     "entry": {
@@ -260,6 +261,993 @@
    "persisted_types": [
     "grail-kernel"
    ]
+  },
+  "13_stream_signer": {
+   "authority": {
+    "cases": [
+     {
+      "expect": "authorized",
+      "frame_summary": {
+       "kid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "kind": "body.twin-pulse",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+       "utc": "2026-07-01T00:00:00.000Z"
+      },
+      "label": "the estate owner, with no grant"
+     },
+     {
+      "expect": "authorized",
+      "frame_summary": {
+       "kid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/other-station:8b39ec1ba6b99dbe2e6d62ac259a27b9ca53be2f55745f981fae6c20a55e62f1",
+       "utc": "2026-07-20T00:00:00.000Z"
+      },
+      "label": "the estate owner on a stream no grant names"
+     },
+     {
+      "expect": "authorized",
+      "frame_summary": {
+       "kid": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+       "utc": "2026-07-20T00:00:00.000Z"
+      },
+      "label": "the granted signer inside its window"
+     },
+     {
+      "expect": "authorized",
+      "frame_summary": {
+       "kid": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+       "utc": "2026-07-10T00:00:00.000Z"
+      },
+      "label": "at since_utc (inclusive)"
+     },
+     {
+      "expect": "refused",
+      "frame_summary": {
+       "kid": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+       "utc": "2026-07-09T23:59:59.999Z"
+      },
+      "label": "one millisecond before since_utc"
+     },
+     {
+      "expect": "authorized",
+      "frame_summary": {
+       "kid": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+       "utc": "2026-08-09T23:59:59.999Z"
+      },
+      "label": "the last millisecond before until_utc"
+     },
+     {
+      "expect": "refused",
+      "frame_summary": {
+       "kid": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+       "utc": "2026-08-10T00:00:00.000Z"
+      },
+      "label": "at until_utc (exclusive)"
+     },
+     {
+      "expect": "authorized",
+      "frame_summary": {
+       "kid": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+       "kind": "body.notice",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+       "utc": "2026-07-20T00:00:00.000Z"
+      },
+      "label": "another listed kind"
+     },
+     {
+      "expect": "refused",
+      "frame_summary": {
+       "kid": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+       "kind": "body.twin-pulse",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+       "utc": "2026-07-20T00:00:00.000Z"
+      },
+      "label": "a registered kind the grant does not list"
+     },
+     {
+      "expect": "refused",
+      "frame_summary": {
+       "kid": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/other-station:8b39ec1ba6b99dbe2e6d62ac259a27b9ca53be2f55745f981fae6c20a55e62f1",
+       "utc": "2026-07-20T00:00:00.000Z"
+      },
+      "label": "another station's body stream"
+     },
+     {
+      "expect": "authorized",
+      "frame_summary": {
+       "kid": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+       "kind": "memory.save",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d:main",
+       "utc": "2026-07-20T00:00:00.000Z"
+      },
+      "label": "the memory stream its own grant names"
+     },
+     {
+      "expect": "refused",
+      "frame_summary": {
+       "kid": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+       "kind": "memory.save",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d:spare",
+       "utc": "2026-07-20T00:00:00.000Z"
+      },
+      "label": "another memory stream of the same organism"
+     },
+     {
+      "expect": "authorized",
+      "frame_summary": {
+       "kid": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+       "kind": "swarm.echo",
+       "stream_id": "net:wire",
+       "utc": "2026-07-20T00:00:00.000Z"
+      },
+      "label": "the swarm stream its own grant names"
+     },
+     {
+      "expect": "refused",
+      "frame_summary": {
+       "kid": "rappid:@vector/crawler:5a8db49d0165563aefa1181273d1ed2a85ace17498a307472ae2798aeb092cb1",
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+       "utc": "2026-07-20T00:00:00.000Z"
+      },
+      "label": "a registered key without a grant"
+     },
+     {
+      "expect": "refused",
+      "frame_summary": {
+       "kid": null,
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+       "utc": "2026-07-20T00:00:00.000Z"
+      },
+      "label": "an unsigned frame (kid null)"
+     },
+     {
+      "expect": "refused",
+      "frame_summary": {
+       "kid": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+       "utc": "2026-07-20T00:00:00.000Z"
+      },
+      "label": "the keyless station as its own kid"
+     },
+     {
+      "expect": "authorized",
+      "frame_summary": {
+       "kid": "rappid:@vector/retired-signer:921dd888c9d9794f3ad38d330a5ef10199c949b8e1b633f1d77874d3480cb415",
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+       "utc": "2026-07-20T00:00:00.000Z"
+      },
+      "label": "a tombstoned signer before revoked_utc"
+     },
+     {
+      "expect": "refused",
+      "frame_summary": {
+       "kid": "rappid:@vector/retired-signer:921dd888c9d9794f3ad38d330a5ef10199c949b8e1b633f1d77874d3480cb415",
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+       "utc": "2026-07-25T00:00:00.000Z"
+      },
+      "label": "a tombstoned signer at revoked_utc"
+     },
+     {
+      "expect": "authorized",
+      "frame_summary": {
+       "kid": "rappid:@vector/rotating-signer:71944ec256a40f6f4070357371010ef5f9bf20edc53394ecfa70276b549cbd22",
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+       "utc": "2026-07-20T00:00:00.000Z"
+      },
+      "label": "a rotated signer before its re-anchor"
+     },
+     {
+      "expect": "refused",
+      "frame_summary": {
+       "kid": "rappid:@vector/rotating-signer:71944ec256a40f6f4070357371010ef5f9bf20edc53394ecfa70276b549cbd22",
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+       "utc": "2026-07-28T00:00:00.000Z"
+      },
+      "label": "a rotated signer at its re-anchor utc"
+     },
+     {
+      "expect": "refused",
+      "frame_summary": {
+       "kid": "rappid:@vector/rotating-signer-next:a2a6728c190af46debc6c233773e42f292e9aed52adbb44c0ba5e78c13008e2c",
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+       "utc": "2026-07-28T00:00:00.000Z"
+      },
+      "label": "its successor, with no grant of its own"
+     }
+    ],
+    "entries": [
+     {
+      "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "type": "estate_owner"
+     },
+     {
+      "deprecated": false,
+      "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+      "type": "spki"
+     },
+     {
+      "deprecated": false,
+      "rappid": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+      "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogcHVsc2Utc2lnbmVy",
+      "type": "spki"
+     },
+     {
+      "deprecated": false,
+      "rappid": "rappid:@vector/crawler:5a8db49d0165563aefa1181273d1ed2a85ace17498a307472ae2798aeb092cb1",
+      "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogY3Jhd2xlcg==",
+      "type": "spki"
+     },
+     {
+      "deprecated": false,
+      "rappid": "rappid:@vector/retired-signer:921dd888c9d9794f3ad38d330a5ef10199c949b8e1b633f1d77874d3480cb415",
+      "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogcmV0aXJlZC1zaWduZXI=",
+      "type": "spki"
+     },
+     {
+      "deprecated": true,
+      "rappid": "rappid:@vector/rotating-signer:71944ec256a40f6f4070357371010ef5f9bf20edc53394ecfa70276b549cbd22",
+      "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogcm90YXRpbmctc2lnbmVy",
+      "type": "spki"
+     },
+     {
+      "deprecated": false,
+      "rappid": "rappid:@vector/rotating-signer-next:a2a6728c190af46debc6c233773e42f292e9aed52adbb44c0ba5e78c13008e2c",
+      "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogcm90YXRpbmctc2lnbmVyLW5leHQ=",
+      "type": "spki"
+     },
+     {
+      "deprecated": false,
+      "family": "body",
+      "kind": "body.pulse",
+      "type": "kind"
+     },
+     {
+      "deprecated": false,
+      "family": "body",
+      "kind": "body.notice",
+      "type": "kind"
+     },
+     {
+      "deprecated": false,
+      "family": "body",
+      "kind": "body.twin-pulse",
+      "type": "kind"
+     },
+     {
+      "deprecated": true,
+      "family": "body",
+      "kind": "body.legacy-pulse",
+      "type": "kind"
+     },
+     {
+      "deprecated": false,
+      "family": "body",
+      "kind": "body-sensor.pulse",
+      "type": "kind"
+     },
+     {
+      "deprecated": false,
+      "family": "body",
+      "kind": "body.re-genesis",
+      "type": "kind"
+     },
+     {
+      "deprecated": false,
+      "family": "memory",
+      "kind": "memory.save",
+      "type": "kind"
+     },
+     {
+      "deprecated": false,
+      "family": "swarm",
+      "kind": "swarm.echo",
+      "type": "kind"
+     },
+     {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "kinds": [
+       "body.notice",
+       "body.pulse"
+      ],
+      "sig": "<detached-jws>",
+      "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+      "since_utc": "2026-07-10T00:00:00.000Z",
+      "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+      "type": "stream-signer",
+      "until_utc": "2026-08-10T00:00:00.000Z"
+     },
+     {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "kinds": [
+       "memory.save"
+      ],
+      "sig": "<detached-jws>",
+      "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+      "since_utc": "2026-07-10T00:00:00.000Z",
+      "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d:main",
+      "type": "stream-signer",
+      "until_utc": null
+     },
+     {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "kinds": [
+       "swarm.echo"
+      ],
+      "sig": "<detached-jws>",
+      "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+      "since_utc": "2026-07-10T00:00:00.000Z",
+      "stream_id": "net:wire",
+      "type": "stream-signer",
+      "until_utc": null
+     },
+     {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "kinds": [
+       "body.pulse"
+      ],
+      "sig": "<detached-jws>",
+      "signer": "rappid:@vector/retired-signer:921dd888c9d9794f3ad38d330a5ef10199c949b8e1b633f1d77874d3480cb415",
+      "since_utc": "2026-07-10T00:00:00.000Z",
+      "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+      "type": "stream-signer",
+      "until_utc": null
+     },
+     {
+      "rappid": "rappid:@vector/retired-signer:921dd888c9d9794f3ad38d330a5ef10199c949b8e1b633f1d77874d3480cb415",
+      "revoked_utc": "2026-07-25T00:00:00.000Z",
+      "sig": "<detached-jws>",
+      "type": "tombstone"
+     },
+     {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "kinds": [
+       "body.pulse"
+      ],
+      "sig": "<detached-jws>",
+      "signer": "rappid:@vector/rotating-signer:71944ec256a40f6f4070357371010ef5f9bf20edc53394ecfa70276b549cbd22",
+      "since_utc": "2026-07-10T00:00:00.000Z",
+      "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+      "type": "stream-signer",
+      "until_utc": null
+     },
+     {
+      "case": "rotation",
+      "new_rappid": "rappid:@vector/rotating-signer-next:a2a6728c190af46debc6c233773e42f292e9aed52adbb44c0ba5e78c13008e2c",
+      "old_key_sig": "<detached-jws>",
+      "old_rappid": "rappid:@vector/rotating-signer:71944ec256a40f6f4070357371010ef5f9bf20edc53394ecfa70276b549cbd22",
+      "sig": "<detached-jws>",
+      "type": "re-anchor",
+      "utc": "2026-07-28T00:00:00.000Z"
+     }
+    ],
+    "note": "decide each frame_summary against a registry holding exactly `entries`: authorized iff kid is the estate owner in effect at utc (§13.2) or a stream-signer entry names kid as signer on stream_id, lists kind, and has since_utc <= utc < until_utc (bytewise; null never ends), and in both cases §10 does not refuse kid's key at utc; kid null means unsigned and is never authorized. Every frame is assumed to have passed §7.5, step 6 included (§13.5); signatures are out of scope for these vectors"
+   },
+   "example": {
+    "entry": {
+     "activated_utc": "2026-07-01T00:00:00.000Z",
+     "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+     "kinds": [
+      "body.notice",
+      "body.pulse"
+     ],
+     "sig": "<detached-jws>",
+     "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+     "since_utc": "2026-07-10T00:00:00.000Z",
+     "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+     "type": "stream-signer",
+     "until_utc": "2026-08-10T00:00:00.000Z"
+    },
+    "entry_hash": "29fb6e7807122e6cb40957598d201affc16fd1cae46047b6815aeb30b0a8866a",
+    "signing_payload": "{\"activated_utc\":\"2026-07-01T00:00:00.000Z\",\"declared_by\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"kinds\":[\"body.notice\",\"body.pulse\"],\"signer\":\"rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9\",\"since_utc\":\"2026-07-10T00:00:00.000Z\",\"stream_id\":\"rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d\",\"type\":\"stream-signer\",\"until_utc\":\"2026-08-10T00:00:00.000Z\"}"
+   },
+   "grant_cases": {
+    "base_entries": [
+     {
+      "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "type": "estate_owner"
+     },
+     {
+      "deprecated": false,
+      "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+      "type": "spki"
+     },
+     {
+      "deprecated": false,
+      "rappid": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+      "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogcHVsc2Utc2lnbmVy",
+      "type": "spki"
+     },
+     {
+      "deprecated": false,
+      "rappid": "rappid:@vector/crawler:5a8db49d0165563aefa1181273d1ed2a85ace17498a307472ae2798aeb092cb1",
+      "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogY3Jhd2xlcg==",
+      "type": "spki"
+     },
+     {
+      "deprecated": false,
+      "rappid": "rappid:@vector/retired-signer:921dd888c9d9794f3ad38d330a5ef10199c949b8e1b633f1d77874d3480cb415",
+      "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogcmV0aXJlZC1zaWduZXI=",
+      "type": "spki"
+     },
+     {
+      "deprecated": true,
+      "rappid": "rappid:@vector/rotating-signer:71944ec256a40f6f4070357371010ef5f9bf20edc53394ecfa70276b549cbd22",
+      "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogcm90YXRpbmctc2lnbmVy",
+      "type": "spki"
+     },
+     {
+      "deprecated": false,
+      "rappid": "rappid:@vector/rotating-signer-next:a2a6728c190af46debc6c233773e42f292e9aed52adbb44c0ba5e78c13008e2c",
+      "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogcm90YXRpbmctc2lnbmVyLW5leHQ=",
+      "type": "spki"
+     },
+     {
+      "deprecated": false,
+      "family": "body",
+      "kind": "body.pulse",
+      "type": "kind"
+     },
+     {
+      "deprecated": false,
+      "family": "body",
+      "kind": "body.notice",
+      "type": "kind"
+     },
+     {
+      "deprecated": false,
+      "family": "body",
+      "kind": "body.twin-pulse",
+      "type": "kind"
+     },
+     {
+      "deprecated": true,
+      "family": "body",
+      "kind": "body.legacy-pulse",
+      "type": "kind"
+     },
+     {
+      "deprecated": false,
+      "family": "body",
+      "kind": "body-sensor.pulse",
+      "type": "kind"
+     },
+     {
+      "deprecated": false,
+      "family": "body",
+      "kind": "body.re-genesis",
+      "type": "kind"
+     },
+     {
+      "deprecated": false,
+      "family": "memory",
+      "kind": "memory.save",
+      "type": "kind"
+     },
+     {
+      "deprecated": false,
+      "family": "swarm",
+      "kind": "swarm.echo",
+      "type": "kind"
+     }
+    ],
+    "cases": [
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.notice",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "accept",
+      "label": "a grant on a keyless station's body stream"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.notice",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": null
+       }
+      ],
+      "expect": "accept",
+      "label": "an open-ended grant (until_utc null)"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body-sensor.pulse",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "accept",
+      "label": "kinds ascend bytewise: '-' (0x2D) sorts before '.' (0x2E)"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.legacy-pulse",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "accept",
+      "label": "a listed kind whose kind entry is deprecated"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.notice",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/rotating-signer:71944ec256a40f6f4070357371010ef5f9bf20edc53394ecfa70276b549cbd22",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "accept",
+      "label": "a signer whose spki entry is deprecated"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "memory.save"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d:main",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "accept",
+      "label": "a memory stream with a memory kind"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "swarm.echo"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "net:wire",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "accept",
+      "label": "a swarm stream with a swarm kind"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.notice",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-07-20T00:00:00.000Z"
+       },
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.notice",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-25T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": null
+       }
+      ],
+      "expect": "accept",
+      "label": "two grants for one stream and signer"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.notice",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "refuse",
+      "label": "a keyless rappid as the signer"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.notice",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/unregistered-signer:ca8b5b410a4d4630f9133fb2727dd5819e159f045f2c5b76e0f1e78602ac9299",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "refuse",
+      "label": "a keyed signer with no spki entry in this registry"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.heartbeat"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "refuse",
+      "label": "a kind that is not registered here"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "memory.save"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "refuse",
+      "label": "a memory kind on a body stream"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "net:wire",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "refuse",
+      "label": "a body kind on a swarm stream"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.pulse",
+         "body.re-genesis"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "refuse",
+      "label": "a re-genesis kind (§12.1 reserves it for the owner)"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.pulse",
+         "body.notice"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "refuse",
+      "label": "kinds out of bytewise order"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.pulse",
+         "body-sensor.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "refuse",
+      "label": "'-' after '.' is out of bytewise order"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.pulse",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "refuse",
+      "label": "a duplicate kind"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "refuse",
+      "label": "no kinds"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.notice",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-07-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "refuse",
+      "label": "until_utc equal to since_utc (an empty window)"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.notice",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-07-01T00:00:00.000Z"
+       }
+      ],
+      "expect": "refuse",
+      "label": "until_utc before since_utc"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.notice",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "net:Wire",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "refuse",
+      "label": "a stream_id with no §6.1.1 form"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.notice",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer"
+       }
+      ],
+      "expect": "refuse",
+      "label": "until_utc omitted rather than null"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "deprecated": false,
+        "kinds": [
+         "body.notice",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "refuse",
+      "label": "an extra member"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.notice",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "refuse",
+      "label": "since_utc not the fixed §7.4 form"
+     }
+    ],
+    "note": "each case's registry is a §13.1 document whose entries are base_entries followed by the case's entries; accept or refuse it exactly as §13.3 requires"
+   }
   }
  },
  "signature_boundary": "sig values are placeholders; accept/refuse covers structure, uniqueness, and chains. Verify §10/§13.4 signatures with real keys in your own tests."

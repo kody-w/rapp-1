@@ -179,7 +179,162 @@ def registry_sections():
             },
         }
 
-    return [("13_1_document", document_cases), ("13_4_declared", declared_cases)]
+    def stream_signer_cases():
+        def keyless(slug, uuid4_hex):
+            # §6.2 keyless mint over a fixed UUIDv4, so the vectors reproduce anywhere.
+            return f"rappid:@vector/{slug}:" + R.Hb("rapp/1:rappid", bytes.fromhex(uuid4_hex))
+
+        def keyed(slug, deprecated=False):
+            der = f"vector-only SPKI bytes: {slug}".encode("ascii")
+            rappid = R.mint_rappid("vector", slug, spki_der=der)
+            return rappid, {"type": "spki", "rappid": rappid, "deprecated": deprecated,
+                            "spki_der_b64": base64.b64encode(der).decode("ascii")}
+
+        since, inside, revoked = "2026-07-10T00:00:00.000Z", "2026-07-20T00:00:00.000Z", "2026-07-25T00:00:00.000Z"
+        rotated_at, until = "2026-07-28T00:00:00.000Z", "2026-08-10T00:00:00.000Z"
+        station = keyless("station", "5e1f0c2a7b3d4e8f9a6b1c2d3e4f5a6b")
+        other = keyless("other-station", "0a1b2c3d4e5f40718293a4b5c6d7e8f9")
+        signer, signer_spki = keyed("pulse-signer")
+        crawler, crawler_spki = keyed("crawler")
+        retired, retired_spki = keyed("retired-signer")
+        rotating, rotating_spki = keyed("rotating-signer", deprecated=True)  # §10: a re-anchor retires it
+        successor, successor_spki = keyed("rotating-signer-next")
+        unregistered = keyed("unregistered-signer")[0]
+        members = base + [signer_spki, crawler_spki, retired_spki, rotating_spki, successor_spki] + [
+            {"type": "kind", "kind": kind, "family": family, "deprecated": deprecated}
+            for kind, family, deprecated in (
+                ("body.pulse", "body", False), ("body.notice", "body", False),
+                ("body.twin-pulse", "body", False), ("body.legacy-pulse", "body", True),
+                ("body-sensor.pulse", "body", False), ("body.re-genesis", "body", False),
+                ("memory.save", "memory", False), ("swarm.echo", "swarm", False))]
+
+        def grant(**changes):
+            entry = {"type": "stream-signer", "stream_id": station, "signer": signer,
+                     "kinds": ["body.notice", "body.pulse"], "since_utc": since, "until_utc": until,
+                     "activated_utc": T0, "declared_by": owner, "sig": SIG}
+            entry.update(changes)
+            return {k: v for k, v in entry.items() if v is not _DROP}
+
+        def grant_case(label, entries, intended):
+            expect = _registry_accepts(document(members + entries))
+            assert expect == intended, label
+            return {"label": label, "entries": entries, "expect": expect}
+
+        grant_cases = [
+            grant_case("a grant on a keyless station's body stream", [grant()], "accept"),
+            grant_case("an open-ended grant (until_utc null)", [grant(until_utc=None)], "accept"),
+            grant_case("kinds ascend bytewise: '-' (0x2D) sorts before '.' (0x2E)",
+                       [grant(kinds=["body-sensor.pulse", "body.pulse"])], "accept"),
+            grant_case("a listed kind whose kind entry is deprecated",
+                       [grant(kinds=["body.legacy-pulse", "body.pulse"])], "accept"),
+            grant_case("a signer whose spki entry is deprecated", [grant(signer=rotating)], "accept"),
+            grant_case("a memory stream with a memory kind",
+                       [grant(stream_id=station + ":main", kinds=["memory.save"])], "accept"),
+            grant_case("a swarm stream with a swarm kind",
+                       [grant(stream_id="net:wire", kinds=["swarm.echo"])], "accept"),
+            grant_case("two grants for one stream and signer",
+                       [grant(until_utc=inside), grant(since_utc=revoked, until_utc=None)], "accept"),
+            grant_case("a keyless rappid as the signer", [grant(signer=station)], "refuse"),
+            grant_case("a keyed signer with no spki entry in this registry", [grant(signer=unregistered)], "refuse"),
+            grant_case("a kind that is not registered here", [grant(kinds=["body.heartbeat"])], "refuse"),
+            grant_case("a memory kind on a body stream", [grant(kinds=["memory.save"])], "refuse"),
+            grant_case("a body kind on a swarm stream", [grant(stream_id="net:wire", kinds=["body.pulse"])], "refuse"),
+            grant_case("a re-genesis kind (§12.1 reserves it for the owner)",
+                       [grant(kinds=["body.pulse", "body.re-genesis"])], "refuse"),
+            grant_case("kinds out of bytewise order", [grant(kinds=["body.pulse", "body.notice"])], "refuse"),
+            grant_case("'-' after '.' is out of bytewise order",
+                       [grant(kinds=["body.pulse", "body-sensor.pulse"])], "refuse"),
+            grant_case("a duplicate kind", [grant(kinds=["body.pulse", "body.pulse"])], "refuse"),
+            grant_case("no kinds", [grant(kinds=[])], "refuse"),
+            grant_case("until_utc equal to since_utc (an empty window)", [grant(until_utc=since)], "refuse"),
+            grant_case("until_utc before since_utc", [grant(until_utc=T0)], "refuse"),
+            grant_case("a stream_id with no §6.1.1 form", [grant(stream_id="net:Wire")], "refuse"),
+            grant_case("until_utc omitted rather than null", [grant(until_utc=_DROP)], "refuse"),
+            grant_case("an extra member", [grant(deprecated=False)], "refuse"),
+            grant_case("since_utc not the fixed §7.4 form", [grant(since_utc="2026-07-10T00:00:00Z")], "refuse"),
+        ]
+
+        entries = members + [
+            grant(),
+            grant(stream_id=station + ":main", kinds=["memory.save"], until_utc=None),
+            grant(stream_id="net:wire", kinds=["swarm.echo"], until_utc=None),
+            grant(signer=retired, kinds=["body.pulse"], until_utc=None),
+            {"type": "tombstone", "rappid": retired, "revoked_utc": revoked, "sig": SIG},
+            grant(signer=rotating, kinds=["body.pulse"], until_utc=None),
+            {"type": "re-anchor", "old_rappid": rotating, "new_rappid": successor, "case": "rotation",
+             "utc": rotated_at, "sig": SIG, "old_key_sig": SIG},
+        ]
+        registry = REG.Registry(entries)
+
+        def decision(label, stream_id, kind, utc, kid, intended):
+            ok, why = registry.authority_decision(stream_id, kid, kind, utc)
+            expect = "authorized" if ok else "refused"
+            assert expect == intended, (label, why)
+            return {"label": label, "frame_summary": {"stream_id": stream_id, "kind": kind, "utc": utc, "kid": kid},
+                    "expect": expect}
+
+        before = "2026-07-09T23:59:59.999Z"
+        last = "2026-08-09T23:59:59.999Z"
+        example = grant()
+        return {
+            "example": {
+                "entry": example,
+                "signing_payload": R.canonical({k: v for k, v in example.items() if k != "sig"}),
+                "entry_hash": REG.entry_hash(example),
+            },
+            "grant_cases": {
+                "note": "each case's registry is a §13.1 document whose entries are base_entries followed by "
+                        "the case's entries; accept or refuse it exactly as §13.3 requires",
+                "base_entries": members,
+                "cases": grant_cases,
+            },
+            "authority": {
+                "note": "decide each frame_summary against a registry holding exactly `entries`: authorized iff "
+                        "kid is the estate owner in effect at utc (§13.2) or a stream-signer entry names kid as "
+                        "signer on stream_id, lists kind, and has since_utc <= utc < until_utc (bytewise; null "
+                        "never ends), and in both cases §10 does not refuse kid's key at utc; kid null means "
+                        "unsigned and is never authorized. Every frame is assumed to have passed §7.5, step 6 "
+                        "included (§13.5); signatures are out of scope for these vectors",
+                "entries": entries,
+                "cases": [
+                    decision("the estate owner, with no grant", station, "body.twin-pulse", T0, owner, "authorized"),
+                    decision("the estate owner on a stream no grant names", other, "body.pulse", inside, owner,
+                             "authorized"),
+                    decision("the granted signer inside its window", station, "body.pulse", inside, signer,
+                             "authorized"),
+                    decision("at since_utc (inclusive)", station, "body.pulse", since, signer, "authorized"),
+                    decision("one millisecond before since_utc", station, "body.pulse", before, signer, "refused"),
+                    decision("the last millisecond before until_utc", station, "body.pulse", last, signer,
+                             "authorized"),
+                    decision("at until_utc (exclusive)", station, "body.pulse", until, signer, "refused"),
+                    decision("another listed kind", station, "body.notice", inside, signer, "authorized"),
+                    decision("a registered kind the grant does not list", station, "body.twin-pulse", inside,
+                             signer, "refused"),
+                    decision("another station's body stream", other, "body.pulse", inside, signer, "refused"),
+                    decision("the memory stream its own grant names", station + ":main", "memory.save", inside,
+                             signer, "authorized"),
+                    decision("another memory stream of the same organism", station + ":spare", "memory.save",
+                             inside, signer, "refused"),
+                    decision("the swarm stream its own grant names", "net:wire", "swarm.echo", inside, signer,
+                             "authorized"),
+                    decision("a registered key without a grant", station, "body.pulse", inside, crawler, "refused"),
+                    decision("an unsigned frame (kid null)", station, "body.pulse", inside, None, "refused"),
+                    decision("the keyless station as its own kid", station, "body.pulse", inside, station, "refused"),
+                    decision("a tombstoned signer before revoked_utc", station, "body.pulse", inside, retired,
+                             "authorized"),
+                    decision("a tombstoned signer at revoked_utc", station, "body.pulse", revoked, retired, "refused"),
+                    decision("a rotated signer before its re-anchor", station, "body.pulse", inside, rotating,
+                             "authorized"),
+                    decision("a rotated signer at its re-anchor utc", station, "body.pulse", rotated_at, rotating,
+                             "refused"),
+                    decision("its successor, with no grant of its own", station, "body.pulse", rotated_at,
+                             successor, "refused"),
+                ],
+            },
+        }
+
+    return [("13_1_document", document_cases), ("13_4_declared", declared_cases),
+            ("13_stream_signer", stream_signer_cases)]
 
 
 class _Drop:

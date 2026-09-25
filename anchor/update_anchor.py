@@ -655,6 +655,10 @@ def revision_payload(
         "status": "live",
         "where": "§13.4 — a registry entry carrying its own owner signature at its activated_utc",
     }
+    payload["vocabulary"]["stream-signer"] = {
+        "status": "live",
+        "where": "§13.5 — an estate grant letting a keyed signer speak for it on one stream, above §7.5",
+    }
     rules = [
         {
             "t": "gotcha",
@@ -728,6 +732,21 @@ def revision_payload(
             "c": (
                 "A valid registry signature never blesses a declared entry: each one carries its own "
                 "owner signature at its activated_utc, and persisted ones are retained byte-for-byte."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
+                "A stream-signer entry is the estate owner's grant that one keyed signer speaks for the "
+                "estate on one stream, for the listed kinds, from since_utc until an optional until_utc; "
+                "a keyless organism's streams gain a signer that way without re-anchoring the organism."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "A §7.5-valid signature is not the estate's word: require the owner or a stream-signer "
+                "grant for the stream, kind, and time; unsigned frames never speak for the estate."
             ),
         },
     ]

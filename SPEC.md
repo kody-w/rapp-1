@@ -80,7 +80,8 @@ and byte length are provenance and verification data, not alternate identities. 
 the currently served release is immutable even while a separate candidate lineage grows.
 **deployment cell** — an independently observable and isolatable runtime failure domain governed by
 `rapp-deploy/1`. **declared entry** — a §13.3 registry entry that carries its own owner signature made at
-its `activated_utc`, and so verifies apart from the document that carries it (§13.4).
+its `activated_utc`, and so verifies apart from the document that carries it (§13.4). **stream signer** —
+a keyed signer an estate has granted, by a `stream-signer` entry, to speak for it on one stream (§13.5).
 
 ## 4. Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **[RFC 8785] JCS** for the value `v`, defined **only**
@@ -975,17 +976,25 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   referenced bytes, recomputes both hashes, persists the canonical entry on first activation, applies
   §11.1, and refuses a missing/mutated prior binding, duplicate `grail_id`, or locator whose bytes
   disagree.
+- **stream-signer** `{type:"stream-signer", stream_id, signer, kinds, since_utc, until_utc,
+  activated_utc, declared_by, sig}` — exactly these members; a declared entry (§13.4). `stream_id` has a
+  §6.1.1 form; `signer` is a keyed rappid with a §13 `spki` entry (deprecated or not) in the same
+  registry; `kinds` is a non-empty array of distinct kinds in ascending bytewise order, each registered
+  (deprecated or not) in the same registry with a family compatible with `stream_id`'s form (§7.2) and
+  none a `*.re-genesis` kind (§12.1 reserves those for the owner); `since_utc` has the §7.4 form;
+  `until_utc` is `null` or a §7.4 time after `since_utc` (§13.5).
 - **estate_owner** `{type:"estate_owner", rappid}` (exactly one non-deprecated) · **master-plan**
   `{type:"master-plan", repo, path}` (Fed. Const. Art. VII).
 
-§7.5 steps 1–5 are time-independent (append-only lookups); **only** step 6 (tombstones) and §13.2 owner
-tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule. A declared entry (§13.4) is
-authenticated at its own `activated_utc`, never at the time it is read.
+§7.5 steps 1–5 are time-independent (append-only lookups); **only** step 6 (tombstones), §13.2 owner
+tenure, and §13.5 grant windows are time-scoped, and all three are monotone given the §13.1 no-rollback
+rule. A declared entry (§13.4) is authenticated at its own `activated_utc`, never at the time it is read.
 
 ### 13.4 Declared entries (entry-level owner signatures)
 A **declared entry** carries its own `activated_utc` (the §7.4 form), `declared_by` (a keyed rappid), and
 `sig` (a detached §10 JWS whose protected `kid` equals `declared_by`, over `canonical(entry \ {sig})`). The
-declared entry types are `grail-kernel` (persisted). For every declared entry a consumer **MUST**:
+declared entry types are `grail-kernel` (persisted) and `stream-signer`. For every declared entry a
+consumer **MUST**:
 1. require `declared_by` to be the estate owner in effect at `activated_utc` (§13.2), with a §13 `spki`
    entry whose key §10 does not refuse (as superseded or tombstoned) at `activated_utc`;
 2. verify `sig` with that registry key — the enclosing §13.1 signature never substitutes for it;
@@ -999,6 +1008,28 @@ differs in any byte is not that entry. `H("rapp/1:particle", entry)` over the co
 it. Once a consumer has accepted an entry of a persisted type it **MUST** persist the canonical entry, and
 every later accepted registry **MUST** retain it byte-for-byte; removal or mutation is a permanent refusal
 even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-kernel`).
+
+### 13.5 Stream signers (who speaks for the estate on a stream)
+§7.5 step 6 proves that a registry-discoverable key signed a frame; it does not say whether that key
+speaks for the stream. A `stream-signer` entry is the estate's grant that `signer` may sign frames of the
+listed `kinds` on `stream_id` whose `utc` satisfies `since_utc` ≤ `utc` and, unless `until_utc` is `null`,
+`utc` < `until_utc` (bytewise, §7.4).
+
+A consumer that relies on a frame as the estate's statement — a network pulse, a notice, a profile
+record — **MUST**, after the frame passes §7.5 including step 6, also require that the frame's `kid` is the
+estate owner in effect at its `utc` (§13.2) or is covered by a `stream-signer` entry of the verified
+registry for that `stream_id`, `kind`, and `utc`. This authority check sits above §7.5: it adds no §7.5
+step, and a frame that fails it is still a valid `rapp/1` frame that does not speak for the estate. An
+unsigned frame never speaks for the estate (§10); its hash chain proves integrity only. A body or memory
+stream may therefore run unsigned (§8) until a signer is granted and carry signed frames after; both stay
+valid links of one chain.
+
+Grants are permanent records of the registry and are never inherited: one ends at its `until_utc`, or
+earlier when §10 refuses the signer's key at the frame's `utc` (a rotation re-anchor supersedes it; a
+tombstone revokes it), and a rotated signer needs a new grant for its successor rappid. A keyless rappid
+(§6.2) never signs as itself — its tail is no key — so a grant is how a keyed signer speaks on a keyless
+organism's streams without re-anchoring or re-minting that identity; §6.2 and §6.3 are unchanged. A
+profile that requires signer authorization (for example `rapp-work/1` §1) **MAY** meet it with this check.
 
 ## 14. Security considerations
 - **Integrity:** every object is domain-separated content-addressed (§5); a hostile mirror cannot alter
@@ -1024,6 +1055,11 @@ even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-ker
   cannot relocate the entries or smuggle policy into signed-but-meaningless members; a declared entry's own
   owner signature is checked at its `activated_utc`, so a valid document signature never blesses a forged
   or mutated declaration, and persisted declarations cannot be dropped by a later registry (§13.4).
+- **Signer scope:** any registered key can yield a §7.5-valid signature on any stream; only the owner in
+  effect or a `stream-signer` grant makes a frame the estate's statement, so a station, crawler, or careless
+  key cannot speak for another stream (§13.5). Like a tombstone, a grant's window gates on the frame's
+  producer-controlled `utc`, so a signer can still stamp frames just below `until_utc` after that time
+  passes; an owner relying on that end **SHOULD** advance the stream's head past `until_utc`.
 - **Producer-controlled `utc` (DoS/merge bias):** a future-dated head can brick a stream (successors refused
   as earlier) and bias UTC-first merges. A consumer **SHOULD** refuse a frame whose `utc` exceeds receipt
   time by >300 s, and adversarial-scope merges **SHOULD** rank by `min(utc, first-seen)`; a bricked stream
@@ -1051,9 +1087,11 @@ even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-ker
 
 ### Revision log
 - **rev-17 (registry closure for the distributed Hive)** — names the §13.1 document container
-  (`schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; any other member carries no meaning)
-  and generalizes the `grail-kernel` entry-level owner signature into §13.4 declared entries with
-  byte-for-byte retention of persisted ones. No frozen form (§12)
+  (`schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; any other member carries no meaning),
+  generalizes the `grail-kernel` entry-level owner signature into §13.4 declared entries with
+  byte-for-byte retention of persisted ones, and adds the `stream-signer` declared entry: an estate grant,
+  above §7.5, that lets a keyed signer speak for the estate on one stream and its listed kinds within a
+  time window — including a keyless organism's streams, with no re-anchor (§13.5). No frozen form (§12)
   changes: every rev-16 `rapp/1` frame, egg, rappid, and conformance vector verifies unchanged.
 - **rev-16 (RAPP Work profile)** — added the subordinate `rapp-work/1` operational profile
   (`protocols/rapp-work/1/SPEC.md`) to the chain's operational-profile index; this document's normative

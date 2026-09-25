@@ -15,6 +15,9 @@ What is fully specified by §13 and enforced here:
   - kind grammar and family binding; family ↔ stream_id-form compatibility (§6.1.1, §7.2);
   - owner succession by re-anchor records, owner-in-effect at a time (§13.2);
   - key discovery, superseded-key and tombstone refusal at a time (§10);
+  - stream signers (§13.5): each `stream-signer` grant's structure and cross-entry rules,
+    and the authority check above §7.5 — a verified frame speaks for the estate only when
+    its `kid` is the owner in effect or a signer granted its stream, kind, and time;
   - one non-deprecated genesis per stream (§7.6); one grail-kernel per grail_id (§11.1);
   - declared entries (§13.4): each entry-level owner signature at its own
     `activated_utc`, never blessed by the enclosing document signature, and
@@ -39,6 +42,8 @@ import rapp as R
 FAMILIES = ("memory", "swarm", "body")
 STREAM_FORMS = {"memory": "memory-stream", "swarm": "swarm-stream", "body": "body-stream"}
 REANCHOR_CASES = ("upgrade", "rotation", "compromise", "tag-migrate")
+# §7.2 / §12.1 — the three re-genesis kinds; only the owner signs them, so no grant may list one.
+REGENESIS_KINDS = ("memory.re-genesis", "swarm.re-genesis", "body.re-genesis")
 
 _LCLABEL = r"[a-z0-9]+(?:-[a-z0-9]+)*"
 _KIND = re.compile(rf"({_LCLABEL})\.({_LCLABEL})")
@@ -54,7 +59,7 @@ DOCUMENT_MEMBERS = ("schema", "registry_seq", "canonical_source", ENTRIES_MEMBER
 
 # §13.4 — entry types that carry their own owner signature at `activated_utc`,
 # and the subset a consumer retains byte-for-byte once it has accepted one.
-DECLARED_TYPES = ("grail-kernel",)
+DECLARED_TYPES = ("grail-kernel", "stream-signer")
 PERSISTED_TYPES = ("grail-kernel",)
 FIRST_SEEN_SKEW_SECONDS = 300
 
@@ -73,6 +78,8 @@ ENTRY_MEMBERS = {
                       "activated_utc", "predecessor", "declared_by", "sig"}, set()),
     "estate_owner": ({"type", "rappid"}, set()),
     "master-plan": ({"type", "repo", "path"}, set()),
+    "stream-signer": ({"type", "stream_id", "signer", "kinds", "since_utc", "until_utc",
+                       "activated_utc", "declared_by", "sig"}, set()),
 }
 
 
@@ -187,6 +194,33 @@ def _hex64(entry, member, where):
     return v
 
 
+def _validate_stream_signer(entry, where):
+    """The §13.3 stream-signer members, one entry at a time. That the signer has an spki
+    entry and each kind a compatible registration spans entries (Registry)."""
+    if stream_form(entry.get("stream_id")) is None:
+        raise RegistryError(f"{where}: `stream_id` is not a §6.1.1 stream form")
+    _rappid(entry, "signer", where)
+    kinds = entry.get("kinds")
+    if not isinstance(kinds, list) or not kinds:
+        raise RegistryError(f"{where}: `kinds` must be a non-empty array")
+    for position, kind in enumerate(kinds):
+        if not kind_valid(kind):
+            raise RegistryError(f"{where}: `kinds[{position}]` fails the §6.1.1 kind grammar")
+        if kind in REGENESIS_KINDS:
+            raise RegistryError(f"{where}: `kinds` lists {kind}, which §12.1 reserves for the owner")
+    for prior, kind in zip(kinds, kinds[1:]):
+        # Kinds are ASCII, so Python's code-point order is the bytewise order §13.3 requires.
+        if kind == prior:
+            raise RegistryError(f"{where}: `kinds` lists {kind!r} twice")
+        if kind < prior:
+            raise RegistryError(f"{where}: `kinds` must ascend bytewise ({kind!r} follows {prior!r})")
+    since = _utc(entry, "since_utc", where)
+    if entry.get("until_utc") is not None and _utc(entry, "until_utc", where) <= since:
+        raise RegistryError(f"{where}: `until_utc` must be null or after `since_utc` (§13.5)")
+    _utc(entry, "activated_utc", where)
+    _rappid(entry, "declared_by", where); _str(entry, "sig", where)
+
+
 def validate_entry(entry, where="entry"):
     """Refuse an entry that is not exactly a §13.3 entry of its type. Returns the type."""
     if not isinstance(entry, dict):
@@ -287,6 +321,8 @@ def validate_entry(entry, where="entry"):
         _rappid(entry, "rappid", where)
     elif t == "master-plan":
         _str(entry, "repo", where); _str(entry, "path", where)
+    elif t == "stream-signer":
+        _validate_stream_signer(entry, where)
     return t
 
 
@@ -301,6 +337,7 @@ class Registry:
         self.egg_variants = {}   # variant -> entry
         self.error_codes = set()
         self.spki = {}           # rappid -> entry
+        self.stream_signers = {}  # stream_id -> [stream-signer grants], append order (§13.5)
         self.tombstones = {}     # rappid -> revoked_utc (earliest)
         self.reanchors = []      # entries, in order
         self.genesis = {}        # stream_id -> list of entries
@@ -349,6 +386,8 @@ class Registry:
                 owners.append(e["rappid"])
             elif t == "master-plan":
                 self.master_plan = e
+            elif t == "stream-signer":
+                self.stream_signers.setdefault(e["stream_id"], []).append(e)
         if len(owners) != 1:
             raise RegistryError(f"exactly one estate_owner entry is required, found {len(owners)}")
         self.estate_owner = owners[0]
@@ -375,6 +414,7 @@ class Registry:
                     raise RegistryError(f"grail-kernel predecessor cycle through {gid}")
                 seen.add(cur)
                 cur = self.grail[cur]["predecessor"]
+        self._index_stream_signers()
         self._succession = {r["new_rappid"]: r for r in self.reanchors}
         succession_by_tail = {}
         for record in self.reanchors:
@@ -610,6 +650,145 @@ class Registry:
                 if entry["case"] == "compromise" and entry["old_rappid"] not in self.tombstones:
                     return False, "compromise re-anchor requires a registered tombstone"
         return True, "ok"
+
+    # ---- §13.5 stream signers ----
+    def _index_stream_signers(self):
+        """Check every grant the constructor collected against the rules that span entries
+        (§13.3): its signer has a §13 `spki` entry here — so it is keyed; a keyless rappid never
+        signs — and each listed kind a `kind` entry here whose family's stream form is the
+        grant's stream form (§7.2). Deprecated `spki` and `kind` entries still count: a grant is
+        permanent, and retiring a key or a kind later never invalidates the registry."""
+        for stream_id, grants in self.stream_signers.items():
+            form = stream_form(stream_id)
+            for grant in grants:
+                where = f"stream-signer for {grant['signer']} on {stream_id}"
+                if grant["signer"] not in self.spki:
+                    raise RegistryError(f"{where}: the signer has no spki entry in this registry (§13.3)")
+                for kind in grant["kinds"]:
+                    registered = self.kinds.get(kind)
+                    if registered is None:
+                        raise RegistryError(f"{where}: kind {kind!r} is not registered in this registry")
+                    if STREAM_FORMS[registered["family"]] != form:
+                        raise RegistryError(
+                            f"{where}: kind {kind!r} is family {registered['family']!r}, "
+                            f"incompatible with a {form} (§7.2)"
+                        )
+
+    @staticmethod
+    def _window_covers(grant, utc):
+        """since_utc ≤ utc < until_utc, bytewise over the fixed §7.4 form; a null until never ends."""
+        return grant["since_utc"] <= utc and (grant["until_utc"] is None or utc < grant["until_utc"])
+
+    def stream_grants(self, stream_id):
+        """The `stream-signer` grants for `stream_id` in append order (a new list; [] if none)."""
+        return list(self.stream_signers.get(stream_id, ())) if isinstance(stream_id, str) else []
+
+    def grant_covers(self, stream_id, kid, kind, utc):
+        """Does a grant for `stream_id` name `kid` as signer, list `kind`, and cover `utc`?
+
+        The grant window only; §10 key refusal and owner authority are authority_decision's."""
+        if not R.utc_valid(utc):
+            return False
+        return any(grant["signer"] == kid and kind in grant["kinds"] and self._window_covers(grant, utc)
+                   for grant in self.stream_grants(stream_id))
+
+    def authority_decision(self, stream_id, kid, kind, utc):
+        """The §13.5 rule over a frame summary: may `kid` speak for this estate on `stream_id`
+        with `kind` at `utc`? Returns (ok, reason); `kid` None means the frame is unsigned.
+
+        Authorized iff `kid` is the estate owner in effect at `utc` (§13.2), or a grant covers
+        `stream_id`, `kid`, `kind`, and `utc` — and in both cases §10 does not refuse the key at
+        `utc`. It decides authority, never validity: the frame must already have passed §7.5
+        (see frame_authorized). Pure: it reads only this registry."""
+        if kid is None:
+            return False, "an unsigned frame never speaks for the estate (§10, §13.5)"
+        if not R.rappid_valid(kid):
+            return False, "kid is not a §6.1 rappid"
+        if not R.utc_valid(utc):
+            return False, "utc is not the fixed §7.4 form"
+        try:
+            owner = self.owner_at(utc)
+        except RegistryError as why:
+            return False, str(why)
+        if kid == owner:
+            ok, why = self.signer_acceptable(kid, utc)
+            if not ok:
+                return False, f"the estate owner's key is refused at utc (§10): {why}"
+            return True, "estate owner"
+        named = [grant for grant in self.stream_grants(stream_id) if grant["signer"] == kid]
+        if not named:
+            return False, ("kid is neither the estate owner in effect at utc (§13.2) nor granted "
+                           "this stream by a stream-signer entry (§13.5)")
+        listing = [grant for grant in named if kind in grant["kinds"]]
+        if not listing:
+            return False, f"no stream-signer grant to kid on this stream lists kind {kind!r} (§13.5)"
+        if not any(self._window_covers(grant, utc) for grant in listing):
+            return False, "utc is outside every stream-signer window for kid, stream, and kind (§13.5)"
+        ok, why = self.signer_acceptable(kid, utc)
+        if not ok:
+            return False, f"the granted signer's key is refused at utc (§10): {why}"
+        return True, "stream-signer grant"
+
+    def frame_authorized(self, frame):
+        """The §13.5 authority rule ONLY — does this frame speak for the estate? (ok, reason).
+
+        !! IT DOES NOT VERIFY THE FRAME. Call it only for a frame that has ALREADY passed §7.5
+        !! — rapp.verify_frame(signature_verifier=self.signature_verifier()) plus
+        !! check_frame_binding — or call verify_authorized_frame, which runs all three. It reads
+        !! the signer from the protected `kid` without checking the signature, so its answer
+        !! for an unverified frame means nothing.
+
+        Refuses an unsigned frame (it never speaks for the estate, §10) and a `sig` whose
+        protected header does not parse; otherwise applies authority_decision to the frame's
+        `stream_id`, `kid`, `kind`, and `utc`. A refusal leaves the frame a valid `rapp/1` frame."""
+        if not isinstance(frame, dict):
+            return False, "frame is not a JSON object"
+        sig = frame.get("sig")
+        if sig is None:
+            return False, "an unsigned frame never speaks for the estate (§10, §13.5)"
+        try:
+            kid = R.parse_detached_jws(sig)[0]["kid"]
+        except (ValueError, TypeError) as why:
+            return False, f"sig is not a §10 detached JWS: {why}"
+        return self.authority_decision(frame.get("stream_id"), kid, frame.get("kind"), frame.get("utc"))
+
+    def verify_authorized_frame(self, frame, *, head, stream_id_of_record):
+        """§7.5 against this registry, then the §13.5 authority check. Returns (ok, step, why).
+
+        An invalid frame fails at its §7.5 step, "1" through "6"; the registered-kind and
+        family binding (check_frame_binding) is part of step 1. A valid `rapp/1` frame that does
+        not speak for the estate fails at step "authority", which is deliberately not a §7.5
+        step, so a caller can tell "not the estate's statement" from "not a frame". On success
+        step is None and why names the authority: "estate owner" or "stream-signer grant".
+        `head` is the stream's verified head (None at genesis); `stream_id_of_record` is the
+        stream being read or extended (§7.5 step 1a) and is required."""
+        if not isinstance(frame, dict):
+            return False, "1", "frame is not a JSON object"
+        if not isinstance(stream_id_of_record, str):
+            return False, "1a", "stream_id_of_record must name the stream being read or extended"
+        ok, step, why = R.verify_frame(frame, head=head, stream_id_of_record=stream_id_of_record,
+                                       signature_verifier=self.signature_verifier())
+        if not ok and step == "1":
+            return False, step, why
+        bound, bound_why = self.check_frame_binding(frame)
+        if not bound:
+            return False, "1", bound_why
+        if not ok:
+            return False, step, why
+        authorized, why = self.frame_authorized(frame)
+        if not authorized:
+            return False, "authority", why
+        return True, None, why
+
+    def authorization_verifier(self):
+        """A callable `(frame, purpose=None) -> bool` for the `authorization_verifier` parameter of
+        rapp_profile.authoritative_frame_payload: True only when frame_authorized(frame) holds.
+        That helper asks only after its own rapp.verify_frame — pass it
+        signature_verifier=self.signature_verifier() — so the signature is verified first, as
+        frame_authorized requires. `purpose` is accepted and never widens authority."""
+        def authorized(frame, purpose=None):
+            return self.frame_authorized(frame)[0]
+        return authorized
 
 
 def validate_document(doc):
