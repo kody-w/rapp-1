@@ -44,6 +44,20 @@ internals, customer content and anything a reader here has no business seeing.
       `egg-variant` registry entry. Both cannot be the rule. A vendor variant is registrable but
       not packable by the reference until one is chosen.
 
+- [ ] **Registry capacity (rev-N+1 candidate; not blocking the rev-17 LTS lock).** §4 caps a
+      registry at 1 MiB canonical and §13.3 makes every entry append-only, so an estate's registry
+      has a lifetime budget. With realistic URIs and an EdDSA signature a rev-17 declared entry is
+      about 0.65–0.95 KB, so a registry holds roughly 1,100–1,500 declared entries beside its other
+      entries. At one entry per release, notices only for changes, and newest pinned at milestones
+      that lasts years; a continuation — a successor document that carries retained entries forward
+      by hash — needs its own design before an estate approaches the cap.
+
+- [ ] **`rapp.utc_valid` accepts non-ASCII digits in the year.** Python's `\d` matches other
+      scripts' digits, so `٢٠٢٦-08-01T00:00:00.000Z` passes it, though §7.4's form is 24 ASCII
+      octets and bytewise order equals time order only for those. `rapp_registry` refuses such values
+      in every registry time member and query; frames still go through `rapp.py`, which is
+      parity-pinned, so its fix and a conformance vector belong to a reviewed reference change.
+
 ## Known limit
 
 `raw.githubusercontent.com/.../main/...` is CDN-cached for several minutes and ignores

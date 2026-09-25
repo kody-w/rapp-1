@@ -69,7 +69,8 @@ same holds for every declared entry (§13.4: `grail-kernel`, `release-pin`,
 the per-entry 300-second first-seen bound — a signed registry carrying a declared
 entry is refused without one — and `persisted_entries=` refuses a later registry that
 dropped or changed a declaration. A copy of a declared entry found outside the registry
-counts only when it is byte-identical to one the registry carries.
+counts only when its canonical form equals one the registry carries — the same JSON value, however
+it is formatted — and `Registry.declared_entry_ok(copy)` answers that only for a verified registry.
 The issuer must be the owner in tenure at the authenticated issuance/action
 time; an owner's own succession record is signed by the outgoing owner at that
 boundary, after checking that its tenure is nonempty and chronologically
@@ -108,7 +109,9 @@ bytes and reports it as unverified evidence: it has authority only through a ver
 `Registry.lifecycle_state_at(subject, utc)` answers from a subject's signed
 `lifecycle` chain (§13.6) whether it was active, deprecated, superseded, or archived
 at that time, and returns `None` — never a guessed deprecation — when none of the
-estate's notices is in effect then. A subject is an organism's rappid or, for a
+estate's notices is in effect then. It answers only for a registry `load_document`
+returned as "verified" (a draft only with `allow_draft=True`); a `Registry` you built
+directly raises instead, so a `None` always means "no notice", never "not checked". A subject is an organism's rappid or, for a
 repository that never minted one, its HTTPS URI spelled exactly as your release
 manifests spell it; `lifecycle_subject(component)` picks the right one for a release
 component, so a station keeps a signed lifecycle without an identity of its own, and

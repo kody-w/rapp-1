@@ -37,10 +37,12 @@ Evidence is quoted from `main` at `591e014` (rev-16).
 | 8a | Registry container | **Yes** | `EXTENDING.md`: "nothing names the member that holds the entries or how `canonical_source` is carried". | §13.1 names exactly `schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; any other member carries no meaning. The published registry already has this shape and still verifies. |
 | 8b | Entry-level signatures | **Yes** | §13.3 `grail-kernel`: "A consumer verifies the entry signer as the estate owner in effect at `activated_utc`"; §11.1: `activated_utc` "**MUST NOT** be more than 300 seconds after the verifier's first-seen time". The reference checked only tombstone and re-anchor signatures. | §13.4 declared entries: owner-in-effect signature at `activated_utc`, a per-entry first-seen bound, byte-identical copies only, and retention of every accepted declaration. |
 | 8c | LTS corrections | **Yes, inside 1** | §11.1: "at most one `grail-kernel` entry for each `grail_id`" and "an existing scope is never rebound": a correction that keeps kernel v0.6.9 cannot declare it again under a new scope. | A release scope names a release **family** with at most one kernel; its releases are successive `release-pin` entries in one channel. A new kernel is a new family (a new scope). |
-| 8d | Reference answers from unverified registries | tooling | `Registry.protocols` returned the first pin per name — for the published registry, a deprecated one; authority answers ignored whether the registry had been verified. | `current_protocol` returns the sole non-deprecated pin; `verify_snapshot`, `frame_authorized`, and `verify_authorized_frame` answer only for a registry `load_document` returned as verified (a draft only with `allow_draft=True`). |
+| 8d | Reference answers from unverified registries | tooling | `Registry.protocols` returned the first pin per name — for the published registry, a deprecated one; authority answers ignored whether the registry had been verified. | `current_protocol` returns the sole non-deprecated pin. Every answer — `verify_snapshot`, `frame_authorized`, `verify_authorized_frame`, the lifecycle in effect (`lifecycle_at`, `lifecycle_state_at`, `successor_at`), and `declared_entry_ok` for a copy — comes only from a registry `load_document` returned as verified (a draft only with `allow_draft=True`); structural accessors stay readable. Registry time values must be ASCII, because the frozen `rapp.utc_valid` also accepts other scripts' digits. |
 
 Not blocking the lock, and left open in `rapp-backlog.md`: tombstone issuance time, kind ownership across
-estates, egg-variant closure. One limit is recorded for estates rather than changed here: profile adoption
+estates, egg-variant closure, the registry's lifetime capacity (§6), and a `rapp.utc_valid` fix for
+non-ASCII digits in frames (the registry already refuses them; `rapp.py` changes only through its parity
+process). One limit is recorded for estates rather than changed here: profile adoption
 pins are estate-wide, and `rapp-work/1` requires exactly one active pin per profile name whose hash is the
 implementation's own, so the LTS line and the newest channel share each profile text. A changed profile
 text is therefore a new profile name (for example `rapp-work/2`) adopted beside the old one, never a moved
@@ -72,9 +74,10 @@ so that a release of about 300 repositories costs one registry entry.
 
 Every declared entry carries `activated_utc`, `declared_by`, and `sig`. `sig` is a detached §10 JWS by the
 estate owner in effect at `activated_utc` (`kid` = `declared_by`) over `canonical(entry \ {sig})`, and the
-entry is refused whole if that fails (§13.4). Every accepted declaration is retained byte-for-byte by
-every later registry; a copy elsewhere counts only when it is byte-identical to an entry of an accepted
-registry. `H("rapp/1:particle", entry)` over the complete signed entry names it.
+whole registry is refused if one entry fails (§13.4). An entry's bytes are its canonical form (§4): every
+accepted declaration is retained unchanged by every later registry, and a copy elsewhere counts only when
+its canonical form equals that of an entry of an accepted registry, however it is formatted.
+`H("rapp/1:particle", entry)` over the complete signed entry names it.
 
 ```text
 release-pin   {type:"release-pin", release_scope, channel, predecessor, manifest_hash,
@@ -104,13 +107,15 @@ registry      {schema:"rapp/1-registry", registry_seq, canonical_source, entries
   `H("rapp/1:particle", earlier entry)`; `since_utc` and `activated_utc` never decrease; the notice in
   effect at `t` is the last whose `since_utc` ≤ `t`. The successors in effect at any one time never form a
   cycle. A component's lifecycle is read from its `rappid` when it binds one, otherwise from its
-  `repository`. A notice grants and revokes nothing.
+  `repository`. A re-anchor moves no chain: the new rappid has notices only if the estate declares them.
+  A notice grants and revokes nothing.
 - **Stream signers (§13.7).** `signer` is a keyed rappid with an `spki` entry in the same registry; `kinds`
   are registered kinds (deprecated or not) whose family fits `stream_id`'s form, strictly ascending, and
   never a re-genesis kind; the window is `since_utc` ≤ `utc` < `until_utc` (or open). A consumer that
   follows no profile-defined signer rule treats a verified frame as the estate's statement only when its
   `kid` is the owner in effect or a covering grant's signer. Unsigned frames never speak for the estate.
-  Grants are never inherited across a rotation.
+  Grants are never inherited across a rotation. A registry whose grants break these rules is refused
+  whole.
 
 The exact JSON Schemas are in the appendix.
 
@@ -176,8 +181,14 @@ unverified until the estate that pins this root is anchored". Rev-17 answers bot
 - **Loading and persistence.** Load a signed registry that carries declared entries with
   `verification_utc=` (first sighting) or `first_seen=` (from persisted first-seen times), persist every
   accepted declared entry, and pass them back as `persisted_entries=` next time.
-- **Size.** The registry is capped at 1 MiB canonical; a declared entry is roughly half a kilobyte, and a
-  release costs one entry however many components it pins.
+- **Size.** The registry is capped at 1 MiB canonical (§4) and every entry is append-only, so it has a
+  lifetime budget. With realistic URIs and an EdDSA signature a declared entry is 0.65–0.95 KB (a
+  `release-pin` about 0.95 KB, a notice 0.65–0.75 KB, a grant about 0.75 KB); the published registry's
+  other entries take about 4 KB. That leaves room for roughly 1,100–1,500 declared entries, ever. A
+  release costs one entry however many components it pins, so spend them on releases and changes: pin
+  every LTS correction, pin the newest channel at milestones rather than every build, and declare
+  notices only for changes. At that cadence the budget lasts years; a continuation mechanism is recorded
+  in `rapp-backlog.md` for design before an estate approaches the cap.
 
 ## 7. Owner-only choices
 

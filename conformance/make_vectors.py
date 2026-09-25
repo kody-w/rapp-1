@@ -749,7 +749,11 @@ def registry_sections():
             notice(epsilon, "active", since=t1, previous=e1, activated=t2),  # a correction withdraws gamma
             notice(handbook, "superseded", since=t2, previous=h1, superseded_by=docs, activated=t1),  # a move
         ]
-        registry = REG.Registry(timeline)
+        # The lifecycle in effect is an answer, given only by a loaded registry; these vectors are
+        # unsigned, so the timeline loads as a draft and is asked as a rehearsal (allow_draft=True).
+        status, registry, why = REG.load_document(document(timeline, sig=None), trust_anchor=owner,
+                                                  allow_unsigned=True)
+        assert status == "draft", why
         times = (earlier, T0, just_before_t1, t1, t2, t3, future)
         intended = {  # subject -> (state, superseded_by) in effect at each of `times`
             alpha: ((None, None), ("active", None), ("active", None), ("deprecated", beta),
@@ -768,7 +772,8 @@ def registry_sections():
         queries = []
         for subject, answers in intended.items():
             for utc, expected in zip(times, answers):
-                answer = (registry.lifecycle_state_at(subject, utc), registry.successor_at(subject, utc))
+                answer = (registry.lifecycle_state_at(subject, utc, allow_draft=True),
+                          registry.successor_at(subject, utc, allow_draft=True))
                 assert answer == expected, (subject, utc, answer)
                 queries.append({"subject": subject, "utc": utc, "state": answer[0], "superseded_by": answer[1]})
 

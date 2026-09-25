@@ -475,8 +475,9 @@ class ReleasePinDeclarationTests(unittest.TestCase):
 
     def test_an_exact_copy_verifies_apart_from_its_document(self):
         pin = self.world.pin(self.manifest)
+        status, reg, why = self.world.load([pin])
+        self.assertEqual((status, why), ("verified", "ok"))
         with self.world.estate.mocked():
-            reg = REG.Registry(self.world.estate.base_entries() + [pin])
             self.assertEqual(reg.declared_entry_ok(copy.deepcopy(pin)), (True, "ok"))
             altered = dict(pin, manifest_hash="e" * 64)
             self.assertFalse(reg.declared_entry_ok(altered)[0])

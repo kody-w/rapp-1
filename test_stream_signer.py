@@ -185,6 +185,19 @@ class GrantStructureTests(Base):
                         REG.validate_entry(grant)
 
 
+class GrantTimeFormTests(Base):
+    def test_time_values_are_the_ascii_fixed_form(self):
+        year = "\u0662\u0660\u0662\u0666-08-01T00:00:00.000Z"  # Arabic-Indic digits pass rapp.utc_valid
+        self.assertTrue(R.utc_valid(year))
+        for member in ("since_utc", "until_utc", "activated_utc"):
+            with self.subTest(member=member):
+                self.refused([self.grant(**{member: year})])
+        reg = self.registry([self.grant(until_utc=None)])
+        self.assertFalse(reg.grant_covers(self.station, self.keys["signer"], "body.pulse", year))
+        self.assertEqual(reg.authority_decision(self.station, self.keys["signer"], "body.pulse", year),
+                         (False, "utc is not the fixed §7.4 form"))
+
+
 class GrantCrossEntryTests(Base):
     def test_the_signer_needs_an_spki_entry_in_this_registry(self):
         entries = [e for e in self.base() if e.get("rappid") != self.keys["signer"]]
@@ -534,6 +547,12 @@ class AuthorityStatusTests(Base):
                                                          allow_draft=True), (True, None, "stream-signer grant"))
             self.assertFalse(reg.authorization_verifier()(frame))
             self.assertTrue(reg.authorization_verifier(allow_draft=True)(frame))
+
+    def test_an_unverified_registry_is_refused_before_it_judges_the_frame(self):
+        reg = REG.Registry(self.estate.base_entries())  # registers no kind, and nothing verified it
+        ok, step, why = self.verify(reg, self.pulse(INSIDE))
+        self.assertEqual((ok, step), (False, "authority"))  # not "1": its kinds cannot judge the frame
+        self.assertIn("registry status is None", why)
 
     def test_a_verified_registry_answers(self):
         status, reg, why = self.load([self.grant()], verification_utc=LATER)

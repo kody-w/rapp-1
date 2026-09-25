@@ -60,7 +60,12 @@ class LifecycleCase(unittest.TestCase):
         return self.estate.declare(entry, signer or declared)
 
     def registry(self, *entries):
-        return REG.Registry(self.estate.base_entries() + list(entries))
+        """The §13.6 rules over these entries. Its `status` stands in for load_document's "verified":
+        the signed path is exercised by the load() tests and the real-key class, and the status
+        gate itself by LifecycleStatusTests."""
+        registry = REG.Registry(self.estate.base_entries() + list(entries))
+        registry.status = "verified"
+        return registry
 
     def assertRefused(self, *entries, reason=None):
         with self.assertRaises(REG.RegistryError) as caught:
@@ -184,6 +189,38 @@ class LifecycleSubjectTests(LifecycleCase):
         registry = self.registry(self.notice(bound["repository"], "archived"), self.notice(self.HANDBOOK, "archived"))
         self.assertIsNone(registry.lifecycle_state_at(REG.lifecycle_subject(bound), T0))
         self.assertEqual(registry.lifecycle_state_at(REG.lifecycle_subject(unbound), T0), "archived")
+
+
+class LifecycleStatusTests(LifecycleCase):
+    """The lifecycle in effect is the estate's answer: only a verified registry gives it."""
+
+    def test_a_registry_built_directly_never_answers(self):
+        built = REG.Registry(self.estate.base_entries() + [self.notice(ALPHA, "archived")])
+        for ask in (built.lifecycle_at, built.lifecycle_state_at, built.successor_at):
+            with self.subTest(ask=ask.__name__):
+                with self.assertRaisesRegex(REG.RegistryError, "registry status is None"):
+                    ask(ALPHA, T1)  # raised, never a None that would read as "no notice"
+                with self.assertRaisesRegex(REG.RegistryError, "registry status is None"):
+                    ask(ALPHA, T1, allow_draft=True)
+        # Structure stays readable: the chain and its current notice.
+        self.assertEqual(built.lifecycle_head(ALPHA)["state"], "archived")
+
+    def test_a_verified_registry_answers(self):
+        status, registry, why = self.load([self.notice(ALPHA, "archived", superseded_by=BETA)])
+        self.assertEqual((status, why), ("verified", "ok"))
+        self.assertEqual((registry.lifecycle_state_at(ALPHA, T1), registry.successor_at(ALPHA, T1)),
+                         ("archived", BETA))
+
+    def test_time_values_are_the_ascii_fixed_form(self):
+        arabic_indic_year = "\u0662\u0660\u0662\u0666-08-01T00:00:00.000Z"  # passes rapp.utc_valid
+        self.assertTrue(R.utc_valid(arabic_indic_year))
+        for member in ("since_utc", "activated_utc"):
+            with self.subTest(member=member):
+                self.assertRefused(dict(self.notice(ALPHA, "active"), **{member: arabic_indic_year}),
+                                   reason=re.escape(f"`{member}`"))
+        registry = self.registry(self.notice(ALPHA, "active"))
+        with self.assertRaisesRegex(REG.RegistryError, "fixed §7.4"):
+            registry.lifecycle_state_at(ALPHA, arabic_indic_year)
 
 
 class LifecycleChainTests(LifecycleCase):
@@ -550,7 +587,9 @@ class LifecycleSignatureTests(LifecycleCase):
         draft = self.estate.document(self.estate.base_entries() + [a1, a2], signed=False)
         status, registry, _ = self.estate.load(draft, allow_unsigned=True)
         self.assertEqual(status, "draft")
-        self.assertEqual(registry.lifecycle_state_at(ALPHA, T1), "deprecated")
+        with self.assertRaisesRegex(REG.RegistryError, "registry status is 'draft'"):
+            registry.lifecycle_state_at(ALPHA, T1)  # a draft is never the estate's answer
+        self.assertEqual(registry.lifecycle_state_at(ALPHA, T1, allow_draft=True), "deprecated")
         broken = self.estate.document(self.estate.base_entries() + [a2, a1], signed=False)
         self.assertEqual(self.estate.load(broken, allow_unsigned=True)[0], "refused")
 

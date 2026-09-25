@@ -228,9 +228,13 @@ class DeclaredEntryTests(unittest.TestCase):
 
     def test_an_exact_copy_verifies_apart_from_its_document(self):
         entry = self.estate.grail_kernel()
+        status, reg, why = self.load([entry])
+        self.assertEqual((status, why), ("verified", "ok"))
         with self.estate.mocked():
-            reg = REG.Registry(self.estate.base_entries() + [entry])
             self.assertEqual(reg.declared_entry_ok(copy.deepcopy(entry)), (True, "ok"))
+            # A copy is compared by its canonical form (§4): the same value, however it is formatted.
+            reformatted = json.loads(json.dumps(dict(reversed(list(entry.items()))), indent=2))
+            self.assertEqual(reg.declared_entry_ok(reformatted), (True, "ok"))
             altered = copy.deepcopy(entry)
             altered["commit"] = "3" * 40
             self.assertFalse(reg.declared_entry_ok(altered)[0])
@@ -238,13 +242,30 @@ class DeclaredEntryTests(unittest.TestCase):
             self.assertFalse(reg.declared_entry_ok({"type": ["grail-kernel"]})[0])
             self.assertFalse(reg.declared_entry_ok(self.estate.spki("worker"))[0])
 
+    def test_only_an_accepted_registry_says_a_copy_is_a_declaration(self):
+        entry = self.estate.grail_kernel()
+        with self.estate.mocked():
+            built = REG.Registry(self.estate.base_entries() + [entry])  # nothing verified it
+            ok, why = built.declared_entry_ok(copy.deepcopy(entry))
+            self.assertFalse(ok)
+            self.assertIn("registry status is None", why)
+            self.assertFalse(built.declared_entry_ok(entry, allow_draft=True)[0])
+            document = self.estate.document(self.estate.base_entries() + [entry], signed=False)
+            status, draft, _ = REG.load_document(document, trust_anchor=self.estate.keys["owner"],
+                                                 allow_unsigned=True)
+            self.assertEqual(status, "draft")
+            self.assertIn("registry status is 'draft'", draft.declared_entry_ok(entry)[1])
+            self.assertEqual(draft.declared_entry_ok(entry, allow_draft=True), (True, "ok"))
+
     def test_a_well_signed_copy_the_registry_does_not_carry_is_not_a_declaration(self):
         rotation = self.estate.reanchor("owner", "successor", signer="owner",
                                         utc="2026-07-15T00:00:00.000Z")
         carried = self.estate.grail_kernel(declared="successor", activated=LATER)
         base = self.estate.base_entries(owner="successor")
+        status, reg, why = self.estate.load(self.estate.document(base + [rotation, carried], owner="successor"),
+                                            owner="successor")
+        self.assertEqual((status, why), ("verified", "ok"))
         with self.estate.mocked():
-            reg = REG.Registry(base + [rotation, carried])
             self.assertEqual(reg.declared_entry_ok(carried), (True, "ok"))
             unregistered = self.estate.grail_kernel(scope="https://releases.example.test/scope/new",
                                                     declared="successor", activated=LATER)

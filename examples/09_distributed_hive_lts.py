@@ -263,29 +263,37 @@ refused("a mirror serving a manifest that makes the monorepo the door is refused
         lambda: REG.verify_snapshot(reg, hostile_mirror, channel="lts", allow_draft=True))
 
 # ── 7. A lifecycle notice supersedes one member, from its since_utc on. ──
-print("\nlifecycle notices (§13.6):")
-for utc, state, successor in (("2026-10-15T00:00:00.000Z", "active", None), (NOV, "superseded", ledger_next)):
-    show(f"ledger at {utc[:10]}: {state}" + (" by ledger-next" if successor else ""),
-         reg.lifecycle_state_at(ledger, utc) == state and reg.successor_at(ledger, utc) == successor)
+print("\nlifecycle notices (§13.6) — an answer the drafts give only as a rehearsal (allow_draft=True):")
+def state(subject, utc):
+    return reg.lifecycle_state_at(subject, utc, allow_draft=True)
+def successor(subject, utc):
+    return reg.successor_at(subject, utc, allow_draft=True)
+for utc, expected, heir in (("2026-10-15T00:00:00.000Z", "active", None), (NOV, "superseded", ledger_next)):
+    show(f"ledger at {utc[:10]}: {expected}" + (" by ledger-next" if heir else ""),
+         state(ledger, utc) == expected and successor(ledger, utc) == heir)
 show("declared on 1 October, the notice is current before it is in effect",
-     reg.lifecycle_head(ledger)["since_utc"] == NOV and reg.lifecycle_state_at(ledger, OCT) == "active")
+     reg.lifecycle_head(ledger)["since_utc"] == NOV and state(ledger, OCT) == "active")
 show("a member with no notice has no declared lifecycle — never a guessed deprecation",
-     reg.lifecycle_state_at(widget, NOV) is None)
+     state(widget, NOV) is None)
 show("the LTS head still pins ledger and the 2.1 family carries ledger-next: a notice rebinds no release",
      ("ledger", "soul.md") in snapshot and ("ledger-next", "soul.md") in newest)
 handbook = next(c for c in pinned["components"] if c["id"] == "handbook")
 subject = REG.lifecycle_subject(handbook)  # no rappid, so its repository is what the notices name
-show("the handbook station, which never minted a rappid, is named by its repository", subject == GIT + "handbook")
+show("the handbook station, which never minted a rappid, is named by its repository",
+     subject == GIT + "handbook")
 show("its move is a signed notice too: from November it is superseded by the docs repository",
-     reg.lifecycle_state_at(subject, OCT) is None and reg.lifecycle_state_at(subject, NOV) == "superseded"
-     and reg.successor_at(subject, NOV) == GIT + "docs")
+     state(subject, OCT) is None and state(subject, NOV) == "superseded"
+     and successor(subject, NOV) == GIT + "docs")
+refused("a registry built directly, which nothing verified, never answers what is in effect",
+        lambda: REG.Registry(october).lifecycle_state_at(ledger, NOV))
 refused("ledger-next superseded by ledger from the same day: the successors in effect never loop",
         lambda: REG.Registry(october + [notice(ledger_next, "superseded", NOV, OCT, superseded_by=ledger)]))
 
 # ── 8. The network organism's pulse: unsigned first, then spoken for by a granted key. ──
 print("\nthe network organism's body.pulse stream (§13.7):")
 for pulse, head in zip(pulses, [None] + pulses):
-    ok, step, why = reg.verify_authorized_frame(pulse, head=head, stream_id_of_record=network, allow_draft=True)
+    ok, step, why = reg.verify_authorized_frame(pulse, head=head, stream_id_of_record=network,
+                                                allow_draft=True)
     show(f"unsigned pulse {pulse['seq']} is a valid rapp/1 frame that does not speak for the estate",
          (ok, step) == (False, "authority"), why)
 later = [pulses[1]]

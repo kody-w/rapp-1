@@ -18,7 +18,7 @@ What is fully specified by §13 and enforced here:
   - one non-deprecated genesis per stream (§7.6); one grail-kernel per grail_id (§11.1);
   - declared entries (§13.4): each entry-level owner signature at its own
     `activated_utc`, never blessed by the enclosing document signature, and
-    byte-for-byte retention of persisted entries once a caller has accepted them;
+    retention of persisted entries, unchanged in canonical form (§4), once a caller has accepted them;
   - release pins (§13.5): a release scope names a release family; each pinned release of it
     is one `release-pin` entry naming its manifest by a `manifest_hash` no other
     release-pin shares; a family lives in one channel, each channel is one linear chain of
@@ -35,6 +35,11 @@ What is fully specified by §13 and enforced here:
     rule — a verified frame speaks for the estate only when its `kid` is the owner in effect
     or a signer granted its stream, kind, and time;
   - owner-signature verification over canonical(document \\ {sig}).
+
+Structural accessors — chains, heads, pins, grants, `authority_decision` — read whatever registry you
+hold. Answers — a verified snapshot, whether a frame speaks for the estate, the lifecycle in effect,
+whether a copy is a declaration — come only from a registry `load_document` returned as "verified"; a
+"draft" gives them only with `allow_draft=True`, as a rehearsal, and a Registry built directly never.
 
 What stays the caller's responsibility, because a snapshot cannot prove it:
   - freshness, trusted heads, registry high-water marks, first-seen times, and the
@@ -76,7 +81,7 @@ ENTRIES_MEMBER = "entries"
 DOCUMENT_MEMBERS = ("schema", "registry_seq", "canonical_source", ENTRIES_MEMBER, "sig")
 
 # §13.4 — entry types that carry their own owner signature at `activated_utc`.
-# Every declared entry is persisted: once accepted, it is retained byte-for-byte.
+# Every declared entry is persisted: once accepted, it is retained with its canonical form unchanged.
 DECLARED_TYPES = ("grail-kernel", "release-pin", "lifecycle", "stream-signer")
 PERSISTED_TYPES = DECLARED_TYPES
 FIRST_SEEN_SKEW_SECONDS = 300
@@ -117,8 +122,15 @@ def entry_hash(entry):
     return R.H("rapp/1:particle", entry)
 
 
+def _utc_form(value):
+    """`rapp.utc_valid`, restricted to ASCII. Python's `\\d` also matches other scripts' digits, but the
+    fixed §7.4 form is 24 ASCII octets, and only for those does bytewise order equal time order —
+    which every time comparison in this module relies on."""
+    return R.utc_valid(value) and value.isascii()
+
+
 def _utc_seconds(value, where):
-    if not R.utc_valid(value):
+    if not _utc_form(value):
         raise RegistryError(f"{where}: not the fixed §7.4 UTC form")
     parsed = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
     return parsed.timestamp()
@@ -204,7 +216,7 @@ def _rappid(entry, member, where):
 
 
 def _utc(entry, member, where):
-    if not R.utc_valid(entry.get(member)):
+    if not _utc_form(entry.get(member)):
         raise RegistryError(f"{where}: `{member}` is not the fixed §7.4 UTC form")
     return entry[member]
 
@@ -649,17 +661,26 @@ class Registry:
         return self.protocols.get(name)
 
     # ---- §13.4 declared entries ----
-    def declared_entry_ok(self, entry, *, verification_utc=None):
-        """Check one declared entry of this registry (§13.4 items 1–3).
+    def declared_entry_ok(self, entry, *, verification_utc=None, allow_draft=False):
+        """Is `entry` a declaration of this estate? (ok, why) — §13.4 items 1–3 for one entry.
 
         `entry` may be the registry's own entry or a copy found elsewhere (a Hive
-        notice, a member file); a copy counts only when it is byte-for-byte an entry
-        this registry carries — a declaration no accepted registry carries is not a
-        declaration, however well signed. `verification_utc`, when given, is the
-        verifier's first-seen time for the entry; `activated_utc` may not exceed it by
-        more than 300 seconds. Without it this method does not apply that rule; the
-        loader does (`check_declared_signatures` refuses when no first-seen context is
-        supplied)."""
+        notice, a member file); a copy counts only when its canonical form (§4) equals an
+        entry this registry carries — a declaration no accepted registry carries is not a
+        declaration, however well signed. It answers only for a registry load_document
+        returned as "verified" (a "draft" only with `allow_draft=True`, as a rehearsal; a
+        Registry built directly never), since only an accepted registry makes a copy count.
+        `verification_utc`, when given, is the verifier's first-seen time for the entry;
+        `activated_utc` may not exceed it by more than 300 seconds. Without it this method
+        does not apply that rule; the loader does (`check_declared_signatures` refuses when no
+        first-seen context is supplied)."""
+        refusal = self._status_refusal(allow_draft, "whether a copy is one of its declarations (§13.4)")
+        if refusal:
+            return False, refusal
+        return self._declared_entry_check(entry, verification_utc)
+
+    def _declared_entry_check(self, entry, verification_utc):
+        """§13.4 items 1–3 against these entries, whatever this registry's status (the loader's step)."""
         try:
             kind = validate_entry(entry, "declared entry")
         except RegistryError as why:
@@ -671,7 +692,7 @@ class Registry:
         except ValueError as why:
             return False, str(why)
         if not carried:
-            return False, f"{kind}: not an entry of this registry (§13.4 — a copy must be byte-identical)"
+            return False, f"{kind}: not an entry of this registry (§13.4 — a copy must have a carried entry's canonical form)"
         activated, signer = entry["activated_utc"], entry["declared_by"]
         try:
             owner = self.owner_at(activated)
@@ -715,15 +736,15 @@ class Registry:
                         seen = first_seen(entry_hash(entry))
                     except (KeyError, ValueError) as why:
                         return False, f"first-seen context refused: {why}"
-                if not R.utc_valid(seen):
+                if not _utc_form(seen):
                     return False, "first-seen context did not supply a valid UTC (§13.4 item 3)"
-                ok, why = self.declared_entry_ok(entry, verification_utc=seen)
+                ok, why = self._declared_entry_check(entry, seen)
                 if not ok:
                     return False, why
         return True, "ok"
 
     def check_retained(self, persisted_entries):
-        """§13.4 retention: every previously accepted persisted entry is still here, byte for byte;
+        """§13.4 retention: every previously accepted persisted entry is still here, canonical form unchanged;
         then the §13.5 release history against those same entries."""
         persisted_entries = list(persisted_entries)  # read twice: presence, then release history
         present = {R.canonical(e) for e in self.entries if e["type"] in PERSISTED_TYPES}
@@ -775,7 +796,7 @@ class Registry:
                     utc = tombstone_issued_at(R.H("rapp/1:particle", entry))
                 except (KeyError, ValueError) as why:
                     return False, f"tombstone issuance context refused: {why}"
-                if not R.utc_valid(utc):
+                if not _utc_form(utc):
                     return False, "tombstone issuance context did not supply a valid UTC"
             else:
                 utc = entry["utc"]
@@ -977,12 +998,18 @@ class Registry:
         chain = self.lifecycle_chain(subject)
         return chain[-1] if chain else None
 
-    def lifecycle_at(self, subject, utc):
+    def lifecycle_at(self, subject, utc, *, allow_draft=False):
         """The notice in effect at `utc`: the last chain entry whose `since_utc` <= `utc`
         (bytewise, §7.4). None means no declared lifecycle at `utc` — never deprecation.
-        A `utc` that is not the fixed §7.4 form raises RegistryError (a ValueError). For a
-        component of a release manifest, ask about `lifecycle_subject(component)`."""
-        if not R.utc_valid(utc):
+        It is the estate's answer, so it is given only by a registry load_document returned as
+        "verified" (a "draft" only with `allow_draft=True`, as a rehearsal; a Registry built
+        directly never): otherwise, and for a `utc` that is not the fixed §7.4 form, it raises
+        RegistryError (a ValueError) rather than return a None that could read as "no notice".
+        For a component of a release manifest, ask about `lifecycle_subject(component)`."""
+        refusal = self._status_refusal(allow_draft, "the lifecycle in effect (§13.6)")
+        if refusal:
+            raise RegistryError(refusal)
+        if not _utc_form(utc):
             raise RegistryError("lifecycle query time is not the fixed §7.4 UTC form")
         in_effect = None
         for notice in self.lifecycle_chain(subject):
@@ -991,17 +1018,19 @@ class Registry:
             in_effect = notice
         return in_effect
 
-    def lifecycle_state_at(self, subject, utc):
-        """The subject's state in effect at `utc`; None when it has no declared lifecycle then."""
-        notice = self.lifecycle_at(subject, utc)
+    def lifecycle_state_at(self, subject, utc, *, allow_draft=False):
+        """The subject's state in effect at `utc`; None when it has no declared lifecycle then.
+        Gated like lifecycle_at."""
+        notice = self.lifecycle_at(subject, utc, allow_draft=allow_draft)
         return None if notice is None else notice["state"]
 
-    def successor_at(self, subject, utc):
+    def successor_at(self, subject, utc, *, allow_draft=False):
         """The `superseded_by` of the notice in effect at `utc` — a rappid or a repository URI —
         or None when no notice is in effect then or it names no successor, so a scheduled notice
         names none before its `since_utc`. It names; it grants nothing. The successors in effect
-        at any one time never form a cycle (§13.6), so a walk along them at one time always ends."""
-        notice = self.lifecycle_at(subject, utc)
+        at any one time never form a cycle (§13.6), so a walk along them at one time always ends.
+        Gated like lifecycle_at."""
+        notice = self.lifecycle_at(subject, utc, allow_draft=allow_draft)
         return None if notice is None else notice["superseded_by"]
 
     # ---- §13.7 stream signers ----
@@ -1040,7 +1069,7 @@ class Registry:
         """Does a grant for `stream_id` name `kid` as signer, list `kind`, and cover `utc`?
 
         The grant window only; §10 key refusal and owner authority are authority_decision's."""
-        if not R.utc_valid(utc):
+        if not _utc_form(utc):
             return False
         return any(grant["signer"] == kid and kind in grant["kinds"] and self._window_covers(grant, utc)
                    for grant in self.stream_grants(stream_id))
@@ -1063,7 +1092,7 @@ class Registry:
             return False, "an unsigned frame never speaks for the estate (§10, §13.7)"
         if not R.rappid_valid(kid):
             return False, "kid is not a §6.1 rappid"
-        if not R.utc_valid(utc):
+        if not _utc_form(utc):
             return False, "utc is not the fixed §7.4 form"
         try:
             owner = self.owner_at(utc)
@@ -1088,15 +1117,15 @@ class Registry:
             return False, f"the granted signer's key is refused at utc (§10): {why}"
         return True, "stream-signer grant"
 
-    def _authority_status_refusal(self, allow_draft):
-        """None when this registry's authority answers may be given; else the refusal reason.
+    def _status_refusal(self, allow_draft, question):
+        """None when this registry may answer `question` for the estate; else the refusal reason.
         Like verify_snapshot: "verified" always, "draft" only with allow_draft (a rehearsal),
         and a Registry built directly (status None) never."""
         accepted = ("verified", "draft") if allow_draft else ("verified",)
         if self.status in accepted:
             return None
         return (f"registry status is {self.status!r}; only a registry that load_document returned as "
-                f"{' or '.join(accepted)} answers who speaks for the estate (§13.1, §13.7)")
+                f"{' or '.join(accepted)} answers {question}")
 
     def frame_authorized(self, frame, *, allow_draft=False):
         """The §13.7 authority rule ONLY — does this frame speak for the estate? (ok, reason).
@@ -1113,7 +1142,7 @@ class Registry:
         never speaks for the estate, §10) and a `sig` whose protected header does not parse;
         otherwise applies authority_decision to the frame's `stream_id`, `kid`, `kind`, and
         `utc`. A refusal leaves the frame a valid `rapp/1` frame."""
-        refusal = self._authority_status_refusal(allow_draft)
+        refusal = self._status_refusal(allow_draft, "who speaks for the estate (§13.7)")
         if refusal:
             return False, refusal
         if not isinstance(frame, dict):
@@ -1138,7 +1167,11 @@ class Registry:
         `head` is the stream's verified head (None at genesis); `stream_id_of_record` is the
         stream being read or extended (§7.5 step 1a) and is required. The authority step answers
         only for a registry load_document returned as "verified" (§13.1; see `status`), or a
-        "draft" with `allow_draft=True` for rehearsal."""
+        "draft" with `allow_draft=True` for rehearsal; any other registry is refused first, at step
+        "authority", because its kinds and keys cannot judge the frame either."""
+        refusal = self._status_refusal(allow_draft, "who speaks for the estate (§13.7)")
+        if refusal:
+            return False, "authority", refusal
         if not isinstance(frame, dict):
             return False, "1", "frame is not a JSON object"
         if not isinstance(stream_id_of_record, str):
