@@ -1108,7 +1108,7 @@ that pins every component of that release:
 
 A **verified snapshot** of one pinned release is produced only by these steps, in order, refusing it whole
 on any failure:
-1. verify the registry (§13.1–§13.4 and the rules above) and select one pinned release: by its
+1. verify the registry (§13.1–§13.4, the rules above, and §13.6) and select one pinned release: by its
    `manifest_hash`, as the current release of a `release_scope`, or as the head of a `channel` — never by
    its `release` name;
 2. obtain the manifest octets from the selected `release-pin`'s locator through any transport, and require
