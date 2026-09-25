@@ -265,7 +265,17 @@ def registry_sections():
             ("a deprecated pin followed by the current one",
              document(base + [pin("b" * 64, True), pin("c" * 64, False)])),
         ]
-        return [{"label": label, "document": doc, "expect": _registry_accepts(doc)} for label, doc in cases]
+        out = []
+        for label, doc in cases:
+            case = {"label": label, "expect": _registry_accepts(doc)}
+            try:
+                R.canonical(doc)
+                case["document"] = doc
+            except ValueError:
+                # Not I-JSON at all: carried as text, like 4_refuse, so this file stays strict I-JSON.
+                case["json_text"] = json.dumps(doc, sort_keys=True, separators=(",", ":"))
+            out.append(case)
+        return out
 
     def declared_cases():
         entry = _grail(owner)

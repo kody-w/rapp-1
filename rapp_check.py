@@ -38,7 +38,6 @@ _MAX_WALK_DIRS = 10_000
 _MAX_WALK_DEPTH = 32
 _MAX_JSON_FILES = 10_000
 _MAX_JSON_BYTES = 64 * 1024 * 1024
-_REGISTRY_SCHEMA_TEXT = re.compile(rb'"schema"\s*:\s*"rapp/1-registry"')
 
 
 def _untagged(payload):
@@ -105,6 +104,18 @@ def _read_blob(path, maximum=None):
 
 def _strict_json(path):
     return R._strict_json(_read_blob(path, R.MAX_CANONICAL_BYTES))
+
+
+def _lenient_schema(blob):
+    """The top-level `schema` of a JSON object that failed strict parsing, or None.
+
+    Only names what the document claims to be, so a registry that is not strict
+    I-JSON (a duplicate member, a float) is reported rather than skipped."""
+    try:
+        value = json.loads(blob)
+    except Exception:
+        return None
+    return value.get("schema") if isinstance(value, dict) else None
 
 
 def _looks_like_frame(blob):
@@ -379,11 +390,7 @@ def check_repo(root, signature_verifier=None):
             blob = _read_blob(path, R.MAX_CANONICAL_BYTES)
             value = R._strict_json(blob)
         except Exception as exc:
-            if (
-                not is_required
-                and blob is not None
-                and _REGISTRY_SCHEMA_TEXT.search(blob)
-            ):
+            if not is_required and blob is not None and _lenient_schema(blob) == REG.DOCUMENT_SCHEMA:
                 has_artifact = True
                 finding(rel, "§13 registry document", f"not strict I-JSON (§4): {exc}")
                 return

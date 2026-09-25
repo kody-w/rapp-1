@@ -301,6 +301,13 @@ class RappCheckDiscoveryTests(unittest.TestCase):
             },
         )
 
+    def test_a_registry_nested_inside_another_document_is_not_linted(self):
+        repository = self.fixture_repo("clean")
+        nested = {"schema": "example-vectors/1",
+                  "cases": [{"document": self.registry_document(registry_seq=3.5)}]}
+        (repository / "vectors.json").write_text(json.dumps(nested), encoding="utf-8")
+        self.assertEqual(C.check_repo(repository), ("CLEAN", [], []))
+
     def test_malformed_registry_documents_are_findings(self):
         repository = self.fixture_repo("clean")
         broken = self.registry_document()
