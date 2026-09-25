@@ -48,8 +48,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame daaf07239737e7b048aaec64b0d8b5d59199d10c07af22524f5a95357b765c21, normative
-SHA-256 e0115e40e2825ef5f1605508c8531ba866edd3e90664256066ba8541298faf30. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame 1944f436175174b00464c528cc6e9793af652c8cf0e9524998609883f1670b8d, normative
+SHA-256 3b9fac5b5e6bf41e569ba8ba978a5ccf6e3c9e5753bc2e0006d2f9ce023dc2f7. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -110,9 +110,10 @@ the currently served release is immutable even while a separate candidate lineag
 **deployment cell** — an independently observable and isolatable runtime failure domain governed by
 `rapp-deploy/1`. **declared entry** — a §13.3 registry entry that carries its own owner signature made at
 its `activated_utc`, and so verifies apart from the document that carries it (§13.4). **release scope** —
-the owner-selected absolute HTTPS URI naming one immutable release (§11.1). **release manifest** — the
-`rapp/1-release-manifest` object a `release-pin` entry pins by particle hash (§13.5). **channel** — an
-owner-named linear sequence of release scopes whose head is current (§13.5).
+the owner-selected absolute HTTPS URI naming one release family, bound to at most one Grail kernel
+(§11.1). **release** — one immutable `release-pin` of a family and the manifest it pins (§13.5).
+**release manifest** — the `rapp/1-release-manifest` object a `release-pin` entry pins by particle hash
+(§13.5). **channel** — an owner-named linear chain of releases whose head is current (§13.5).
 
 # Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **{{RFC8785}} JCS** for the value `v`, defined **only**
@@ -992,7 +993,7 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   object_format, commit, path, mode, blob, sha256, size_bytes, activated_utc, predecessor, declared_by,
   sig}` — exactly these members; a persisted declared entry (§13.4). `release_scope` is an absolute HTTPS
   URI selected by the estate owner;
-  no two entries may share it. `grail_id` is
+  no two `grail-kernel` entries may share it. `grail_id` is
   `"grail:" || Hb("rapp/1:grail", kernel_bytes)`; `repository` is an absolute HTTPS URI;
   `immutable_ref` is a full `refs/tags/...` name that **MUST** resolve exactly to `commit`;
   `object_format` is `"sha1"` or `"sha256"` and fixes the required lowercase hexadecimal length of
@@ -1009,13 +1010,14 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   disagree.
 - **release-pin** `{type:"release-pin", release_scope, channel, predecessor, manifest_hash, repository,
   object_format, commit, path, activated_utc, declared_by, sig}` — exactly these members; a persisted
-  declared entry (§13.4). `release_scope` is an absolute HTTPS URI selected by the estate owner, and no two
-  `release-pin` entries share it; `channel` is an lclabel of 1–64 characters; `predecessor` is `null` or the
-  `release_scope` of an earlier `release-pin` entry of the same `channel`; `manifest_hash` is
-  `H("rapp/1:particle", manifest)` of the release manifest (§13.5); `repository` (an absolute HTTPS URI),
-  `object_format`, `commit`, and `path` locate the manifest's octets under the `grail-kernel` rules for those
-  members, and `path` also obeys the §9.1 path grammar. It pins every component of one release scope
-  (§13.5).
+  declared entry (§13.4). `release_scope` is an absolute HTTPS URI selected by the estate owner that names a
+  release family (§11.1); `channel` is an lclabel of 1–64 characters; `predecessor` is `null` or the
+  `manifest_hash` of the `release-pin` this one follows in the same `channel`; `manifest_hash` is
+  `H("rapp/1:particle", manifest)` of the release manifest (§13.5), and no two `release-pin` entries share
+  it; every `release-pin` of one `release_scope` carries the same `channel`; `repository` (an absolute HTTPS
+  URI), `object_format`, `commit`, and `path` locate the manifest's octets under the `grail-kernel` rules for
+  those members, and `path` also obeys the §9.1 path grammar. It pins every component of one immutable
+  release of its family (§13.5).
 - **estate_owner** `{type:"estate_owner", rappid}` (exactly one non-deprecated) · **master-plan**
   `{type:"master-plan", repo, path}` (Fed. Const. Art. VII).
 
@@ -1043,9 +1045,10 @@ every later accepted registry **MUST** retain it byte-for-byte; removal or mutat
 even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-kernel`).
 
 ## Release pins, release manifests, and verified snapshots
-A **release scope** (§11.1) names one immutable set of components released together — for example one LTS
-release or one newest release. Its `grail-kernel` entry pins one kernel entry point; its `release-pin` entry
-pins every component through one content-addressed **release manifest**:
+A **release scope** (§11.1) names one release family — for example an LTS line whose corrections all keep
+one kernel — and binds at most one Grail kernel, through its `grail-kernel` entry. Each immutable
+**release** of the family is one `release-pin` entry and the content-addressed **release manifest** it
+pins, which pins every component of that release:
 
 ```json
 { "schema": "rapp/1-release-manifest",
@@ -1075,31 +1078,42 @@ pins every component through one content-addressed **release manifest**:
 - **Door of record.** `rappid` and `identity_path` are both `null` or both non-null. When set,
   `identity_path` is one of the component's `files`, and those octets parse as a §4 object whose `rappid`
   member equals the component's `rappid` and whose `schema`, when present, is `"rapp/1"`. Such a component
-  is the estate's signed statement that, within this release scope, the organism's door of record is
+  is the estate's signed statement that, within this release, the organism's door of record is
   `repository` at `commit`. A manifest **MUST NOT** bind one rappid in two components. A consumer locating
-  that organism for this scope **MUST** use this binding, not the rappid's `@owner/slug`, a repository or
+  that organism for this release **MUST** use this binding, not the rappid's `@owner/slug`, a repository or
   directory name, a copy found in a mirror or monorepo, or a moving branch. The binding transfers no key,
   signature authority, or ownership.
 - **Kernel coherence.** When the registry carries a `grail-kernel` entry for the manifest's
   `release_scope`, the manifest **MUST** contain exactly one `kind:"kernel"` component whose `repository`,
   `object_format`, `commit`, and `immutable_ref` equal that entry's and one of whose files has that entry's
   `path`, `sha256`, and `size_bytes`; its other files pin the kernel's companions. Otherwise the manifest
-  **MUST NOT** contain a `kind:"kernel"` component.
-- **Channels.** The `release-pin` entries of one `channel` form one linear chain: exactly one has
-  `predecessor:null`, no two name the same predecessor, each successor's `activated_utc` is not before its
-  predecessor's, and the chain's **head** — the one entry no other entry names as its predecessor — is the
-  channel's current release scope. A registry whose `release-pin` entries break these rules is refused
-  whole. A channel head **MAY** serve as the authenticated owner-controlled release policy that selects a
-  `release_scope` for §11.1 item 1. A release scope is never rebound: a correction or a successor is a new
-  scope appended to its channel.
+  **MUST NOT** contain a `kind:"kernel"` component. Kernel coherence compares members byte-for-byte; an
+  estate uses one exact spelling of each repository URI. A `grail-kernel` entry for a release scope
+  **MUST** appear in `entries` before that scope's first `release-pin`; a registry that places it later is
+  refused whole. So a family's kernel is settled before its first release: every release of a family with a
+  kernel carries that kernel's component, and no release of a family without one carries a
+  `kind:"kernel"` component.
+- **Channels.** The `release-pin` entries of one `channel` form one linear chain through `predecessor`:
+  exactly one has `predecessor:null`, each other names a `release-pin` of the same `channel` that appears
+  earlier in `entries`, no two name the same predecessor, and none has an `activated_utc` before its
+  predecessor's. All releases of one family belong to one channel; a channel may move from one family to
+  another — a newest channel moves on to each new family, while an LTS channel stays in one family and
+  appends its corrections. The chain's **head** — the release no other names as its predecessor — is the
+  channel's current release, and the last release of a family in chain order is that family's **current
+  release**. A channel head **MAY** serve as the authenticated owner-controlled release policy that selects
+  a `release_scope` for §11.1 item 1. Nothing is ever rebound: a correction is a new release appended to its
+  family's channel, and every earlier release stays pinned and verifiable by its `manifest_hash`; because
+  `release-pin` entries are persisted (§13.4), a channel's head only advances. A registry whose
+  `release-pin` entries break these rules is refused whole.
 
-A **verified snapshot** of release scope `S` is produced only by these steps, in order, refusing it whole
-on any failure:
-1. verify the registry (§13.1–§13.4 and the channel rules above) and select the `release-pin` entry whose
-   `release_scope` is `S`;
-2. obtain the manifest octets from that entry's locator through any transport, and require them to be
-   exactly `canonical(manifest)` with `H("rapp/1:particle", manifest)` equal to `manifest_hash` and
-   `release_scope` equal to `S`; then check every rule above, including kernel coherence;
+A **verified snapshot** of one release is produced only by these steps, in order, refusing it whole on any
+failure:
+1. verify the registry (§13.1–§13.4 and the rules above) and select one release: by `manifest_hash`, as the
+   current release of a `release_scope`, or as the head of a `channel`;
+2. obtain the manifest octets from the selected `release-pin`'s locator through any transport, and require
+   them to be exactly `canonical(manifest)`, with `H("rapp/1:particle", manifest)` equal to its
+   `manifest_hash` and the manifest's `release_scope` equal to its `release_scope`; then check every rule
+   above, including kernel coherence;
 3. obtain every component file at its `commit` — for a GitHub repository,
    `https://raw.githubusercontent.com/<owner>/<repository>/<commit>/<path>` — and require its length and
    SHA-256, then check every door-of-record binding.
@@ -1135,7 +1149,7 @@ snapshot.
   owner signature is checked at its `activated_utc`, so a valid document signature never blesses a forged
   or mutated declaration, and persisted declarations cannot be dropped by a later registry (§13.4).
 - **Release rebinding and partial snapshots:** a persisted `release-pin` cannot be dropped or re-pointed by a
-  later registry (§13.4), a release scope is never rebound, and a verified snapshot is all-or-nothing, so a
+  later registry (§13.4), no release is ever rebound, and a verified snapshot is all-or-nothing, so a
   hostile mirror cannot splice stale or unpinned member content into it (§13.5).
 - **Producer-controlled `utc` (DoS/merge bias):** a future-dated head can brick a stream (successors refused
   as earlier) and bias UTC-first merges. A consumer **SHOULD** refuse a frame whose `utc` exceeds receipt

@@ -1,24 +1,24 @@
 {
  "schema": "rapp/1-anchor",
- "generated_utc": "2026-09-25T18:12:28.000Z",
+ "generated_utc": "2026-09-25T18:51:55.000Z",
  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
  "head": {
   "seq": 17,
-  "frame_hash": "daaf07239737e7b048aaec64b0d8b5d59199d10c07af22524f5a95357b765c21",
-  "payload_hash": "918791a2bfd5ed0fe079aea5d82e7c78c75dc03324ac8c60ccf51f63031217fb"
+  "frame_hash": "1944f436175174b00464c528cc6e9793af652c8cf0e9524998609883f1670b8d",
+  "payload_hash": "34766aa599e0cbff1b55b719b75351a9d4c9df84676e33a98447978f4fcdc5b1"
  },
  "spec": {
   "revision": "rev-17",
-  "revision_frame_hash": "daaf07239737e7b048aaec64b0d8b5d59199d10c07af22524f5a95357b765c21",
-  "revision_payload_hash": "918791a2bfd5ed0fe079aea5d82e7c78c75dc03324ac8c60ccf51f63031217fb",
+  "revision_frame_hash": "1944f436175174b00464c528cc6e9793af652c8cf0e9524998609883f1670b8d",
+  "revision_payload_hash": "34766aa599e0cbff1b55b719b75351a9d4c9df84676e33a98447978f4fcdc5b1",
   "schema": "rapp-spec-revision/1",
   "materialized_path": "SPEC.md",
   "normative_path": "SPEC.md",
   "media_type": "text/markdown; charset=utf-8",
-  "normative_sha256": "e0115e40e2825ef5f1605508c8531ba866edd3e90664256066ba8541298faf30",
-  "normative_bytes": 90508,
+  "normative_sha256": "3b9fac5b5e6bf41e569ba8ba978a5ccf6e3c9e5753bc2e0006d2f9ce023dc2f7",
+  "normative_bytes": 92065,
   "canonical_repo": "https://github.com/kody-w/rapp-1",
-  "commit": "9fe078ac521da68f7fb5e49cffa943fbf669fd2f"
+  "commit": "b82a7b21a86cb1e4ef26286a8e9b1e3dd984338a"
  },
  "registered_kinds": [
   "body.pulse",
@@ -143,7 +143,7 @@
   },
   "release-pin": {
    "status": "live",
-   "where": "§13.5 — the declared entry pinning one release scope's manifest"
+   "where": "§13.5 — the declared entry pinning one immutable release of a release family"
   },
   "release-manifest": {
    "status": "live",
@@ -151,7 +151,7 @@
   },
   "release-channel": {
    "status": "live",
-   "where": "§13.5 — an owner-named linear chain of release scopes; its head is current"
+   "where": "§13.5 — an owner-named linear chain of releases; its head is current"
   }
  },
  "operational_profiles": {
@@ -220,7 +220,7 @@
  },
  "index": {
   "path": "anchor/index.json",
-  "sha256": "35f6efb8cba272058f2dd24d625ac236c97aaffa4d6bfa3c5bf022b7ffb741c8",
+  "sha256": "1d02ce18700029e6b78ca1373d292aae12296e44b2d829b547d53d6ccf9669c0",
   "bytes": 8488
  }
 }
