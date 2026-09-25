@@ -59,8 +59,8 @@ assumed.
 
 `Registry.lifecycle_state_at(rappid, utc)` answers from an organism's signed
 `lifecycle` chain (§13.5) whether it was active, deprecated, superseded, or archived
-at that time, and returns `None` — never a guessed deprecation — when the estate
-declared nothing.
+at that time, and returns `None` — never a guessed deprecation — when none of the
+estate's notices is in effect then.
 
 `load_document` also verifies key-lifecycle entries: a valid enclosing registry
 signature is not a substitute for a tombstone or re-anchor's own signature. The

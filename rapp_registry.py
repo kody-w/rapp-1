@@ -695,7 +695,8 @@ class Registry:
 
     def lifecycle_at(self, rappid, utc):
         """The notice in effect at `utc`: the last chain entry whose `since_utc` <= `utc`
-        (bytewise, §7.4). None means no declared lifecycle at `utc` — never deprecation."""
+        (bytewise, §7.4). None means no declared lifecycle at `utc` — never deprecation.
+        A `utc` that is not the fixed §7.4 form raises RegistryError (a ValueError)."""
         if not R.utc_valid(utc):
             raise RegistryError("lifecycle query time is not the fixed §7.4 UTC form")
         in_effect = None
