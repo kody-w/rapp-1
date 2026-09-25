@@ -1,24 +1,24 @@
 {
  "schema": "rapp/1-anchor",
- "generated_utc": "2026-09-02T01:31:21.000Z",
+ "generated_utc": "2026-09-25T17:36:22.000Z",
  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
  "head": {
-  "seq": 16,
-  "frame_hash": "6fddd2370220ca195fdbee3a7ae46a2686fc745d8e88debda26c5a6497e5756a",
-  "payload_hash": "61a01808240e16066bdf0437933ac16b6530c939e9f31f67fac44d517f1e580c"
+  "seq": 17,
+  "frame_hash": "f145ed50c935c686ed77c86eb91ca46caf915c5f8280d404a5c4711d9cc4b487",
+  "payload_hash": "1d898540ced06d3aa4719d53f6fc4108521341674fc14993bfc1b63aa04e140a"
  },
  "spec": {
-  "revision": "rev-16",
-  "revision_frame_hash": "6fddd2370220ca195fdbee3a7ae46a2686fc745d8e88debda26c5a6497e5756a",
-  "revision_payload_hash": "61a01808240e16066bdf0437933ac16b6530c939e9f31f67fac44d517f1e580c",
+  "revision": "rev-17",
+  "revision_frame_hash": "f145ed50c935c686ed77c86eb91ca46caf915c5f8280d404a5c4711d9cc4b487",
+  "revision_payload_hash": "1d898540ced06d3aa4719d53f6fc4108521341674fc14993bfc1b63aa04e140a",
   "schema": "rapp-spec-revision/1",
   "materialized_path": "SPEC.md",
   "normative_path": "SPEC.md",
   "media_type": "text/markdown; charset=utf-8",
-  "normative_sha256": "348e7d5baa94aaf2ce4c5354f3cb261f389298a04af65e271a686d3b62f7c384",
-  "normative_bytes": 79692,
+  "normative_sha256": "4afe3b27d82f7ea7efbbdcf2f57d67dc72445916e27892b1d7715f65ff97f9f7",
+  "normative_bytes": 83434,
   "canonical_repo": "https://github.com/kody-w/rapp-1",
-  "commit": "58058d08c9f0e340fae07c9865647f599c32634d"
+  "commit": "fb25d957b3568431de4923d654f1ec1067de9570"
  },
  "registered_kinds": [
   "body.pulse",
@@ -136,6 +136,10 @@
   "rapp-work": {
    "status": "live",
    "where": "protocols/rapp-work/1/SPEC.md — additive organization, Hive high-water, migration, custody, and rollback"
+  },
+  "declared-entry": {
+   "status": "live",
+   "where": "§13.4 — a registry entry carrying its own owner signature at its activated_utc"
   }
  },
  "operational_profiles": {
@@ -204,7 +208,7 @@
  },
  "index": {
   "path": "anchor/index.json",
-  "sha256": "b265a53bb2381ba86d8e561d4f150fd3371bcae13f8be00f590389c1912522ca",
-  "bytes": 8118
+  "sha256": "f50411b670c8c5b70a0c090d6abfba31674f4453c28bb6718b11badffcd1f2c3",
+  "bytes": 8488
  }
 }
