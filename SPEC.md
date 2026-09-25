@@ -987,9 +987,12 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
 - **estate_owner** `{type:"estate_owner", rappid}` (exactly one non-deprecated) · **master-plan**
   `{type:"master-plan", repo, path}` (Fed. Const. Art. VII).
 
-§7.5 steps 1–5 are time-independent (append-only lookups); **only** step 6 (tombstones), §13.2 owner
-tenure, and §13.5 grant windows are time-scoped, and all three are monotone given the §13.1 no-rollback
-rule. A declared entry (§13.4) is authenticated at its own `activated_utc`, never at the time it is read.
+§7.5 steps 1–5 are time-independent (append-only lookups); step 6 (tombstones) and §13.2 owner tenure are
+time-scoped, and both are monotone given the §13.1 no-rollback rule. A declared entry (§13.4) is
+authenticated at its own `activated_utc`, never at the time it is read. A stream-signer window (§13.5) is
+evaluated at a given time — for a frame, its `utc` — and, because every declared entry is retained (§13.4),
+a later registry can add a grant but never withdraw one: a grant ends only at its `until_utc` or where §10
+refuses its signer's key. The rules of §13.5 — stream signers — sit above §7.5 and never add a §7.5 step.
 
 ### 13.4 Declared entries (entry-level owner signatures)
 A **declared entry** carries its own `activated_utc` (the §7.4 form), `declared_by` (a keyed rappid), and
@@ -1034,6 +1037,10 @@ inherited: one ends at its `until_utc`, or earlier when §10 refuses the signer'
 its successor rappid. A keyless rappid (§6.2) never signs as itself — its tail is no key — so a grant is
 how a keyed signer speaks on a keyless organism's streams without re-anchoring or re-minting that
 identity; §6.2 and §6.3 are unchanged.
+
+Authority is decided against the verified registry in hand. Because a newer registry can add a grant that
+adopts earlier frames, but can never withdraw one (§13.4), a consumer that caches a refusal re-evaluates it
+against a newer registry.
 
 ## 14. Security considerations
 - **Integrity:** every object is domain-separated content-addressed (§5); a hostile mirror cannot alter
@@ -1093,13 +1100,13 @@ identity; §6.2 and §6.3 are unchanged.
 
 ### Revision log
 - **rev-17 (registry closure for the distributed Hive)** — names the §13.1 document container
-  (`schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; any other member carries no meaning),
+  (`schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; any other member carries no meaning);
   generalizes the `grail-kernel` entry-level owner signature into §13.4 declared entries, each verified
-  at its own `activated_utc` and retained byte-for-byte once accepted, and adds the `stream-signer`
-  declared entry: an estate grant, above §7.5, that lets a keyed signer speak for the estate on one stream
-  and its listed kinds within a time window — including a keyless organism's streams, with no re-anchor
-  (§13.5). No frozen form (§12)
-  changes: every rev-16 `rapp/1` frame, egg, rappid, and conformance vector verifies unchanged.
+  at its own `activated_utc` and retained byte-for-byte once accepted; and adds one declared entry type.
+  **Stream signers** (§13.5): an estate grant, above §7.5, that lets a keyed signer speak for the estate on
+  one stream for its listed kinds within a time window — a keyless organism's streams included, with no
+  re-anchor. No frozen form (§12) changes: every rev-16 `rapp/1` frame, egg, rappid, and conformance
+  vector verifies unchanged.
 - **rev-16 (RAPP Work profile)** — added the subordinate `rapp-work/1` operational profile
   (`protocols/rapp-work/1/SPEC.md`) to the chain's operational-profile index; this document's normative
   text was unchanged from rev-15.

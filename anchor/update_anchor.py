@@ -752,6 +752,14 @@ def revision_payload(
                 "unsigned frames never speak for the estate."
             ),
         },
+        {
+            "t": "pattern",
+            "c": (
+                "Authority is decided against the verified registry in hand: a newer registry can add a "
+                "stream-signer grant that adopts earlier frames but never withdraw one, so re-evaluate a "
+                "cached refusal against a newer registry."
+            ),
+        },
     ]
     for rule in rules:
         if rule not in payload["rules"]:

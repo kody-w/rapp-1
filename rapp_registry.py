@@ -15,19 +15,21 @@ What is fully specified by §13 and enforced here:
   - kind grammar and family binding; family ↔ stream_id-form compatibility (§6.1.1, §7.2);
   - owner succession by re-anchor records, owner-in-effect at a time (§13.2);
   - key discovery, superseded-key and tombstone refusal at a time (§10);
-  - stream signers (§13.5): each `stream-signer` grant's structure and cross-entry rules,
-    and the authority check above §7.5 for a consumer that follows no profile-defined signer
-    rule — a verified frame speaks for the estate only when its `kid` is the owner in effect
-    or a signer granted its stream, kind, and time;
   - one non-deprecated genesis per stream (§7.6); one grail-kernel per grail_id (§11.1);
   - declared entries (§13.4): each entry-level owner signature at its own
     `activated_utc`, never blessed by the enclosing document signature, and
     byte-for-byte retention of persisted entries once a caller has accepted them;
+  - stream signers (§13.5): each `stream-signer` grant's structure and cross-entry rules,
+    and the authority check above §7.5 for a consumer that follows no profile-defined signer
+    rule — a verified frame speaks for the estate only when its `kid` is the owner in effect
+    or a signer granted its stream, kind, and time;
   - owner-signature verification over canonical(document \\ {sig}).
 
 What stays the caller's responsibility, because a snapshot cannot prove it:
   - freshness, trusted heads, registry high-water marks, first-seen times, and the
-    append provenance of each entry (see `load_document`).
+    append provenance of each entry (see `load_document`);
+  - re-evaluating a cached authority refusal against a newer registry, which can add a
+    grant that adopts earlier frames but never withdraw one (§13.5).
 
 Nothing here can make an unsigned registry authoritative. `load_document` reports
 "verified" only after a §10 signature by the estate owner verifies AND that owner is the
@@ -77,10 +79,10 @@ ENTRY_MEMBERS = {
     "grail-kernel": ({"type", "release_scope", "grail_id", "repository", "immutable_ref",
                       "object_format", "commit", "path", "mode", "blob", "sha256", "size_bytes",
                       "activated_utc", "predecessor", "declared_by", "sig"}, set()),
-    "estate_owner": ({"type", "rappid"}, set()),
-    "master-plan": ({"type", "repo", "path"}, set()),
     "stream-signer": ({"type", "stream_id", "signer", "kinds", "since_utc", "until_utc",
                        "activated_utc", "declared_by", "sig"}, set()),
+    "estate_owner": ({"type", "rappid"}, set()),
+    "master-plan": ({"type", "repo", "path"}, set()),
 }
 
 
@@ -318,12 +320,12 @@ def validate_entry(entry, where="entry"):
             if not (isinstance(p, str) and p.startswith("grail:") and _HEX64.fullmatch(p[6:])):
                 raise RegistryError(f"{where}: `predecessor` must be null or a grail_id")
         _rappid(entry, "declared_by", where); _str(entry, "sig", where)
+    elif t == "stream-signer":
+        _validate_stream_signer(entry, where)
     elif t == "estate_owner":
         _rappid(entry, "rappid", where)
     elif t == "master-plan":
         _str(entry, "repo", where); _str(entry, "path", where)
-    elif t == "stream-signer":
-        _validate_stream_signer(entry, where)
     return t
 
 
@@ -338,11 +340,11 @@ class Registry:
         self.egg_variants = {}   # variant -> entry
         self.error_codes = set()
         self.spki = {}           # rappid -> entry
-        self.stream_signers = {}  # stream_id -> [stream-signer grants], append order (§13.5)
         self.tombstones = {}     # rappid -> revoked_utc (earliest)
         self.reanchors = []      # entries, in order
         self.genesis = {}        # stream_id -> list of entries
         self.grail = {}          # grail_id -> entry
+        self.stream_signers = {}  # stream_id -> [stream-signer grants], append order (§13.5)
         self.protocol_history = {}  # name -> [entries], append order
         self.master_plan = None
         self.canonical_source = None  # set by load_document from the §13.1 container
@@ -382,14 +384,14 @@ class Registry:
                 if e["release_scope"] in {g["release_scope"] for g in self.grail.values()}:
                     raise RegistryError(f"{where}: release_scope {e['release_scope']!r} rebound")
                 self.grail[e["grail_id"]] = e
+            elif t == "stream-signer":
+                self.stream_signers.setdefault(e["stream_id"], []).append(e)
             elif t == "protocol":
                 self.protocol_history.setdefault(e["name"], []).append(e)
             elif t == "estate_owner":
                 owners.append(e["rappid"])
             elif t == "master-plan":
                 self.master_plan = e
-            elif t == "stream-signer":
-                self.stream_signers.setdefault(e["stream_id"], []).append(e)
         if len(owners) != 1:
             raise RegistryError(f"exactly one estate_owner entry is required, found {len(owners)}")
         self.estate_owner = owners[0]
@@ -416,7 +418,6 @@ class Registry:
                     raise RegistryError(f"grail-kernel predecessor cycle through {gid}")
                 seen.add(cur)
                 cur = self.grail[cur]["predecessor"]
-        self._index_stream_signers()
         self._declared = {R.canonical(e) for e in entries if e["type"] in DECLARED_TYPES}
         self._succession = {r["new_rappid"]: r for r in self.reanchors}
         succession_by_tail = {}
@@ -437,6 +438,9 @@ class Registry:
                     break
                 current = R.rappid_parts(record["old_rappid"])["hash"]
             walked |= path
+        # The §13.5 rules span entries, so they run once every entry is indexed: grants look up
+        # their spki and kinds.
+        self._index_stream_signers()
 
     # ---- §7.2 / §6.1.1 kind binding ----
     def family(self, kind):
@@ -733,7 +737,8 @@ class Registry:
         `utc`. A grant's `activated_utc` plays no part: a grant may start before it, and then
         adopts frames the signer already published inside its window. It decides authority,
         never validity: the frame must already have passed §7.5 (see frame_authorized). Pure:
-        it reads only this registry."""
+        it reads only this registry, so a refusal holds only against it — a newer registry can
+        add a grant that adopts the frame, and a cached refusal is re-evaluated against it (§13.5)."""
         if kid is None:
             return False, "an unsigned frame never speaks for the estate (§10, §13.5)"
         if not R.rappid_valid(kid):

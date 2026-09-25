@@ -8,7 +8,9 @@ exactly the value `Registry.signature_verifier()` receives from `rapp.verify_fra
 """
 import base64
 import copy
+import re
 import unittest
+from pathlib import Path
 
 import rapp as R
 import rapp_profile as P
@@ -639,6 +641,25 @@ class GrantDeclarationTests(Base):
             reg = self.registry([entry])
             self.assertEqual(reg.declared_entry_ok(copy.deepcopy(entry)), (True, "ok"))
             self.assertFalse(reg.declared_entry_ok(dict(entry, until_utc=None))[0])
+
+
+class SectionNumberingTests(unittest.TestCase):
+    """The reference cites the SPEC's own number for stream signers, the only §13.5 of this draft."""
+
+    def test_refusals_cite_the_subsection_that_specifies_them(self):
+        spec = (Path(__file__).resolve().parent / "SPEC.md").read_text(encoding="utf-8")
+        headings = dict(re.findall(r"^### (13\.[5-9]) (.+)$", spec, flags=re.M))
+        self.assertEqual(sorted(headings), ["13.5"])
+        self.assertTrue(headings["13.5"].startswith("Stream signers"))
+        estate = MockEstate()
+        owner, worker = estate.keys["owner"], estate.keys["worker"]
+        grant = {"type": "stream-signer", "stream_id": worker, "signer": owner, "kinds": ["body.pulse"],
+                 "since_utc": T0, "until_utc": T0, "activated_utc": T0, "declared_by": owner, "sig": "s"}
+        with self.assertRaisesRegex(REG.RegistryError, re.escape("(§13.5)")):
+            REG.validate_entry(grant)
+        ok, why = REG.Registry(estate.base_entries()).authority_decision(worker, worker, "body.pulse", T0)
+        self.assertFalse(ok)
+        self.assertIn("(§13.5)", why)
 
 
 @unittest.skipUnless(real_ed25519_signer(), "optional cryptography import is absent")
