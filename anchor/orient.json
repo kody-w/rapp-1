@@ -1,24 +1,24 @@
 {
  "schema": "rapp/1-anchor",
- "generated_utc": "2026-09-25T19:02:13.000Z",
+ "generated_utc": "2026-09-25T20:10:09.000Z",
  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
  "head": {
   "seq": 17,
-  "frame_hash": "b18222ce7a7b35a2f05771bc80ba6da07ceef316718e51ea8127d2a256d8d169",
-  "payload_hash": "0300adbc73f04050427b000ce73459b2ac877e2a81188497a0929a26efa1ebfd"
+  "frame_hash": "3734282a196408474d470c9a13ac797a48b81105f1a63f85b6ae4c6533091a16",
+  "payload_hash": "6bba456ceb614d1515a746f1411b4134d2ee64fa204c3531756dd060aa76ff56"
  },
  "spec": {
   "revision": "rev-17",
-  "revision_frame_hash": "b18222ce7a7b35a2f05771bc80ba6da07ceef316718e51ea8127d2a256d8d169",
-  "revision_payload_hash": "0300adbc73f04050427b000ce73459b2ac877e2a81188497a0929a26efa1ebfd",
+  "revision_frame_hash": "3734282a196408474d470c9a13ac797a48b81105f1a63f85b6ae4c6533091a16",
+  "revision_payload_hash": "6bba456ceb614d1515a746f1411b4134d2ee64fa204c3531756dd060aa76ff56",
   "schema": "rapp-spec-revision/1",
   "materialized_path": "SPEC.md",
   "normative_path": "SPEC.md",
   "media_type": "text/markdown; charset=utf-8",
-  "normative_sha256": "9da92d9d793934b02be323491cf8c86ab09c4cc6d571851ffdc71328507aebcd",
-  "normative_bytes": 83635,
+  "normative_sha256": "044478d81fcea31d3d9624f1ea9a2fb89f335f94554165980fcadf12778f0436",
+  "normative_bytes": 101173,
   "canonical_repo": "https://github.com/kody-w/rapp-1",
-  "commit": "b3c48c980eb991c3380c86b70a0aef67bd1b5cb3"
+  "commit": "18dabe4e950b88149ad03c9ad08da44a5f09c6f9"
  },
  "registered_kinds": [
   "body.pulse",
@@ -140,6 +140,30 @@
   "declared-entry": {
    "status": "live",
    "where": "§13.4 — a registry entry carrying its own owner signature at its activated_utc"
+  },
+  "release-pin": {
+   "status": "live",
+   "where": "§13.5 — the declared entry pinning one immutable release of a release family"
+  },
+  "release-manifest": {
+   "status": "live",
+   "where": "§13.5 — rapp/1-release-manifest: a named release, every component by digest at an immutable commit"
+  },
+  "release-channel": {
+   "status": "live",
+   "where": "§13.5 — an owner-named linear chain of release pins; its head pins the current release"
+  },
+  "lifecycle": {
+   "status": "live",
+   "where": "§13.6 — estate-signed notice: active, deprecated, superseded, or archived since a time"
+  },
+  "superseded-by": {
+   "status": "live",
+   "where": "§13.6 — names an organism's successor; transfers nothing"
+  },
+  "stream-signer": {
+   "status": "live",
+   "where": "§13.7 — an estate grant letting a keyed signer speak for it on one stream, above §7.5"
   }
  },
  "operational_profiles": {
@@ -208,7 +232,7 @@
  },
  "index": {
   "path": "anchor/index.json",
-  "sha256": "ea7d411dcb14363fec5ad043f4fd9c304615f02f21a1e885a25bddd1a9c45905",
-  "bytes": 8488
+  "sha256": "ae2fac6356bff14a89d69b0d83c920ad6817d322d7e4b419eab2ab9daa1106c6",
+  "bytes": 8489
  }
 }

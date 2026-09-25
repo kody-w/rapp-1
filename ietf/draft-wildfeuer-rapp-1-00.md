@@ -48,8 +48,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame b18222ce7a7b35a2f05771bc80ba6da07ceef316718e51ea8127d2a256d8d169, normative
-SHA-256 9da92d9d793934b02be323491cf8c86ab09c4cc6d571851ffdc71328507aebcd. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame 3734282a196408474d470c9a13ac797a48b81105f1a63f85b6ae4c6533091a16, normative
+SHA-256 044478d81fcea31d3d9624f1ea9a2fb89f335f94554165980fcadf12778f0436. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -110,6 +110,14 @@ the currently served release is immutable even while a separate candidate lineag
 **deployment cell** — an independently observable and isolatable runtime failure domain governed by
 `rapp-deploy/1`. **declared entry** — a §13.3 registry entry that carries its own owner signature made at
 its `activated_utc`; a byte-identical copy of it verifies against the estate's registry (§13.4).
+**release scope** — the owner-selected absolute HTTPS URI naming one release family, bound to at most one
+Grail kernel (§11.1, §13.5). **release manifest** — the `rapp/1-release-manifest` object a `release-pin`
+entry pins by particle hash (§13.5). **channel** — an owner-named linear chain of `release-pin` entries
+whose head pins the channel's current release (§13.5).
+**lifecycle notice** — an estate-signed `lifecycle` entry stating whether an organism is active,
+deprecated, superseded, or archived, and since when (§13.6).
+**stream signer** — a keyed signer an estate has granted, by a `stream-signer` entry, to speak for it on
+one stream (§13.7).
 
 # Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **{{RFC8785}} JCS** for the value `v`, defined **only**
@@ -989,7 +997,7 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   object_format, commit, path, mode, blob, sha256, size_bytes, activated_utc, predecessor, declared_by,
   sig}` — exactly these members; a declared entry (§13.4). `release_scope` is an absolute HTTPS URI
   selected by the estate owner;
-  no two entries may share it. `grail_id` is
+  no two `grail-kernel` entries may share it. `grail_id` is
   `"grail:" || Hb("rapp/1:grail", kernel_bytes)`; `repository` is an absolute HTTPS URI;
   `immutable_ref` is a full `refs/tags/...` name that **MUST** resolve exactly to `commit`;
   `object_format` is `"sha1"` or `"sha256"` and fixes the required lowercase hexadecimal length of
@@ -1004,17 +1012,44 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   referenced bytes, recomputes both hashes, persists the canonical entry on first activation, applies
   §11.1, and refuses a missing/mutated prior binding, duplicate `grail_id`, or locator whose bytes
   disagree.
+- **release-pin** `{type:"release-pin", release_scope, channel, predecessor, manifest_hash, repository,
+  object_format, commit, path, activated_utc, declared_by, sig}` — exactly these members; a declared entry
+  (§13.4). `release_scope` is an absolute HTTPS URI selected by the estate owner that names a
+  release family (§11.1); `channel` is an lclabel of 1–64 characters; `predecessor` is `null` or the
+  `manifest_hash` of the `release-pin` this one follows in the same `channel`; `manifest_hash` is
+  `H("rapp/1:particle", manifest)` of the release manifest (§13.5), and no two `release-pin` entries share
+  it; every `release-pin` of one `release_scope` carries the same `channel`; `repository` (an absolute HTTPS
+  URI), `object_format`, `commit`, and `path` locate the manifest's octets under the `grail-kernel` rules for
+  those members, and `path` also obeys the §9.1 path grammar. It pins every component of one immutable
+  release of its family (§13.5).
+- **lifecycle** `{type:"lifecycle", rappid, state, superseded_by, since_utc, previous, activated_utc,
+  declared_by, sig}` — exactly these members; a declared entry (§13.4). `rappid` is the organism the notice
+  is about; `state` is `"active"`, `"deprecated"`, `"superseded"`, or `"archived"`; `superseded_by` is `null`
+  or another §6.1 rappid; `since_utc` has the §7.4 form; `previous` is `null` or `H("rapp/1:particle", e)`
+  of the earlier `lifecycle` entry `e` for the same `rappid` that this one follows (§13.6).
+- **stream-signer** `{type:"stream-signer", stream_id, signer, kinds, since_utc, until_utc,
+  activated_utc, declared_by, sig}` — exactly these members; a declared entry (§13.4). `stream_id` has a
+  §6.1.1 form; `signer` is a keyed rappid with a §13 `spki` entry (deprecated or not) in the same
+  registry; `kinds` is a non-empty array of distinct kinds in ascending bytewise order, each registered
+  (deprecated or not) in the same registry with a family compatible with `stream_id`'s form (§7.2) and
+  none a `*.re-genesis` kind (§12.1 reserves those for the owner); `since_utc` has the §7.4 form;
+  `until_utc` is `null` or a §7.4 time after `since_utc` (§13.7).
 - **estate_owner** `{type:"estate_owner", rappid}` (exactly one non-deprecated) · **master-plan**
   `{type:"master-plan", repo, path}` (Fed. Const. Art. VII).
 
-§7.5 steps 1–5 are time-independent (append-only lookups); **only** step 6 (tombstones) and §13.2 owner
-tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule. A declared entry (§13.4) is
-authenticated at its own `activated_utc`, never at the time it is read.
+§7.5 steps 1–5 are time-independent (append-only lookups); step 6 (tombstones) and §13.2 owner tenure are
+time-scoped, and both are monotone given the §13.1 no-rollback rule. A declared entry (§13.4) is
+authenticated at its own `activated_utc`, never at the time it is read. The lifecycle state in effect
+(§13.6) and a stream-signer window (§13.7) are evaluated at a given time — for a frame, its `utc` — and,
+because every declared entry is retained (§13.4), a later registry can add a notice or a grant but never
+withdraw one: a grant ends only at its `until_utc` or where §10 refuses its signer's key. The rules of
+§§13.5–13.7 — release pins, lifecycle notices, stream signers — sit above §7.5 and never add a §7.5 step.
 
 ## Declared entries (entry-level owner signatures)
 A **declared entry** carries its own `activated_utc` (the §7.4 form), `declared_by` (a keyed rappid), and
 `sig` (a detached §10 JWS whose protected `kid` equals `declared_by`, over `canonical(entry \ {sig})`). The
-declared entry types are `grail-kernel`. For every declared entry a consumer **MUST**:
+declared entry types are `grail-kernel`, `release-pin`, `lifecycle`, and `stream-signer`. For every declared
+entry a consumer **MUST**:
 1. require `declared_by` to be the estate owner in effect at `activated_utc` (§13.2), with a §13 `spki`
    entry whose key §10 does not refuse (as superseded or tombstoned) at `activated_utc`;
 2. verify `sig` with that registry key — the enclosing §13.1 signature never substitutes for it;
@@ -1029,6 +1064,153 @@ however well it is signed. `H("rapp/1:particle", entry)` over the complete signe
 declared entry is persisted: once a consumer has accepted one it **MUST** persist the canonical entry, and
 every later accepted registry **MUST** retain it byte-for-byte; removal or mutation is a permanent refusal
 even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-kernel`).
+
+## Release pins, release manifests, and verified snapshots
+A **release scope** (§11.1) names one release family — for example an LTS line whose corrections all keep
+one kernel — and binds at most one Grail kernel, through its `grail-kernel` entry. Each immutable release of
+the family is pinned by one `release-pin` entry, which names the content-addressed **release manifest**
+that pins every component of that release:
+
+```json
+{ "schema": "rapp/1-release-manifest",
+  "release_scope": "<the release-pin's release_scope>",
+  "release": "<release name>",
+  "components": [
+    { "id": "<lclabel>", "kind": "<lclabel>", "rappid": "<§6.1 rappid>|null",
+      "identity_path": "<path>|null", "repository": "<absolute HTTPS URI>",
+      "object_format": "sha1"|"sha256", "commit": "<lowercase hex>",
+      "immutable_ref": "refs/tags/<name>"|null,
+      "files": [ { "path": "<relative path>", "sha256": "<64hex>", "size_bytes": 1234 } ] } ] }
+```
+
+- The manifest, each component, and each file have exactly these members. `release` is a string of 1–64
+  characters matching `[A-Za-z0-9][A-Za-z0-9._-]*` that names the release for people (for example
+  `lts-2026.09` or `brainstem-v0.6.16`). It is informational — the release's identity stays its
+  `manifest_hash`, and no consumer selects or trusts a release by its name — but it makes every release's
+  manifest distinct: returning to earlier content is a new release of the family with a new `release`
+  name, never a second pin of an earlier manifest (§13.3). An estate **SHOULD NOT** reuse a `release` name
+  within one family. `components` is non-empty and sorted ascending by `id`, with no duplicate `id`; an `id`
+  is an lclabel of 1–100 characters. `kind` is an lclabel of 1–64 characters and an extension point
+  (`protocol`, `organism`, `hive`, `repository`, `document`, …); only `kernel` is reserved (below).
+  `object_format` fixes the lowercase hexadecimal length of `commit` exactly as for `grail-kernel`; a
+  non-null `immutable_ref` is a full `refs/tags/...` name that **MUST** resolve exactly to `commit`.
+- `files` is sorted ascending by the UTF-8 bytes of `path`; each `path` obeys the §9.1 path grammar, and no
+  two paths of one component are equal case-insensitively or name a file and a directory above it (each
+  segment compared after Unicode NFD normalization and full case folding). `sha256` is the raw SHA-256 of
+  the file's octets at `commit` and `size_bytes` their `uint53` length. `files` **MAY** be empty; such a
+  component pins only a commit, which a git-capable verifier may check, and it contributes nothing to a
+  verified snapshot.
+- The stored manifest's octets **MUST** be exactly `canonical(manifest)` — UTF-8, no byte-order mark, no
+  trailing line terminator — so its raw SHA-256 and `manifest_hash` are both reproducible from the bytes.
+- **Door of record.** `rappid` and `identity_path` are both `null` or both non-null. When set,
+  `identity_path` is one of the component's `files`, and those octets parse as a §4 object whose `rappid`
+  member equals the component's `rappid` and whose `schema`, when present, is `"rapp/1"`. Such a component
+  is the estate's signed statement that, within this pinned release, the organism's door of record is
+  `repository` at `commit`. A manifest **MUST NOT** bind one rappid in two components. A consumer locating
+  that organism for this pinned release **MUST** use this binding, not the rappid's `@owner/slug`, a
+  repository or directory name, a copy found in a mirror or monorepo, or a moving branch. The binding
+  transfers no key, signature authority, or ownership.
+- **Kernel coherence.** When the registry carries a `grail-kernel` entry for the manifest's
+  `release_scope`, the manifest **MUST** contain exactly one `kind:"kernel"` component whose `repository`,
+  `object_format`, `commit`, and `immutable_ref` equal that entry's and one of whose files has that entry's
+  `path`, `sha256`, and `size_bytes`; its other files pin the kernel's companions. Otherwise the manifest
+  **MUST NOT** contain a `kind:"kernel"` component. Kernel coherence compares members byte-for-byte; an
+  estate uses one exact spelling of each repository URI. A `grail-kernel` entry for a release scope
+  **MUST** appear in `entries` before that scope's first `release-pin`; a registry that places it later is
+  refused whole. A consumer that has accepted a release of a family **MUST** refuse a later registry that
+  adds a `grail-kernel` entry for that family; §13.4 retention makes the insertion visible. So a family's
+  kernel is settled before its first release pin: every release of a family with a kernel carries that
+  kernel's component, and no release of a family without one carries a `kind:"kernel"` component.
+- **Channels.** The `release-pin` entries of one `channel` form one linear chain through `predecessor`:
+  exactly one has `predecessor:null`, each other names a `release-pin` of the same `channel` that appears
+  earlier in `entries`, no two name the same predecessor, and none has an `activated_utc` before its
+  predecessor's. Every release pin of one family belongs to one channel; a channel may move from one family
+  to another — a newest channel moves on to each new family, while an LTS channel stays in one family and
+  appends its corrections. The chain's **head** — the release pin no other names as its predecessor — pins
+  the channel's current release, and the last release of a family in chain order is that family's
+  **current release**. A channel may return to an earlier family; that family's current release is still
+  its last release in chain order. A channel head **MAY** serve as the authenticated owner-controlled
+  release policy that selects a `release_scope` for §11.1 item 1. A pinned release is never rebound or
+  retired by editing: its successor in the channel supersedes it, and every earlier release stays
+  verifiable by its `manifest_hash`; because every declared entry is persisted (§13.4), a channel's head
+  only advances. A registry whose `release-pin` entries break these rules is refused whole.
+
+A **verified snapshot** of one pinned release is produced only by these steps, in order, refusing it whole
+on any failure:
+1. verify the registry (§13.1–§13.4, the rules above, and §13.6) and select one pinned release: by its
+   `manifest_hash`, as the current release of a `release_scope`, or as the head of a `channel` — never by
+   its `release` name;
+2. obtain the manifest octets from the selected `release-pin`'s locator through any transport, and require
+   them to be exactly `canonical(manifest)`, with `H("rapp/1:particle", manifest)` equal to its
+   `manifest_hash` and the manifest's `release_scope` equal to its `release_scope`; then check every rule
+   above, including kernel coherence;
+3. obtain every component file at its `commit` — for a GitHub repository,
+   `https://raw.githubusercontent.com/<owner>/<repository>/<commit>/<path>` — and require its length and
+   SHA-256, then check every door-of-record binding.
+
+The snapshot is exactly the pinned files. Seeds, beacons, estate catalogs, Hive indexes, member pointers,
+and moving-branch (`HEAD`) fetches are locators: they may say where to look, but content reached through
+them is verified only when a manifest pins it, and a locator that disagrees with the manifest is a drift
+finding, never a second opinion. A consumer **MUST NOT** present unpinned content as part of a verified
+snapshot.
+
+## Lifecycle notices
+A `lifecycle` entry is the estate's authoritative notice about one organism:
+- `active` — maintained; `superseded_by` **MUST** be `null`.
+- `deprecated` — still available, but new use should not start; `superseded_by` **MAY** name a
+  recommended successor.
+- `superseded` — replaced; `superseded_by` **MUST** name the successor.
+- `archived` — kept readable and given no further releases; `superseded_by` **MAY** name a successor.
+
+`superseded_by` never equals `rappid`. The `lifecycle` entries for one `rappid` form one linear chain:
+exactly one has `previous:null`, every other names an entry that appears earlier in `entries` for the same
+`rappid`, no two name the same entry, and neither `since_utc` nor `activated_utc` decreases along it. The
+notice **in effect at** time `t` is the last entry in the chain whose `since_utc` ≤ `t` (bytewise, §7.4);
+its `state` is the state in effect at `t` and its `superseded_by` the successor named at `t`, so a notice
+whose `since_utc` is later than `t` names no successor at `t`. An organism with no such entry has no
+declared lifecycle at `t`, and a consumer **MUST NOT** infer deprecation from absence. The chain's last
+entry is the current notice. The organisms named by the `superseded_by` of the notices in effect at any
+one time **MUST NOT** form a cycle; since the notices in effect change only at a `since_utc`, checking the
+notices in effect at each distinct `since_utc` of the registry checks every time. A registry that breaks
+these rules is refused whole.
+
+A notice is metadata about an organism, not trust: it revokes no key (§10 tombstones do), re-anchors no
+identity (§6.3), changes no frame's §7.5 result, and `superseded_by` transfers no key, signature
+authority, entitlement, or ownership — like §9.4 lineage, it names a successor and grants nothing. A
+lifecycle statement anywhere else — a README, a member file, a Hive notice, a portfolio card, a pointer —
+is a copy: a consumer **MUST** take the state from the verified entry, and a copy that disagrees with it is
+a drift finding. A lifecycle claim that no verified entry supports is unverified, never evidence of a state.
+A verified copy of an earlier notice is authentic but historical: the chain, not the copy, decides the state
+in effect. A copy that carries the exact signed entry verifies by §13.4.
+
+## Stream signers (who speaks for the estate on a stream)
+§7.5 step 6 proves that a registry-discoverable key signed a frame; it does not say whether that key
+speaks for the stream. A `stream-signer` entry is the estate's grant that `signer` may sign frames of the
+listed `kinds` on `stream_id` whose `utc` satisfies `since_utc` ≤ `utc` and, unless `until_utc` is `null`,
+`utc` < `until_utc` (bytewise, §7.4). A grant **MAY** start before its `activated_utc`; it then adopts
+frames the signer already published inside its window.
+
+A consumer that relies on a frame as the estate's statement — a network pulse, a notice — and follows no
+profile-defined signer rule for that payload **MUST**, after the frame passes §7.5 including step 6, also
+require that the frame's `kid` is the estate owner in effect at its `utc` (§13.2) or is covered by a
+`stream-signer` entry of the verified registry for that `stream_id`, `kind`, and `utc`. This authority
+check sits above §7.5: it adds no §7.5 step, and a frame that fails it is still a valid `rapp/1` frame
+that does not speak for the estate. A subordinate profile that defines its own signer authorization (for
+example `rapp-work/1` §1, or a `rapp-cicd/1` stage approver) keeps it and **MAY** meet it with this check.
+An unsigned frame never speaks for the estate (§10); its hash chain proves integrity only. A body or
+memory stream may therefore run unsigned (§8) until a signer is granted and carry signed frames after;
+both stay valid links of one chain.
+
+Grants are permanent records of the registry (§13.4 retains each one byte-for-byte) and are never
+inherited: one ends at its `until_utc`, or earlier when §10 refuses the signer's key at the frame's `utc`
+(a rotation re-anchor supersedes it; a tombstone revokes it), and a rotated signer needs a new grant for
+its successor rappid. A keyless rappid (§6.2) never signs as itself — its tail is no key — so a grant is
+how a keyed signer speaks on a keyless organism's streams without re-anchoring or re-minting that
+identity; §6.2 and §6.3 are unchanged.
+
+Authority is decided against the verified registry in hand. Because a newer registry can add a grant that
+adopts earlier frames, but can never withdraw one (§13.4), a consumer that caches a refusal re-evaluates it
+against a newer registry.
 
 # Security considerations
 - **Integrity:** every object is domain-separated content-addressed (§5); a hostile mirror cannot alter
@@ -1055,6 +1237,19 @@ even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-ker
   owner signature is checked at its `activated_utc`, so a valid document signature never blesses a forged
   or mutated declaration, a signed declaration that no accepted registry carries is not one, and no
   declaration can be dropped by a later registry (§13.4).
+- **Release rebinding and partial snapshots:** an accepted `release-pin` cannot be dropped or re-pointed by
+  a later registry (§13.4), no kernel can join a family after a release of it was accepted, and a verified
+  snapshot is all-or-nothing, so a hostile mirror cannot splice stale or unpinned member content into it
+  (§13.5).
+- **Lifecycle is not revocation:** deprecating, superseding, or archiving an organism leaves its valid
+  frames valid and its keys unrevoked; a compromise is a §10 tombstone, and a copied notice that disagrees
+  with the registry is drift, not authority (§13.6).
+- **Signer scope:** any registered key can yield a §7.5-valid signature on any stream. Where no
+  subordinate profile defines who signs a payload, only the owner in effect or a `stream-signer` grant
+  makes a frame the estate's statement, so a station, crawler, or careless key cannot speak for another
+  stream (§13.7). Like a tombstone, a grant's window gates on the frame's producer-controlled `utc`, so a
+  signer can still stamp frames just below `until_utc` after that time passes; an owner relying on that
+  end **SHOULD** advance the stream's head past `until_utc`.
 - **Producer-controlled `utc` (DoS/merge bias):** a future-dated head can brick a stream (successors refused
   as earlier) and bias UTC-first merges. A consumer **SHOULD** refuse a frame whose `utc` exceeds receipt
   time by >300 s, and adversarial-scope merges **SHOULD** rank by `min(utc, first-seen)`; a bricked stream
