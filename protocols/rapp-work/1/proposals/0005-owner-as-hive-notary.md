@@ -59,11 +59,13 @@ SHA-256 `283359355c3fe2858e28744368255683af3ed28a68e290e56c231e7d4b13c08e`.
 - **§10**: `sig` is one detached JWS whose protected header has exactly `alg`, `b64`,
   `crit` and `kid` (the signer's RAPPID). Key discovery goes through the §13
   registry. "A consumer MUST NOT infer authorship from an unsigned frame."
-- **§13.2**: "owner-signed" means signed by the owner in effect at the artifact's
-  `utc`, within that owner's tenure. **§6.3 and §13.3**: key rotation is a
-  `re-anchor` record (the old key's continuity signature is required for
-  `rotation`). Compromise is a `tombstone` plus a `compromise` re-anchor. §14 warns
-  that a compromised key can backdate frames just below `revoked_utc`.
+- **§10 and §6.3**: key rotation is a `re-anchor` record (the old key's continuity
+  signature is required for `rotation`). A verifier refuses a superseded key on frames
+  at or after the re-anchor's `utc`, and a tombstoned key on frames at or after its
+  `revoked_utc`. Compromise is a `tombstone` plus a `compromise` re-anchor
+  (§13.3). **§13.2** applies the same time-scoping to the estate owner:
+  "owner-signed" means signed by the owner in effect at the artifact's `utc`. §14
+  warns that a compromised key can backdate frames just below `revoked_utc`.
 - **Constitution Art. 5**: the registry is the root of trust. **Art. 6**: authority
   is scoped in time. **Art. 18**: the eleven-key envelope and consumer checklist
   never change under `rapp/1`, so one frame cannot carry two signatures.
@@ -160,7 +162,7 @@ proposal has nothing to bind to and waits.
 | **(a) `rapp-work/2`** | A successor organization with an owner role (for example `owner_role: "notary"`) and decision records. | One organization model. | Moves the whole token (the G10 analysis applies). It still needs a folder-Hive binding first, and it puts an experiment into the organization profile before it graduates. |
 | **(b) Sibling profile** (recommended) | `rapp-work-notary/1`: one kind, `notary.notarization`, on one notary stream per folder-Hive organization. It is subordinate to `rapp-work/1` and to G10's binding profile. | Additive and small: one kind and one closed payload. `rapp-work/1` is untouched. The owner stays the one accountable RAPPID. Every check is a recomputation of the Hive's own rules, so no new decision rule is invented. | Depends on G10. It notarizes only the decisions the convention can express today (the four approval kinds). |
 | **(c1) A promise in the policy** | The owner promises, in a document pinned by `policy_sha256`, to sign only what the Hive approved. | No new records. | Refused. `policy_sha256` is the release qualification policy, so this would give it a second meaning. A promise is also not checkable. |
-| **(c2) Register every member key** | Add each member's key to the registry as an `spki` entry, so members sign RAPP/1 frames themselves. | Members' signatures verify outside. | Refused for now. The estate owner would append and deprecate those entries, so the registry would decide who is in, against the convention and Work Constitution Article 7. It duplicates the Hive's membership, links per-Hive device keys, and still gives no form for "k of n approved". |
+| **(c2) Register every member key** | Add each member's key to the registry as an `spki` entry, so members sign RAPP/1 frames themselves. | Members' signatures verify outside. | Refused for now. The estate owner would append and deprecate those entries, so one owner's registry would decide who is in. That goes against the convention (no owner inside) and Work Constitution Part V.4 (members are names bound to keys by the Hive's signed history). It duplicates the Hive's membership, links per-Hive device keys, and still gives no form for "k of n approved". |
 | **(c3) Co-signed frames** | Several signatures on one frame. | Direct group signing. | Refused. It changes the frozen envelope (RAPP/1 §10, Art. 18), so it is a `rapp/2` conversation. |
 | **(c4) `work.receipt`** | Record decisions as receipts. | No new kinds. | Refused. Receipt types are closed, and folder-Hive organizations are not `rapp-work/1` organizations. |
 
@@ -219,9 +221,11 @@ meanings in `rapp-work-folder-hive/1`.
 > ## 2. The notary
 >
 > In an adopting estate, every folder-Hive organization is **notary-bound**, and its
-> owner in effect (the organization's `owner_rappid`, as the registry's re-anchor
-> records carry it forward, RAPP/1 §13.2) is its Hive's **notary**. The members decide
-> inside the Hive. The notary signs at the edge.
+> owner in effect is its Hive's **notary**. The owner in effect is the organization's
+> `owner_rappid` as the registry's re-anchor records carry it forward, with
+> superseded and revoked keys refused as RAPP/1 §§6.3, 10 and 13.3 require (the
+> time-scoped signer rules of `rapp-work/1` §2). The members decide inside the Hive.
+> The notary signs at the edge.
 >
 > The notary's statements for the Hive are exactly two:
 >
@@ -323,9 +327,11 @@ meanings in `rapp-work-folder-hive/1`.
 >      `required` = `members` − 1, which must be at least 2, and `counted` must equal
 >      `required`.
 >    - **rules**: `effect_commit` changes `HIVE.md`, whose new text hashes to
->      `subject_sha256` while the old one hashes to `replaces_sha256`. `counted` = the
->      signer, plus the members whose approvals name `approve: rules`, both hashes.
->      `required` = max(1, min(max(old, new `approvals`), `members`)).
+>      `subject_sha256` while the old one hashes to `replaces_sha256`. The change is
+>      judged under the old rules, so `replaces_sha256` equals `rules.sha256`.
+>      `counted` = the signer, plus the members whose approvals name
+>      `approve: rules`, both hashes. `required` = max(1, min(max(old, new
+>      `approvals`), `members`)).
 >    - **publish**: a manifest under `members/<name>/publish/` has subject hash
 >      `subject_sha256`. `counted` = the members whose approvals name
 >      `approve: publish` and this hash, plus the member whose key signed
@@ -398,8 +404,9 @@ meanings in `rapp-work-folder-hive/1`.
 >
 > - **Rotation.** The notary's key moves by a `rotation` re-anchor that the estate
 >   owner signs, with the old key's continuity signature (RAPP/1 §§6.3 and 13.3).
->   Notarizations made within the old tenure stay valid (§13.2). After the boundary,
->   only the successor signs.
+>   Notarizations made before the re-anchor's `utc` stay valid, because a superseded
+>   key is refused only on frames at or after it (§10). After the boundary, only the
+>   successor signs.
 > - **Compromise.** A `tombstone` and a `compromise` re-anchor (§§10 and 13.3). Frames
 >   by the tombstoned key at or after `revoked_utc` are refused. A compromised key
 >   still cannot originate a decision, because every notarization is recomputed from
@@ -433,8 +440,9 @@ meanings in `rapp-work-folder-hive/1`.
 >      they agree, each corroborates the other. Incompatible accepted heads mean the
 >      Hive forked, which is a drift finding for its members. Neither notary can
 >      override the Hive's bytes.
->    - The old and new keys around a succession: tenures never overlap (§13.2), so a
->      frame by the old key at or after the boundary is refused.
+>    - The old and new keys around a succession: the superseded key is refused on
+>      every frame at or after the re-anchor's `utc` (RAPP/1 §10), so the two never
+>      sign validly at the same time.
 >    - Co-notaries (k of n owners): not provided. A frame carries one signature, and a
 >      k-of-n rule would be a new profile.
 > 4. **Equivocation.** Two different frames at one stream position are a fork. Both
@@ -559,10 +567,10 @@ Second notarization: the publication (journey E3), judged at the last accepted h
 
 At height 40, the commit in which one member left, the Hive had 4 members and
 `approvals: 2`, so 2 were required. One member's approval named the manifest's
-hash, and a member signed the public copy commit, so 2 counted. The public commit holds exactly the manifest's
-one file with its hash, plus `PUBLISHED.md` and `.gitattributes`. `PUBLISHED.md`
-names the manifest and the Hive id. The `to` value is the model's own synthetic
-destination name.
+hash, and a member signed the public copy commit, so 2 counted. The public commit
+holds exactly the manifest's one file with its hash, plus `PUBLISHED.md` and
+`.gitattributes`. `PUBLISHED.md` names the manifest and the Hive id. The `to` value
+is the model's own synthetic destination name.
 
 ## Token and compatibility analysis
 
@@ -584,6 +592,11 @@ destination name.
   nothing is derived from the Hive's id, root or members.
 - **G10 unchanged:** vectors keep their exact shape and rules. This profile only
   names them head notarizations.
+- **Not a rev-N+1 revision:** nothing in `rapp/1` or `rapp-work/1` changes, and
+  `EXTENDING.md` says: "Registered kinds, registry entries, vocabulary and
+  subordinate profiles can grow under `rapp/1`." It becomes an amendment, carried by
+  an owner-ratified chain append (Constitution Art. 14), only if the owner chooses
+  (a), or publishes the profile in this repository's `protocols/index.json`.
 - **Intended release:** newest release scope only, as an experiment beside G10. It
   is not part of RAPP/1 LTS.
 
