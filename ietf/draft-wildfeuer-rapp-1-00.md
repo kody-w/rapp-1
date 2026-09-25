@@ -48,8 +48,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame 2946ac77ce950e51b44dfc0c3495c1ab7fab8a8a182e13e114cad94f2aa5a76a, normative
-SHA-256 c198e061eba6dbc658dfb2bcf2aa3dd2b54d1150351756b379ef8d9e7127a7c3. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame 37f61f170909de3a3923b9672775461a6e81a464942b6b58f35b961e29710540, normative
+SHA-256 4e5541d07cca82634c883612e87c0566cb25509b047348a08cd023dca0e7b638. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -109,7 +109,7 @@ and byte length are provenance and verification data, not alternate identities. 
 the currently served release is immutable even while a separate candidate lineage grows.
 **deployment cell** — an independently observable and isolatable runtime failure domain governed by
 `rapp-deploy/1`. **declared entry** — a §13.3 registry entry that carries its own owner signature made at
-its `activated_utc`; a byte-identical copy of it verifies against the estate's registry (§13.4).
+its `activated_utc`; a copy with its canonical form (§4) verifies against the estate's registry (§13.4).
 **stream signer** — a keyed signer an estate has granted, by a `stream-signer` entry, to speak for it on
 one stream (§13.5).
 
@@ -1019,9 +1019,9 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
 §7.5 steps 1–5 are time-independent (append-only lookups); step 6 (tombstones) and §13.2 owner tenure are
 time-scoped, and both are monotone given the §13.1 no-rollback rule. A declared entry (§13.4) is
 authenticated at its own `activated_utc`, never at the time it is read. A stream-signer window (§13.5) is
-evaluated at a given time — for a frame, its `utc` — and, because every declared entry is retained (§13.4),
-a later registry can add a grant but never withdraw one: a grant ends only at its `until_utc` or where §10
-refuses its signer's key. The rules of §13.5 — stream signers — sit above §7.5 and never add a §7.5 step.
+evaluated at a frame's `utc`; because every declared entry is retained (§13.4), a later registry can add a
+grant but never withdraw one: a grant ends only at its `until_utc` or where §10 refuses its signer's key.
+The rules of §13.5 — stream signers — sit above §7.5 and never add a §7.5 step.
 
 ## Declared entries (entry-level owner signatures)
 A **declared entry** carries its own `activated_utc` (the §7.4 form), `declared_by` (a keyed rappid), and
@@ -1034,13 +1034,15 @@ declared entry types are `grail-kernel` and `stream-signer`. For every declared 
    for that entry; and
 4. refuse the whole registry when any declared entry fails (never skip the entry).
 
-A copy carried elsewhere — a Hive notice, a member file, a release receipt — is a declaration only when it
-is byte-identical to an entry of an accepted registry of the estate, and it is then authenticated by the
-same checks; a copy that differs in any byte, or that no accepted registry carries, is not a declaration
-however well it is signed. `H("rapp/1:particle", entry)` over the complete signed entry names it. Every
-declared entry is persisted: once a consumer has accepted one it **MUST** persist the canonical entry, and
-every later accepted registry **MUST** retain it byte-for-byte; removal or mutation is a permanent refusal
-even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-kernel`).
+For every comparison of entries in §13 — a copy, a retained entry, a persisted one — an entry's bytes are
+its canonical form (§4), so the same JSON value compares equal however a document formats it. A copy
+carried elsewhere — a Hive notice, a member file, a release receipt — is a declaration only when its
+canonical form equals that of an entry of an accepted registry of the estate, and it is then authenticated
+by the same checks; a copy whose canonical form differs in any byte, or that no accepted registry carries,
+is not a declaration however well it is signed. `H("rapp/1:particle", entry)` over the complete signed
+entry names it. Every declared entry is persisted: once a consumer has accepted one it **MUST** persist the
+canonical entry, and every later accepted registry **MUST** retain it byte-for-byte; removal or mutation is
+a permanent refusal even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-kernel`).
 
 ## Stream signers (who speaks for the estate on a stream)
 §7.5 step 6 proves that a registry-discoverable key signed a frame; it does not say whether that key
@@ -1067,9 +1069,10 @@ its successor rappid. A keyless rappid (§6.2) never signs as itself — its tai
 how a keyed signer speaks on a keyless organism's streams without re-anchoring or re-minting that
 identity; §6.2 and §6.3 are unchanged.
 
-Authority is decided against the verified registry in hand. Because a newer registry can add a grant that
-adopts earlier frames, but can never withdraw one (§13.4), a consumer that caches a refusal re-evaluates it
-against a newer registry.
+A registry whose `stream-signer` entries break the §13.3 rules for them is refused whole. Authority is
+decided against the verified registry in hand. Because a newer registry can add a grant that adopts earlier
+frames, but can never withdraw one (§13.4), a consumer that caches a refusal re-evaluates it against a newer
+registry.
 
 # Security considerations
 - **Integrity:** every object is domain-separated content-addressed (§5); a hostile mirror cannot alter
