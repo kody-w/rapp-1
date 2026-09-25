@@ -655,6 +655,18 @@ def revision_payload(
         "status": "live",
         "where": "§13.4 — a registry entry carrying its own owner signature at its activated_utc",
     }
+    payload["vocabulary"]["release-pin"] = {
+        "status": "live",
+        "where": "§13.5 — the declared entry pinning one immutable release of a release family",
+    }
+    payload["vocabulary"]["release-manifest"] = {
+        "status": "live",
+        "where": "§13.5 — rapp/1-release-manifest: a named release, every component by digest at an immutable commit",
+    }
+    payload["vocabulary"]["release-channel"] = {
+        "status": "live",
+        "where": "§13.5 — an owner-named linear chain of release pins; its head pins the current release",
+    }
     rules = [
         {
             "t": "gotcha",
@@ -729,6 +741,32 @@ def revision_payload(
                 "A valid registry signature never blesses a declared entry: each one carries its own "
                 "owner signature at its activated_utc and is retained byte-for-byte once accepted; a "
                 "copy counts only when an accepted registry carries it byte-for-byte."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
+                "A release scope names a release family bound to at most one Grail kernel; each "
+                "release-pin entry pins one immutable release of it by the particle hash of its "
+                "rapp/1-release-manifest, which names the release for people, pins every component file "
+                "by SHA-256 and length at an immutable commit, and binds each organism's door of record "
+                "to one repository and commit."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "A pinned release is never rebound or retired by editing: its successor in the channel "
+                "supersedes it and every earlier release stays verifiable by its manifest_hash; returning "
+                "to earlier content is a new release with a new name, and no grail-kernel joins a family "
+                "after one of its releases was accepted."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "A verified snapshot is exactly the files a release manifest pins; seeds, beacons, Hive "
+                "indexes, member pointers and HEAD fetches are locators, never authority."
             ),
         },
     ]

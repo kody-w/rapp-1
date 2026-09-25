@@ -14,6 +14,7 @@ signs. This page is the lane. Nothing on it needs a change to `rapp/1`.
 | your own egg variant or error code | `egg-variant` / `error-code` entries in your registry | §13.3 (see the open question below) |
 | your signers and their keys | `spki` entries; rotation by `re-anchor`; compromise by `tombstone` | §10, §13.2 |
 | your production runtime pinned | a `grail-kernel` entry | §11.1 |
+| every component of one release of a family pinned together (an LTS line and its corrections, a newest channel) | one `release-pin` entry per pinned release + its `rapp/1-release-manifest` (`schema`, `release_scope`, `release`, `components`); the `release_scope` names the release family, and `release` names the release for people | §13.5 |
 | a subordinate profile (`acme-factory/1`) with its own normative text | **your** repository; adopted by a `protocol` entry pinning repo, path, and SHA-256 | §11.2, `protocols/README.md` |
 | tooling that needs a library (Ed25519 signing, HSMs, a database) | **your** repository; it imports `rapp.py`'s canonicalizer, never re-types it | Art. 10 |
 | to say which RAPP/1 you implement | a `protocol` entry `name:"rapp/1"` whose `spec_hash` comes from **this** repository's anchor | §13.3 |
@@ -58,7 +59,7 @@ assumed.
 
 `load_document` also verifies lifecycle entries: a valid enclosing registry
 signature is not a substitute for a tombstone or re-anchor's own signature. The
-same holds for every declared entry (§13.4, today `grail-kernel`): its own owner
+same holds for every declared entry (§13.4, today `grail-kernel` and `release-pin`): its own owner
 signature is checked at its `activated_utc`, `first_seen=` (or `verification_utc=`
 for a first sighting) applies the per-entry 300-second first-seen bound — a
 signed registry carrying a declared entry is refused without one — and
@@ -85,6 +86,17 @@ estate profile. It is not a document field or an unverified caller-supplied
 timestamp. Without this evidence the loader refuses to guess. In particular,
 `revoked_utc` is an effective revocation cutoff, not proof of when the tombstone
 was issued.
+
+`verify_snapshot(registry, fetch, release_scope=…)` — or `channel=…`, or
+`manifest_hash=…`, exactly one, never the manifest's `release` name — turns one
+pinned release of a verified registry into a verified snapshot (§13.5): a family's
+current release, a channel's head, or one exact pinned release, which a successor
+supersedes without retiring. It fetches the pinned manifest and every pinned file
+through your `fetch`, and returns the files only when the manifest's canonical bytes,
+hash, and kernel coherence, every file's length and SHA-256, and every
+door-of-record binding verify (`examples/09_release_pin.py`). Pass every declared
+entry you accepted as `persisted_entries=`: `load_document` then also refuses a later
+registry that adds a `grail-kernel` to a family one of whose releases you accepted.
 
 This is still not a complete distributed consumer. The caller retains trusted
 heads and registry high-water marks, enforces freshness, and verifies the history

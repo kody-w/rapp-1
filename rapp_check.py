@@ -1,10 +1,12 @@
 """rapp_check.py — the RAPP compliance linter.
 
 Point it at any repo checkout and it verdicts every RAPP artifact (rappid.json,
-frame chains, egg/schema labels, §13 registry documents) against the RAPP standard,
-using the reference implementation. A registry document is checked for structure only:
-its owner signature needs the out-of-band trust anchor (§13.1), so it is reported as
-unverified evidence, never as authority. It classifies a repo as:
+frame chains, egg/schema labels, §13 registry documents, §13.5 release manifests)
+against the RAPP standard, using the reference implementation. A registry document
+is checked for structure only: its owner signature needs the out-of-band trust anchor
+(§13.1), so it is reported as unverified evidence, never as authority. A release
+manifest is likewise structure and canonical bytes only: it has authority only through
+a verified registry's `release-pin`. It classifies a repo as:
 
   CLEAN     — no RAPP artifacts found by a complete bounded scan
   COMPLIANT — has artifacts, all pass RAPP
@@ -357,6 +359,30 @@ def check_repo(root, signature_verifier=None):
             }
         )
 
+    def release_manifest(rel, blob, manifest):
+        try:
+            REG.validate_release_manifest(manifest)
+            if blob != R.canonical(manifest).encode("utf-8"):
+                raise REG.RegistryError(
+                    "file octets are not exactly canonical(manifest) (no BOM, whitespace, "
+                    "or trailing line terminator)"
+                )
+        except (REG.RegistryError, ValueError) as exc:
+            finding(rel, "§13.5 release manifest", str(exc))
+            return
+        evidence.append(
+            {
+                "artifact": rel,
+                "ok": (
+                    f"§13.5 release manifest structure OK (release name {manifest['release']}; "
+                    f"{len(manifest['components'])} components; "
+                    f"manifest_hash {R.H('rapp/1:particle', manifest)[:16]}…; "
+                    "authority requires a verified release-pin)"
+                ),
+                "status": "unverified",
+            }
+        )
+
     def consider(path, is_required):
         nonlocal has_artifact
         rel = os.path.relpath(path, root)
@@ -368,6 +394,10 @@ def check_repo(root, signature_verifier=None):
             if not is_required and blob is not None and _lenient_schema(blob) == REG.DOCUMENT_SCHEMA:
                 has_artifact = True
                 finding(rel, "§13 registry document", f"not strict I-JSON (§4): {exc}")
+                return
+            if not is_required and blob is not None and _lenient_schema(blob) == REG.MANIFEST_SCHEMA:
+                has_artifact = True
+                finding(rel, "§13.5 release manifest", f"not strict I-JSON (§4): {exc}")
                 return
             candidate = is_required or (
                 blob is not None and _looks_like_frame(blob)
@@ -383,6 +413,14 @@ def check_repo(root, signature_verifier=None):
         ):
             has_artifact = True
             registry_document(rel, value)
+            return
+        if (
+            not is_required
+            and isinstance(value, dict)
+            and value.get("schema") == REG.MANIFEST_SCHEMA
+        ):
+            has_artifact = True
+            release_manifest(rel, blob, value)
             return
         candidate = is_required or (
             isinstance(value, dict)
