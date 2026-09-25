@@ -23,7 +23,8 @@ For each section, your implementation must:
 
 `registry-vectors.json` does the same for the §13 registry, derived from `rapp_registry.py`.
 Each section lists inputs and the verdict (`accept` or `refuse`) your registry reader must
-reach; the section name is the SPEC subsection it proves:
+reach. A section is named for the SPEC subsection it proves, or for its declared entry type:
+`13_release_pin` proves §13.5, `13_lifecycle` §13.6, and `13_stream_signer` §13.7.
 
 | section | must produce / decide |
 |---|---|

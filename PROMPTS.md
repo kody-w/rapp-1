@@ -211,6 +211,30 @@ frozen eleven RAPP/1 keys.
 CI/CD, and Deploy evidence without a new envelope, registry-entry type, or
 endpoint.
 
+## 12 · Pin and verify my whole release
+
+Paste into your brainsurgeon:
+
+```text
+You are my hands — I watch, you type. Clone https://github.com/kody-w/rapp-1, run
+python3 examples/09_distributed_hive_lts.py, then python3 registry_conformance.py,
+and stop on any red result. Then explain in plain English, from the real output:
+(1) the verified snapshot — which files the LTS head pins, why the monorepo's copy
+of a member's rappid.json is not its door of record, and why one tampered file
+refuses the whole snapshot; (2) the lifecycle notice — the ledger's state before and
+after its since_utc, who succeeds it, and why the notice revokes nothing; (3) the
+pulse signer — why the network organism's unsigned pulses and a registered station
+key do not speak for the estate while the granted crawler's later pulses do. Say
+plainly which results are a rehearsal because the example's registries are unsigned
+drafts.
+```
+
+**Expect:** every example line `[OK]` and `registry_conformance.py` ending in
+`0 FAIL`, then a verified snapshot that is exactly the pinned files or nothing, a
+lifecycle notice that retires a member from a stated time without revoking a key,
+and a pulse signer that speaks for the estate only on its granted stream, kinds,
+and window — all labelled as an unsigned-draft rehearsal.
+
 ---
 
 *The interactive book edition gives every code example its own **Copy prompt** control —

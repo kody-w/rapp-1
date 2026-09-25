@@ -15,11 +15,12 @@ signs. This page is the lane. Nothing on it needs a change to `rapp/1`.
 | your signers and their keys | `spki` entries; rotation by `re-anchor`; compromise by `tombstone` | §10, §13.2 |
 | your production runtime pinned | a `grail-kernel` entry | §11.1 |
 | every component of one release of a family pinned together (an LTS line and its corrections, a newest channel) | one `release-pin` entry per pinned release + its `rapp/1-release-manifest` (`schema`, `release_scope`, `release`, `components`); the `release_scope` names the release family, and `release` names the release for people | §13.5 |
-| to let a key speak for you on one stream (a pulse, a notice feed) | stream-signer grants — keyless organisms stay keyless | §13.7 |
+| to say an organism is deprecated, superseded, or archived, and since when | `lifecycle` notices (one signed chain per rappid) | §13.6 |
+| to let a key speak for you on one stream (a pulse, a notice feed) | `stream-signer` grants — keyless organisms stay keyless | §13.7 |
+| your own signature on each of those four (a kernel, a release, a notice, a grant) | a declared entry: signed by the owner in effect at its `activated_utc`, retained byte-for-byte once accepted; a copy elsewhere counts only when byte-identical | §13.4 |
 | a subordinate profile (`acme-factory/1`) with its own normative text | **your** repository; adopted by a `protocol` entry pinning repo, path, and SHA-256 | §11.2, `protocols/README.md` |
 | tooling that needs a library (Ed25519 signing, HSMs, a database) | **your** repository; it imports `rapp.py`'s canonicalizer, never re-types it | Art. 10 |
 | to say which RAPP/1 you implement | a `protocol` entry `name:"rapp/1"` whose `spec_hash` comes from **this** repository's anchor | §13.3 |
-| to say an organism is deprecated, superseded, or archived | `lifecycle` entries (one signed chain per rappid) | §13.6 |
 | the registry document itself | exactly `schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; other members carry no meaning | §13.1 |
 
 Every estate pins RAPP/1 the same way, so two estates interoperate on bytes while
@@ -49,44 +50,26 @@ disagreeing on everything else. That is the point.
 
 ```bash
 python3 examples/07_your_own_estate.py      # a complete fictional estate, checked end to end
+python3 examples/09_distributed_hive_lts.py # pinned releases, a lifecycle notice, a pulse signer
 ```
 
 `rapp_registry.py` (stdlib only) validates every §13.3 entry type to its exact member
 set, binds kinds to families and families to stream forms, walks owner succession, and
 applies superseded-key and tombstone refusal at a time. Feed `Registry.signature_verifier()`
 to `rapp.verify_frame(signature_verifier=…)` and signed frames resolve their keys from
-your registry. `Registry.verify_authorized_frame(frame, head=…, stream_id_of_record=…)` runs
-§7.5 that way, kind binding included, and then §13.7: a valid frame whose signer is neither
-your owner nor granted its stream, kind, and time fails at step `"authority"`, never at a §7.5
-step, and `Registry.authorization_verifier()` hands the same rule to a profile's
-`authorization_verifier`. §13.7 binds a consumer that follows no profile-defined signer rule; a
-profile with its own (`rapp-work/1` §1, a `rapp-cicd/1` stage approver) keeps it and may meet it
-this way. A grant may start before its `activated_utc` and so adopt frames already published in
-its window. Signature verification itself uses the optional `cryptography` import
+your registry. Signature verification itself uses the optional `cryptography` import
 inside `rapp.verify_detached_jws`; without it, signed artifacts are refused, never
 assumed.
 
-`Registry.lifecycle_state_at(rappid, utc)` answers from an organism's signed
-`lifecycle` chain (§13.6) whether it was active, deprecated, superseded, or archived
-at that time, and returns `None` — never a guessed deprecation — when none of the
-estate's notices is in effect then. `Registry.successor_at(rappid, utc)` returns the
-successor that the notice in effect then names, or `None` (a scheduled notice names
-none before its `since_utc`); naming grants nothing, and because a registry whose
-successors in effect at any one time form a cycle is refused whole, a walk along the
-successors in effect at one time always ends.
-Notices are persisted like every declared entry: pass the ones you accepted back as
-`persisted_entries=`, and a later registry that drops or rewrites one is refused, so a
-state changes only by a new notice on the record.
-
 `load_document` also verifies key-lifecycle entries: a valid enclosing registry
 signature is not a substitute for a tombstone or re-anchor's own signature. The
-same holds for every declared entry (§13.4, today `grail-kernel`, `release-pin`, `lifecycle`, and `stream-signer`): its own owner
-signature is checked at its `activated_utc`, `first_seen=` (or `verification_utc=`
-for a first sighting) applies the per-entry 300-second first-seen bound — a
-signed registry carrying a declared entry is refused without one — and
-`persisted_entries=` refuses a later registry that dropped or changed a
-declaration. A copy of a declared entry found outside the registry counts only
-when it is byte-identical to one the registry carries.
+same holds for every declared entry (§13.4: `grail-kernel`, `release-pin`,
+`lifecycle`, and `stream-signer`): its own owner signature is checked at its
+`activated_utc`, `first_seen=` (or `verification_utc=` for a first sighting) applies
+the per-entry 300-second first-seen bound — a signed registry carrying a declared
+entry is refused without one — and `persisted_entries=` refuses a later registry that
+dropped or changed a declaration. A copy of a declared entry found outside the registry
+counts only when it is byte-identical to one the registry carries.
 The issuer must be the owner in tenure at the authenticated issuance/action
 time; an owner's own succession record is signed by the outgoing owner at that
 boundary, after checking that its tenure is nonempty and chronologically
@@ -115,9 +98,37 @@ current release, a channel's head, or one exact pinned release, which a successo
 supersedes without retiring. It fetches the pinned manifest and every pinned file
 through your `fetch`, and returns the files only when the manifest's canonical bytes,
 hash, and kernel coherence, every file's length and SHA-256, and every
-door-of-record binding verify (`examples/09_distributed_hive_lts.py`). Pass every declared
-entry you accepted as `persisted_entries=`: `load_document` then also refuses a later
-registry that adds a `grail-kernel` to a family one of whose releases you accepted.
+door-of-record binding verify (`examples/09_distributed_hive_lts.py`). Pass every
+declared entry you accepted as `persisted_entries=`: `load_document` then also refuses a
+later registry that adds a `grail-kernel` to a family one of whose releases you
+accepted. `rapp_check.py` lints a committed release manifest's structure and canonical
+bytes and reports it as unverified evidence: it has authority only through a verified
+`release-pin`.
+
+`Registry.lifecycle_state_at(rappid, utc)` answers from an organism's signed
+`lifecycle` chain (§13.6) whether it was active, deprecated, superseded, or archived
+at that time, and returns `None` — never a guessed deprecation — when none of the
+estate's notices is in effect then. `Registry.successor_at(rappid, utc)` returns the
+successor that the notice in effect then names, or `None` (a scheduled notice names
+none before its `since_utc`); naming grants nothing, and because a registry whose
+successors in effect at any one time form a cycle is refused whole, a walk along the
+successors in effect at one time always ends.
+Notices are persisted like every declared entry: pass the ones you accepted back as
+`persisted_entries=`, and a later registry that drops or rewrites one is refused, so a
+state changes only by a new notice on the record.
+
+Stream signers decide who speaks for you on a stream (§13.7).
+`Registry.verify_authorized_frame(frame, head=…, stream_id_of_record=…)` runs §7.5 with
+your registry's `signature_verifier()`, kind binding included, and then the authority
+rule: a valid frame whose signer is neither your owner in effect nor granted its stream,
+kind, and time fails at step `"authority"`, never at a §7.5 step, and
+`Registry.authorization_verifier()` hands the same rule to a profile's
+`authorization_verifier`. §13.7 binds a consumer that follows no profile-defined signer
+rule; a profile with its own (`rapp-work/1` §1, a `rapp-cicd/1` stage approver) keeps it
+and may meet it this way. A grant may start before its `activated_utc` and so adopt
+frames already published in its window. Authority is decided against the verified
+registry in hand: a newer registry can add a grant that adopts earlier frames but never
+withdraw one, so re-evaluate a cached refusal against a newer registry.
 
 This is still not a complete distributed consumer. The caller retains trusted
 heads and registry high-water marks, enforces freshness, and verifies the history
