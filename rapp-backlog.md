@@ -41,7 +41,9 @@ internals, customer content and anything a reader here has no business seeing.
 
 - [ ] **`rapp-work/1`: an organization cannot bind a folder Hive (proposal, not accepted).**
       `work.organization` names one `rapp-hive/1` Hive by RAPPID and `work.vector` records only a
-      `rapp-hive/1` checkpoint; both are closed. Draft, with `rapp-work/1` unchanged:
+      `rapp-hive/1` checkpoint; both are closed. The draft leaves `rapp-work/1` unchanged, so a
+      `rapp-work/1` organization still cannot bind one. It adds a second, parallel folder-Hive
+      organization type in a sibling profile instead:
       [`protocols/rapp-work/1/proposals/0010-folder-hive-binding.md`](protocols/rapp-work/1/proposals/0010-folder-hive-binding.md).
 
 - [ ] **Egg variants — closed at the protocol or estate-registered?** §9.2 calls the seven
