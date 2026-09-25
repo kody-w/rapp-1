@@ -1019,17 +1019,21 @@ A `lifecycle` entry is the estate's authoritative notice about one organism:
 `superseded_by` never equals `rappid`. The `lifecycle` entries for one `rappid` form one linear chain:
 exactly one has `previous:null`, every other names an entry that appears earlier in `entries` for the same
 `rappid`, no two name the same entry, and neither `since_utc` nor `activated_utc` decreases along it. The
-state **in effect at** time `t` is that of the last entry in the chain whose `since_utc` ≤ `t` (bytewise,
-§7.4); an organism with no such entry has no declared lifecycle at `t`, and a consumer **MUST NOT** infer
-deprecation from absence. The chain's last entry is the current notice, and the organisms named by current
-notices' `superseded_by` **MUST NOT** form a cycle. A registry that breaks these rules is refused whole.
+notice **in effect at** time `t` is the last entry in the chain whose `since_utc` ≤ `t` (bytewise, §7.4);
+its `state` is the state in effect at `t` and its `superseded_by` the successor named at `t`, so a notice
+whose `since_utc` is later than `t` names no successor at `t`. An organism with no such entry has no
+declared lifecycle at `t`, and a consumer **MUST NOT** infer deprecation from absence. The chain's last
+entry is the current notice, and the organisms named by current notices' `superseded_by` **MUST NOT** form
+a cycle. A registry that breaks these rules is refused whole.
 
 A notice is metadata about an organism, not trust: it revokes no key (§10 tombstones do), re-anchors no
 identity (§6.3), changes no frame's §7.5 result, and `superseded_by` transfers no key, signature
 authority, entitlement, or ownership — like §9.4 lineage, it names a successor and grants nothing. A
 lifecycle statement anywhere else — a README, a member file, a Hive notice, a portfolio card, a pointer —
 is a copy: a consumer **MUST** take the state from the verified entry, and a copy that disagrees with it is
-a drift finding. A copy that carries the exact signed entry verifies by §13.4.
+a drift finding. A lifecycle claim that no verified entry supports is unverified, never evidence of a state.
+A verified copy of an earlier notice is authentic but historical: the chain, not the copy, decides the state
+in effect. A copy that carries the exact signed entry verifies by §13.4.
 
 ## 14. Security considerations
 - **Integrity:** every object is domain-separated content-addressed (§5); a hostile mirror cannot alter

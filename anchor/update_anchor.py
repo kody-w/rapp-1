@@ -742,9 +742,10 @@ def revision_payload(
         {
             "t": "fact",
             "c": (
-                "An organism's lifecycle state comes from its estate-signed lifecycle chain: the state in "
-                "effect at t is the last notice whose since_utc <= t; no notice is no declared lifecycle, "
-                "and a README, member file, or Hive notice that disagrees is drift."
+                "An organism's lifecycle comes from its estate-signed lifecycle chain: the state and "
+                "successor in effect at t are those of the last notice whose since_utc <= t; no notice is "
+                "no declared lifecycle, a claim no verified notice supports is unverified, and a README, "
+                "member file, or Hive notice that disagrees is drift."
             ),
         },
         {

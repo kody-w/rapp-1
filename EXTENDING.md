@@ -60,7 +60,13 @@ assumed.
 `Registry.lifecycle_state_at(rappid, utc)` answers from an organism's signed
 `lifecycle` chain (§13.5) whether it was active, deprecated, superseded, or archived
 at that time, and returns `None` — never a guessed deprecation — when none of the
-estate's notices is in effect then.
+estate's notices is in effect then. `Registry.successor_at(rappid, utc)` returns the
+successor that the notice in effect then names, or `None` (a scheduled notice names
+none before its `since_utc`); naming grants nothing, and because only current notices
+are acyclic, a walk along successors at one time stops where it has already been.
+Notices are persisted like every declared entry: pass the ones you accepted back as
+`persisted_entries=`, and a later registry that drops or rewrites one is refused, so a
+state changes only by a new notice on the record.
 
 `load_document` also verifies key-lifecycle entries: a valid enclosing registry
 signature is not a substitute for a tombstone or re-anchor's own signature. The

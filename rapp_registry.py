@@ -20,7 +20,7 @@ What is fully specified by §13 and enforced here:
     `activated_utc`, never blessed by the enclosing document signature, and
     byte-for-byte retention of persisted entries once a caller has accepted them;
   - lifecycle notices (§13.5): one linear, owner-signed chain of `lifecycle` entries per
-    organism, the state in effect at a time, and no cycle among current successors;
+    organism, the state and successor in effect at a time, and no cycle among current successors;
   - owner-signature verification over canonical(document \\ {sig}).
 
 What stays the caller's responsibility, because a snapshot cannot prove it:
@@ -713,7 +713,8 @@ class Registry:
 
     def lifecycle_head(self, rappid):
         """The current notice — the last entry of the organism's chain — or None. A scheduled
-        notice is current before its `since_utc` arrives; `lifecycle_at` says what is in effect."""
+        notice is current before its `since_utc` arrives; `lifecycle_at` and `successor_at`
+        say what is in effect."""
         chain = self.lifecycle_chain(rappid)
         return chain[-1] if chain else None
 
@@ -735,10 +736,13 @@ class Registry:
         notice = self.lifecycle_at(rappid, utc)
         return None if notice is None else notice["state"]
 
-    def successor_of(self, rappid):
-        """The successor named by the organism's current notice, or None. It names; it grants nothing."""
-        head = self.lifecycle_head(rappid)
-        return None if head is None else head["superseded_by"]
+    def successor_at(self, rappid, utc):
+        """The `superseded_by` of the notice in effect at `utc`; None when no notice is in effect
+        then or it names no successor, so a scheduled notice names none before its `since_utc`.
+        It names; it grants nothing. Only current notices are acyclic (§13.5): successors in
+        effect at one time may loop, so a walk along them must stop where it has already been."""
+        notice = self.lifecycle_at(rappid, utc)
+        return None if notice is None else notice["superseded_by"]
 
 
 def validate_document(doc):

@@ -82,7 +82,7 @@ class LifecycleEntryTests(LifecycleCase):
                                      "activated_utc", "declared_by", "sig"})
         self.assertEqual(REG.ENTRY_MEMBERS["lifecycle"], (set(good), set()))
         self.assertIn("lifecycle", REG.DECLARED_TYPES)
-        self.assertNotIn("lifecycle", REG.PERSISTED_TYPES)
+        self.assertIn("lifecycle", REG.PERSISTED_TYPES)  # every declared entry is persisted (§13.4)
         self.assertEqual(REG.LIFECYCLE_STATES, ("active", "deprecated", "superseded", "archived"))
         for member in sorted(set(good) - {"type"}):
             with self.subTest(missing=member):
@@ -119,7 +119,8 @@ class LifecycleEntryTests(LifecycleCase):
             with self.subTest(state=state, superseded_by=successor):
                 registry = self.registry(self.notice(ALPHA, state, superseded_by=successor))
                 self.assertEqual(registry.lifecycle_head(ALPHA)["state"], state)
-                self.assertEqual(registry.successor_of(ALPHA), successor)
+                self.assertEqual(registry.successor_at(ALPHA, T0), successor)
+                self.assertIsNone(registry.successor_at(ALPHA, EARLIER))
         self.assertRefused(self.notice(ALPHA, "active", superseded_by=BETA), reason="must be null")
         self.assertRefused(self.notice(ALPHA, "superseded"), reason="names its successor")
         for state in ("deprecated", "superseded", "archived"):
@@ -137,13 +138,13 @@ class LifecycleChainTests(LifecycleCase):
         self.assertEqual(registry.lifecycle_chain(ALPHA), [a1, a2, a3])
         self.assertEqual(registry.lifecycle_chain(BETA), [b1])
         self.assertEqual(registry.lifecycle_head(ALPHA), a3)
-        self.assertEqual(registry.successor_of(ALPHA), BETA)
-        self.assertIsNone(registry.successor_of(BETA))
+        self.assertEqual(registry.successor_at(ALPHA, T2), BETA)
+        self.assertIsNone(registry.successor_at(BETA, T2))
         for absent in (GAMMA, None, 7):
             with self.subTest(rappid=absent):
                 self.assertEqual(registry.lifecycle_chain(absent), [])
                 self.assertIsNone(registry.lifecycle_head(absent))
-                self.assertIsNone(registry.successor_of(absent))
+                self.assertIsNone(registry.successor_at(absent, T2))
         registry.lifecycle_chain(ALPHA).clear()  # a caller's copy, never the index
         self.assertEqual(len(registry.lifecycle_chain(ALPHA)), 3)
 
@@ -232,6 +233,27 @@ class LifecycleStateAtTests(LifecycleCase):
         self.assertEqual(registry.lifecycle_at(ALPHA, T3), a3)
         self.assertIsNone(registry.lifecycle_at(ALPHA, EARLIER))
 
+    def test_the_successor_named_follows_since_utc(self):
+        a1 = self.notice(ALPHA, "active")
+        a2 = self.notice(ALPHA, "deprecated", since=T1, previous=a1, superseded_by=BETA, activated=T1)
+        a3 = self.notice(ALPHA, "superseded", since=T2, previous=a2, superseded_by=GAMMA, activated=T2)
+        a4 = self.notice(ALPHA, "archived", since=T3, previous=a3, activated=T3)
+        registry = self.registry(a1, a2, a3, a4)
+        expected = [
+            (EARLIER, None), (T0, None), ("2026-07-31T23:59:59.999Z", None), (T1, BETA),
+            ("2026-08-31T23:59:59.999Z", BETA), (T2, GAMMA), ("2026-09-30T23:59:59.999Z", GAMMA),
+            (T3, None), (FUTURE, None),
+        ]
+        for utc, successor in expected:
+            with self.subTest(utc=utc):
+                self.assertEqual(registry.successor_at(ALPHA, utc), successor)
+                in_effect = registry.lifecycle_at(ALPHA, utc)
+                self.assertEqual(successor, None if in_effect is None else in_effect["superseded_by"])
+        for named in (BETA, GAMMA):
+            with self.subTest(successor=named):  # being named declares nothing for the successor
+                self.assertIsNone(registry.successor_at(named, T3))
+                self.assertIsNone(registry.lifecycle_state_at(named, T3))
+
     def test_absence_is_no_declared_lifecycle_never_deprecation(self):
         registry = self.registry(self.notice(ALPHA, "active", since=T1, activated=T1))
         self.assertIsNone(registry.lifecycle_state_at(ALPHA, T0))  # before its first since_utc
@@ -254,7 +276,12 @@ class LifecycleStateAtTests(LifecycleCase):
         g2 = self.notice(GAMMA, "superseded", since=FUTURE, previous=g1, superseded_by=DELTA, activated=T1)
         registry = self.registry(g1, g2)
         self.assertEqual(registry.lifecycle_head(GAMMA), g2)
-        self.assertEqual(registry.successor_of(GAMMA), DELTA)
+        self.assertEqual(registry.lifecycle_head(GAMMA)["superseded_by"], DELTA)
+        # A scheduled notice names no successor before its since_utc arrives.
+        for utc in (T2, "2026-12-31T23:59:59.999Z"):
+            with self.subTest(utc=utc):
+                self.assertIsNone(registry.successor_at(GAMMA, utc))
+        self.assertEqual(registry.successor_at(GAMMA, FUTURE), DELTA)
         self.assertEqual(registry.lifecycle_state_at(GAMMA, T2), "active")
         self.assertEqual(registry.lifecycle_state_at(GAMMA, "2026-12-31T23:59:59.999Z"), "active")
         self.assertEqual(registry.lifecycle_state_at(GAMMA, FUTURE), "superseded")
@@ -280,6 +307,8 @@ class LifecycleStateAtTests(LifecycleCase):
                     registry.lifecycle_at(ALPHA, utc)
                 with self.assertRaises(ValueError):
                     registry.lifecycle_state_at(BETA, utc)
+                with self.assertRaises(REG.RegistryError):
+                    registry.successor_at(ALPHA, utc)
 
 
 class LifecycleCycleTests(LifecycleCase):
@@ -291,10 +320,11 @@ class LifecycleCycleTests(LifecycleCase):
         registry = self.registry(self.notice(ALPHA, "superseded", superseded_by=BETA),
                                  self.notice(BETA, "superseded", superseded_by=GAMMA),
                                  self.notice(GAMMA, "active"))
-        self.assertEqual([registry.successor_of(r) for r in (ALPHA, BETA, GAMMA, DELTA)], [BETA, GAMMA, None, None])
+        self.assertEqual([registry.successor_at(r, T0) for r in (ALPHA, BETA, GAMMA, DELTA)],
+                         [BETA, GAMMA, None, None])
         registry = self.registry(self.notice(ALPHA, "superseded", superseded_by=BETA),
                                  self.notice(BETA, "archived", superseded_by=GAMMA))  # GAMMA declares nothing
-        self.assertEqual(registry.successor_of(BETA), GAMMA)
+        self.assertEqual(registry.successor_at(BETA, T0), GAMMA)
         self.assertIsNone(registry.lifecycle_head(GAMMA))
 
     def test_longer_cycles_are_refused_wherever_the_walk_starts(self):
@@ -314,16 +344,32 @@ class LifecycleCycleTests(LifecycleCase):
         a2 = self.notice(ALPHA, "active", since=T1, previous=a1, activated=T1)  # reinstated
         b1 = self.notice(BETA, "superseded", superseded_by=ALPHA)
         registry = self.registry(a1, a2, b1)
-        self.assertIsNone(registry.successor_of(ALPHA))
-        self.assertEqual(registry.successor_of(BETA), ALPHA)
+        self.assertIsNone(registry.successor_at(ALPHA, T1))
+        self.assertEqual(registry.successor_at(BETA, T1), ALPHA)
+        # A past state may loop — only current notices must be acyclic: at T0 each names the other.
+        self.assertEqual((registry.successor_at(ALPHA, T0), registry.successor_at(BETA, T0)), (BETA, ALPHA))
         scheduled = self.notice(ALPHA, "superseded", since=FUTURE, previous=a2, superseded_by=BETA, activated=T2)
         self.assertRefused(a1, a2, b1, scheduled, reason="cycle")  # a scheduled notice is current
+
+    def test_a_scheduled_withdrawal_leaves_the_loop_in_effect_until_its_since_utc(self):
+        a1 = self.notice(ALPHA, "superseded", superseded_by=BETA)
+        withdrawal = self.notice(ALPHA, "active", since=FUTURE, previous=a1, activated=T1)  # current, scheduled
+        b1 = self.notice(BETA, "superseded", superseded_by=ALPHA)
+        registry = self.registry(a1, withdrawal, b1)  # current notices: ALPHA names none, BETA names ALPHA
+        for utc, named in ((T2, (BETA, ALPHA)), (FUTURE, (None, ALPHA))):
+            with self.subTest(utc=utc):
+                self.assertEqual((registry.successor_at(ALPHA, utc), registry.successor_at(BETA, utc)), named)
+        walk, organism = [], ALPHA  # so a walk along successors in effect at T2 stops where it has been
+        while organism is not None and organism not in walk:
+            walk.append(organism)
+            organism = registry.successor_at(organism, T2)
+        self.assertEqual((walk, organism), ([ALPHA, BETA], ALPHA))
 
     def test_a_later_notice_can_close_a_cycle_its_first_notice_did_not(self):
         g1 = self.notice(GAMMA, "active")
         g2 = self.notice(GAMMA, "superseded", since=T1, previous=g1, superseded_by=DELTA, activated=T1)
         d1 = self.notice(DELTA, "deprecated", superseded_by=GAMMA)
-        self.assertEqual(self.registry(g1, d1).successor_of(DELTA), GAMMA)
+        self.assertEqual(self.registry(g1, d1).successor_at(DELTA, T0), GAMMA)
         self.assertRefused(g1, d1, g2, reason="cycle")
 
 
@@ -334,7 +380,8 @@ class LifecycleSignatureTests(LifecycleCase):
         status, registry, why = self.load([a1, a2])
         self.assertEqual((status, why), ("verified", "ok"))
         self.assertEqual(registry.lifecycle_state_at(ALPHA, T2), "superseded")
-        self.assertEqual(registry.successor_of(ALPHA), BETA)
+        self.assertIsNone(registry.successor_at(ALPHA, T0))
+        self.assertEqual(registry.successor_at(ALPHA, T2), BETA)
 
     def test_a_forged_or_mutated_notice_is_refused(self):
         forged = self.notice(ALPHA, "active")
@@ -380,28 +427,39 @@ class LifecycleSignatureTests(LifecycleCase):
         late = self.notice(ALPHA, "active", activated="2026-07-01T00:05:00.001Z")
         self.assertEqual(self.load([late], verification_utc=T0)[0], "refused")
 
-    def test_an_exact_copy_verifies_apart_from_the_registry(self):
+    def test_first_seen_is_resolved_per_notice(self):
+        a1 = self.notice(ALPHA, "active", activated=T0)
+        a2 = self.notice(ALPHA, "deprecated", since=T1, previous=a1, activated=T1)  # appended later
+        seen = {REG.entry_hash(a1): T0, REG.entry_hash(a2): T1}
+        self.assertEqual(self.load([a1, a2], first_seen=seen.__getitem__)[0], "verified")
+        self.assertEqual(self.load([a1, a2], verification_utc=T0)[0], "refused")  # one time for both
+        seen[REG.entry_hash(a2)] = T0  # first seen a month before it says it was declared
+        self.assertEqual(self.load([a1, a2], first_seen=seen.__getitem__)[0], "refused")
+
+    def test_a_copy_counts_only_when_the_registry_carries_it(self):
         a1 = self.notice(ALPHA, "active")
         a2 = self.notice(ALPHA, "deprecated", since=T1, previous=a1, superseded_by=BETA, activated=T1)
         with self.estate.mocked():
             registry = self.registry(a1, a2)
             member_file_copy = json.loads(json.dumps(a2, indent=2))  # a Hive notice or member file
             self.assertEqual(registry.declared_entry_ok(member_file_copy), (True, "ok"))
-            for member, value in (("state", "archived"), ("since_utc", T2), ("superseded_by", GAMMA),
-                                  ("previous", None)):
-                with self.subTest(member=member):
-                    self.assertFalse(registry.declared_entry_ok(dict(a2, **{member: value}))[0])
-            # An authentic copy of an older notice still verifies; the registry's chain decides the state.
+            unregistered = self.notice(ALPHA, "archived", since=T2, previous=a2, activated=T2)  # owner-signed
+            resigned = self.notice(ALPHA, "deprecated", since=T1, previous=a1, superseded_by=BETA, activated=T1)
+            claims = [("unregistered successor notice", unregistered), ("same members, another sig", resigned)]
+            claims += [(f"altered {member}", dict(a2, **{member: value})) for member, value in (
+                ("state", "archived"), ("since_utc", T2), ("superseded_by", GAMMA), ("previous", None))]
+            for label, claim in claims:
+                with self.subTest(claim=label):
+                    ok, why = registry.declared_entry_ok(claim)
+                    self.assertFalse(ok)
+                    self.assertIn("not an entry of this registry", why)
+            # A claim no verified entry supports is unverified: the state stays the chain's.
+            self.assertEqual(registry.lifecycle_state_at(ALPHA, T3), "deprecated")
+            # An authentic copy of an earlier notice verifies, but it is history: the chain decides.
             self.assertEqual(registry.declared_entry_ok(copy.deepcopy(a1)), (True, "ok"))
             self.assertEqual(registry.lifecycle_head(ALPHA), a2)
             self.assertEqual(registry.lifecycle_state_at(ALPHA, T2), "deprecated")
-
-    def test_notices_are_not_retained_like_persisted_entries(self):
-        a1 = self.notice(ALPHA, "active")
-        registry = self.registry(a1)
-        ok, why = registry.check_retained([a1])
-        self.assertFalse(ok)
-        self.assertIn("not a persisted entry type", why)
+            self.assertEqual(registry.lifecycle_at(ALPHA, T2), a2)
 
     def test_an_unsigned_document_is_a_draft_and_still_refuses_a_broken_chain(self):
         a1 = self.notice(ALPHA, "active")
@@ -412,6 +470,85 @@ class LifecycleSignatureTests(LifecycleCase):
         self.assertEqual(registry.lifecycle_state_at(ALPHA, T1), "deprecated")
         broken = self.estate.document(self.estate.base_entries() + [a2, a1], signed=False)
         self.assertEqual(self.estate.load(broken, allow_unsigned=True)[0], "refused")
+
+
+class LifecycleRetentionTests(LifecycleCase):
+    """§13.4: every declared entry is persisted, so an accepted notice is retained byte for byte."""
+
+    def setUp(self):
+        super().setUp()
+        self.a1 = self.notice(ALPHA, "active")
+        self.a2 = self.notice(ALPHA, "superseded", since=T1, previous=self.a1, superseded_by=BETA, activated=T1)
+        status, accepted, why = self.load([self.a1, self.a2])
+        self.assertEqual((status, why), ("verified", "ok"))
+        # What the consumer keeps once it has accepted that registry: the canonical notices.
+        self.persisted = [R._strict_json(R.canonical(e)) for e in accepted.entries if e["type"] == "lifecycle"]
+        self.assertEqual(self.persisted, [self.a1, self.a2])
+
+    def later(self, notices, *, retained=True):
+        """A later, higher-sequence registry of the same estate, loaded with or without retention."""
+        document = self.estate.document(self.estate.base_entries() + list(notices), seq=3)
+        kwargs = {"persisted_entries": self.persisted} if retained else {}
+        return self.estate.load(document, persisted_seq=2, **kwargs)
+
+    def resigned(self, **changes):
+        """The owner re-signs the accepted `a2` with some members changed."""
+        fields = {"state": "superseded", "since": T1, "previous": self.a1, "superseded_by": BETA, "activated": T1}
+        fields.update(changes)
+        return self.notice(ALPHA, fields.pop("state"), **fields)
+
+    def test_a_later_registry_that_keeps_the_chain_may_extend_it(self):
+        a3 = self.notice(ALPHA, "active", since=T2, previous=self.a2, activated=T2)  # reinstated by a new notice
+        status, registry, why = self.later([self.a1, self.a2, a3])
+        self.assertEqual((status, why), ("verified", "ok"))
+        self.assertEqual(registry.check_retained(self.persisted), (True, "ok"))
+        self.assertEqual(registry.lifecycle_chain(ALPHA), [self.a1, self.a2, a3])
+        self.assertEqual(registry.lifecycle_state_at(ALPHA, T1), "superseded")  # history stays on record
+        self.assertEqual(registry.lifecycle_state_at(ALPHA, T3), "active")
+        reordered = [json.loads(json.dumps(e, indent=2, sort_keys=False)) for e in reversed(self.persisted)]
+        self.assertEqual(registry.check_retained(reordered), (True, "ok"))  # canonical bytes, any order
+
+    def test_a_later_registry_that_drops_or_rewrites_a_notice_is_refused(self):
+        attacks = {
+            "drops the current notice": [self.a1],
+            "drops the whole chain": [],
+            "rewrites the state": [self.a1, self.resigned(state="deprecated")],
+            "rewrites the successor": [self.a1, self.resigned(superseded_by=GAMMA)],
+            "moves since_utc later": [self.a1, self.resigned(since=T3)],
+            "re-signs the same members": [self.a1, self.resigned()],
+            "forks a rival notice in its place": [self.a1, self.notice(ALPHA, "active", since=T1,
+                                                                       previous=self.a1, activated=T1)],
+        }
+        for label, notices in attacks.items():
+            with self.subTest(attack=label):
+                # By itself the later registry verifies: nothing but retention can refuse it …
+                self.assertEqual(self.later(notices, retained=False)[:1], ("verified",))
+                # … and retention does, however much registry_seq increased.
+                status, registry, why = self.later(notices)
+                self.assertEqual((status, registry), ("refused", None))
+                self.assertIn("persisted lifecycle entry was removed or mutated", why)
+
+    def test_the_state_cannot_silently_revert(self):
+        status, forgetful, _ = self.later([self.a1], retained=False)
+        self.assertEqual(status, "verified")
+        self.assertEqual(forgetful.lifecycle_state_at(ALPHA, T2), "active")  # what dropping a2 would show
+        self.assertIsNone(forgetful.successor_at(ALPHA, T2))
+        self.assertEqual(self.later([self.a1])[0], "refused")
+        # With the chain retained, a state changes only by a new notice on the record, and never
+        # before the current notice's since_utc.
+        backdated = self.notice(ALPHA, "archived", since=T0, previous=self.a2, activated=T2)
+        status, _, why = self.later([self.a1, self.a2, backdated])
+        self.assertEqual(status, "refused")
+        self.assertIn("`since_utc` decreases", why)
+        corrected = self.notice(ALPHA, "active", since=T1, previous=self.a2, activated=T2)
+        status, registry, why = self.later([self.a1, self.a2, corrected])
+        self.assertEqual((status, why), ("verified", "ok"))
+        self.assertEqual(registry.lifecycle_chain(ALPHA), [self.a1, self.a2, corrected])
+        self.assertEqual(registry.lifecycle_state_at(ALPHA, T2), "active")
+        for utc in (T0, "2026-07-31T23:59:59.999Z"):
+            with self.subTest(utc=utc):
+                self.assertEqual(registry.lifecycle_state_at(ALPHA, utc), "active")  # unchanged before T1
+                self.assertIsNone(registry.successor_at(ALPHA, utc))
 
 
 class LifecycleIsNotTrustTests(LifecycleCase):
@@ -433,7 +570,8 @@ class LifecycleIsNotTrustTests(LifecycleCase):
                     self.assertEqual(noticed.signer_acceptable(kid, utc), plain.signer_acceptable(kid, utc))
                     self.assertEqual(noticed.signer_acceptable(kid, utc), (True, "ok"))
         self.assertEqual(noticed.owner_at(T2), plain.owner_at(T2))
-        self.assertIsNone(noticed.successor_of(self.successor))  # naming a successor grants it nothing
+        self.assertEqual(noticed.successor_at(self.worker, T2), self.successor)
+        self.assertIsNone(noticed.successor_at(self.successor, T2))  # naming a successor grants it nothing
 
     def test_frames_on_a_superseded_organisms_stream_still_verify(self):
         noticed = self.registry(BODY_PULSE, *self.notices)
@@ -526,12 +664,35 @@ class RealSignatureLifecycleTests(unittest.TestCase):
         status, registry, why = REG.load_document(doc, trust_anchor=owner, verification_utc=T1)
         self.assertEqual((status, why), ("verified", "ok"))
         self.assertEqual(registry.lifecycle_state_at(worker, T2), "superseded")
-        self.assertEqual(registry.successor_of(worker), BETA)
+        self.assertIsNone(registry.successor_at(worker, T0))
+        self.assertEqual(registry.successor_at(worker, T2), BETA)
 
         self.assertEqual(registry.declared_entry_ok(json.loads(json.dumps(a2))), (True, "ok"))
         self.assertFalse(registry.declared_entry_ok(dict(a2, state="archived"))[0])
+        unregistered = notice("archived", T2, REG.entry_hash(a2), None)  # really owner-signed, never carried
         worker_signed = dict(a2, sig=worker_sign({k: v for k, v in a2.items() if k != "sig"}, worker))
-        self.assertFalse(registry.declared_entry_ok(worker_signed)[0])
+        for claim in (unregistered, worker_signed):
+            ok, why = registry.declared_entry_ok(claim)
+            self.assertFalse(ok)
+            self.assertIn("not an entry of this registry", why)
+
+        def signed_document(notices, seq=1):
+            value = {"schema": "rapp/1-registry", "registry_seq": seq, "canonical_source": SOURCE,
+                     "entries": entries + notices}
+            value["sig"] = owner_sign(value, owner)
+            return value
+
+        # Carried by a registry the owner signs, the worker-signed notice fails its own signature.
+        status, _, why = REG.load_document(signed_document([a1, worker_signed]), trust_anchor=owner)
+        self.assertEqual(status, "refused")
+        self.assertIn("lifecycle entry signature refused", why)
+        # A later registry cannot drop the accepted notice, even when the owner signs it.
+        persisted = [R._strict_json(R.canonical(e)) for e in (a1, a2)]
+        self.assertEqual(REG.load_document(signed_document([a1], seq=2), trust_anchor=owner)[0], "verified")
+        self.assertEqual(REG.load_document(signed_document([a1], seq=2), trust_anchor=owner,
+                                           persisted_seq=1, persisted_entries=persisted)[0], "refused")
+        self.assertEqual(REG.load_document(signed_document([a1, a2], seq=2), trust_anchor=owner,
+                                           persisted_seq=1, persisted_entries=persisted)[0], "verified")
 
         tampered = copy.deepcopy(doc)
         tampered["entries"][-1]["state"] = "archived"

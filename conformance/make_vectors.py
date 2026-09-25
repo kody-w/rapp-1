@@ -190,7 +190,8 @@ def registry_sections():
         }
 
     def lifecycle_cases():
-        """§13.5 lifecycle notices: entry rules, one chain per rappid, times, cycles, state in effect."""
+        """§13.5 lifecycle notices: entry rules, one chain per rappid, times, cycles, and the state
+        and successor in effect."""
         earlier, just_before_t1 = "2026-06-01T00:00:00.000Z", "2026-07-31T23:59:59.999Z"
         t1, t2, t3 = "2026-08-01T00:00:00.000Z", "2026-09-01T00:00:00.000Z", "2026-10-01T00:00:00.000Z"
         future = "2027-01-01T00:00:00.000Z"
@@ -212,8 +213,10 @@ def registry_sections():
             return {k: v for k, v in entry.items() if v is not _DROP}
 
         def current(registry):
-            return {rappid: {"state": registry.lifecycle_head(rappid)["state"],
-                             "superseded_by": registry.successor_of(rappid)} for rappid in sorted(registry.lifecycle)}
+            """Each organism's current notice (its chain's last entry), scheduled or in effect."""
+            heads = {rappid: registry.lifecycle_head(rappid) for rappid in sorted(registry.lifecycle)}
+            return {rappid: {"state": head["state"], "superseded_by": head["superseded_by"]}
+                    for rappid, head in heads.items()}
 
         def case(label, notices, expect):
             """`expect` is "accept", or text the reference's refusal must contain, so every refusal
@@ -254,6 +257,10 @@ def registry_sections():
                  [notice(alpha, "superseded", superseded_by=delta)], "accept"),
             case("a withdrawn supersession does not close a cycle",
                  [s1, notice(alpha, "active", since=t1, previous=s1, activated=t1),
+                  notice(beta, "superseded", superseded_by=alpha)], "accept"),
+            case("a scheduled withdrawal: only current notices are acyclic, so the loop in effect until "
+                 "its since_utc is accepted",
+                 [s1, notice(alpha, "active", since=future, previous=s1, activated=t1),
                   notice(beta, "superseded", superseded_by=alpha)], "accept"),
             case("a missing member (previous)", [notice(alpha, "active", previous=_DROP)], "member set"),
             case("an extra member (deprecated)", [notice(alpha, "active", deprecated=False)], "member set"),
@@ -308,28 +315,32 @@ def registry_sections():
 
         g1 = notice(gamma, "active")
         d1 = notice(delta, "active", since=t1, activated=t1)
-        e1 = notice(epsilon, "deprecated", since=t1, activated=t1)
+        e1 = notice(epsilon, "deprecated", since=t1, superseded_by=gamma, activated=t1)
         timeline = base + [
             a1, g1, a2, d1, e1, a3,
             notice(gamma, "archived", since=t1, previous=g1, activated=t3),  # retroactive
             notice(delta, "superseded", since=future, previous=d1, superseded_by=beta, activated=t2),  # scheduled
-            notice(epsilon, "active", since=t1, previous=e1, activated=t2),  # a correction
+            notice(epsilon, "active", since=t1, previous=e1, activated=t2),  # a correction withdraws gamma
         ]
         registry = REG.Registry(timeline)
         times = (earlier, T0, just_before_t1, t1, t2, t3, future)
-        intended = {
-            alpha: (None, "active", "active", "deprecated", "superseded", "superseded", "superseded"),
-            beta: (None,) * len(times),
-            gamma: (None, "active", "active", "archived", "archived", "archived", "archived"),
-            delta: (None, None, None, "active", "active", "active", "superseded"),
-            epsilon: (None, None, None, "active", "active", "active", "active"),
+        intended = {  # rappid -> (state, superseded_by) in effect at each of `times`
+            alpha: ((None, None), ("active", None), ("active", None), ("deprecated", beta),
+                    ("superseded", beta), ("superseded", beta), ("superseded", beta)),
+            beta: ((None, None),) * len(times),
+            gamma: ((None, None), ("active", None), ("active", None), ("archived", None),
+                    ("archived", None), ("archived", None), ("archived", None)),
+            delta: ((None, None), (None, None), (None, None), ("active", None),
+                    ("active", None), ("active", None), ("superseded", beta)),
+            epsilon: ((None, None), (None, None), (None, None), ("active", None),
+                      ("active", None), ("active", None), ("active", None)),
         }
         queries = []
-        for rappid, states in intended.items():
-            for utc, state in zip(times, states):
-                answer = registry.lifecycle_state_at(rappid, utc)
-                assert answer == state, (rappid, utc, answer)
-                queries.append({"rappid": rappid, "utc": utc, "state": answer})
+        for rappid, answers in intended.items():
+            for utc, expected in zip(times, answers):
+                answer = (registry.lifecycle_state_at(rappid, utc), registry.successor_at(rappid, utc))
+                assert answer == expected, (rappid, utc, answer)
+                queries.append({"rappid": rappid, "utc": utc, "state": answer[0], "superseded_by": answer[1]})
 
         return {
             "states": list(REG.LIFECYCLE_STATES),
@@ -346,8 +357,10 @@ def registry_sections():
                 "entries": timeline,
                 "current": current(registry),
                 "queries": queries,
-                "rule": "the state in effect at utc is that of the last chain entry whose since_utc <= utc "
-                        "(bytewise); null is no declared lifecycle, never deprecation",
+                "rule": "the notice in effect at utc is the last chain entry whose since_utc <= utc (bytewise); "
+                        "its state and superseded_by are those in effect at utc. A null state is no declared "
+                        "lifecycle, never deprecation; a null superseded_by names no successor at utc, and a "
+                        "scheduled notice names none before its since_utc",
             },
         }
 
