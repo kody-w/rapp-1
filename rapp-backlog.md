@@ -27,12 +27,12 @@ internals, customer content and anything a reader here has no business seeing.
       The refusal behaviour (never silently fall back from a private theme to this default)
       is implemented and tested locally, not against a real private repo.
 
-- [ ] **§13 registry document: name the container (rev-N+1 candidate, blocks every extender).**
-      §13.1 names `schema`, `registry_seq`, `sig`; §13.3 names every entry's exact members;
-      nothing names the member that holds the entries, nor how `canonical_source` travels in
-      the document. No estate — this one included — has ever published a `rapp/1-registry`,
-      and a stranger who tries (PR #15 did) has to invent the shape. Until closed,
-      `rapp_registry.load_document` requires the caller to name the entries member.
+- [x] **§13 registry document: name the container — drafted as rev-17, normative on owner
+      acceptance.** §13.1 now names `schema`, `registry_seq`, `canonical_source`, `entries`, and
+      `sig`, exactly the shape of the one published signed registry; any other top-level member
+      carries no meaning. `rapp_registry.load_document` defaults the entries member to `entries` and
+      refuses any other name. (Was: nothing named the member holding the entries or how
+      `canonical_source` travels, so a stranger — PR #15 — had to invent the shape.)
 
 - [ ] **Kind ownership across estates (rev-N+1 candidate).** Each estate binds kinds in its own
       registry, so on a `net:` swarm stream two estates can bind the same kind string to

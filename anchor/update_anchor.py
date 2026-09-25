@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Append the deterministic rev-16 RAPP/1 specification-chain frame."""
+"""Append the deterministic rev-17 RAPP/1 specification-chain frame."""
 
 from __future__ import annotations
 
@@ -32,8 +32,8 @@ INDEX = ANCHOR / "index.json"
 FRAMES = ANCHOR / "frames"
 BOOTSTRAP = ANCHOR / "bootstrap"
 LOCK = ANCHOR / ".update_anchor.lock"
-REVISION = "rev-16"
-PREVIOUS_REVISION = "rev-15"
+REVISION = "rev-17"
+PREVIOUS_REVISION = "rev-16"
 INPUT_PATHS = [
     "SPEC.md",
     "CONSTITUTION.md",
@@ -651,6 +651,10 @@ def revision_payload(
         "status": "live",
         "where": "§12 and Constitution Article 18 — the rapp/1 verified forms never change; a change is rapp/2",
     }
+    payload["vocabulary"]["declared-entry"] = {
+        "status": "live",
+        "where": "§13.4 — a registry entry carrying its own owner signature at its activated_utc",
+    }
     rules = [
         {
             "t": "gotcha",
@@ -710,6 +714,20 @@ def revision_payload(
                 "The rapp/1 wire is frozen: §4, §5, §6.1-6.2, §7.1, §7.3, §7.5, §8 and §9.1 "
                 "never change under the rapp/1 token; a change is rapp/2 beside it, and rapp/1 "
                 "artifacts verify forever."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
+                "A rapp/1-registry keeps its entries under `entries` and its owner-selected location "
+                "of record under `canonical_source`; any other top-level member carries no RAPP/1 meaning."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "A valid registry signature never blesses a declared entry: each one carries its own "
+                "owner signature at its activated_utc, and persisted ones are retained byte-for-byte."
             ),
         },
     ]

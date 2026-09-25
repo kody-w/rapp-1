@@ -1,0 +1,246 @@
+"""§13.1 registry container and §13.4 declared-entry tests (stdlib; JWS boundary mocked)."""
+import base64
+import copy
+import unittest
+
+import rapp as R
+import rapp_registry as REG
+from registry_fixtures import MockEstate, SOURCE, T0, real_ed25519_signer
+
+LATER = "2026-08-01T00:00:00.000Z"
+
+
+class RegistryContainerTests(unittest.TestCase):
+    def setUp(self):
+        self.estate = MockEstate()
+
+    def test_the_five_member_container_verifies(self):
+        doc = self.estate.document(self.estate.base_entries())
+        status, reg, why = self.estate.load(doc)
+        self.assertEqual((status, why), ("verified", "ok"))
+        self.assertEqual(reg.canonical_source, SOURCE)
+
+    def test_every_container_member_is_required(self):
+        for member in REG.DOCUMENT_MEMBERS:
+            with self.subTest(member=member):
+                doc = self.estate.document(self.estate.base_entries())
+                del doc[member]
+                self.assertEqual(self.estate.load(doc)[0], "refused")
+
+    def test_container_member_shapes_are_refused_not_repaired(self):
+        cases = {
+            "canonical_source": ["http://registry.example.test/r.json", "", 7, None],
+            "entries": [{}, "entries", None],
+            "registry_seq": [-1, 2**53, True, "2"],
+            "sig": ["", 5],
+            "schema": ["rapp/1-registry-v2", None],
+        }
+        for member, values in cases.items():
+            for value in values:
+                with self.subTest(member=member, value=value):
+                    doc = self.estate.document(self.estate.base_entries())
+                    doc[member] = value
+                    self.assertEqual(self.estate.load(doc)[0], "refused")
+
+    def test_other_top_level_members_are_signed_but_meaningless(self):
+        extra = {"estate": "test", "anchor": {"revision": "rev-0"}, "published_utc": T0}
+        doc = self.estate.document(self.estate.base_entries(), extra=extra)
+        self.assertEqual(self.estate.load(doc)[0], "verified")
+        doc["estate"] = "tampered"  # covered by the document signature
+        self.assertEqual(self.estate.load(doc)[0], "refused")
+
+    def test_entries_member_has_exactly_one_name(self):
+        doc = self.estate.document(self.estate.base_entries())
+        self.assertEqual(self.estate.load(doc, entries_member="items")[0], "refused")
+        renamed = {k: v for k, v in doc.items() if k != "entries"}
+        renamed["items"] = doc["entries"]
+        self.assertEqual(self.estate.load(renamed, entries_member="items")[0], "refused")
+
+    def test_out_of_band_canonical_source_must_match(self):
+        doc = self.estate.document(self.estate.base_entries())
+        self.assertEqual(self.estate.load(doc, canonical_source=SOURCE)[0], "verified")
+        self.assertEqual(
+            self.estate.load(doc, canonical_source="https://mirror.example.test/r.json")[0],
+            "refused",
+        )
+
+    def test_unsigned_container_is_a_draft_only_when_allowed(self):
+        doc = self.estate.document(self.estate.base_entries(), signed=False)
+        self.assertEqual(self.estate.load(doc)[0], "refused")
+        self.assertEqual(self.estate.load(doc, allow_unsigned=True)[0], "draft")
+
+    def test_validate_document_checks_structure_only(self):
+        doc = self.estate.document(self.estate.base_entries())
+        self.assertIs(REG.validate_document(doc), doc)
+        with self.assertRaises(REG.RegistryError):
+            REG.validate_document({k: v for k, v in doc.items() if k != "canonical_source"})
+
+
+class ProtocolPinTests(unittest.TestCase):
+    def pin(self, spec_hash, deprecated, name="rapp-work/1"):
+        return {"type": "protocol", "name": name, "spec_repo": "https://github.com/kody-w/rapp-1",
+                "spec_path": "protocols/rapp-work/1/SPEC.md", "spec_hash": spec_hash,
+                "deprecated": deprecated}
+
+    def test_current_pin_is_the_sole_non_deprecated_entry(self):
+        estate = MockEstate()
+        reg = REG.Registry(estate.base_entries() + [self.pin("a" * 64, True), self.pin("b" * 64, False)])
+        self.assertEqual(reg.current_protocol("rapp-work/1")["spec_hash"], "b" * 64)
+        self.assertEqual(reg.protocols["rapp-work/1"]["spec_hash"], "b" * 64)
+        self.assertEqual([p["spec_hash"] for p in reg.protocol_history["rapp-work/1"]], ["a" * 64, "b" * 64])
+
+    def test_two_current_pins_for_one_name_have_no_current_pin(self):
+        estate = MockEstate()
+        reg = REG.Registry(estate.base_entries() + [self.pin("a" * 64, False), self.pin("b" * 64, False)])
+        self.assertIsNone(reg.current_protocol("rapp-work/1"))
+        self.assertEqual(len(reg.protocol_history["rapp-work/1"]), 2)
+
+    def test_a_fully_retired_protocol_has_no_current_pin(self):
+        estate = MockEstate()
+        reg = REG.Registry(estate.base_entries() + [self.pin("a" * 64, True)])
+        self.assertIsNone(reg.current_protocol("rapp-work/1"))
+        self.assertEqual(len(reg.protocol_history["rapp-work/1"]), 1)
+
+
+class DeclaredEntryTests(unittest.TestCase):
+    def setUp(self):
+        self.estate = MockEstate()
+
+    def load(self, extra_entries, owner="owner", entries=None, **kwargs):
+        base = entries if entries is not None else self.estate.base_entries(owner)
+        doc = self.estate.document(base + extra_entries, owner=owner)
+        return self.estate.load(doc, owner=owner, **kwargs)
+
+    def test_owner_declared_grail_kernel_verifies(self):
+        self.assertEqual(self.load([self.estate.grail_kernel()])[0], "verified")
+
+    def test_document_signature_never_blesses_a_forged_declaration(self):
+        entry = self.estate.grail_kernel()
+        entry["sig"] = "forged"
+        self.assertEqual(self.load([entry])[0], "refused")
+
+    def test_declaration_signed_by_another_registered_key_is_refused(self):
+        forged_signer = self.estate.grail_kernel(declared="owner", signer="worker")
+        self.assertEqual(self.load([forged_signer])[0], "refused")
+        not_owner = self.estate.grail_kernel(declared="worker")
+        self.assertEqual(self.load([not_owner])[0], "refused")
+
+    def test_mutated_declaration_is_refused(self):
+        entry = self.estate.grail_kernel()
+        entry["size_bytes"] = 2048
+        self.assertEqual(self.load([entry])[0], "refused")
+
+    def test_owner_tenure_is_evaluated_at_activated_utc(self):
+        rotation = self.estate.reanchor("owner", "successor", signer="owner", utc="2026-07-15T00:00:00.000Z")
+        base = self.estate.base_entries(owner="successor")
+        before = self.estate.grail_kernel(declared="owner", activated=T0)
+        after_old = self.estate.grail_kernel(scope="https://releases.example.test/scope/b",
+                                             declared="owner", activated=LATER)
+        after_new = self.estate.grail_kernel(scope="https://releases.example.test/scope/c",
+                                             declared="successor", activated=LATER)
+        backdated = self.estate.grail_kernel(scope="https://releases.example.test/scope/d",
+                                             declared="successor", activated=T0)
+        self.assertEqual(self.load([rotation, before, after_new], owner="successor", entries=base)[0], "verified")
+        self.assertEqual(self.load([rotation, after_old], owner="successor", entries=base)[0], "refused")
+        self.assertEqual(self.load([rotation, backdated], owner="successor", entries=base)[0], "refused")
+
+    def test_first_seen_skew_is_bounded_at_300_seconds(self):
+        entry = self.estate.grail_kernel(activated="2026-07-01T00:05:00.000Z")
+        self.assertEqual(self.load([entry], verification_utc=T0)[0], "verified")
+        late = self.estate.grail_kernel(activated="2026-07-01T00:05:00.001Z")
+        self.assertEqual(self.load([late], verification_utc=T0)[0], "refused")
+        self.assertEqual(self.load([entry], verification_utc="not-a-time")[0], "refused")
+
+    def test_an_exact_copy_verifies_apart_from_its_document(self):
+        entry = self.estate.grail_kernel()
+        with self.estate.mocked():
+            reg = REG.Registry(self.estate.base_entries() + [entry])
+            self.assertEqual(reg.declared_entry_ok(copy.deepcopy(entry)), (True, "ok"))
+            altered = copy.deepcopy(entry)
+            altered["commit"] = "3" * 40
+            self.assertFalse(reg.declared_entry_ok(altered)[0])
+            self.assertFalse(reg.declared_entry_ok({"type": "spki"})[0])
+            self.assertFalse(reg.declared_entry_ok(self.estate.spki("worker"))[0])
+
+    def test_persisted_declarations_are_retained_byte_for_byte(self):
+        entry = self.estate.grail_kernel()
+        persisted = [R._strict_json(R.canonical(entry))]
+        self.assertEqual(self.load([entry], persisted_entries=persisted)[0], "verified")
+        self.assertEqual(self.load([], persisted_entries=persisted)[0], "refused")
+        resigned = self.estate.grail_kernel()  # same members, a different signature
+        self.assertNotEqual(resigned["sig"], entry["sig"])
+        self.assertEqual(self.load([resigned], persisted_entries=persisted)[0], "refused")
+        self.assertEqual(
+            self.load([entry], persisted_entries=[self.estate.spki("worker")])[0], "refused"
+        )
+
+
+class LinearChainTests(unittest.TestCase):
+    def chains(self, items):
+        return REG.linear_chains(items, key=lambda e: e["k"], ident=lambda e: e["id"],
+                                 link=lambda e: e["prev"], where="test chain")
+
+    def test_chain_order_follows_links(self):
+        items = [{"k": "a", "id": 1, "prev": None}, {"k": "b", "id": 1, "prev": None},
+                 {"k": "a", "id": 2, "prev": 1}, {"k": "a", "id": 3, "prev": 2}]
+        result = self.chains(items)
+        self.assertEqual([e["id"] for e in result["a"]], [1, 2, 3])
+        self.assertEqual([e["id"] for e in result["b"]], [1])
+
+    def test_fork_forward_link_duplicate_and_root_count_are_refused(self):
+        bad = {
+            "fork": [{"k": "a", "id": 1, "prev": None}, {"k": "a", "id": 2, "prev": 1},
+                     {"k": "a", "id": 3, "prev": 1}],
+            "forward": [{"k": "a", "id": 2, "prev": 1}, {"k": "a", "id": 1, "prev": None}],
+            "self": [{"k": "a", "id": 1, "prev": 1}],
+            "duplicate": [{"k": "a", "id": 1, "prev": None}, {"k": "a", "id": 1, "prev": None}],
+            "two roots": [{"k": "a", "id": 1, "prev": None}, {"k": "a", "id": 2, "prev": None}],
+            "cross-chain link": [{"k": "a", "id": 1, "prev": None}, {"k": "b", "id": 2, "prev": 1}],
+        }
+        for label, items in bad.items():
+            with self.subTest(label=label):
+                with self.assertRaises(REG.RegistryError):
+                    self.chains(items)
+
+    def test_entry_hash_names_the_exact_signed_entry(self):
+        estate = MockEstate()
+        entry = estate.grail_kernel()
+        self.assertEqual(REG.entry_hash(entry), R.H("rapp/1:particle", entry))
+        altered = dict(entry, sig="other")
+        self.assertNotEqual(REG.entry_hash(entry), REG.entry_hash(altered))
+
+
+@unittest.skipUnless(real_ed25519_signer(), "optional cryptography import is absent")
+class RealSignatureTests(unittest.TestCase):
+    """The same rules through the real detached-JWS boundary (§10), no mocks."""
+
+    def test_real_owner_signatures_on_document_and_declared_entry(self):
+        spki_der, sign = real_ed25519_signer()
+        owner = R.mint_rappid("test", "estate-owner", spki_der=spki_der)
+        kernel = {
+            "type": "grail-kernel", "release_scope": "https://releases.example.test/scope/lts",
+            "grail_id": "grail:" + R.Hb("rapp/1:grail", b"kernel"),
+            "repository": "https://git.example.test/estate/kernel",
+            "immutable_ref": "refs/tags/kernel-v1", "object_format": "sha1",
+            "commit": "1" * 40, "path": "kernel/brainstem.py", "mode": "100644",
+            "blob": "2" * 40, "sha256": "a" * 64, "size_bytes": 6,
+            "activated_utc": T0, "predecessor": None, "declared_by": owner,
+        }
+        kernel["sig"] = sign(kernel, owner)
+        entries = [{"type": "estate_owner", "rappid": owner},
+                   {"type": "spki", "rappid": owner, "deprecated": False,
+                    "spki_der_b64": base64.b64encode(spki_der).decode("ascii")},
+                   kernel]
+        doc = {"schema": "rapp/1-registry", "registry_seq": 1, "canonical_source": SOURCE,
+               "entries": entries}
+        doc["sig"] = sign(doc, owner)
+        self.assertEqual(REG.load_document(doc, trust_anchor=owner)[0], "verified")
+        tampered = copy.deepcopy(doc)
+        tampered["entries"][2]["size_bytes"] = 7
+        tampered.pop("sig")
+        tampered["sig"] = sign(tampered, owner)  # a valid document signature cannot bless it
+        self.assertEqual(REG.load_document(tampered, trust_anchor=owner)[0], "refused")
+
+
+if __name__ == "__main__":
+    unittest.main()

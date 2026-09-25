@@ -17,6 +17,7 @@ signs. This page is the lane. Nothing on it needs a change to `rapp/1`.
 | a subordinate profile (`acme-factory/1`) with its own normative text | **your** repository; adopted by a `protocol` entry pinning repo, path, and SHA-256 | §11.2, `protocols/README.md` |
 | tooling that needs a library (Ed25519 signing, HSMs, a database) | **your** repository; it imports `rapp.py`'s canonicalizer, never re-types it | Art. 10 |
 | to say which RAPP/1 you implement | a `protocol` entry `name:"rapp/1"` whose `spec_hash` comes from **this** repository's anchor | §13.3 |
+| the registry document itself | exactly `schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; other members carry no meaning | §13.1 |
 
 Every estate pins RAPP/1 the same way, so two estates interoperate on bytes while
 disagreeing on everything else. That is the point.
@@ -56,7 +57,11 @@ inside `rapp.verify_detached_jws`; without it, signed artifacts are refused, nev
 assumed.
 
 `load_document` also verifies lifecycle entries: a valid enclosing registry
-signature is not a substitute for a tombstone or re-anchor's own signature.
+signature is not a substitute for a tombstone or re-anchor's own signature. The
+same holds for every declared entry (§13.4, today `grail-kernel`): its own owner
+signature is checked at its `activated_utc`, `verification_utc=` applies the
+300-second first-seen bound, and `persisted_entries=` refuses a later registry
+that dropped or changed a persisted declaration.
 The issuer must be the owner in tenure at the authenticated issuance/action
 time; an owner's own succession record is signed by the outgoing owner at that
 boundary, after checking that its tenure is nonempty and chronologically
@@ -91,10 +96,10 @@ profile; it is not an implementation of every binary64 input allowed by JCS.
 These are recorded in `rapp-backlog.md` for the owner's ratification. Until then they
 are interoperable only by out-of-band agreement, and a candidate registry should say so.
 
-- **The registry document's container.** §13.1 names `schema`, `registry_seq`, and `sig`;
-  §13.3 names every entry; nothing names the member that holds the entries or how
-  `canonical_source` is carried. `rapp_registry.load_document` therefore requires the
-  caller to name the entries member — it will not guess.
+- **The registry document's container** — closed by rev-17 (§13.1): the entries are the
+  `entries` member and the document carries its own `canonical_source`. It becomes
+  normative when the owner accepts the rev-17 chain snapshot; until then the loader already
+  refuses any other entries-member name.
 - **Tombstone issuance time.** §13.2 scopes an issuer's authority to the
   artifact's time, but the exact tombstone entry carries only `revoked_utc`,
   not a separate issuance time. A current owner can discover an earlier

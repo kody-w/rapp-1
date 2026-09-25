@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """make_vectors.py — emit conformance/vectors.json, the language-neutral known-answer vectors
-an implementer in any language runs to claim rapp/1 conformance. Every answer is derived from
-rapp.py; CI re-derives and diffs, so the file can never drift from the reference.
+an implementer in any language runs to claim rapp/1 conformance, and
+conformance/registry-vectors.json, the §13 registry vectors. Every answer is derived from
+rapp.py (and, for the registry file, rapp_registry.py); CI re-derives and diffs, so neither
+file can drift from the reference.
 
-  python3 conformance/make_vectors.py            # write conformance/vectors.json
-  python3 conformance/make_vectors.py --check    # exit 1 if the committed file differs
+  python3 conformance/make_vectors.py            # write both files
+  python3 conformance/make_vectors.py --check    # exit 1 if a committed file differs
 """
-import json, os, sys
+import base64, json, os, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 import rapp as R
+import rapp_registry as REG
 
 def vectors():
     v = {"schema": "rapp/1-conformance-vectors", "derived_from": "rapp.py", "sections": {}}
@@ -90,15 +93,136 @@ def vectors():
     ]
     return v
 
+# ---------------------------------------------------------------------------------------
+# §13 registry vectors. Signatures are opaque placeholders: these vectors fix the exact
+# structural, uniqueness, and chain rules and the bytes that get signed; an implementation
+# proves its §10/§13.4 signature checks with its own keys (the reference's are in
+# test_registry_*.py and registry_conformance.py).
+SIG = "<detached-jws>"
+T0 = "2026-07-01T00:00:00.000Z"
+SOURCE = "https://registry.example.test/rapp-registry.json"
+
+
+def _estate():
+    der = b"vector-only SPKI bytes: a fingerprint, not a key"
+    owner = R.mint_rappid("vector", "estate-owner", spki_der=der)
+    return owner, [
+        {"type": "estate_owner", "rappid": owner},
+        {"type": "spki", "rappid": owner, "deprecated": False,
+         "spki_der_b64": base64.b64encode(der).decode("ascii")},
+    ]
+
+
+def _registry_accepts(document):
+    try:
+        REG.validate_document(document)
+        R.canonical(document)
+        REG.Registry(document["entries"])
+        return "accept"
+    except (REG.RegistryError, ValueError):
+        return "refuse"
+
+
+def _grail(owner, scope="https://releases.example.test/scope/lts"):
+    return {"type": "grail-kernel", "release_scope": scope,
+            "grail_id": "grail:" + R.Hb("rapp/1:grail", b"vector kernel bytes"),
+            "repository": "https://git.example.test/estate/kernel",
+            "immutable_ref": "refs/tags/kernel-v1", "object_format": "sha1",
+            "commit": "1" * 40, "path": "kernel/brainstem.py", "mode": "100644",
+            "blob": "2" * 40, "sha256": "a" * 64, "size_bytes": 1024,
+            "activated_utc": T0, "predecessor": None, "declared_by": owner, "sig": SIG}
+
+
+def registry_sections():
+    """Ordered (name, builder) pairs; each change to §13 appends its own section."""
+    owner, base = _estate()
+
+    def document(members, **changes):
+        value = {"schema": "rapp/1-registry", "registry_seq": 1, "canonical_source": SOURCE,
+                 "entries": members, "sig": SIG}
+        value.update(changes)
+        return {k: v for k, v in value.items() if v is not _DROP}
+
+    def pin(spec_hash, deprecated):
+        return {"type": "protocol", "name": "example-profile/1", "spec_repo": "https://git.example.test/spec",
+                "spec_path": "SPEC.md", "spec_hash": spec_hash, "deprecated": deprecated}
+
+    def document_cases():
+        cases = [
+            ("the five-member container", document(base)),
+            ("unsigned draft container (sig null)", document(base, sig=None)),
+            ("other top-level members carry no meaning", document(base, estate="vector", published_utc=T0)),
+            ("missing canonical_source", document(base, canonical_source=_DROP)),
+            ("non-HTTPS canonical_source", document(base, canonical_source="http://registry.example.test/r.json")),
+            ("entries under another member name", {**document(base, entries=_DROP), "items": base}),
+            ("entries is not an array", document(base, entries={})),
+            ("missing sig member", document(base, sig=_DROP)),
+            ("registry_seq beyond uint53", document(base, registry_seq=2**53)),
+            ("a deprecated pin followed by the current one",
+             document(base + [pin("b" * 64, True), pin("c" * 64, False)])),
+        ]
+        return [{"label": label, "document": doc, "expect": _registry_accepts(doc)} for label, doc in cases]
+
+    def declared_cases():
+        entry = _grail(owner)
+        unsigned = {k: v for k, v in entry.items() if k != "sig"}
+        return {
+            "declared_types": list(REG.DECLARED_TYPES),
+            "persisted_types": list(REG.PERSISTED_TYPES),
+            "first_seen_skew_seconds": REG.FIRST_SEEN_SKEW_SECONDS,
+            "example": {
+                "entry": entry,
+                "signing_payload": R.canonical(unsigned),
+                "entry_hash": REG.entry_hash(entry),
+                "rule": "sig = detached JWS (kid == declared_by == owner in effect at activated_utc) "
+                        "over canonical(entry \\ {sig}); entry_hash = H('rapp/1:particle', entry) with sig",
+            },
+        }
+
+    return [("13_1_document", document_cases), ("13_4_declared", declared_cases)]
+
+
+class _Drop:
+    pass
+
+
+_DROP = _Drop()
+
+
+def registry_vectors():
+    return {
+        "schema": "rapp/1-registry-conformance-vectors",
+        "derived_from": "rapp_registry.py",
+        "signature_boundary": (
+            "sig values are placeholders; accept/refuse covers structure, uniqueness, and chains. "
+            "Verify §10/§13.4 signatures with real keys in your own tests."
+        ),
+        "sections": {name: build() for name, build in registry_sections()},
+    }
+
+
+OUTPUTS = (
+    ("vectors.json", vectors, "rapp.py"),
+    ("registry-vectors.json", registry_vectors, "rapp_registry.py"),
+)
+
+
 def main():
-    out = os.path.join(ROOT, "conformance", "vectors.json")
-    text = json.dumps(vectors(), indent=1, ensure_ascii=False, sort_keys=True) + "\n"
-    if "--check" in sys.argv:
-        current = open(out, encoding="utf-8").read() if os.path.exists(out) else ""
-        if current != text:
-            print("conformance/vectors.json is stale — run python3 conformance/make_vectors.py"); sys.exit(1)
-        print("vectors.json matches rapp.py"); return
-    open(out, "w", encoding="utf-8").write(text); print("wrote", out)
+    stale = False
+    for name, build, source in OUTPUTS:
+        out = os.path.join(ROOT, "conformance", name)
+        text = json.dumps(build(), indent=1, ensure_ascii=False, sort_keys=True) + "\n"
+        if "--check" in sys.argv:
+            current = open(out, encoding="utf-8").read() if os.path.exists(out) else ""
+            if current != text:
+                print(f"conformance/{name} is stale — run python3 conformance/make_vectors.py")
+                stale = True
+            else:
+                print(f"{name} matches {source}")
+            continue
+        open(out, "w", encoding="utf-8").write(text); print("wrote", out)
+    if stale:
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

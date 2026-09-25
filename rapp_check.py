@@ -1,8 +1,10 @@
 """rapp_check.py — the RAPP compliance linter.
 
 Point it at any repo checkout and it verdicts every RAPP artifact (rappid.json,
-frame chains, egg/schema labels) against the RAPP standard, using the reference
-implementation. It classifies a repo as:
+frame chains, egg/schema labels, §13 registry documents) against the RAPP standard,
+using the reference implementation. A registry document is checked for structure only:
+its owner signature needs the out-of-band trust anchor (§13.1), so it is reported as
+unverified evidence, never as authority. It classifies a repo as:
 
   CLEAN     — no RAPP artifacts found by a complete bounded scan
   COMPLIANT — has artifacts, all pass RAPP
@@ -20,6 +22,7 @@ import stat
 import sys
 
 import rapp as R
+import rapp_registry as REG
 
 _32HEX = re.compile(r"^[0-9a-f]{32}$")
 _64HEX = re.compile(r"^[0-9a-f]{64}$")
@@ -319,6 +322,29 @@ def check_repo(root, signature_verifier=None):
 
     records = {}
 
+    def registry_document(rel, document):
+        try:
+            REG.validate_document(document)
+            registry = REG.Registry(document[REG.ENTRIES_MEMBER])
+        except (REG.RegistryError, ValueError) as exc:
+            finding(rel, "§13 registry document", str(exc))
+            return
+        state = (
+            "unsigned draft"
+            if document["sig"] is None
+            else "owner signature needs the out-of-band trust anchor"
+        )
+        evidence.append(
+            {
+                "artifact": rel,
+                "ok": (
+                    f"§13.1 registry structure OK (registry_seq "
+                    f"{document['registry_seq']}, {len(registry.entries)} entries; {state})"
+                ),
+                "status": "unverified",
+            }
+        )
+
     def consider(path, is_required):
         nonlocal has_artifact
         rel = os.path.relpath(path, root)
@@ -333,6 +359,14 @@ def check_repo(root, signature_verifier=None):
             if candidate:
                 has_artifact = True
                 finding(rel, "RAPP/1 frame candidate", str(exc))
+            return
+        if (
+            not is_required
+            and isinstance(value, dict)
+            and value.get("schema") == REG.DOCUMENT_SCHEMA
+        ):
+            has_artifact = True
+            registry_document(rel, value)
             return
         candidate = is_required or (
             isinstance(value, dict)

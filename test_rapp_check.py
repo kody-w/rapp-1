@@ -253,6 +253,53 @@ class RappCheckDiscoveryTests(unittest.TestCase):
             any("payload_hash mismatch" in item["detail"] for item in report["findings"])
         )
 
+    def registry_document(self, **changes):
+        der = b"synthetic SPKI bytes for a registry lint test"
+        owner = R.mint_rappid("test", "estate-owner", spki_der=der)
+        document = {
+            "schema": "rapp/1-registry",
+            "registry_seq": 3,
+            "canonical_source": "https://registry.example.test/rapp-registry.json",
+            "entries": [
+                {"type": "estate_owner", "rappid": owner},
+                {"type": "spki", "rappid": owner, "deprecated": False,
+                 "spki_der_b64": base64.b64encode(der).decode("ascii")},
+            ],
+            "sig": None,
+        }
+        document.update(changes)
+        return document
+
+    def test_registry_documents_are_structural_evidence_never_authority(self):
+        repository = self.fixture_repo("clean")
+        self.write_json(repository / "estate" / "registry.json", self.registry_document())
+        verdict, findings, evidence = C.check_repo(repository)
+
+        self.assertEqual((verdict, findings), ("COMPLIANT", []))
+        self.assertEqual(len(evidence), 1)
+        self.assertEqual(evidence[0]["status"], "unverified")
+        self.assertIn("§13.1 registry structure OK", evidence[0]["ok"])
+        self.assertIn("unsigned draft", evidence[0]["ok"])
+
+    def test_malformed_registry_documents_are_findings(self):
+        repository = self.fixture_repo("clean")
+        broken = self.registry_document()
+        del broken["canonical_source"]
+        self.write_json(repository / "a" / "registry.json", broken)
+        duplicate_owner = self.registry_document()
+        duplicate_owner["entries"].append(dict(duplicate_owner["entries"][0]))
+        self.write_json(repository / "b" / "registry.json", duplicate_owner)
+        verdict, findings, _ = C.check_repo(repository)
+
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual(
+            {(item["artifact"], item["rule"]) for item in findings},
+            {
+                ("a/registry.json", "§13 registry document"),
+                ("b/registry.json", "§13 registry document"),
+            },
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

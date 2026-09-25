@@ -1,0 +1,266 @@
+{
+ "derived_from": "rapp_registry.py",
+ "schema": "rapp/1-registry-conformance-vectors",
+ "sections": {
+  "13_1_document": [
+   {
+    "document": {
+     "canonical_source": "https://registry.example.test/rapp-registry.json",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "accept",
+    "label": "the five-member container"
+   },
+   {
+    "document": {
+     "canonical_source": "https://registry.example.test/rapp-registry.json",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": null
+    },
+    "expect": "accept",
+    "label": "unsigned draft container (sig null)"
+   },
+   {
+    "document": {
+     "canonical_source": "https://registry.example.test/rapp-registry.json",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "estate": "vector",
+     "published_utc": "2026-07-01T00:00:00.000Z",
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "accept",
+    "label": "other top-level members carry no meaning"
+   },
+   {
+    "document": {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "refuse",
+    "label": "missing canonical_source"
+   },
+   {
+    "document": {
+     "canonical_source": "http://registry.example.test/r.json",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "refuse",
+    "label": "non-HTTPS canonical_source"
+   },
+   {
+    "document": {
+     "canonical_source": "https://registry.example.test/rapp-registry.json",
+     "items": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "refuse",
+    "label": "entries under another member name"
+   },
+   {
+    "document": {
+     "canonical_source": "https://registry.example.test/rapp-registry.json",
+     "entries": {},
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "refuse",
+    "label": "entries is not an array"
+   },
+   {
+    "document": {
+     "canonical_source": "https://registry.example.test/rapp-registry.json",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry"
+    },
+    "expect": "refuse",
+    "label": "missing sig member"
+   },
+   {
+    "document": {
+     "canonical_source": "https://registry.example.test/rapp-registry.json",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "registry_seq": 9007199254740992,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "refuse",
+    "label": "registry_seq beyond uint53"
+   },
+   {
+    "document": {
+     "canonical_source": "https://registry.example.test/rapp-registry.json",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "deprecated": true,
+       "name": "example-profile/1",
+       "spec_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "spec_path": "SPEC.md",
+       "spec_repo": "https://git.example.test/spec",
+       "type": "protocol"
+      },
+      {
+       "deprecated": false,
+       "name": "example-profile/1",
+       "spec_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+       "spec_path": "SPEC.md",
+       "spec_repo": "https://git.example.test/spec",
+       "type": "protocol"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "accept",
+    "label": "a deprecated pin followed by the current one"
+   }
+  ],
+  "13_4_declared": {
+   "declared_types": [
+    "grail-kernel"
+   ],
+   "example": {
+    "entry": {
+     "activated_utc": "2026-07-01T00:00:00.000Z",
+     "blob": "2222222222222222222222222222222222222222",
+     "commit": "1111111111111111111111111111111111111111",
+     "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+     "grail_id": "grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22",
+     "immutable_ref": "refs/tags/kernel-v1",
+     "mode": "100644",
+     "object_format": "sha1",
+     "path": "kernel/brainstem.py",
+     "predecessor": null,
+     "release_scope": "https://releases.example.test/scope/lts",
+     "repository": "https://git.example.test/estate/kernel",
+     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "sig": "<detached-jws>",
+     "size_bytes": 1024,
+     "type": "grail-kernel"
+    },
+    "entry_hash": "ff4aa4abcab4b7b9d1796ec0566f9ef87e781172ceb20132503fddc51c4120e9",
+    "rule": "sig = detached JWS (kid == declared_by == owner in effect at activated_utc) over canonical(entry \\ {sig}); entry_hash = H('rapp/1:particle', entry) with sig",
+    "signing_payload": "{\"activated_utc\":\"2026-07-01T00:00:00.000Z\",\"blob\":\"2222222222222222222222222222222222222222\",\"commit\":\"1111111111111111111111111111111111111111\",\"declared_by\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"grail_id\":\"grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22\",\"immutable_ref\":\"refs/tags/kernel-v1\",\"mode\":\"100644\",\"object_format\":\"sha1\",\"path\":\"kernel/brainstem.py\",\"predecessor\":null,\"release_scope\":\"https://releases.example.test/scope/lts\",\"repository\":\"https://git.example.test/estate/kernel\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"size_bytes\":1024,\"type\":\"grail-kernel\"}"
+   },
+   "first_seen_skew_seconds": 300,
+   "persisted_types": [
+    "grail-kernel"
+   ]
+  }
+ },
+ "signature_boundary": "sig values are placeholders; accept/refuse covers structure, uniqueness, and chains. Verify §10/§13.4 signatures with real keys in your own tests."
+}

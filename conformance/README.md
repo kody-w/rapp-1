@@ -21,6 +21,19 @@ For each section, your implementation must:
 | `7_frame` | verify `genesis` and `child` as a chain; refuse every `tampers[]` frame at exactly `expect_step` |
 | `9_egg` | pack a `session` egg from `manifest` that is byte-identical to `egg_octets_hex`, and compute `egg_address` |
 
+`registry-vectors.json` does the same for the §13 registry, derived from `rapp_registry.py`.
+Each section lists inputs and the verdict (`accept` or `refuse`) your registry reader must
+reach; the section name is the SPEC subsection it proves:
+
+| section | must produce / decide |
+|---|---|
+| `13_1_document` | accept or refuse each `document` exactly as §13.1 and §13.3 require (container and member shapes) |
+| `13_4_declared` | the exact `signing_payload` and `entry_hash` for `example.entry`; the declared and persisted entry types |
+
+Signatures in the registry vectors are opaque placeholders. Signature verification needs a
+real key, so prove your §10 and §13.4 checks with your own keys; `registry_conformance.py`
+shows the reference doing it.
+
 Then say so in your README with the vectors' revision, the date, and the count, the way
 this repository's README dates its own claims (Constitution Art. 9: claims are computed
 and dated). Conformance classes (Producer, Consumer, Router/Mirror) are in SPEC §11.
@@ -35,6 +48,6 @@ optional `cryptography` import is present; an implementation with native Ed25519
 ## Regenerate after a revision
 
 ```bash
-python3 conformance/make_vectors.py          # rewrite vectors.json from rapp.py
+python3 conformance/make_vectors.py          # rewrite vectors.json and registry-vectors.json
 python3 conformance/make_vectors.py --check  # what CI runs
 ```

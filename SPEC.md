@@ -7,7 +7,7 @@
 > selects authority. Change the protocol by appending a successor frame, not by
 > treating this file as independent authority.
 
-**Status:** Owner-ratified RAPP/1 **rev-15 amendment**. It is effective iff the
+**Status:** Owner-ratified RAPP/1 **rev-17 amendment**. It is effective iff the
 prepared chain snapshot has been accepted onto canonical protected main under
 the transition in §12.2. **Obsoletes / consolidates:**
 `rapp-frame/2.0`, `rapp-frame/2.1`, `rapp-rappid-spec/2.0`, `rapp-protocol/1.0`, all scattered egg specs
@@ -79,7 +79,8 @@ and byte length are provenance and verification data, not alternate identities. 
 **serving lineage** — the sequence of qualified release identities that have received user traffic;
 the currently served release is immutable even while a separate candidate lineage grows.
 **deployment cell** — an independently observable and isolatable runtime failure domain governed by
-`rapp-deploy/1`.
+`rapp-deploy/1`. **declared entry** — a §13.3 registry entry that carries its own owner signature made at
+its `activated_utc`, and so verifies apart from the document that carries it (§13.4).
 
 ## 4. Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **[RFC 8785] JCS** for the value `v`, defined **only**
@@ -906,6 +907,14 @@ forge that estate).
 - The one bootstrap axiom is the **`estate_owner` rappid string** itself: since a keyed tail is
   `Hb("rapp/1:rappid", SPKI_DER)`, the rappid **is** a self-certifying key fingerprint, distributed
   out-of-band exactly once (QR, invite, docs) the way a root-CA certificate is.
+- **The document.** A registry is one §4 object whose meaningful members are exactly `schema`
+  (`"rapp/1-registry"`), `registry_seq`, `canonical_source`, `entries`, and `sig`. `canonical_source` is the
+  absolute HTTPS URI of the owner-selected location of record for this document; `entries` is the array of
+  §13.3 entries in append order; `sig` is `null` only on an unsigned draft. Any other top-level member is
+  covered by `sig` but carries no RAPP/1 meaning: a consumer **MUST NOT** read an entry, key, trust,
+  policy, or freshness claim from it. A consumer that obtained a canonical source out of band with the
+  trust anchor **MUST** refuse a document whose `canonical_source` differs. A document that carries its
+  entries under any other member, or lacks one of these five members, is not a `rapp/1-registry`.
 - The registry document **MUST** carry a top-level `registry_seq` (uint53) and a detached §10 JWS `sig` over
   `canonical(registry \ {sig})` with `kid` = the `estate_owner` rappid. A consumer **MUST** verify this
   signature against an SPKI whose `Hb("rapp/1:rappid", SPKI_DER)` equals the anchor rappid's tail (the SPKI
@@ -949,7 +958,8 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   `canonical(entry \ {sig,old_key_sig})`, REQUIRED for `case:"rotation"`. This is the normative succession record (§13.2).
 - **grail-kernel** `{type:"grail-kernel", release_scope, grail_id, repository, immutable_ref,
   object_format, commit, path, mode, blob, sha256, size_bytes, activated_utc, predecessor, declared_by,
-  sig}` — exactly these members. `release_scope` is an absolute HTTPS URI selected by the estate owner;
+  sig}` — exactly these members; a persisted declared entry (§13.4). `release_scope` is an absolute HTTPS
+  URI selected by the estate owner;
   no two entries may share it. `grail_id` is
   `"grail:" || Hb("rapp/1:grail", kernel_bytes)`; `repository` is an absolute HTTPS URI;
   `immutable_ref` is a full `refs/tags/...` name that **MUST** resolve exactly to `commit`;
@@ -969,7 +979,26 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   `{type:"master-plan", repo, path}` (Fed. Const. Art. VII).
 
 §7.5 steps 1–5 are time-independent (append-only lookups); **only** step 6 (tombstones) and §13.2 owner
-tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.
+tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule. A declared entry (§13.4) is
+authenticated at its own `activated_utc`, never at the time it is read.
+
+### 13.4 Declared entries (entry-level owner signatures)
+A **declared entry** carries its own `activated_utc` (the §7.4 form), `declared_by` (a keyed rappid), and
+`sig` (a detached §10 JWS whose protected `kid` equals `declared_by`, over `canonical(entry \ {sig})`). The
+declared entry types are `grail-kernel` (persisted). For every declared entry a consumer **MUST**:
+1. require `declared_by` to be the estate owner in effect at `activated_utc` (§13.2), with a §13 `spki`
+   entry whose key §10 does not refuse (as superseded or tombstoned) at `activated_utc`;
+2. verify `sig` with that registry key — the enclosing §13.1 signature never substitutes for it;
+3. refuse an entry whose `activated_utc` is more than 300 seconds after the verifier's first-seen time
+   for it; and
+4. refuse the whole registry when any declared entry fails (never skip the entry).
+
+Because the signature binds the exact entry, a copy carried elsewhere — a Hive notice, a member file, a
+release receipt — is authenticated by the same checks against the estate's registry, and a copy that
+differs in any byte is not that entry. `H("rapp/1:particle", entry)` over the complete signed entry names
+it. Once a consumer has accepted an entry of a persisted type it **MUST** persist the canonical entry, and
+every later accepted registry **MUST** retain it byte-for-byte; removal or mutation is a permanent refusal
+even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-kernel`).
 
 ## 14. Security considerations
 - **Integrity:** every object is domain-separated content-addressed (§5); a hostile mirror cannot alter
@@ -991,6 +1020,10 @@ tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.
 - **Root of trust:** the registry is the estate's signed root (§13.1); it is authenticated by an owner
   signature anchored to the out-of-band `estate_owner` rappid fingerprint, `registry_seq`-monotonic against
   rollback, and freshness-checked (a stale registry silently un-revokes keys and hides re-geneses).
+- **Registry container and declared entries:** only the five §13.1 members carry meaning, so a mirror
+  cannot relocate the entries or smuggle policy into signed-but-meaningless members; a declared entry's own
+  owner signature is checked at its `activated_utc`, so a valid document signature never blesses a forged
+  or mutated declaration, and persisted declarations cannot be dropped by a later registry (§13.4).
 - **Producer-controlled `utc` (DoS/merge bias):** a future-dated head can brick a stream (successors refused
   as earlier) and bias UTC-first merges. A consumer **SHOULD** refuse a frame whose `utc` exceeds receipt
   time by >300 s, and adversarial-scope merges **SHOULD** rank by `min(utc, first-seen)`; a bricked stream
@@ -1017,6 +1050,14 @@ tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.
 ---
 
 ### Revision log
+- **rev-17 (registry closure for the distributed Hive)** — names the §13.1 document container
+  (`schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; any other member carries no meaning)
+  and generalizes the `grail-kernel` entry-level owner signature into §13.4 declared entries with
+  byte-for-byte retention of persisted ones. No frozen form (§12)
+  changes: every rev-16 `rapp/1` frame, egg, rappid, and conformance vector verifies unchanged.
+- **rev-16 (RAPP Work profile)** — added the subordinate `rapp-work/1` operational profile
+  (`protocols/rapp-work/1/SPEC.md`) to the chain's operational-profile index; this document's normative
+  text was unchanged from rev-15.
 - **rev-15 (the wire freeze)** — §12 freezes every form a `rapp/1` artifact is verified by (§4, §5,
   §6.1–6.2, §7.1, §7.3, §7.5, §8, §9.1); a change to any of them is `rapp/2` beside this document, never a
   revision of it, and `rapp/1` artifacts verify forever. Art. III is scoped to an estate's own artifacts.

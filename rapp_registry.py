@@ -8,19 +8,22 @@ tombstone. Extending RAPP therefore means writing registry entries, not patching
 this repository. This module makes those entries checkable with the reference.
 
 What is fully specified by §13 and enforced here:
+  - the document container (§13.1): exactly `schema`, `registry_seq`,
+    `canonical_source`, `entries`, and `sig` carry meaning; any other top-level
+    member is covered by `sig` and carries none;
   - every entry type and its exact member set (§13.3);
   - kind grammar and family binding; family ↔ stream_id-form compatibility (§6.1.1, §7.2);
   - owner succession by re-anchor records, owner-in-effect at a time (§13.2);
   - key discovery, superseded-key and tombstone refusal at a time (§10);
   - one non-deprecated genesis per stream (§7.6); one grail-kernel per grail_id (§11.1);
-  - the document envelope members §13.1 names: `schema`, `registry_seq`, `sig`, and
-    owner-signature verification over canonical(document \\ {sig}).
+  - declared entries (§13.4): each entry-level owner signature at its own
+    `activated_utc`, never blessed by the enclosing document signature, and
+    byte-for-byte retention of persisted entries once a caller has accepted them;
+  - owner-signature verification over canonical(document \\ {sig}).
 
-What §13 does NOT yet specify, and this module therefore refuses to guess:
-  - the member of the document that holds the entries. `load_document` requires the
-    caller to name it explicitly; nothing here defaults it. Until a revision closes
-    that gap (see rapp-backlog.md), a registry document is interoperable only by
-    out-of-band agreement on that one name. Entries themselves are fully portable.
+What stays the caller's responsibility, because a snapshot cannot prove it:
+  - freshness, trusted heads, registry high-water marks, first-seen times, and the
+    append provenance of each entry (see `load_document`).
 
 Nothing here can make an unsigned registry authoritative. `load_document` reports
 "verified" only after a §10 signature by the estate owner verifies AND that owner is the
@@ -29,6 +32,7 @@ a "draft", and a registry that names any other owner is refused outright.
 """
 import base64
 import re
+from datetime import datetime, timezone
 
 import rapp as R
 
@@ -42,6 +46,17 @@ _LABEL = re.compile(_LCLABEL)
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 _HEX40 = re.compile(r"[0-9a-f]{40}")
 _HTTPS = re.compile(r"https://[^\s]+")
+
+# §13.1 — the registry document container (rev-17 closure).
+DOCUMENT_SCHEMA = "rapp/1-registry"
+ENTRIES_MEMBER = "entries"
+DOCUMENT_MEMBERS = ("schema", "registry_seq", "canonical_source", ENTRIES_MEMBER, "sig")
+
+# §13.4 — entry types that carry their own owner signature at `activated_utc`,
+# and the subset a consumer retains byte-for-byte once it has accepted one.
+DECLARED_TYPES = ("grail-kernel",)
+PERSISTED_TYPES = ("grail-kernel",)
+FIRST_SEEN_SKEW_SECONDS = 300
 
 # §13.3 — exact members per entry type: (required, optional)
 ENTRY_MEMBERS = {
@@ -63,6 +78,62 @@ ENTRY_MEMBERS = {
 
 class RegistryError(ValueError):
     """A registry that must be refused, whole (§7.5-style: never partial, never repaired)."""
+
+
+def entry_hash(entry):
+    """`H("rapp/1:particle", entry)` of one exact entry, signatures included.
+
+    This is how a later entry names an earlier one, and how a caller keys
+    persisted or first-seen state: any byte of difference is a different entry."""
+    return R.H("rapp/1:particle", entry)
+
+
+def _utc_seconds(value, where):
+    if not R.utc_valid(value):
+        raise RegistryError(f"{where}: not the fixed §7.4 UTC form")
+    parsed = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+    return parsed.timestamp()
+
+
+def linear_chains(items, *, key, ident, link, where):
+    """Group `items` (entries in append order) into linear chains.
+
+    `key(entry)` names the chain, `ident(entry)` identifies an entry within it, and
+    `link(entry)` is None for the chain's first entry or the ident of the entry it
+    follows. A link must name an entry that appears EARLIER in the same chain (so no
+    cycle can form), no two entries may follow the same entry (no fork), and every
+    chain has exactly one first entry. Returns {chain_key: [entries in chain order]}.
+    """
+    chains = {}
+    for entry in items:
+        chains.setdefault(key(entry), []).append(entry)
+    ordered = {}
+    for chain_key, members in chains.items():
+        seen, successor, roots = {}, {}, []
+        for entry in members:
+            own = ident(entry)
+            if own in seen:
+                raise RegistryError(f"{where} {chain_key!r}: duplicate entry {own!r}")
+            parent = link(entry)
+            if parent is None:
+                roots.append(entry)
+            elif parent not in seen:
+                raise RegistryError(
+                    f"{where} {chain_key!r}: {own!r} follows an entry that does not precede it"
+                )
+            elif parent in successor:
+                raise RegistryError(f"{where} {chain_key!r}: two entries follow {parent!r} (fork)")
+            else:
+                successor[parent] = entry
+            seen[own] = entry
+        if len(roots) != 1:
+            raise RegistryError(f"{where} {chain_key!r}: expected exactly one first entry, found {len(roots)}")
+        chain, current = [], roots[0]
+        while current is not None:
+            chain.append(current)
+            current = successor.get(ident(current))
+        ordered[chain_key] = chain
+    return ordered
 
 
 def kind_valid(kind):
@@ -234,8 +305,9 @@ class Registry:
         self.reanchors = []      # entries, in order
         self.genesis = {}        # stream_id -> list of entries
         self.grail = {}          # grail_id -> entry
-        self.protocols = {}      # name -> entry
+        self.protocol_history = {}  # name -> [entries], append order
         self.master_plan = None
+        self.canonical_source = None  # set by load_document from the §13.1 container
         owners = []
         for i, e in enumerate(entries):
             where = f"entries[{i}]"
@@ -272,7 +344,7 @@ class Registry:
                     raise RegistryError(f"{where}: release_scope {e['release_scope']!r} rebound")
                 self.grail[e["grail_id"]] = e
             elif t == "protocol":
-                self.protocols.setdefault(e["name"], e)
+                self.protocol_history.setdefault(e["name"], []).append(e)
             elif t == "estate_owner":
                 owners.append(e["rappid"])
             elif t == "master-plan":
@@ -280,6 +352,15 @@ class Registry:
         if len(owners) != 1:
             raise RegistryError(f"exactly one estate_owner entry is required, found {len(owners)}")
         self.estate_owner = owners[0]
+        # name -> the sole non-deprecated pin. A name whose pins are all deprecated, or
+        # that carries more than one non-deprecated pin, has no current pin here: the
+        # first entry is never assumed current, and ambiguity is left to the adopting
+        # profile to refuse (rapp-work/1 requires exactly one active pin per dependency).
+        self.protocols = {}
+        for name, history in self.protocol_history.items():
+            current = [p for p in history if not p["deprecated"]]
+            if len(current) == 1:
+                self.protocols[name] = current[0]
         for sid, gs in self.genesis.items():
             if sum(1 for g in gs if not g["deprecated"]) > 1:
                 raise RegistryError(f"stream {sid}: more than one non-deprecated genesis (§7.6)")
@@ -400,6 +481,67 @@ class Registry:
                 return g
         return None
 
+    def current_protocol(self, name):
+        """The estate's sole non-deprecated pin for protocol `name`; None when absent or ambiguous."""
+        return self.protocols.get(name)
+
+    # ---- §13.4 declared entries ----
+    def declared_entry_ok(self, entry, *, verification_utc=None):
+        """Check one declared entry's own owner signature (§13.4 items 1–3).
+
+        Works for an entry carried by this registry and for an exact copy found
+        elsewhere (a Hive notice, a member file): the copy is authenticated against
+        this registry's owner succession and keys, never against itself.
+        `verification_utc`, when given, is the verifier's first-seen time for the
+        entry; `activated_utc` may not exceed it by more than 300 seconds."""
+        try:
+            kind = validate_entry(entry, "declared entry")
+        except RegistryError as why:
+            return False, str(why)
+        if kind not in DECLARED_TYPES:
+            return False, f"{kind} is not a declared entry type (§13.4)"
+        activated, signer = entry["activated_utc"], entry["declared_by"]
+        try:
+            owner = self.owner_at(activated)
+        except RegistryError as why:
+            return False, str(why)
+        if signer != owner:
+            return False, f"{kind}: declared_by is not the estate owner in effect at activated_utc (§13.2)"
+        ok, why = self.signer_acceptable(signer, activated)
+        if not ok:
+            return False, f"{kind}: declared_by key refused at activated_utc: {why}"
+        if verification_utc is not None:
+            try:
+                skew = _utc_seconds(activated, "activated_utc") - _utc_seconds(verification_utc, "verification_utc")
+            except RegistryError as why:
+                return False, str(why)
+            if skew > FIRST_SEEN_SKEW_SECONDS:
+                return False, f"{kind}: activated_utc is more than 300 s after first-seen (§13.4)"
+        unsigned = {k: v for k, v in entry.items() if k != "sig"}
+        ok, why = R.verify_detached_jws(unsigned, entry["sig"], self.spki_der(signer), expected_kid=signer)
+        if not ok:
+            return False, f"{kind} entry signature refused: {why}"
+        return True, "ok"
+
+    def check_declared_signatures(self, *, verification_utc=None):
+        """Every declared entry's own signature; the document signature never substitutes."""
+        for entry in self.entries:
+            if entry["type"] in DECLARED_TYPES:
+                ok, why = self.declared_entry_ok(entry, verification_utc=verification_utc)
+                if not ok:
+                    return False, why
+        return True, "ok"
+
+    def check_retained(self, persisted_entries):
+        """§13.4 retention: every previously accepted persisted entry is still here, byte for byte."""
+        present = {R.canonical(e) for e in self.entries if e["type"] in PERSISTED_TYPES}
+        for i, entry in enumerate(persisted_entries):
+            if not isinstance(entry, dict) or entry.get("type") not in PERSISTED_TYPES:
+                return False, f"persisted_entries[{i}] is not a persisted entry type (§13.4)"
+            if R.canonical(entry) not in present:
+                return False, f"a persisted {entry['type']} entry was removed or mutated (§13.4)"
+        return True, "ok"
+
     def check_lifecycle_signatures(self, *, tombstone_issued_at=None):
         """Check the signatures on lifecycle entries, not only their outer registry.
 
@@ -470,8 +612,30 @@ class Registry:
         return True, "ok"
 
 
-def load_document(doc, *, entries_member, trust_anchor, allow_unsigned=False,
-                  persisted_seq=None, tombstone_issued_at=None):
+def validate_document(doc):
+    """The §13.1 container, structurally: refuse, never repair. Entries are not checked here."""
+    if not isinstance(doc, dict) or doc.get("schema") != DOCUMENT_SCHEMA:
+        raise RegistryError('document schema must be "rapp/1-registry"')
+    missing = [m for m in DOCUMENT_MEMBERS if m not in doc]
+    if missing:
+        raise RegistryError(f"registry document lacks {missing} (§13.1)")
+    seq = doc["registry_seq"]
+    if not (isinstance(seq, int) and not isinstance(seq, bool) and 0 <= seq <= 2**53 - 1):
+        raise RegistryError("registry_seq must be uint53")
+    source = doc["canonical_source"]
+    if not (isinstance(source, str) and _HTTPS.fullmatch(source)):
+        raise RegistryError("canonical_source must be an absolute HTTPS URI (§13.1)")
+    if not isinstance(doc[ENTRIES_MEMBER], list):
+        raise RegistryError("entries must be a JSON array (§13.1)")
+    sig = doc["sig"]
+    if sig is not None and not (isinstance(sig, str) and sig):
+        raise RegistryError("sig must be a detached JWS string or null (§13.1)")
+    return doc
+
+
+def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_unsigned=False,
+                  persisted_seq=None, tombstone_issued_at=None, verification_utc=None,
+                  canonical_source=None, persisted_entries=None):
     """Load a `rapp/1-registry` document. Returns (status, registry, reason) where status is
     "verified" (owner signature verified AGAINST THE TRUST ANCHOR), "draft" (unsigned and
     allow_unsigned), or "refused".
@@ -479,35 +643,44 @@ def load_document(doc, *, entries_member, trust_anchor, allow_unsigned=False,
     `trust_anchor` is REQUIRED: the estate-owner rappid you obtained out of band (§13.1 — the
     one bootstrap axiom). A document whose `estate_owner` entry names any other rappid is
     refused before its signature is even checked; without this, a registry signed by a
-    self-minted key would verify against itself. `entries_member` is REQUIRED because §13
-    does not yet name the member that holds the entries. `persisted_seq` implements §13.1
-    no-rollback: a lower `registry_seq` is refused. Signed documents also verify
-    each lifecycle entry's owner signature and any old-key continuity signature.
-    Freshness, append provenance, and historical migration proofs remain caller
+    self-minted key would verify against itself. §13.1 names the container: the entries are
+    always the `entries` member (`entries_member` is kept for compatibility and refuses any
+    other name), and `canonical_source` is the document's own owner-selected location of
+    record; pass `canonical_source=` when you obtained one out of band with the anchor and a
+    document naming another is refused. `persisted_seq` implements §13.1 no-rollback: a lower
+    `registry_seq` is refused. Signed documents also verify each lifecycle entry's owner
+    signature and any old-key continuity signature, and every declared entry's own owner
+    signature at its `activated_utc` (§13.4); `verification_utc` is the caller's first-seen
+    time for those checks' 300-second rule. `persisted_entries` are the canonical declared
+    entries of persisted types the caller accepted before; each must still be present byte for
+    byte. Freshness, append provenance, and historical migration proofs remain caller
     responsibilities; a verified snapshot alone cannot establish them.
     `tombstone_issued_at(entry_hash)` must resolve authenticated issuance/append
     context to a fixed UTC string. It is trusted caller configuration, never a
     field read from the untrusted document. No resolver means tombstones are
     refused: revoked_utc cannot be silently reinterpreted as issuance time."""
+    if entries_member != ENTRIES_MEMBER:
+        return "refused", None, 'the §13.1 entries member is "entries"; no other name is a rapp/1-registry'
     if not R.rappid_valid(trust_anchor):
         return "refused", None, "trust_anchor must be the out-of-band estate-owner rappid"
-    if not isinstance(doc, dict) or doc.get("schema") != "rapp/1-registry":
-        return "refused", None, 'document schema must be "rapp/1-registry"'
-    seq = doc.get("registry_seq")
-    if not (isinstance(seq, int) and not isinstance(seq, bool) and 0 <= seq <= 2**53 - 1):
-        return "refused", None, "registry_seq must be uint53"
+    try:
+        validate_document(doc)
+    except RegistryError as why:
+        return "refused", None, str(why)
+    seq = doc["registry_seq"]
     if persisted_seq is not None and seq < persisted_seq:
         return "refused", None, f"registry_seq {seq} < persisted {persisted_seq} (rollback)"
-    if entries_member not in doc:
-        return "refused", None, f"document has no {entries_member!r} member"
+    if canonical_source is not None and doc["canonical_source"] != canonical_source:
+        return "refused", None, "canonical_source differs from the one obtained with the trust anchor (§13.1)"
     try:
         R.canonical(doc)  # §4 input-domain profile: refuse, never repair
-        reg = Registry(doc[entries_member])
+        reg = Registry(doc[ENTRIES_MEMBER])
     except (RegistryError, ValueError) as why:
         return "refused", None, str(why)
+    reg.canonical_source = doc["canonical_source"]
     if reg.estate_owner != trust_anchor:
         return "refused", None, "estate_owner does not match the out-of-band trust anchor (§13.1)"
-    sig = doc.get("sig")
+    sig = doc["sig"]
     if sig is None:
         if allow_unsigned:
             return "draft", reg, "unsigned: a draft, never authority (§13.1)"
@@ -521,6 +694,10 @@ def load_document(doc, *, entries_member, trust_anchor, allow_unsigned=False,
         return "refused", None, why
     try:
         ok, why = reg.check_lifecycle_signatures(tombstone_issued_at=tombstone_issued_at)
+        if ok:
+            ok, why = reg.check_declared_signatures(verification_utc=verification_utc)
+        if ok and persisted_entries is not None:
+            ok, why = reg.check_retained(persisted_entries)
     except RegistryError as why:
         return "refused", None, str(why)
     if not ok:
