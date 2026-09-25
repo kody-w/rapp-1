@@ -671,10 +671,13 @@ class RealSignatureTests(unittest.TestCase):
                 spki(crawler, crawler_der), {"type": "kind", "kind": "body.pulse", "family": "body",
                                              "deprecated": False}]
         status, reg, why = REG.load_document(document(base + [declared(grant, owner_sign, owner)]),
-                                             trust_anchor=owner)
+                                             trust_anchor=owner, verification_utc=T0)
         self.assertEqual((status, why), ("verified", "ok"))
         self_grant = declared(dict(grant, declared_by=signer), signer_sign, signer)
-        self.assertEqual(REG.load_document(document(base + [self_grant]), trust_anchor=owner)[0], "refused")
+        status, _, why = REG.load_document(document(base + [self_grant]), trust_anchor=owner,
+                                           verification_utc=T0)
+        self.assertEqual(status, "refused")
+        self.assertIn("declared_by is not the estate owner in effect", why)
 
         def signed(frame, sign, kid):
             return dict(frame, sig=sign({k: v for k, v in frame.items() if k != "sig"}, kid))
