@@ -798,6 +798,14 @@ def revision_payload(
             ),
         },
         {
+            "t": "gotcha",
+            "c": (
+                "The successors named by the lifecycle notices in effect at any one time never form a "
+                "cycle: check at every distinct since_utc, not only the current notices, because a "
+                "scheduled or retroactive notice can close a loop."
+            ),
+        },
+        {
             "t": "fact",
             "c": (
                 "A stream-signer entry is the estate owner's grant that one keyed signer speaks for the "
@@ -812,6 +820,14 @@ def revision_payload(
                 "A §7.5-valid signature is not the estate's word: unless a profile defines the payload's "
                 "signers, require the owner or a stream-signer grant for the stream, kind, and time; "
                 "unsigned frames never speak for the estate."
+            ),
+        },
+        {
+            "t": "pattern",
+            "c": (
+                "Authority is decided against the verified registry in hand: a newer registry can add a "
+                "stream-signer grant that adopts earlier frames but never withdraw one, so re-evaluate a "
+                "cached refusal against a newer registry."
             ),
         },
     ]
