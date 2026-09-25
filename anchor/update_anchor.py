@@ -655,6 +655,18 @@ def revision_payload(
         "status": "live",
         "where": "§13.4 — a registry entry carrying its own owner signature at its activated_utc",
     }
+    payload["vocabulary"]["release-pin"] = {
+        "status": "live",
+        "where": "§13.5 — the declared entry pinning one release scope's manifest",
+    }
+    payload["vocabulary"]["release-manifest"] = {
+        "status": "live",
+        "where": "§13.5 — rapp/1-release-manifest: every component by digest at an immutable commit",
+    }
+    payload["vocabulary"]["release-channel"] = {
+        "status": "live",
+        "where": "§13.5 — an owner-named linear chain of release scopes; its head is current",
+    }
     rules = [
         {
             "t": "gotcha",
@@ -728,6 +740,21 @@ def revision_payload(
             "c": (
                 "A valid registry signature never blesses a declared entry: each one carries its own "
                 "owner signature at its activated_utc, and persisted ones are retained byte-for-byte."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
+                "A release-pin entry pins one release scope's rapp/1-release-manifest by particle hash; "
+                "the manifest pins every component file by SHA-256 and length at an immutable commit and "
+                "binds each organism's door of record to one repository and commit."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "A verified snapshot is exactly the files a release manifest pins; seeds, beacons, Hive "
+                "indexes, member pointers and HEAD fetches are locators, never authority."
             ),
         },
     ]

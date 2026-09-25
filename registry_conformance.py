@@ -22,6 +22,7 @@ import make_vectors as MV  # noqa: E402
 MODULES = [
     "test_registry_lifecycle",
     "test_registry_container",
+    "test_release_pin",
 ]
 
 print("=" * 72)

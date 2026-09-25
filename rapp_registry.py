@@ -19,6 +19,9 @@ What is fully specified by §13 and enforced here:
   - declared entries (§13.4): each entry-level owner signature at its own
     `activated_utc`, never blessed by the enclosing document signature, and
     byte-for-byte retention of persisted entries once a caller has accepted them;
+  - release pins (§13.5): one `release-pin` per release scope, linear channels whose
+    head is current, the `rapp/1-release-manifest` structure, kernel coherence with the
+    scope's `grail-kernel`, and an all-or-nothing verified snapshot through a caller's fetch;
   - owner-signature verification over canonical(document \\ {sig}).
 
 What stays the caller's responsibility, because a snapshot cannot prove it:
@@ -31,7 +34,9 @@ rappid the caller obtained out of band (the trust anchor); an unsigned document 
 a "draft", and a registry that names any other owner is refused outright.
 """
 import base64
+import hashlib
 import re
+import urllib.parse
 from datetime import datetime, timezone
 
 import rapp as R
@@ -54,8 +59,8 @@ DOCUMENT_MEMBERS = ("schema", "registry_seq", "canonical_source", ENTRIES_MEMBER
 
 # §13.4 — entry types that carry their own owner signature at `activated_utc`,
 # and the subset a consumer retains byte-for-byte once it has accepted one.
-DECLARED_TYPES = ("grail-kernel",)
-PERSISTED_TYPES = ("grail-kernel",)
+DECLARED_TYPES = ("grail-kernel", "release-pin")
+PERSISTED_TYPES = ("grail-kernel", "release-pin")
 FIRST_SEEN_SKEW_SECONDS = 300
 
 # §13.3 — exact members per entry type: (required, optional)
@@ -71,6 +76,8 @@ ENTRY_MEMBERS = {
     "grail-kernel": ({"type", "release_scope", "grail_id", "repository", "immutable_ref",
                       "object_format", "commit", "path", "mode", "blob", "sha256", "size_bytes",
                       "activated_utc", "predecessor", "declared_by", "sig"}, set()),
+    "release-pin": ({"type", "release_scope", "channel", "predecessor", "manifest_hash", "repository",
+                     "object_format", "commit", "path", "activated_utc", "declared_by", "sig"}, set()),
     "estate_owner": ({"type", "rappid"}, set()),
     "master-plan": ({"type", "repo", "path"}, set()),
 }
@@ -283,6 +290,8 @@ def validate_entry(entry, where="entry"):
             if not (isinstance(p, str) and p.startswith("grail:") and _HEX64.fullmatch(p[6:])):
                 raise RegistryError(f"{where}: `predecessor` must be null or a grail_id")
         _rappid(entry, "declared_by", where); _str(entry, "sig", where)
+    elif t == "release-pin":
+        _validate_release_pin(entry, where)
     elif t == "estate_owner":
         _rappid(entry, "rappid", where)
     elif t == "master-plan":
@@ -305,9 +314,11 @@ class Registry:
         self.reanchors = []      # entries, in order
         self.genesis = {}        # stream_id -> list of entries
         self.grail = {}          # grail_id -> entry
+        self.release_pins = {}   # release_scope -> release-pin entry (§13.5)
         self.protocol_history = {}  # name -> [entries], append order
         self.master_plan = None
         self.canonical_source = None  # set by load_document from the §13.1 container
+        self.status = None  # "verified" or "draft" when load_document returns it; None when built directly
         owners = []
         for i, e in enumerate(entries):
             where = f"entries[{i}]"
@@ -343,6 +354,10 @@ class Registry:
                 if e["release_scope"] in {g["release_scope"] for g in self.grail.values()}:
                     raise RegistryError(f"{where}: release_scope {e['release_scope']!r} rebound")
                 self.grail[e["grail_id"]] = e
+            elif t == "release-pin":
+                if e["release_scope"] in self.release_pins:
+                    raise RegistryError(f"{where}: release_scope {e['release_scope']!r} rebound (§13.5)")
+                self.release_pins[e["release_scope"]] = e
             elif t == "protocol":
                 self.protocol_history.setdefault(e["name"], []).append(e)
             elif t == "estate_owner":
@@ -392,6 +407,7 @@ class Registry:
                 if record is None:
                     break
                 current = R.rappid_parts(record["old_rappid"])["hash"]
+        self._index_release_pins()
 
     # ---- §7.2 / §6.1.1 kind binding ----
     def family(self, kind):
@@ -611,6 +627,48 @@ class Registry:
                     return False, "compromise re-anchor requires a registered tombstone"
         return True, "ok"
 
+    # ---- §13.5 release pins ----
+    def _index_release_pins(self):
+        """Chain each channel's release-pin entries (§13.5): one linear chain per channel,
+        every predecessor an earlier scope of the same channel, activation never regressing."""
+        pins = [e for e in self.entries if e["type"] == "release-pin"]
+        for e in pins:
+            named = e["predecessor"]
+            if named is None:
+                continue
+            prior = self.release_pins.get(named)
+            if prior is None:
+                raise RegistryError(
+                    f"release-pin {e['release_scope']!r}: predecessor {named!r} is not the "
+                    "release_scope of any release-pin entry (§13.5)"
+                )
+            if prior["channel"] != e["channel"]:
+                raise RegistryError(
+                    f"release-pin {e['release_scope']!r} of channel {e['channel']!r}: predecessor "
+                    f"{named!r} belongs to channel {prior['channel']!r}, not this one (§13.5)"
+                )
+        self.release_channels = linear_chains(
+            pins, key=lambda e: e["channel"], ident=lambda e: e["release_scope"],
+            link=lambda e: e["predecessor"], where="release-pin channel",
+        )
+        for channel, chain in self.release_channels.items():
+            for prior, successor in zip(chain, chain[1:]):
+                # The fixed §7.4 form orders bytewise, identically to chronological order.
+                if successor["activated_utc"] < prior["activated_utc"]:
+                    raise RegistryError(
+                        f"release-pin channel {channel!r}: {successor['release_scope']!r} is activated "
+                        f"before its predecessor {prior['release_scope']!r} (§13.5)"
+                    )
+
+    def release_pin(self, release_scope):
+        """The release-pin entry for `release_scope`, or None."""
+        return self.release_pins.get(release_scope) if isinstance(release_scope, str) else None
+
+    def channel_head(self, channel):
+        """The head release-pin of `channel` — the entry naming its current release scope — or None."""
+        chain = self.release_channels.get(channel) if isinstance(channel, str) else None
+        return chain[-1] if chain else None
+
 
 def validate_document(doc):
     """The §13.1 container, structurally: refuse, never repair. Entries are not checked here."""
@@ -654,7 +712,9 @@ def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_uns
     time for those checks' 300-second rule. `persisted_entries` are the canonical declared
     entries of persisted types the caller accepted before; each must still be present byte for
     byte. Freshness, append provenance, and historical migration proofs remain caller
-    responsibilities; a verified snapshot alone cannot establish them.
+    responsibilities; a verified registry snapshot alone cannot establish them. A returned
+    registry records its status in `registry.status` ("verified" or "draft"), which
+    `verify_snapshot` checks; a Registry constructed directly has status None.
     `tombstone_issued_at(entry_hash)` must resolve authenticated issuance/append
     context to a fixed UTC string. It is trusted caller configuration, never a
     field read from the untrusted document. No resolver means tombstones are
@@ -683,6 +743,7 @@ def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_uns
     sig = doc["sig"]
     if sig is None:
         if allow_unsigned:
+            reg.status = "draft"
             return "draft", reg, "unsigned: a draft, never authority (§13.1)"
         return "refused", None, "unsigned registry (§13.1 MUST refuse)"
     unsigned = {k: v for k, v in doc.items() if k != "sig"}
@@ -702,4 +763,305 @@ def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_uns
         return "refused", None, str(why)
     if not ok:
         return "refused", None, why
+    reg.status = "verified"
     return "verified", reg, "ok"
+
+
+# ---------------------------------------------------------------------------------------
+# §13.5 release pins, release manifests, and verified snapshots. A `release-pin` entry pins
+# one release scope's manifest by particle hash; the manifest pins every component file by
+# raw SHA-256 and length at an immutable commit; a verified snapshot is exactly those files.
+MANIFEST_SCHEMA = "rapp/1-release-manifest"
+MANIFEST_MEMBERS = ("schema", "release_scope", "components")
+COMPONENT_MEMBERS = ("id", "kind", "rappid", "identity_path", "repository", "object_format",
+                     "commit", "immutable_ref", "files")
+FILE_MEMBERS = ("path", "sha256", "size_bytes")
+_OBJECT_ID = {"sha1": _HEX40, "sha256": _HEX64}
+_TAG_PREFIX = "refs/tags/"
+_GITHUB_REPOSITORY = re.compile(
+    r"https://github\.com/([A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?)/([A-Za-z0-9._-]{1,100})"
+)
+
+
+def _lclabel(value, maximum):
+    return isinstance(value, str) and bool(_LABEL.fullmatch(value)) and len(value) <= maximum
+
+
+def _object_id(object_format, value):
+    """`object_format` fixes the lowercase-hex length of `value` (40 for sha1, 64 for sha256)."""
+    pattern = _OBJECT_ID.get(object_format) if isinstance(object_format, str) else None
+    return pattern is not None and isinstance(value, str) and bool(pattern.fullmatch(value))
+
+
+def _validate_release_pin(entry, where):
+    """The §13.3 release-pin members. Scope uniqueness and channels span entries (Registry)."""
+    for member in ("release_scope", "repository"):
+        if not _HTTPS.fullmatch(_str(entry, member, where)):
+            raise RegistryError(f"{where}: `{member}` must be an absolute HTTPS URI")
+    if not _lclabel(entry.get("channel"), 64):
+        raise RegistryError(f"{where}: `channel` must be an lclabel of 1-64 characters")
+    named = entry.get("predecessor")
+    if named is not None and not (isinstance(named, str) and _HTTPS.fullmatch(named)):
+        raise RegistryError(f"{where}: `predecessor` must be null or an earlier release-pin's release_scope")
+    _hex64(entry, "manifest_hash", where)
+    if entry.get("object_format") not in ("sha1", "sha256"):
+        raise RegistryError(f"{where}: `object_format` must be sha1 or sha256")
+    if not _object_id(entry["object_format"], entry.get("commit")):
+        raise RegistryError(f"{where}: `commit` must be lowercase hex of the {entry['object_format']} length")
+    # R._path_valid is the §9.1 path grammar: the grail-kernel path rule (relative NFC POSIX,
+    # no empty/"."/".." component) plus the segment rules every file path of the manifest
+    # obeys, so the manifest's own locator is as safe to fetch and store as what it pins.
+    if not R._path_valid(entry.get("path")):
+        raise RegistryError(f"{where}: `path` must be a relative NFC path obeying the §9.1 path grammar")
+    _utc(entry, "activated_utc", where)
+    _rappid(entry, "declared_by", where); _str(entry, "sig", where)
+
+
+def _validate_component(component, where):
+    if not isinstance(component, dict) or set(component) != set(COMPONENT_MEMBERS):
+        raise RegistryError(f"{where}: a component has exactly the members {list(COMPONENT_MEMBERS)}")
+    if not _lclabel(component["id"], 100):
+        raise RegistryError(f"{where}: `id` must be an lclabel of 1-100 characters")
+    if not _lclabel(component["kind"], 64):
+        raise RegistryError(f"{where}: `kind` must be an lclabel of 1-64 characters")
+    repository = component["repository"]
+    if not (isinstance(repository, str) and _HTTPS.fullmatch(repository)):
+        raise RegistryError(f"{where}: `repository` must be an absolute HTTPS URI")
+    if component["object_format"] not in ("sha1", "sha256"):
+        raise RegistryError(f"{where}: `object_format` must be sha1 or sha256")
+    if not _object_id(component["object_format"], component["commit"]):
+        raise RegistryError(f"{where}: `commit` must be lowercase hex of the object_format's length")
+    ref = component["immutable_ref"]
+    if ref is not None and not (isinstance(ref, str) and ref.startswith(_TAG_PREFIX) and ref != _TAG_PREFIX):
+        raise RegistryError(f"{where}: `immutable_ref` must be null or a full refs/tags/<name>")
+    files = component["files"]
+    if not isinstance(files, list):
+        raise RegistryError(f"{where}: `files` must be an array")
+    paths, previous = [], None
+    for position, item in enumerate(files):
+        at = f"{where}.files[{position}]"
+        if not isinstance(item, dict) or set(item) != set(FILE_MEMBERS):
+            raise RegistryError(f"{at}: a file has exactly the members {list(FILE_MEMBERS)}")
+        path = item["path"]
+        if not R._path_valid(path):
+            raise RegistryError(f"{at}: `path` violates the §9.1 path grammar")
+        try:
+            key = path.encode("utf-8")
+        except UnicodeEncodeError:
+            raise RegistryError(f"{at}: `path` is not encodable as UTF-8")
+        if previous is not None and not previous < key:
+            raise RegistryError(f"{at}: `files` must ascend by the UTF-8 bytes of path, without duplicates")
+        previous = key
+        if not (isinstance(item["sha256"], str) and _HEX64.fullmatch(item["sha256"])):
+            raise RegistryError(f"{at}: `sha256` must be 64 lowercase hex")
+        size = item["size_bytes"]
+        if not (isinstance(size, int) and not isinstance(size, bool) and 0 <= size <= 2**53 - 1):
+            raise RegistryError(f"{at}: `size_bytes` must be a uint53")
+        paths.append(path)
+    if not R._path_set_valid(paths):
+        raise RegistryError(
+            f"{where}: two file paths are equal case-insensitively, or one names a directory above another"
+        )
+    rappid, identity_path = component["rappid"], component["identity_path"]
+    if (rappid is None) != (identity_path is None):
+        raise RegistryError(f"{where}: `rappid` and `identity_path` must both be null or both be set")
+    if rappid is not None:
+        if not R.rappid_valid(rappid):
+            raise RegistryError(f"{where}: `rappid` is not a §6.1 rappid")
+        if identity_path not in paths:
+            raise RegistryError(f"{where}: `identity_path` must be one of the component's files")
+
+
+def validate_release_manifest(manifest):
+    """The §13.5 release manifest, structurally: refuse (RegistryError), never repair.
+
+    Checks exact members, `id`/`kind` grammar and order, object ids, tag refs, the §9.1 path
+    grammar and collision rules, digests and sizes, door-of-record pairing, one binding per
+    rappid, and the §4 size limit (the exact structure bounds depth far below 64). Returns
+    the manifest. Rules that need the registry are `verify_release_manifest`'s; rules that
+    need the pinned bytes are `verify_snapshot`'s."""
+    if not isinstance(manifest, dict) or set(manifest) != set(MANIFEST_MEMBERS):
+        raise RegistryError(f"a release manifest has exactly the members {list(MANIFEST_MEMBERS)} (§13.5)")
+    if manifest["schema"] != MANIFEST_SCHEMA:
+        raise RegistryError(f'release manifest schema must be "{MANIFEST_SCHEMA}"')
+    scope = manifest["release_scope"]
+    if not (isinstance(scope, str) and _HTTPS.fullmatch(scope)):
+        raise RegistryError("release manifest `release_scope` must be an absolute HTTPS URI")
+    components = manifest["components"]
+    if not isinstance(components, list) or not components:
+        raise RegistryError("release manifest `components` must be a non-empty array")
+    previous, bound = None, {}
+    for index, component in enumerate(components):
+        where = f"components[{index}]"
+        _validate_component(component, where)
+        if previous is not None and not previous < component["id"]:
+            raise RegistryError(f"{where}: components must be sorted ascending by `id`, without duplicates")
+        previous = component["id"]
+        rappid = component["rappid"]
+        if rappid is not None:
+            if rappid in bound:
+                raise RegistryError(f"{where}: rappid already bound by component {bound[rappid]!r} (§13.5)")
+            bound[rappid] = component["id"]
+    try:
+        size = len(R.canonical(manifest).encode("utf-8"))
+    except ValueError as why:
+        raise RegistryError(f"release manifest is not a §4 value: {why}")
+    if size > R.MAX_CANONICAL_BYTES:
+        raise RegistryError("release manifest canonical form exceeds 1 MiB (§4)")
+    return manifest
+
+
+def check_kernel_coherence(registry, manifest):
+    """§13.5 kernel coherence of `manifest` against `registry`. Returns (ok, why).
+
+    With a `grail-kernel` entry for the manifest's release_scope, exactly one `kernel`
+    component must carry that entry's repository, object_format, commit, and immutable_ref and
+    pin its path with its sha256 and size_bytes; without one, no component may be a `kernel`.
+    A manifest that fails `validate_release_manifest` is not coherent."""
+    try:
+        validate_release_manifest(manifest)
+    except RegistryError as why:
+        return False, str(why)
+    grails = [g for g in registry.grail.values() if g["release_scope"] == manifest["release_scope"]]
+    kernels = [c for c in manifest["components"] if c["kind"] == "kernel"]
+    if not grails:
+        if kernels:
+            return False, "a kernel component needs a grail-kernel entry for this release_scope (§13.5)"
+        return True, "ok"
+    grail = grails[0]
+    if len(kernels) != 1:
+        return False, f"a declared grail-kernel needs exactly one kernel component, not {len(kernels)} (§13.5)"
+    kernel = kernels[0]
+    for member in ("repository", "object_format", "commit", "immutable_ref"):
+        if kernel[member] != grail[member]:
+            return False, f"kernel component `{member}` differs from the scope's grail-kernel entry (§13.5)"
+    pinned = [f for f in kernel["files"] if f["path"] == grail["path"]]
+    if not pinned:
+        return False, "kernel component does not pin the grail-kernel path (§13.5)"
+    if pinned[0]["sha256"] != grail["sha256"] or pinned[0]["size_bytes"] != grail["size_bytes"]:
+        return False, "kernel component pins the grail-kernel path with other bytes (kernel-drift, §13.5)"
+    return True, "ok"
+
+
+def verify_release_manifest(registry, release_scope, manifest_octets):
+    """§13.5 snapshot step 2 for one release scope: the exact pinned manifest, or RegistryError.
+
+    `manifest_octets` are whatever bytes a transport returned for the release-pin's locator;
+    the transport is never trusted. They must be exactly canonical(manifest), hash to the
+    entry's `manifest_hash`, name `release_scope`, pass `validate_release_manifest`, and be
+    coherent with the scope's grail-kernel entry."""
+    entry = registry.release_pin(release_scope)
+    if entry is None:
+        raise RegistryError(f"no release-pin entry for release_scope {release_scope!r} (§13.5)")
+    if not isinstance(manifest_octets, bytes):
+        raise RegistryError("release manifest octets must be bytes")
+    try:
+        manifest = R._strict_json(manifest_octets)
+        exact = manifest_octets == R.canonical(manifest).encode("utf-8")
+    except (ValueError, RecursionError) as why:
+        raise RegistryError(f"release manifest is not a §4 value: {why}")
+    if not exact:
+        raise RegistryError(
+            "release manifest octets must be exactly canonical(manifest): UTF-8, no byte-order mark, "
+            "no insignificant whitespace, no trailing line terminator (§13.5)"
+        )
+    if R.H("rapp/1:particle", manifest) != entry["manifest_hash"]:
+        raise RegistryError("release manifest does not hash to the release-pin's manifest_hash (§13.5)")
+    if not isinstance(manifest, dict) or manifest.get("release_scope") != release_scope:
+        raise RegistryError("release manifest names a different release_scope (§13.5)")
+    validate_release_manifest(manifest)
+    ok, why = check_kernel_coherence(registry, manifest)
+    if not ok:
+        raise RegistryError(why)
+    return manifest
+
+
+def github_raw_url(repository, commit, path):
+    """The commit-pinned raw URL of one file of a GitHub repository (§13.5 step 3), or None.
+
+    Only `https://github.com/<owner>/<repository>` with plain name segments, a full
+    lowercase-hex commit, and a §9.1 path qualify; another host, a branch or tag name, a `.git`
+    suffix, extra path, a query, or a fragment returns None rather than a guess. Each path
+    segment is percent-encoded. The URL is transport only: what it returns is verified by
+    the pinned length and SHA-256, never by where it came from."""
+    match = _GITHUB_REPOSITORY.fullmatch(repository) if isinstance(repository, str) else None
+    if match is None:
+        return None
+    owner, name = match.groups()
+    if name in (".", "..") or name.lower().endswith(".git"):
+        return None
+    if not (isinstance(commit, str) and (_HEX40.fullmatch(commit) or _HEX64.fullmatch(commit))):
+        return None
+    if not R._path_valid(path):
+        return None
+    try:
+        encoded = "/".join(urllib.parse.quote(segment, safe="") for segment in path.split("/"))
+    except UnicodeEncodeError:
+        return None
+    return f"https://raw.githubusercontent.com/{owner}/{name}/{commit}/{encoded}"
+
+
+def _fetch_pinned(fetch, locator, path, where):
+    try:
+        octets = fetch(locator["repository"], locator["object_format"], locator["commit"], path)
+    except Exception as why:  # any transport failure refuses the whole snapshot, never a part
+        raise RegistryError(f"{where}: fetch failed: {why}") from why
+    if not isinstance(octets, bytes):
+        raise RegistryError(f"{where}: fetch must return bytes")
+    return octets
+
+
+def _door_of_record_mismatch(component, octets):
+    try:
+        identity = R._strict_json(octets)
+    except (ValueError, RecursionError) as why:
+        return f"identity file is not a §4 value: {why}"
+    if not isinstance(identity, dict):
+        return "identity file must be a JSON object"
+    if identity.get("rappid") != component["rappid"]:
+        return "identity file rappid differs from the component's rappid"
+    if "schema" in identity and identity["schema"] != "rapp/1":
+        return 'identity file schema, when present, must be "rapp/1"'
+    return None
+
+
+def verify_snapshot(registry, release_scope, fetch, *, allow_draft=False):
+    """The §13.5 verified snapshot of one release scope: {(component_id, path): octets}.
+
+    `registry` must be one `load_document` returned as "verified"; a "draft" is accepted
+    only with `allow_draft=True`, for rehearsal, and a Registry built directly (status None)
+    never. `fetch(repository, object_format, commit, path) -> bytes` is any transport (git, a
+    mirror, `github_raw_url`) and is never trusted: it is called once for the release-pin's
+    manifest locator and once per pinned file, and every returned byte is checked against
+    the manifest. Refusal is whole: any failure raises RegistryError and returns nothing.
+    What only git can prove — that an `immutable_ref` resolves to its `commit`, or the commit
+    of a component whose `files` is empty — is left to a git-capable verifier."""
+    accepted = ("verified", "draft") if allow_draft else ("verified",)
+    status = getattr(registry, "status", None)
+    if status not in accepted:
+        raise RegistryError(
+            f"registry status is {status!r}; a verified snapshot needs a registry that "
+            f"load_document returned as {' or '.join(accepted)} (§13.5 step 1)"
+        )
+    entry = registry.release_pin(release_scope)
+    if entry is None:
+        raise RegistryError(f"no release-pin entry for release_scope {release_scope!r} (§13.5)")
+    manifest = verify_release_manifest(
+        registry, release_scope, _fetch_pinned(fetch, entry, entry["path"], "release manifest")
+    )
+    snapshot = {}
+    for component in manifest["components"]:
+        for item in component["files"]:
+            where = f"component {component['id']!r} file {item['path']!r}"
+            octets = _fetch_pinned(fetch, component, item["path"], where)
+            if len(octets) != item["size_bytes"]:
+                raise RegistryError(f"{where}: {len(octets)} bytes, {item['size_bytes']} pinned (§13.5)")
+            if hashlib.sha256(octets).hexdigest() != item["sha256"]:
+                raise RegistryError(f"{where}: SHA-256 differs from the pinned digest (§13.5)")
+            snapshot[(component["id"], item["path"])] = octets
+    for component in manifest["components"]:
+        if component["rappid"] is not None:
+            why = _door_of_record_mismatch(component, snapshot[(component["id"], component["identity_path"])])
+            if why:
+                raise RegistryError(f"component {component['id']!r} door of record: {why} (§13.5)")
+    return snapshot

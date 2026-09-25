@@ -8,7 +8,7 @@ file can drift from the reference.
   python3 conformance/make_vectors.py            # write both files
   python3 conformance/make_vectors.py --check    # exit 1 if a committed file differs
 """
-import base64, json, os, sys
+import base64, copy, hashlib, json, os, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 import rapp as R
@@ -100,6 +100,7 @@ def vectors():
 # test_registry_*.py and registry_conformance.py).
 SIG = "<detached-jws>"
 T0 = "2026-07-01T00:00:00.000Z"
+LATER = "2026-08-01T00:00:00.000Z"
 SOURCE = "https://registry.example.test/rapp-registry.json"
 
 
@@ -131,6 +132,104 @@ def _grail(owner, scope="https://releases.example.test/scope/lts"):
             "commit": "1" * 40, "path": "kernel/brainstem.py", "mode": "100644",
             "blob": "2" * 40, "sha256": "a" * 64, "size_bytes": 1024,
             "activated_utc": T0, "predecessor": None, "declared_by": owner, "sig": SIG}
+
+
+# §13.5 release pins: one synthetic estate's release scopes, repositories, and files.
+LTS_1 = "https://releases.example.test/vector/lts/1"
+LTS_2 = "https://releases.example.test/vector/lts/2"
+LTS_3 = "https://releases.example.test/vector/lts/3"
+NEWEST_1 = "https://releases.example.test/vector/newest/1"
+GIT = "https://git.example.test/vector/"
+KERNEL_FILES = {
+    "kernel/VERSION": b"1.0.0-lts\n",
+    "kernel/agents/basic_agent.py": b'class BasicAgent:\n    """Synthetic kernel companion."""\n',
+    "kernel/brainstem.py": b'"""Synthetic kernel entry point."""\n',
+}
+
+
+def _keyless(slug, n):
+    """A reproducible keyless rappid: the §6.2 mint over a fixed UUIDv4, for vectors only."""
+    return f"rappid:@vector/{slug}:" + R.Hb("rapp/1:rappid", bytes.fromhex("00000000000040008000%012x" % n))
+
+
+def _pins(files):
+    return [{"path": path, "sha256": hashlib.sha256(octets).hexdigest(), "size_bytes": len(octets)}
+            for path, octets in sorted(files.items(), key=lambda item: item[0].encode("utf-8"))]
+
+
+def _component(cid, kind, repo, commit, files, rappid=None, identity_path=None, immutable_ref=None,
+               object_format="sha1"):
+    return {"id": cid, "kind": kind, "rappid": rappid, "identity_path": identity_path,
+            "repository": GIT + repo, "object_format": object_format, "commit": commit,
+            "immutable_ref": immutable_ref, "files": _pins(files)}
+
+
+def _kernel_component():
+    return _component("brainstem", "kernel", "brainstem", "1" * 40, KERNEL_FILES,
+                      immutable_ref="refs/tags/brainstem-v1.0.0-lts")
+
+
+def _release_files():
+    alpha, beta = _keyless("organism-alpha", 1), _keyless("organism-beta", 2)
+    return alpha, beta, {
+        "brainstem": KERNEL_FILES,
+        "organism-alpha": {"rappid.json": R.canonical({"rappid": alpha, "schema": "rapp/1"}).encode(),
+                           "soul.md": b"# organism alpha\n"},
+        "organism-beta": {"agents/beta_agent.py": b"# organism beta agent\n",
+                          "rappid.json": R.canonical({"rappid": beta, "schema": "rapp/1"}).encode()},
+        "rapp-1": {"SPEC.md": b"# Synthetic protocol text\n"},
+    }
+
+
+def _release_manifest(scope=LTS_1, compact=False):
+    alpha, beta, files = _release_files()
+    components = [
+        _component("organism-alpha", "organism", "alpha", "5" * 40, files["organism-alpha"],
+                   rappid=alpha, identity_path="rappid.json"),
+        _component("rapp-1", "protocol", "protocol", "4" * 40, files["rapp-1"],
+                   immutable_ref="refs/tags/rev-17"),
+    ]
+    if not compact:
+        components[1:1] = [_component("organism-beta", "organism", "beta", "6" * 64, files["organism-beta"],
+                                      rappid=beta, identity_path="rappid.json", object_format="sha256")]
+        components.insert(0, _kernel_component())
+    return {"schema": REG.MANIFEST_SCHEMA, "release_scope": scope, "components": components}
+
+
+def _release_grail(owner, scope=LTS_1):
+    kernel = KERNEL_FILES["kernel/brainstem.py"]
+    return {"type": "grail-kernel", "release_scope": scope,
+            "grail_id": "grail:" + R.Hb("rapp/1:grail", kernel), "repository": GIT + "brainstem",
+            "immutable_ref": "refs/tags/brainstem-v1.0.0-lts", "object_format": "sha1",
+            "commit": "1" * 40, "path": "kernel/brainstem.py", "mode": "100644", "blob": "2" * 40,
+            "sha256": hashlib.sha256(kernel).hexdigest(), "size_bytes": len(kernel),
+            "activated_utc": T0, "predecessor": None, "declared_by": owner, "sig": SIG}
+
+
+def _release_pin(owner, scope, manifest_hash=None, channel="lts", predecessor=None,
+                 activated=T0, **changes):
+    """A release-pin entry; without a manifest, its manifest_hash is a per-scope placeholder digest."""
+    manifest_hash = manifest_hash or hashlib.sha256(scope.encode("utf-8")).hexdigest()
+    entry = {"type": "release-pin", "release_scope": scope, "channel": channel,
+             "predecessor": predecessor, "manifest_hash": manifest_hash, "repository": GIT + "releases",
+             "object_format": "sha1", "commit": "3" * 40,
+             "path": "releases/" + scope.rsplit("/vector/", 1)[1].replace("/", "-") + ".json",
+             "activated_utc": activated, "declared_by": owner, "sig": SIG}
+    entry.update(changes)
+    return {k: v for k, v in entry.items() if v is not _DROP}
+
+
+def _changed(value, change):
+    value = copy.deepcopy(value)
+    change(value)
+    return value
+
+
+def _verdict(decide):
+    try:
+        return "accept" if decide() else "refuse"
+    except (REG.RegistryError, ValueError):
+        return "refuse"
 
 
 def registry_sections():
@@ -179,7 +278,194 @@ def registry_sections():
             },
         }
 
-    return [("13_1_document", document_cases), ("13_4_declared", declared_cases)]
+    def release_pin_cases():
+        alpha, _, files = _release_files()
+        manifest, compact = _release_manifest(), _release_manifest(compact=True)
+        octets = R.canonical(manifest).encode("utf-8")
+        grail = _release_grail(owner)
+        pin = _release_pin(owner, LTS_1, R.H("rapp/1:particle", manifest))
+        pinned_registry = REG.Registry(base + [grail, pin])
+        assert REG.verify_release_manifest(pinned_registry, LTS_1, octets) == manifest
+
+        def manifest_case(label, change, intended):
+            value = _changed(compact, change)
+            expect = _verdict(lambda: REG.validate_release_manifest(value))
+            assert expect == intended, label
+            return {"label": label, "manifest": value, "expect": expect}
+
+        def component(index, **changes):
+            return lambda m: m["components"][index].update(changes)
+
+        def first_file(**changes):
+            return lambda m: m["components"][1]["files"][0].update(changes)
+
+        def paths(*names):
+            return component(1, files=[{"path": name, "sha256": "e" * 64, "size_bytes": 1} for name in names])
+
+        manifest_cases = [
+            manifest_case("a door-of-record organism and a protocol component", lambda m: None, "accept"),
+            manifest_case("a component that pins only a commit (files [])", component(1, files=[]), "accept"),
+            manifest_case("object_format sha256 with a 64-hex commit",
+                          component(1, object_format="sha256", commit="4" * 64), "accept"),
+            manifest_case("an extra top-level member", lambda m: m.update(note="x"), "refuse"),
+            manifest_case("another schema", lambda m: m.update(schema="rapp/1-release-manifest-v2"), "refuse"),
+            manifest_case("a release_scope that is not an absolute HTTPS URI",
+                          lambda m: m.update(release_scope="http://releases.example.test/vector/lts/1"), "refuse"),
+            manifest_case("no components", lambda m: m.update(components=[]), "refuse"),
+            manifest_case("components out of id order", lambda m: m["components"].reverse(), "refuse"),
+            manifest_case("a duplicate component id",
+                          lambda m: m["components"].append(copy.deepcopy(m["components"][1])), "refuse"),
+            manifest_case("an id that is not an lclabel", component(1, id="Rapp_1"), "refuse"),
+            manifest_case("an id of 101 characters", component(1, id="r" * 101), "refuse"),
+            manifest_case("a kind of 65 characters", component(1, kind="k" * 65), "refuse"),
+            manifest_case("a commit of the wrong length for its object_format", component(1, commit="4" * 64),
+                          "refuse"),
+            manifest_case("an immutable_ref that is not a full refs/tags/ name",
+                          component(1, immutable_ref="rev-17"), "refuse"),
+            manifest_case("a file with an extra member", first_file(mode="100644"), "refuse"),
+            manifest_case("a path outside the §9.1 grammar (a reserved device name)", paths("docs/CON.md"),
+                          "refuse"),
+            manifest_case("files out of UTF-8 byte order", paths("b.md", "a.md"), "refuse"),
+            manifest_case("two paths equal case-insensitively", paths("README.md", "readme.md"), "refuse"),
+            manifest_case("a file that is also a directory above another", paths("docs", "docs/index.md"),
+                          "refuse"),
+            manifest_case("a size_bytes beyond uint53", first_file(size_bytes=2**53), "refuse"),
+            manifest_case("a sha256 that is not 64 lowercase hex", first_file(sha256="E" * 64), "refuse"),
+            manifest_case("a rappid without its identity_path", component(0, identity_path=None), "refuse"),
+            manifest_case("an identity_path that is not one of the component's files",
+                          component(0, identity_path="identity.json"), "refuse"),
+            manifest_case("one rappid bound by two components", component(1, rappid=alpha, identity_path="SPEC.md"),
+                          "refuse"),
+        ]
+
+        def octets_case(label, entries, data, intended):
+            expect = _verdict(lambda: REG.verify_release_manifest(REG.Registry(entries), LTS_1, data))
+            assert expect == intended, label
+            return {"label": label, "entries": entries, "release_scope": LTS_1, "octets_hex": data.hex(),
+                    "expect": expect}
+
+        compact_octets = R.canonical(compact).encode("utf-8")
+        pinned = base + [_release_pin(owner, LTS_1, R.H("rapp/1:particle", compact))]
+        foreign = _release_manifest(LTS_2, compact=True)
+        other = _changed(compact, component(1, commit="7" * 40))
+        octets_cases = [
+            octets_case("exactly canonical(manifest)", pinned, compact_octets, "accept"),
+            octets_case("pretty-printed", pinned, json.dumps(compact, indent=2, sort_keys=True).encode("utf-8"),
+                        "refuse"),
+            octets_case("a trailing line terminator", pinned, compact_octets + b"\n", "refuse"),
+            octets_case("a UTF-8 byte-order mark", pinned, b"\xef\xbb\xbf" + compact_octets, "refuse"),
+            octets_case("the canonical bytes of a manifest other than the pinned one", pinned,
+                        R.canonical(other).encode("utf-8"), "refuse"),
+            octets_case("the pinned manifest names another release_scope",
+                        base + [_release_pin(owner, LTS_1, R.H("rapp/1:particle", foreign))],
+                        R.canonical(foreign).encode("utf-8"), "refuse"),
+            octets_case("no release-pin for the release_scope", base, compact_octets, "refuse"),
+        ]
+
+        def entry_case(label, entries, intended):
+            entries = base + entries
+            expect = _verdict(lambda: REG.Registry(entries))
+            assert expect == intended, label
+            heads = None
+            if expect == "accept":
+                registry = REG.Registry(entries)
+                heads = {c: registry.channel_head(c)["release_scope"] for c in sorted(registry.release_channels)}
+            return {"label": label, "entries": entries, "expect": expect, "heads": heads}
+
+        def rp(scope, **changes):
+            return _release_pin(owner, scope, **changes)
+
+        entry_cases = [
+            entry_case("two channels; lts carries three scopes",
+                       [rp(LTS_1), rp(NEWEST_1, channel="newest"), rp(LTS_2, predecessor=LTS_1, activated=LATER),
+                        rp(LTS_3, predecessor=LTS_2, activated=LATER)], "accept"),
+            entry_case("equal activation times in one channel", [rp(LTS_1), rp(LTS_2, predecessor=LTS_1)], "accept"),
+            entry_case("a release-pin shares its scope with the scope's grail-kernel", [grail, rp(LTS_1)], "accept"),
+            entry_case("two release-pins with one release_scope", [rp(LTS_1), rp(LTS_1, channel="newest")], "refuse"),
+            entry_case("a fork: two successors of one scope",
+                       [rp(LTS_1), rp(LTS_2, predecessor=LTS_1), rp(LTS_3, predecessor=LTS_1)], "refuse"),
+            entry_case("two first entries in one channel", [rp(LTS_1), rp(LTS_2)], "refuse"),
+            entry_case("a predecessor appended after its successor", [rp(LTS_2, predecessor=LTS_1), rp(LTS_1)],
+                       "refuse"),
+            entry_case("a predecessor in another channel",
+                       [rp(LTS_1), rp(NEWEST_1, channel="newest", predecessor=LTS_1)], "refuse"),
+            entry_case("a predecessor that is no release-pin's release_scope",
+                       [rp(LTS_1), rp(LTS_2, predecessor=LTS_3)], "refuse"),
+            entry_case("a successor activated before its predecessor",
+                       [rp(LTS_1, activated=LATER), rp(LTS_2, predecessor=LTS_1)], "refuse"),
+            entry_case("a channel that is not an lclabel", [rp(LTS_1, channel="LTS")], "refuse"),
+            entry_case("a path outside the §9.1 grammar", [rp(LTS_1, path="releases/lts:1.json")], "refuse"),
+            entry_case("a commit of the wrong length for object_format", [rp(LTS_1, object_format="sha256")],
+                       "refuse"),
+            entry_case("an extra member", [rp(LTS_1, deprecated=False)], "refuse"),
+            entry_case("a missing member", [rp(LTS_1, predecessor=_DROP)], "refuse"),
+        ]
+
+        kernel_only = {"schema": REG.MANIFEST_SCHEMA, "release_scope": LTS_1, "components": [_kernel_component()]}
+        assert kernel_only["components"][0]["files"][2]["path"] == grail["path"]
+
+        def coherence_case(label, with_grail, value, intended):
+            entries = base + ([grail] if with_grail else [])
+            expect = _verdict(lambda: REG.check_kernel_coherence(REG.Registry(entries), value)[0])
+            assert expect == intended, label
+            return {"label": label, "grail_kernel": grail if with_grail else None, "manifest": value,
+                    "expect": expect}
+
+        def kernel(**changes):
+            return _changed(kernel_only, lambda m: m["components"][0].update(changes))
+
+        def entry_point(**changes):
+            return _changed(kernel_only, lambda m: m["components"][0]["files"][2].update(changes))
+
+        second_kernel = _changed(kernel_only, lambda m: m["components"].append(
+            dict(copy.deepcopy(m["components"][0]), id="brainstem-copy")))
+        coherence_cases = [
+            coherence_case("the kernel component equals the scope's grail-kernel", True, kernel_only, "accept"),
+            coherence_case("neither a grail-kernel nor a kernel component", False, compact, "accept"),
+            coherence_case("a grail-kernel but no kernel component", True, compact, "refuse"),
+            coherence_case("two kernel components", True, second_kernel, "refuse"),
+            coherence_case("another repository", True, kernel(repository=GIT + "mirror"), "refuse"),
+            coherence_case("another object_format", True, kernel(object_format="sha256", commit="1" * 64), "refuse"),
+            coherence_case("another commit", True, kernel(commit="9" * 40), "refuse"),
+            coherence_case("another immutable_ref", True, kernel(immutable_ref="refs/tags/brainstem-v1.0.1-lts"),
+                           "refuse"),
+            coherence_case("no immutable_ref", True, kernel(immutable_ref=None), "refuse"),
+            coherence_case("the grail-kernel path is not pinned", True, entry_point(path="kernel/main.py"), "refuse"),
+            coherence_case("the grail-kernel path pinned with other bytes", True, entry_point(sha256="e" * 64),
+                           "refuse"),
+            coherence_case("the grail-kernel path pinned with another length", True, entry_point(size_bytes=1),
+                           "refuse"),
+            coherence_case("a kernel component without a grail-kernel for its scope", False, kernel_only, "refuse"),
+        ]
+
+        unsigned_pin = {k: v for k, v in pin.items() if k != "sig"}
+        return {
+            "manifest_schema": REG.MANIFEST_SCHEMA,
+            "example": {
+                "manifest": manifest,
+                "canonical": R.canonical(manifest),
+                "manifest_hash": R.H("rapp/1:particle", manifest),
+                "raw_sha256": hashlib.sha256(octets).hexdigest(),
+                "files": [{"component": c["id"], "path": f["path"],
+                           "octets_utf8": files[c["id"]][f["path"]].decode("utf-8")}
+                          for c in manifest["components"] for f in c["files"]],
+                "grail_kernel": grail,
+                "release_pin": pin,
+                "release_pin_signing_payload": R.canonical(unsigned_pin),
+                "release_pin_entry_hash": REG.entry_hash(pin),
+                "rule": "the release-pin's manifest_hash = H('rapp/1:particle', manifest); the stored manifest "
+                        "octets are exactly canonical(manifest), so raw_sha256 is their SHA-256; each file's "
+                        "sha256 and size_bytes are the raw SHA-256 and length of octets_utf8's UTF-8 bytes; the "
+                        "verified snapshot is exactly these files, keyed by (component id, path)",
+            },
+            "manifest_cases": manifest_cases,
+            "octets_cases": octets_cases,
+            "entry_cases": entry_cases,
+            "kernel_coherence_cases": coherence_cases,
+        }
+
+    return [("13_1_document", document_cases), ("13_4_declared", declared_cases),
+            ("13_release_pin", release_pin_cases)]
 
 
 class _Drop:
