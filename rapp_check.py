@@ -374,7 +374,8 @@ def check_repo(root, signature_verifier=None):
             {
                 "artifact": rel,
                 "ok": (
-                    f"§13.5 release manifest structure OK ({len(manifest['components'])} components; "
+                    f"§13.5 release manifest structure OK (release name {manifest['release']}; "
+                    f"{len(manifest['components'])} components; "
                     f"manifest_hash {R.H('rapp/1:particle', manifest)[:16]}…; "
                     "authority requires a verified release-pin)"
                 ),
@@ -393,6 +394,10 @@ def check_repo(root, signature_verifier=None):
             if not is_required and blob is not None and _lenient_schema(blob) == REG.DOCUMENT_SCHEMA:
                 has_artifact = True
                 finding(rel, "§13 registry document", f"not strict I-JSON (§4): {exc}")
+                return
+            if not is_required and blob is not None and _lenient_schema(blob) == REG.MANIFEST_SCHEMA:
+                has_artifact = True
+                finding(rel, "§13.5 release manifest", f"not strict I-JSON (§4): {exc}")
                 return
             candidate = is_required or (
                 blob is not None and _looks_like_frame(blob)

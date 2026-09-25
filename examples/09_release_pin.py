@@ -1,18 +1,22 @@
-"""09 — Release pins. Every component of a release, verified together or not at all.
+"""09 — Release pins. Every component of a pinned release, verified together or not at all.
 
-An estate's kernel, organisms, and protocol text live in many repositories. A release pins
-all of them at once (SPEC §13.5). A release scope names a release family bound to at most one
-Grail kernel, forever; each immutable release of the family is one `release-pin` registry
-entry that pins one `rapp/1-release-manifest` by particle hash, and the manifest pins every
-component file by SHA-256 and length at an immutable commit. A consumer then builds a
-*verified snapshot* of one release: exactly the pinned files, or nothing. Releases form
-channels: a channel's head is its current release, a correction is a new release appended
-to its family's channel, and every earlier release stays verifiable by its manifest_hash.
+An estate's kernel, organisms, and protocol text live in many repositories. A release pin
+fixes all of them at once (SPEC §13.5). A release scope names a release family bound to at
+most one Grail kernel, forever; each immutable release of the family is pinned by one
+`release-pin` registry entry naming one `rapp/1-release-manifest` by particle hash, and the
+manifest — named for people by its `release` member — pins every component file by SHA-256
+and length at an immutable commit. A consumer then builds a *verified snapshot* of one pinned
+release: exactly the pinned files, or nothing. Release pins form channels: a channel's head
+pins its current release, and a pinned release is never retired by editing — a successor
+appended to its family's channel supersedes it, and every earlier release stays verifiable
+by its manifest_hash.
 
 This program builds a fictional estate ("acme"): an LTS family (kernel 1.4.2) whose channel
 appends one correction that keeps the kernel, and a newest channel that moves on from the
-2.0 family to the 2.1 family. Each release has a three-file kernel, two organisms, and the
-protocol text; everything is snapshotted through an in-memory transport.
+2.0 family to the 2.1 family. Each pinned release has a three-file kernel, two organisms, and
+the protocol text; everything is snapshotted through an in-memory transport. It then returns
+the LTS channel to its first files under a new release name, and shows why no kernel may join
+a family after one of its releases was accepted.
 Run: python3 examples/09_release_pin.py
 
 Nothing here is signed. The registry is an unsigned DRAFT (§13.1): the reference loads it
@@ -68,8 +72,9 @@ widget, ledger = R.mint_rappid("acme", "widget-factory"), R.mint_rappid("acme", 
 def identity(rappid):
     return R.canonical({"schema": "rapp/1", "rappid": rappid}).encode("utf-8")
 
-def manifest(scope, version, kernel_commit, widget_commit):
-    return {"schema": REG.MANIFEST_SCHEMA, "release_scope": scope, "components": [
+def manifest(scope, name, version, kernel_commit, widget_commit):
+    """One release of the family `scope`, named `name` for people; its identity is its manifest_hash."""
+    return {"schema": REG.MANIFEST_SCHEMA, "release_scope": scope, "release": name, "components": [
         component("acme-kernel", "kernel", "brainstem", kernel_commit, kernel_files(version), tag=f"refs/tags/v{version}"),
         component("ledger", "organism", "ledger", "4a" * 20, {"rappid.json": identity(ledger), "soul.md": b"# ledger\n"},
                   rappid=ledger, identity_path="rappid.json"),
@@ -80,11 +85,12 @@ def manifest(scope, version, kernel_commit, widget_commit):
                   rappid=widget, identity_path="rappid.json"),
     ]}
 
-# ── 3. Release families, each with its one kernel, and their releases in two channels. ──
+# ── 3. Release families, each with its one kernel, and their release pins in two channels. ──
 LTS = "https://releases.example.test/acme/1.4"   # the LTS family: kernel 1.4.2, forever
 V2_0 = "https://releases.example.test/acme/2.0"  # a newest family: kernel 2.0.0
 V2_1 = "https://releases.example.test/acme/2.1"  # the family the newest channel moves on to: kernel 2.1.0
-NAMES = {LTS: "1.4", V2_0: "2.0", V2_1: "2.1"}
+FAMILIES = {LTS: "1.4", V2_0: "2.0", V2_1: "2.1"}
+RELEASE_NAMES = {}  # manifest_hash -> the manifest's `release`: for people, never for selection
 RELEASES, RELEASES_COMMIT = GIT + "releases", "6a" * 20
 
 def grail(scope, version, commit, activated, predecessor=None):
@@ -99,6 +105,7 @@ def grail(scope, version, commit, activated, predecessor=None):
 def release_pin(release, channel, predecessor, activated):
     """Publish one release's manifest, exactly canonical(manifest), and declare the release-pin for it."""
     manifest_hash = R.H("rapp/1:particle", release)
+    RELEASE_NAMES[manifest_hash] = release["release"]
     path = f"releases/{manifest_hash}.json"
     STORE[(RELEASES, RELEASES_COMMIT, path)] = R.canonical(release).encode("utf-8")
     return {"type": "release-pin", "release_scope": release["release_scope"], "channel": channel,
@@ -108,36 +115,36 @@ def release_pin(release, channel, predecessor, activated):
             "sig": "<owner-signed>"}
 
 def named(pin):
-    return f"{NAMES[pin['release_scope']]}@{pin['manifest_hash'][:8]}"
+    return f"{RELEASE_NAMES[pin['manifest_hash']]}@{pin['manifest_hash'][:8]}"
 
-SEPT, OCT = "2026-09-01T00:00:00.000Z", "2026-10-01T00:00:00.000Z"
-lts_release = manifest(LTS, "1.4.2", "1a" * 20, "3a" * 20)
-lts_correction = manifest(LTS, "1.4.2", "1a" * 20, "3b" * 20)  # a widget fix; the same kernel, byte for byte
-newest_2_0 = manifest(V2_0, "2.0.0", "2a" * 20, "3a" * 20)
-newest_2_1 = manifest(V2_1, "2.1.0", "2b" * 20, "3b" * 20)
+SEPT, OCT, NOV = "2026-09-01T00:00:00.000Z", "2026-10-01T00:00:00.000Z", "2026-11-01T00:00:00.000Z"
+lts_release = manifest(LTS, "lts-2026.09", "1.4.2", "1a" * 20, "3a" * 20)
+lts_correction = manifest(LTS, "lts-2026.10", "1.4.2", "1a" * 20, "3b" * 20)  # a widget fix; the same kernel
+newest_2_0 = manifest(V2_0, "acme-2.0.0", "2.0.0", "2a" * 20, "3a" * 20)
+newest_2_1 = manifest(V2_1, "acme-2.1.0", "2.1.0", "2b" * 20, "3b" * 20)
 kernels = [grail(LTS, "1.4.2", "1a" * 20, SEPT), grail(V2_0, "2.0.0", "2a" * 20, SEPT)]
 kernels.append(grail(V2_1, "2.1.0", "2b" * 20, OCT, predecessor=kernels[1]["grail_id"]))
 lts_1 = release_pin(lts_release, "lts", None, SEPT)
 new_1 = release_pin(newest_2_0, "newest", None, SEPT)
-lts_2 = release_pin(lts_correction, "lts", lts_1, OCT)       # a correction appends; nothing is rebound
+lts_2 = release_pin(lts_correction, "lts", lts_1, OCT)       # a correction supersedes; nothing is rebound
 new_2 = release_pin(newest_2_1, "newest", new_1, OCT)        # the newest channel moves on to the next family
 entries = [
     {"type": "estate_owner", "rappid": owner},
     {"type": "spki", "rappid": owner, "deprecated": False, "spki_der_b64": base64.b64encode(OWNER_SPKI).decode("ascii")},
-    *kernels,  # each family's kernel precedes its first release
+    *kernels,  # each family's kernel precedes its first release pin
     lts_1, new_1, lts_2, new_2,
 ]
 document = {"schema": "rapp/1-registry", "registry_seq": 1,
             "canonical_source": "https://registry.example.test/acme/rapp-registry.json", "entries": entries, "sig": None}
 status, reg, why = REG.load_document(document, trust_anchor=owner, allow_unsigned=True)
 print("registry:", status, "—", why); assert status == "draft"
-print("\nchannels (§13.5) — each one linear chain of releases; its head is the current release:")
+print("\nchannels (§13.5) — each one linear chain of release pins; its head pins the current release:")
 for channel in sorted(reg.release_channels):
     chain = " -> ".join(named(e) for e in reg.release_channels[channel])
     show(f"{channel}: {chain}", True, "head " + named(reg.channel_head(channel)))
 print("\nfamilies — one kernel each; a family's last release in chain order is its current release:")
 for scope in (LTS, V2_0, V2_1):
-    show(f"{NAMES[scope]}: {len(reg.scope_releases(scope))} release(s)", True, "current " + named(reg.scope_head(scope)))
+    show(f"{FAMILIES[scope]}: {len(reg.scope_releases(scope))} release(s)", True, "current " + named(reg.scope_head(scope)))
 show("the lts head is the correction, and so is the LTS family's current release",
      reg.channel_head("lts") is lts_2 and reg.scope_head(LTS) is lts_2)
 show("newest moved on to the 2.1 family; the 2.0 family keeps its current release",
@@ -169,7 +176,7 @@ show("the original LTS release still verifies by its manifest_hash, on the same 
      and original[("widget-factory", "agents/widget_agent.py")] != snapshot[("widget-factory", "agents/widget_agent.py")])
 newest = REG.verify_snapshot(reg, fetch, channel="newest", allow_draft=True)
 show("the newest head runs the 2.1 kernel", newest[("acme-kernel", KERNEL)] == kernel_files("2.1.0")[KERNEL])
-refused("a snapshot selects exactly one release", lambda: REG.verify_snapshot(
+refused("a snapshot selects exactly one pinned release", lambda: REG.verify_snapshot(
     reg, fetch, release_scope=LTS, channel="lts", allow_draft=True))
 
 # ── 5. The door of record is the manifest's binding, not a copy found elsewhere. ──
@@ -211,22 +218,48 @@ show("the newest head's manifest is coherent with its family's grail-kernel",
      REG.check_kernel_coherence(reg, newest_2_1) == (True, "ok"))
 ok, why = REG.check_kernel_coherence(reg, dict(newest_2_1, components=[newest_2_0["components"][0]] + newest_2_1["components"][1:]))
 show("a 2.1 release carrying the 2.0 kernel instead is incoherent (kernel coherence)", not ok, why)
-drifted = release_pin(manifest(LTS, "1.4.3", "1b" * 20, "3b" * 20), "lts", lts_2, OCT)
+drifted = release_pin(manifest(LTS, "lts-2026.10.1", "1.4.3", "1b" * 20, "3b" * 20), "lts", lts_2, OCT)
 _, drift_registry, _ = REG.load_document(dict(document, entries=entries + [drifted]), trust_anchor=owner,
                                          allow_unsigned=True)
 refused("an LTS correction with other kernel bytes cannot verify: a new kernel is a new family",
         lambda: REG.verify_snapshot(drift_registry, fetch, channel="lts", allow_draft=True))
-refused("the LTS correction pinned a second time: a release is pinned once",
+refused("the LTS correction pinned a second time: a release manifest is pinned once",
         lambda: REG.Registry(entries + [release_pin(lts_correction, "lts", lts_2, OCT)]))
-another_fix = manifest(LTS, "1.4.2", "1a" * 20, "3c" * 20)
+another_fix = manifest(LTS, "lts-2026.10-hotfix", "1.4.2", "1a" * 20, "3c" * 20)
 refused("a second correction of the first LTS release: a channel never forks",
         lambda: REG.Registry(entries + [release_pin(another_fix, "lts", lts_1, OCT)]))
 refused("an LTS correction appended to the newest channel: a family lives in one channel",
         lambda: REG.Registry(entries + [release_pin(another_fix, "newest", new_2, OCT)]))
 V2_2 = "https://releases.example.test/acme/2.2"
-refused("a kernel declared after its family's first release: a family's kernel comes first",
-        lambda: REG.Registry(entries + [release_pin(manifest(V2_2, "2.2.0", "2c" * 20, "3b" * 20), "newest", new_2, OCT),
+refused("a kernel declared after its family's first release pin: a family's kernel comes first",
+        lambda: REG.Registry(entries + [release_pin(manifest(V2_2, "acme-2.2.0", "2.2.0", "2c" * 20, "3b" * 20), "newest", new_2, OCT),
                                         grail(V2_2, "2.2.0", "2c" * 20, OCT)]))
+
+# ── 7. Returning to earlier content, and the history a consumer keeps. ──
+print("\nreturning to earlier content (§13.5):")
+refused("the original LTS manifest pinned again: that release is already pinned, and pinned once",
+        lambda: REG.Registry(entries + [release_pin(lts_release, "lts", lts_2, NOV)]))
+rollback = manifest(LTS, "lts-2026.11", "1.4.2", "1a" * 20, "3a" * 20)  # lts-2026.09's files under a new name
+rolled_entries = entries + [release_pin(rollback, "lts", lts_2, NOV)]
+_, rolled, _ = REG.load_document(dict(document, entries=rolled_entries), trust_anchor=owner, allow_unsigned=True)
+show("the same files under a new release name are a new release of the family, superseding the correction",
+     REG.verify_snapshot(rolled, fetch, channel="lts", allow_draft=True) == original, "head " + named(rolled.channel_head("lts")))
+show("the superseded correction stays verifiable by its manifest_hash",
+     REG.verify_snapshot(rolled, fetch, manifest_hash=lts_2["manifest_hash"], allow_draft=True) == snapshot)
+
+print("\nno kernel joins a family after one of its releases was accepted (§13.5):")
+DOCS = "https://releases.example.test/acme/docs"  # a family without a kernel: the protocol text alone
+docs = {"schema": REG.MANIFEST_SCHEMA, "release_scope": DOCS, "release": "docs-2026.10", "components": [
+    component("rapp-1", "protocol", "protocol", "5a" * 20, {"SPEC.md": b"# the protocol text acme implements\n"},
+              tag="refs/tags/rev-17")]}
+docs_1 = release_pin(docs, "docs", None, OCT)
+kept = [e for e in entries + [docs_1] if e["type"] in REG.DECLARED_TYPES]  # what a consumer persists (§13.4)
+inserted = entries + [grail(DOCS, "0.9.0", "0a" * 20, OCT), docs_1]      # a kernel placed ahead of that release
+ok, why = REG.Registry(inserted).check_retained(kept)
+show("a consumer that accepted docs-2026.10 refuses a later registry inserting a kernel ahead of it", not ok,
+     re.sub(r"([0-9a-f]{8})[0-9a-f]{56}", r"\1…", why))
+ok, why = REG.check_kernel_coherence(REG.Registry(inserted), docs)
+show("with no history the insertion reads as ordered, but the kernel-less release is then incoherent", not ok, why)
 
 print("\nSeeds, beacons, Hive indexes, and moving branches may say where to look;"
       "\nonly what a release manifest pins is part of a verified snapshot.")

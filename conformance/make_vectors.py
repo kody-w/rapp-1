@@ -184,6 +184,8 @@ def _release_files(fix=0):
 
 
 def _release_manifest(scope=LTS, compact=False, fix=0):
+    """One release of the family `scope`, named for people `vector-<family>.<fix>` (plus `-compact`
+    for the three-component variant the manifest and octets cases mutate)."""
     alpha, beta, files = _release_files(fix)
     alpha_commit = "5" * 40 if not fix else ("5%x" % fix) * 20
     components = [
@@ -196,7 +198,8 @@ def _release_manifest(scope=LTS, compact=False, fix=0):
         components[1:1] = [_component("organism-beta", "organism", "beta", "6" * 64, files["organism-beta"],
                                       rappid=beta, identity_path="rappid.json", object_format="sha256")]
         components.insert(0, _kernel_component())
-    return {"schema": REG.MANIFEST_SCHEMA, "release_scope": scope, "components": components}
+    name = "vector-%s.%d%s" % (scope.rsplit("/", 1)[1], fix, "-compact" if compact else "")
+    return {"schema": REG.MANIFEST_SCHEMA, "release_scope": scope, "release": name, "components": components}
 
 
 def _release_grail(owner, scope=LTS):
@@ -334,7 +337,18 @@ def registry_sections():
             manifest_case("a component that pins only a commit (files [])", component(1, files=[]), "accept"),
             manifest_case("object_format sha256 with a 64-hex commit",
                           component(1, object_format="sha256", commit="4" * 64), "accept"),
+            manifest_case("a release name of 64 characters with capitals, dots, dashes, and underscores",
+                          lambda m: m.update(release="LTS-2026.09_" + "x" * 52), "accept"),
             manifest_case("an extra top-level member", lambda m: m.update(note="x"), "refuse"),
+            manifest_case("no release member", lambda m: m.pop("release"), "refuse"),
+            manifest_case("an empty release name", lambda m: m.update(release=""), "refuse"),
+            manifest_case("a release name of 65 characters", lambda m: m.update(release="r" * 65), "refuse"),
+            manifest_case("a release name beginning with a dot", lambda m: m.update(release=".lts-2026.09"),
+                          "refuse"),
+            manifest_case("a release name with a space", lambda m: m.update(release="lts 2026.09"), "refuse"),
+            manifest_case("a release name outside ASCII", lambda m: m.update(release="lts-2026.09-\u00e9"),
+                          "refuse"),
+            manifest_case("a release name that is not a string", lambda m: m.update(release=202609), "refuse"),
             manifest_case("another schema", lambda m: m.update(schema="rapp/1-release-manifest-v2"), "refuse"),
             manifest_case("a release_scope that is not an absolute HTTPS URI",
                           lambda m: m.update(release_scope="http://releases.example.test/vector/1.0"), "refuse"),
@@ -423,6 +437,9 @@ def registry_sections():
             entry_case("a newest channel moving on from one family to the next",
                        [rp(4, NEW_2, **newest), rp(5, NEW_2, after=4, **newest),
                         rp(6, NEW_3, after=5, activated_utc=LATER, **newest)], "accept"),
+            entry_case("a newest channel returning to an earlier family",
+                       [rp(4, NEW_2, **newest), rp(6, NEW_3, after=4, activated_utc=LATER, **newest),
+                        rp(5, NEW_2, after=6, activated_utc=LATER, **newest)], "accept"),
             entry_case("equal activation times in one channel", [rp(1), rp(2, after=1)], "accept"),
             entry_case("a family's grail-kernel before its first release", [grail, rp(1), rp(2, after=1)],
                        "accept"),
@@ -454,7 +471,33 @@ def registry_sections():
             entry_case("a missing member", [rp(1, predecessor=_DROP)], "refuse"),
         ]
 
-        kernel_only = {"schema": REG.MANIFEST_SCHEMA, "release_scope": LTS, "components": [_kernel_component()]}
+        def history_case(label, persisted, entries, intended):
+            """A later registry judged against what a consumer accepted before (§13.4, §13.5)."""
+            entries = base + entries
+            expect = _verdict(lambda: REG.Registry(entries).check_retained(persisted)[0])
+            assert expect == intended, label
+            return {"label": label, "persisted": persisted, "entries": entries, "expect": expect}
+
+        other_kernel = _grail(owner, NEW_2)
+        history_cases = [
+            history_case("a correction appended after the accepted release", [rp(1)],
+                         [rp(1), rp(2, after=1, activated_utc=LATER)], "accept"),
+            history_case("the accepted kernel and release retained, and a correction appended", [grail, rp(1)],
+                         [grail, rp(1), rp(2, after=1, activated_utc=LATER)], "accept"),
+            history_case("a grail-kernel for a family with no accepted release", [rp(1)],
+                         [rp(1), other_kernel, rp(4, NEW_2, **newest)], "accept"),
+            history_case("a grail-kernel inserted ahead of an accepted release of its family", [rp(1)],
+                         [grail, rp(1)], "refuse"),
+            history_case("a grail-kernel appended after an accepted release of its family", [rp(1)],
+                         [rp(1), grail], "refuse"),
+            history_case("an accepted release dropped", [rp(1)], [], "refuse"),
+            history_case("an accepted release moved to another locator", [rp(1)], [rp(1, commit="4" * 40)],
+                         "refuse"),
+            history_case("an accepted kernel dropped", [grail, rp(1)], [rp(1)], "refuse"),
+        ]
+
+        kernel_only = {"schema": REG.MANIFEST_SCHEMA, "release_scope": LTS, "release": "vector-1.0.0-kernel",
+                       "components": [_kernel_component()]}
         assert kernel_only["components"][0]["files"][2]["path"] == grail["path"]
 
         def coherence_case(label, with_grail, value, intended):
@@ -517,17 +560,20 @@ def registry_sections():
                 },
                 "channels": channels,
                 "families": families,
-                "rule": "the release-pin's manifest_hash = H('rapp/1:particle', manifest); the stored manifest "
-                        "octets are exactly canonical(manifest), so raw_sha256 is their SHA-256; each file's "
-                        "sha256 and size_bytes are the raw SHA-256 and length of octets_utf8's UTF-8 bytes; the "
-                        "verified snapshot is exactly these files, keyed by (component id, path). The correction "
-                        "is the family's next release: its predecessor is the first release's manifest_hash, its "
-                        "kernel component is the same, and it becomes the head of channel lts and the family's "
-                        "current release while the first release stays verifiable by its manifest_hash",
+                "rule": "the release-pin's manifest_hash = H('rapp/1:particle', manifest), whose `release` name "
+                        "is part of those bytes but never selects a release; the stored manifest octets are "
+                        "exactly canonical(manifest), so raw_sha256 is their SHA-256; each file's sha256 and "
+                        "size_bytes are the raw SHA-256 and length of octets_utf8's UTF-8 bytes; the verified "
+                        "snapshot is exactly these files, keyed by (component id, path). The correction is the "
+                        "family's next release, with its own release name: its predecessor is the first "
+                        "release's manifest_hash, its kernel component is the same, and it supersedes the first "
+                        "release as the head of channel lts and the family's current release, while the first "
+                        "release stays verifiable by its manifest_hash",
             },
             "manifest_cases": manifest_cases,
             "octets_cases": octets_cases,
             "entry_cases": entry_cases,
+            "history_cases": history_cases,
             "kernel_coherence_cases": coherence_cases,
         }
 
