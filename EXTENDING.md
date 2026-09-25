@@ -115,7 +115,7 @@ current release, a channel's head, or one exact pinned release, which a successo
 supersedes without retiring. It fetches the pinned manifest and every pinned file
 through your `fetch`, and returns the files only when the manifest's canonical bytes,
 hash, and kernel coherence, every file's length and SHA-256, and every
-door-of-record binding verify (`examples/09_release_pin.py`). Pass every declared
+door-of-record binding verify (`examples/09_distributed_hive_lts.py`). Pass every declared
 entry you accepted as `persisted_entries=`: `load_document` then also refuses a later
 registry that adds a `grail-kernel` to a family one of whose releases you accepted.
 
