@@ -187,6 +187,19 @@ class GrantStructureTests(Base):
                         REG.validate_entry(grant)
 
 
+class GrantTimeFormTests(Base):
+    def test_time_values_are_the_ascii_fixed_form(self):
+        year = "\u0662\u0660\u0662\u0666-08-01T00:00:00.000Z"  # Arabic-Indic digits pass rapp.utc_valid
+        self.assertTrue(R.utc_valid(year))
+        for member in ("since_utc", "until_utc", "activated_utc"):
+            with self.subTest(member=member):
+                self.refused([self.grant(**{member: year})])
+        reg = self.registry([self.grant(until_utc=None)])
+        self.assertFalse(reg.grant_covers(self.station, self.keys["signer"], "body.pulse", year))
+        self.assertEqual(reg.authority_decision(self.station, self.keys["signer"], "body.pulse", year),
+                         (False, "utc is not the fixed §7.4 form"))
+
+
 class GrantCrossEntryTests(Base):
     def test_the_signer_needs_an_spki_entry_in_this_registry(self):
         entries = [e for e in self.base() if e.get("rappid") != self.keys["signer"]]
@@ -499,6 +512,54 @@ class VerifyAuthorizedFrameTests(Base):
         self.assertEqual(self.verify(reg, self.pulse(LAST, head=closing), head=closing)[:2], (False, "4"))
         self.assertEqual(self.verify(reg, self.pulse(UNTIL, head=closing), head=closing)[:2],
                          (False, "authority"))
+
+
+class AuthorityStatusTests(Base):
+    """Who speaks for the estate is answered only from a verified registry."""
+
+    def test_a_registry_built_directly_never_answers(self):
+        reg = REG.Registry(self.base() + [self.grant()])  # status None: nothing was verified
+        for frame in (self.pulse(INSIDE), self.pulse(INSIDE, signer="owner")):
+            with self.subTest(signer=frame["sig"][:12]):
+                ok, why = reg.frame_authorized(frame)
+                self.assertFalse(ok)
+                self.assertIn("registry status is None", why)
+                self.assertFalse(reg.frame_authorized(frame, allow_draft=True)[0])  # not even as a rehearsal
+                self.assertEqual(self.verify(reg, frame)[:2], (False, "authority"))
+                with self.estate.mocked():
+                    self.assertFalse(reg.authorization_verifier()(frame))
+                    self.assertFalse(reg.authorization_verifier(allow_draft=True)(frame))
+        # The rule itself is pure: it reads the entries, whatever the status.
+        self.assertEqual(reg.authority_decision(self.station, self.keys["signer"], "body.pulse", INSIDE),
+                         (True, "stream-signer grant"))
+
+    def test_a_draft_answers_only_as_a_rehearsal(self):
+        document = self.estate.document(self.base() + [self.grant()], owner="owner", signed=False)
+        status, reg, _ = REG.load_document(document, trust_anchor=self.keys["owner"], allow_unsigned=True)
+        self.assertEqual((status, reg.status), ("draft", "draft"))
+        frame = self.pulse(INSIDE)
+        ok, why = reg.frame_authorized(frame)
+        self.assertFalse(ok)
+        self.assertIn("registry status is 'draft'", why)
+        self.assertEqual(reg.frame_authorized(frame, allow_draft=True), (True, "stream-signer grant"))
+        with self.estate.mocked():
+            self.assertEqual(reg.verify_authorized_frame(frame, head=None, stream_id_of_record=self.station)[:2],
+                             (False, "authority"))
+            self.assertEqual(reg.verify_authorized_frame(frame, head=None, stream_id_of_record=self.station,
+                                                         allow_draft=True), (True, None, "stream-signer grant"))
+            self.assertFalse(reg.authorization_verifier()(frame))
+            self.assertTrue(reg.authorization_verifier(allow_draft=True)(frame))
+
+    def test_an_unverified_registry_is_refused_before_it_judges_the_frame(self):
+        reg = REG.Registry(self.estate.base_entries())  # registers no kind, and nothing verified it
+        ok, step, why = self.verify(reg, self.pulse(INSIDE))
+        self.assertEqual((ok, step), (False, "authority"))  # not "1": its kinds cannot judge the frame
+        self.assertIn("registry status is None", why)
+
+    def test_a_verified_registry_answers(self):
+        status, reg, why = self.load([self.grant()], verification_utc=LATER)
+        self.assertEqual((status, why, reg.status), ("verified", "ok", "verified"))
+        self.assertEqual(self.verify(reg, self.pulse(INSIDE)), (True, None, "stream-signer grant"))
 
 
 class ProfileAuthorizationTests(Base):

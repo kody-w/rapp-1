@@ -95,7 +95,10 @@ your registry's `signature_verifier()`, kind binding included, and then the auth
 rule: a valid frame whose signer is neither your owner in effect nor granted its stream,
 kind, and time fails at step `"authority"`, never at a §7.5 step, and
 `Registry.authorization_verifier()` hands the same rule to a profile's
-`authorization_verifier`. §13.5 binds a consumer that follows no profile-defined signer
+`authorization_verifier`. These answer only for a registry `load_document` returned
+as "verified" (a draft only with `allow_draft=True`, as a rehearsal; a `Registry` you
+built directly never); `authority_decision` is the bare rule over the entries.
+§13.5 binds a consumer that follows no profile-defined signer
 rule; a profile with its own (`rapp-work/1` §1, a `rapp-cicd/1` stage approver) keeps it
 and may meet it this way. A grant may start before its `activated_utc` and so adopt
 frames already published in its window. Authority is decided against the verified

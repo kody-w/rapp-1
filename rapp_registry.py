@@ -25,9 +25,10 @@ What is fully specified by §13 and enforced here:
     or a signer granted its stream, kind, and time;
   - owner-signature verification over canonical(document \\ {sig}).
 
-Structural accessors read whatever registry you hold. Answers — whether a copy is a declaration —
-come only from a registry `load_document` returned as "verified"; a "draft" gives them only with
-`allow_draft=True`, as a rehearsal, and a Registry built directly never.
+Structural accessors — grants, `authority_decision` — read whatever registry you hold. Answers —
+whether a frame speaks for the estate, whether a copy is a declaration — come only from a registry
+`load_document` returned as "verified"; a "draft" gives them only with `allow_draft=True`, as a
+rehearsal, and a Registry built directly never.
 
 What stays the caller's responsibility, because a snapshot cannot prove it:
   - freshness, trusted heads, registry high-water marks, first-seen times, and the
@@ -754,7 +755,7 @@ class Registry:
         """Does a grant for `stream_id` name `kid` as signer, list `kind`, and cover `utc`?
 
         The grant window only; §10 key refusal and owner authority are authority_decision's."""
-        if not R.utc_valid(utc):
+        if not _utc_form(utc):
             return False
         return any(grant["signer"] == kid and kind in grant["kinds"] and self._window_covers(grant, utc)
                    for grant in self.stream_grants(stream_id))
@@ -768,13 +769,16 @@ class Registry:
         `utc`. A grant's `activated_utc` plays no part: a grant may start before it, and then
         adopts frames the signer already published inside its window. It decides authority,
         never validity: the frame must already have passed §7.5 (see frame_authorized). Pure:
-        it reads only this registry, so a refusal holds only against it — a newer registry can
-        add a grant that adopts the frame, and a cached refusal is re-evaluated against it (§13.5)."""
+        it reads only this registry's entries and does not check `status` — it is the rule, not
+        the estate's answer; frame_authorized and verify_authorized_frame give the answer only
+        for a verified registry. A refusal holds only against this registry — a newer registry
+        can add a grant that adopts the frame, and a cached refusal is re-evaluated against it
+        (§13.5)."""
         if kid is None:
             return False, "an unsigned frame never speaks for the estate (§10, §13.5)"
         if not R.rappid_valid(kid):
             return False, "kid is not a §6.1 rappid"
-        if not R.utc_valid(utc):
+        if not _utc_form(utc):
             return False, "utc is not the fixed §7.4 form"
         try:
             owner = self.owner_at(utc)
@@ -799,19 +803,24 @@ class Registry:
             return False, f"the granted signer's key is refused at utc (§10): {why}"
         return True, "stream-signer grant"
 
-    def frame_authorized(self, frame):
+    def frame_authorized(self, frame, *, allow_draft=False):
         """The §13.5 authority rule ONLY — does this frame speak for the estate? (ok, reason).
 
         !! IT DOES NOT VERIFY THE FRAME. Call it only for a frame that has ALREADY passed §7.5
         !! — rapp.verify_frame(signature_verifier=self.signature_verifier()) plus
         !! check_frame_binding — or call verify_authorized_frame, which runs all three. It reads
         !! the signer from the protected `kid` without checking the signature, so its answer
-        !! for an unverified frame means nothing. Ask a registry that load_document returned as
-        !! "verified": a draft or a Registry built directly answers structure, never authority.
+        !! for an unverified frame means nothing.
 
-        Refuses an unsigned frame (it never speaks for the estate, §10) and a `sig` whose
-        protected header does not parse; otherwise applies authority_decision to the frame's
-        `stream_id`, `kid`, `kind`, and `utc`. A refusal leaves the frame a valid `rapp/1` frame."""
+        Answers only for a registry that load_document returned as "verified" (its `status`); a
+        "draft" answers only with `allow_draft=True`, for rehearsal, and a Registry built
+        directly (status None) never. Refuses an unsigned frame (it never speaks for the
+        estate, §10) and a `sig` whose protected header does not parse; otherwise applies
+        authority_decision to the frame's `stream_id`, `kid`, `kind`, and `utc`. A refusal
+        leaves the frame a valid `rapp/1` frame."""
+        refusal = self._status_refusal(allow_draft, "who speaks for the estate (§13.5)")
+        if refusal:
+            return False, refusal
         if not isinstance(frame, dict):
             return False, "frame is not a JSON object"
         sig = frame.get("sig")
@@ -823,7 +832,7 @@ class Registry:
             return False, f"sig is not a §10 detached JWS: {why}"
         return self.authority_decision(frame.get("stream_id"), kid, frame.get("kind"), frame.get("utc"))
 
-    def verify_authorized_frame(self, frame, *, head, stream_id_of_record):
+    def verify_authorized_frame(self, frame, *, head, stream_id_of_record, allow_draft=False):
         """§7.5 against this registry, then the §13.5 authority check. Returns (ok, step, why).
 
         An invalid frame fails at its §7.5 step, "1" through "6"; the registered-kind and
@@ -832,8 +841,13 @@ class Registry:
         step, so a caller can tell "not the estate's statement" from "not a frame". On success
         step is None and why names the authority: "estate owner" or "stream-signer grant".
         `head` is the stream's verified head (None at genesis); `stream_id_of_record` is the
-        stream being read or extended (§7.5 step 1a) and is required. The answer is the estate's
-        only when this registry is one load_document returned as "verified" (§13.1)."""
+        stream being read or extended (§7.5 step 1a) and is required. The authority step answers
+        only for a registry load_document returned as "verified" (§13.1; see `status`), or a
+        "draft" with `allow_draft=True` for rehearsal; any other registry is refused first, at step
+        "authority", because its kinds and keys cannot judge the frame either."""
+        refusal = self._status_refusal(allow_draft, "who speaks for the estate (§13.5)")
+        if refusal:
+            return False, "authority", refusal
         if not isinstance(frame, dict):
             return False, "1", "frame is not a JSON object"
         if not isinstance(stream_id_of_record, str):
@@ -847,14 +861,15 @@ class Registry:
             return False, "1", bound_why
         if not ok:
             return False, step, why
-        authorized, why = self.frame_authorized(frame)
+        authorized, why = self.frame_authorized(frame, allow_draft=allow_draft)
         if not authorized:
             return False, "authority", why
         return True, None, why
 
-    def authorization_verifier(self):
+    def authorization_verifier(self, *, allow_draft=False):
         """A callable `(frame, purpose=None) -> bool` for the `authorization_verifier` parameter of
-        rapp_profile.authoritative_frame_payload: True only when frame_authorized(frame) holds.
+        rapp_profile.authoritative_frame_payload: True only when frame_authorized(frame) holds,
+        so never for a registry that is not "verified" (or a "draft" with `allow_draft=True`).
         That helper asks only after its own rapp.verify_frame — pass it
         signature_verifier=self.signature_verifier() — so the signature is verified first, as
         frame_authorized requires. `purpose` is accepted and never widens authority.
@@ -863,7 +878,7 @@ class Registry:
         profile that defines its own signer authorization (rapp-work/1 §1, a rapp-cicd/1 stage
         approver) keeps it and MAY meet it with this verifier; nothing here replaces that rule."""
         def authorized(frame, purpose=None):
-            return self.frame_authorized(frame)[0]
+            return self.frame_authorized(frame, allow_draft=allow_draft)[0]
         return authorized
 
 
@@ -912,10 +927,11 @@ def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_uns
     entry is refused when neither is supplied. `persisted_entries` are the canonical
     declared entries the caller accepted before; each must still be present byte for byte. Freshness, append provenance, and historical migration proofs remain caller
     responsibilities; a verified snapshot alone cannot establish them. A returned registry
-    records its status in `registry.status` ("verified" or "draft"): `declared_entry_ok`
-    checks it, so only a "verified" registry says for the estate whether a copy is a
-    declaration (a draft only with `allow_draft=True`, as a rehearsal); a Registry
-    constructed directly has status None.
+    records its status in `registry.status` ("verified" or "draft"): `declared_entry_ok`,
+    `frame_authorized`, and `verify_authorized_frame` check it, so only a "verified" registry
+    says for the estate whether a copy is a declaration and whether a frame speaks for it (a
+    draft only with `allow_draft=True`, as a rehearsal); a Registry constructed directly has
+    status None.
     `tombstone_issued_at(entry_hash)` must resolve authenticated issuance/append
     context to a fixed UTC string. It is trusted caller configuration, never a
     field read from the untrusted document. No resolver means tombstones are

@@ -990,9 +990,9 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
 §7.5 steps 1–5 are time-independent (append-only lookups); step 6 (tombstones) and §13.2 owner tenure are
 time-scoped, and both are monotone given the §13.1 no-rollback rule. A declared entry (§13.4) is
 authenticated at its own `activated_utc`, never at the time it is read. A stream-signer window (§13.5) is
-evaluated at a given time — for a frame, its `utc` — and, because every declared entry is retained (§13.4),
-a later registry can add a grant but never withdraw one: a grant ends only at its `until_utc` or where §10
-refuses its signer's key. The rules of §13.5 — stream signers — sit above §7.5 and never add a §7.5 step.
+evaluated at a frame's `utc`; because every declared entry is retained (§13.4), a later registry can add a
+grant but never withdraw one: a grant ends only at its `until_utc` or where §10 refuses its signer's key.
+The rules of §13.5 — stream signers — sit above §7.5 and never add a §7.5 step.
 
 ### 13.4 Declared entries (entry-level owner signatures)
 A **declared entry** carries its own `activated_utc` (the §7.4 form), `declared_by` (a keyed rappid), and
@@ -1040,9 +1040,10 @@ its successor rappid. A keyless rappid (§6.2) never signs as itself — its tai
 how a keyed signer speaks on a keyless organism's streams without re-anchoring or re-minting that
 identity; §6.2 and §6.3 are unchanged.
 
-Authority is decided against the verified registry in hand. Because a newer registry can add a grant that
-adopts earlier frames, but can never withdraw one (§13.4), a consumer that caches a refusal re-evaluates it
-against a newer registry.
+A registry whose `stream-signer` entries break the §13.3 rules for them is refused whole. Authority is
+decided against the verified registry in hand. Because a newer registry can add a grant that adopts earlier
+frames, but can never withdraw one (§13.4), a consumer that caches a refusal re-evaluates it against a newer
+registry.
 
 ## 14. Security considerations
 - **Integrity:** every object is domain-separated content-addressed (§5); a hostile mirror cannot alter
