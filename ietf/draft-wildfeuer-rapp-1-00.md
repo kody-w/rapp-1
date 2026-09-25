@@ -48,8 +48,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame 3635fcd8bc624807e0b666fdbaa348de647e702c32f14e16d89fd2ef8a853e8d, normative
-SHA-256 ffb3edd534b3c7673bd45a03c9220681a47da6dd0381248032441898c1c15ef5. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame 2946ac77ce950e51b44dfc0c3495c1ab7fab8a8a182e13e114cad94f2aa5a76a, normative
+SHA-256 c198e061eba6dbc658dfb2bcf2aa3dd2b54d1150351756b379ef8d9e7127a7c3. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -1016,9 +1016,12 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
 - **estate_owner** `{type:"estate_owner", rappid}` (exactly one non-deprecated) · **master-plan**
   `{type:"master-plan", repo, path}` (Fed. Const. Art. VII).
 
-§7.5 steps 1–5 are time-independent (append-only lookups); **only** step 6 (tombstones), §13.2 owner
-tenure, and §13.5 grant windows are time-scoped, and all three are monotone given the §13.1 no-rollback
-rule. A declared entry (§13.4) is authenticated at its own `activated_utc`, never at the time it is read.
+§7.5 steps 1–5 are time-independent (append-only lookups); step 6 (tombstones) and §13.2 owner tenure are
+time-scoped, and both are monotone given the §13.1 no-rollback rule. A declared entry (§13.4) is
+authenticated at its own `activated_utc`, never at the time it is read. A stream-signer window (§13.5) is
+evaluated at a given time — for a frame, its `utc` — and, because every declared entry is retained (§13.4),
+a later registry can add a grant but never withdraw one: a grant ends only at its `until_utc` or where §10
+refuses its signer's key. The rules of §13.5 — stream signers — sit above §7.5 and never add a §7.5 step.
 
 ## Declared entries (entry-level owner signatures)
 A **declared entry** carries its own `activated_utc` (the §7.4 form), `declared_by` (a keyed rappid), and
@@ -1063,6 +1066,10 @@ inherited: one ends at its `until_utc`, or earlier when §10 refuses the signer'
 its successor rappid. A keyless rappid (§6.2) never signs as itself — its tail is no key — so a grant is
 how a keyed signer speaks on a keyless organism's streams without re-anchoring or re-minting that
 identity; §6.2 and §6.3 are unchanged.
+
+Authority is decided against the verified registry in hand. Because a newer registry can add a grant that
+adopts earlier frames, but can never withdraw one (§13.4), a consumer that caches a refusal re-evaluates it
+against a newer registry.
 
 # Security considerations
 - **Integrity:** every object is domain-separated content-addressed (§5); a hostile mirror cannot alter
