@@ -80,7 +80,7 @@ and byte length are provenance and verification data, not alternate identities. 
 the currently served release is immutable even while a separate candidate lineage grows.
 **deployment cell** — an independently observable and isolatable runtime failure domain governed by
 `rapp-deploy/1`. **declared entry** — a §13.3 registry entry that carries its own owner signature made at
-its `activated_utc`; a byte-identical copy of it verifies against the estate's registry (§13.4).
+its `activated_utc`; a copy with its canonical form (§4) verifies against the estate's registry (§13.4).
 
 ## 4. Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **[RFC 8785] JCS** for the value `v`, defined **only**
@@ -993,13 +993,15 @@ declared entry types are `grail-kernel`. For every declared entry a consumer **M
    for that entry; and
 4. refuse the whole registry when any declared entry fails (never skip the entry).
 
-A copy carried elsewhere — a Hive notice, a member file, a release receipt — is a declaration only when it
-is byte-identical to an entry of an accepted registry of the estate, and it is then authenticated by the
-same checks; a copy that differs in any byte, or that no accepted registry carries, is not a declaration
-however well it is signed. `H("rapp/1:particle", entry)` over the complete signed entry names it. Every
-declared entry is persisted: once a consumer has accepted one it **MUST** persist the canonical entry, and
-every later accepted registry **MUST** retain it byte-for-byte; removal or mutation is a permanent refusal
-even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-kernel`).
+For every comparison of entries in §13 — a copy, a retained entry, a persisted one — an entry's bytes are
+its canonical form (§4), so the same JSON value compares equal however a document formats it. A copy
+carried elsewhere — a Hive notice, a member file, a release receipt — is a declaration only when its
+canonical form equals that of an entry of an accepted registry of the estate, and it is then authenticated
+by the same checks; a copy whose canonical form differs in any byte, or that no accepted registry carries,
+is not a declaration however well it is signed. `H("rapp/1:particle", entry)` over the complete signed
+entry names it. Every declared entry is persisted: once a consumer has accepted one it **MUST** persist the
+canonical entry, and every later accepted registry **MUST** retain it byte-for-byte; removal or mutation is
+a permanent refusal even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-kernel`).
 
 ## 14. Security considerations
 - **Integrity:** every object is domain-separated content-addressed (§5); a hostile mirror cannot alter
