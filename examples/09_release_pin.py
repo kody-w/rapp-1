@@ -16,7 +16,7 @@ Nothing here is signed. The registry is an unsigned DRAFT (§13.1): the referenc
 only with allow_unsigned=True and snapshots it only with allow_draft=True, so every result
 below is a rehearsal, never authority. The stand-in SPKI bytes are not a key.
 """
-import copy, hashlib, os, sys, base64
+import base64, copy, hashlib, os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rapp as R
 import rapp_registry as REG
