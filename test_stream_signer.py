@@ -75,7 +75,12 @@ class Base(unittest.TestCase):
         return self.estate.declare(entry, sign_as or declared)
 
     def registry(self, extra=(), entries=None):
-        return REG.Registry((self.base() if entries is None else entries) + list(extra))
+        """The rule under test over these entries. Its `status` stands in for load_document's
+        "verified": the signed path is exercised by the load() tests and the real-key class, and
+        the status gate itself by AuthorityStatusTests."""
+        reg = REG.Registry((self.base() if entries is None else entries) + list(extra))
+        reg.status = "verified"
+        return reg
 
     def load(self, extra=(), owner="owner", entries=None, **kwargs):
         base = self.base(owner) if entries is None else entries

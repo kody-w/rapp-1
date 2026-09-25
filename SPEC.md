@@ -80,7 +80,7 @@ and byte length are provenance and verification data, not alternate identities. 
 the currently served release is immutable even while a separate candidate lineage grows.
 **deployment cell** — an independently observable and isolatable runtime failure domain governed by
 `rapp-deploy/1`. **declared entry** — a §13.3 registry entry that carries its own owner signature made at
-its `activated_utc`; a byte-identical copy of it verifies against the estate's registry (§13.4).
+its `activated_utc`; a copy with its canonical form (§4) verifies against the estate's registry (§13.4).
 **stream signer** — a keyed signer an estate has granted, by a `stream-signer` entry, to speak for it on
 one stream (§13.5).
 
@@ -1005,13 +1005,15 @@ declared entry types are `grail-kernel` and `stream-signer`. For every declared 
    for that entry; and
 4. refuse the whole registry when any declared entry fails (never skip the entry).
 
-A copy carried elsewhere — a Hive notice, a member file, a release receipt — is a declaration only when it
-is byte-identical to an entry of an accepted registry of the estate, and it is then authenticated by the
-same checks; a copy that differs in any byte, or that no accepted registry carries, is not a declaration
-however well it is signed. `H("rapp/1:particle", entry)` over the complete signed entry names it. Every
-declared entry is persisted: once a consumer has accepted one it **MUST** persist the canonical entry, and
-every later accepted registry **MUST** retain it byte-for-byte; removal or mutation is a permanent refusal
-even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-kernel`).
+For every comparison of entries in §13 — a copy, a retained entry, a persisted one — an entry's bytes are
+its canonical form (§4), so the same JSON value compares equal however a document formats it. A copy
+carried elsewhere — a Hive notice, a member file, a release receipt — is a declaration only when its
+canonical form equals that of an entry of an accepted registry of the estate, and it is then authenticated
+by the same checks; a copy whose canonical form differs in any byte, or that no accepted registry carries,
+is not a declaration however well it is signed. `H("rapp/1:particle", entry)` over the complete signed
+entry names it. Every declared entry is persisted: once a consumer has accepted one it **MUST** persist the
+canonical entry, and every later accepted registry **MUST** retain it byte-for-byte; removal or mutation is
+a permanent refusal even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-kernel`).
 
 ### 13.5 Stream signers (who speaks for the estate on a stream)
 §7.5 step 6 proves that a registry-discoverable key signed a frame; it does not say whether that key
