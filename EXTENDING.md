@@ -14,7 +14,7 @@ signs. This page is the lane. Nothing on it needs a change to `rapp/1`.
 | your own egg variant or error code | `egg-variant` / `error-code` entries in your registry | §13.3 (see the open question below) |
 | your signers and their keys | `spki` entries; rotation by `re-anchor`; compromise by `tombstone` | §10, §13.2 |
 | your production runtime pinned | a `grail-kernel` entry | §11.1 |
-| every component of a release pinned together (LTS, newest) | one `release-pin` entry per release scope + its `rapp/1-release-manifest` | §13.5 |
+| every component of a release pinned together (an LTS line and its corrections, a newest channel) | one `release-pin` entry per release + its `rapp/1-release-manifest`; the `release_scope` names the release family | §13.5 |
 | a subordinate profile (`acme-factory/1`) with its own normative text | **your** repository; adopted by a `protocol` entry pinning repo, path, and SHA-256 | §11.2, `protocols/README.md` |
 | tooling that needs a library (Ed25519 signing, HSMs, a database) | **your** repository; it imports `rapp.py`'s canonicalizer, never re-types it | Art. 10 |
 | to say which RAPP/1 you implement | a `protocol` entry `name:"rapp/1"` whose `spec_hash` comes from **this** repository's anchor | §13.3 |
@@ -84,8 +84,10 @@ timestamp. Without this evidence the loader refuses to guess. In particular,
 `revoked_utc` is an effective revocation cutoff, not proof of when the tombstone
 was issued.
 
-`verify_snapshot(registry, release_scope, fetch)` turns one `release-pin` of a
-verified registry into a verified snapshot (§13.5): it fetches the pinned manifest
+`verify_snapshot(registry, fetch, release_scope=…)` — or `channel=…`, or
+`manifest_hash=…`, exactly one — turns one release of a verified registry into a
+verified snapshot (§13.5): a family's current release, a channel's head, or one exact
+release, which stays verifiable after later corrections. It fetches the pinned manifest
 and every pinned file through your `fetch`, and returns the files only when the
 manifest's canonical bytes, hash, and kernel coherence, every file's length and
 SHA-256, and every door-of-record binding verify (`examples/09_release_pin.py`).

@@ -1,4 +1,4 @@
-"""§13.3 release-pin entries and §13.5 release manifests and verified snapshots.
+"""§13.3 release-pin entries and §13.5 release families, releases, manifests, and snapshots.
 
 Stdlib only; the detached-JWS boundary is mocked by `registry_fixtures.MockEstate`, and one
 optional class repeats the core path through real Ed25519 when `cryptography` is present.
@@ -18,10 +18,11 @@ import rapp_registry as REG
 from registry_fixtures import MockEstate, SOURCE, T0, real_ed25519_signer
 
 LATER = "2026-08-01T00:00:00.000Z"
-LTS_1 = "https://releases.example.test/acme/lts/1"
-LTS_2 = "https://releases.example.test/acme/lts/2"
-LTS_3 = "https://releases.example.test/acme/lts/3"
-NEWEST_1 = "https://releases.example.test/acme/newest/1"
+LATEST = "2026-09-01T00:00:00.000Z"
+# Release scopes name release families (§11.1); each binds at most one kernel, forever.
+LTS = "https://releases.example.test/acme/1.0"    # kernel 1.0.0; channel lts appends its corrections
+NEW_2 = "https://releases.example.test/acme/2.0"  # kernel 2.0.0; channel newest's first family
+NEW_3 = "https://releases.example.test/acme/3.0"  # kernel 3.0.0; the family channel newest moves on to
 RELEASES = "https://git.example.test/acme/releases"
 KERNEL = "https://git.example.test/acme/brainstem"
 PROTOCOL = "https://git.example.test/acme/protocol"
@@ -46,6 +47,11 @@ def kernel_files(version):
         "kernel/agents/basic_agent.py": b"class BasicAgent:\n    pass\n",
         "kernel/VERSION": f"{version}\n".encode(),
     }
+
+
+def persisted(*entries):
+    """What a consumer keeps once it accepts entries of a persisted type (§13.4): canonical copies."""
+    return [R._strict_json(R.canonical(entry)) for entry in entries]
 
 
 class World:
@@ -80,10 +86,13 @@ class World:
         return self.component("brainstem", "kernel", KERNEL, commit, kernel_files(version),
                               immutable_ref=f"refs/tags/brainstem-v{version}")
 
-    def manifest(self, scope=LTS_1, *, kernel="1.0.0", kernel_commit="1" * 40):
+    def manifest(self, scope=LTS, *, kernel="1.0.0", kernel_commit="1" * 40, fix=0):
+        """One release's manifest. A correction (`fix` > 0) moves organism-alpha and nothing else."""
+        alpha_commit = "a" * 40 if not fix else ("a%x" % fix) * 20
+        soul = b"# alpha\n" if not fix else f"# alpha, correction {fix}\n".encode()
         components = [
-            self.component("organism-alpha", "organism", ALPHA, "a" * 40,
-                           {"rappid.json": self.identity(self.alpha), "soul.md": b"# alpha\n"},
+            self.component("organism-alpha", "organism", ALPHA, alpha_commit,
+                           {"rappid.json": self.identity(self.alpha), "soul.md": soul},
                            rappid=self.alpha, identity_path="rappid.json"),
             self.component("organism-beta", "organism", BETA, "b" * 64,
                            {"rappid.json": self.identity(self.beta), "agents/beta_agent.py": b"# beta\n"},
@@ -94,7 +103,7 @@ class World:
             components.insert(0, self.kernel(kernel, kernel_commit))
         return {"schema": REG.MANIFEST_SCHEMA, "release_scope": scope, "components": components}
 
-    def grail(self, scope=LTS_1, version="1.0.0", commit="1" * 40, declared="owner"):
+    def grail(self, scope=LTS, version="1.0.0", commit="1" * 40, declared="owner"):
         octets = kernel_files(version)[KERNEL_PATH]
         return self.estate.declare({
             "type": "grail-kernel", "release_scope": scope,
@@ -107,36 +116,53 @@ class World:
 
     def pin(self, manifest, *, channel="lts", predecessor=None, activated=T0, declared="owner",
             signer=None, scope=None, commit="3" * 40):
-        scope = scope or manifest["release_scope"]
-        path = "releases/" + scope.rsplit("/acme/", 1)[1].replace("/", "-") + ".json"
+        """Publish `manifest`'s canonical octets and declare the release-pin for them.
+        `predecessor` is None, the release-pin this release follows, or a raw member value."""
+        if isinstance(predecessor, dict):
+            predecessor = predecessor["manifest_hash"]
+        manifest_hash = R.H("rapp/1:particle", manifest)
+        path = f"releases/{manifest_hash}.json"
         self.publish(RELEASES, commit, path, R.canonical(manifest).encode("utf-8"))
         return self.estate.declare({
-            "type": "release-pin", "release_scope": scope, "channel": channel,
-            "predecessor": predecessor, "manifest_hash": R.H("rapp/1:particle", manifest),
+            "type": "release-pin", "release_scope": scope or manifest["release_scope"],
+            "channel": channel, "predecessor": predecessor, "manifest_hash": manifest_hash,
             "repository": RELEASES, "object_format": "sha1", "commit": commit, "path": path,
             "activated_utc": activated, "declared_by": self.estate.keys[declared],
         }, signer or declared)
 
-    def load(self, extra, owner="owner", entries=None, **kwargs):
+    def load(self, extra, owner="owner", entries=None, seq=2, **kwargs):
         base = entries if entries is not None else self.estate.base_entries(owner)
-        document = self.estate.document(base + extra, owner=owner, signed=kwargs.pop("signed", True))
+        document = self.estate.document(base + extra, owner=owner, seq=seq,
+                                        signed=kwargs.pop("signed", True))
         return self.estate.load(document, owner=owner, **kwargs)
 
     def registry(self, extra):
-        """(manifest, registry): a verified LTS_1 release with its grail-kernel."""
+        """(manifest, registry): a verified LTS release with its family's grail-kernel."""
         manifest = self.manifest()
         status, reg, why = self.load([self.grail(), self.pin(manifest)] + extra)
         assert status == "verified", why
         return manifest, reg
 
 
-def unsigned_pin(**changes):
-    entry = {"type": "release-pin", "release_scope": LTS_1, "channel": "lts", "predecessor": None,
-             "manifest_hash": "d" * 64, "repository": RELEASES, "object_format": "sha1",
-             "commit": "3" * 40, "path": "releases/lts-1.json", "activated_utc": T0,
+def release_hash(n):
+    """The placeholder manifest_hash of synthetic release `n`; these pins name no real manifest."""
+    return hashlib.sha256(f"synthetic release {n}".encode()).hexdigest()
+
+
+def unsigned_pin(n=1, *, after=None, **changes):
+    """A structurally valid release-pin of placeholder release `n` in the LTS family and channel,
+    following placeholder release `after` when given; `changes` override any member."""
+    entry = {"type": "release-pin", "release_scope": LTS, "channel": "lts",
+             "predecessor": None if after is None else release_hash(after),
+             "manifest_hash": release_hash(n), "repository": RELEASES, "object_format": "sha1",
+             "commit": "3" * 40, "path": f"releases/{n}.json", "activated_utc": T0,
              "declared_by": R.mint_rappid("acme", "estate-owner", spki_der=b"synthetic"), "sig": "<sig>"}
     entry.update(changes)
     return entry
+
+
+def hashes(entries):
+    return [entry["manifest_hash"] for entry in entries]
 
 
 class ReleasePinEntryTests(unittest.TestCase):
@@ -160,9 +186,10 @@ class ReleasePinEntryTests(unittest.TestCase):
 
     def test_every_member_is_refused_when_malformed(self):
         bad = {
-            "release_scope": ["http://releases.example.test/acme/lts/1", "https://", "https://a b", "", 7, None],
+            "release_scope": ["http://releases.example.test/acme/1.0", "https://", "https://a b", "", 7, None],
             "channel": ["", "LTS", "-lts", "lts-", "l_ts", "a" * 65, 5, None],
-            "predecessor": ["", "lts", "http://releases.example.test/acme/lts/0", 7],
+            # A predecessor names a release by its manifest_hash; a release_scope names a family.
+            "predecessor": ["", "lts", LTS, "D" * 64, "d" * 63, "d" * 65, 7, ["d" * 64]],
             "manifest_hash": ["D" * 64, "d" * 63, 64, None],
             "repository": ["git@git.example.test:acme/releases.git", "http://git.example.test/r", None],
             "object_format": ["sha512", "SHA1", None],
@@ -184,7 +211,7 @@ class ReleasePinEntryTests(unittest.TestCase):
     def test_valid_member_variants_are_accepted(self):
         good = [
             {"object_format": "sha256", "commit": "3" * 64},
-            {"predecessor": "https://releases.example.test/acme/lts/0"},
+            {"predecessor": "e" * 64},
             {"channel": "a" * 64}, {"channel": "lts-2026"},
             {"path": "releases/\u00fcnic\u00f6de.json"},
         ]
@@ -199,75 +226,148 @@ class ReleasePinEntryTests(unittest.TestCase):
 
 
 class ReleaseChannelTests(unittest.TestCase):
-    """§13.3 scope uniqueness and §13.5 channels, decided by Registry(...) alone."""
+    """§13.3 uniqueness and §13.5 families, channels, and kernel order, decided by Registry(...) alone."""
 
     def setUp(self):
         self.estate = MockEstate()
 
-    def registry(self, *pins):
-        return REG.Registry(self.estate.base_entries() + list(pins))
+    def registry(self, *entries):
+        return REG.Registry(self.estate.base_entries() + list(entries))
 
-    def test_a_linear_channel_has_one_head(self):
+    def test_a_family_appends_its_corrections_to_its_channel(self):
         reg = self.registry(
-            unsigned_pin(),
-            unsigned_pin(release_scope=NEWEST_1, channel="newest"),
-            unsigned_pin(release_scope=LTS_2, predecessor=LTS_1, activated_utc=LATER),
-            unsigned_pin(release_scope=LTS_3, predecessor=LTS_2, activated_utc=LATER),
+            unsigned_pin(1),
+            unsigned_pin(4, release_scope=NEW_2, channel="newest"),
+            unsigned_pin(2, after=1, activated_utc=LATER),
+            unsigned_pin(3, after=2, activated_utc=LATER),
         )
-        self.assertEqual([e["release_scope"] for e in reg.release_channels["lts"]], [LTS_1, LTS_2, LTS_3])
-        self.assertEqual(reg.channel_head("lts")["release_scope"], LTS_3)
-        self.assertEqual(reg.channel_head("newest")["release_scope"], NEWEST_1)
-        self.assertIsNone(reg.channel_head("unknown"))
-        self.assertIsNone(reg.channel_head(["lts"]))
-        self.assertEqual(reg.release_pin(LTS_2)["predecessor"], LTS_1)
-        self.assertIsNone(reg.release_pin("https://releases.example.test/acme/none"))
-        self.assertIsNone(reg.release_pin(None))
-        self.assertEqual(REG.Registry(self.estate.base_entries()).release_channels, {})
+        lts = [release_hash(n) for n in (1, 2, 3)]
+        self.assertEqual(hashes(reg.release_channels["lts"]), lts)
+        self.assertEqual(hashes(reg.scope_releases(LTS)), lts)
+        self.assertEqual(hashes(reg.release_families[LTS]), lts)
+        self.assertEqual(reg.scope_head(LTS)["manifest_hash"], release_hash(3))
+        self.assertEqual(reg.channel_head("lts")["manifest_hash"], release_hash(3))
+        self.assertEqual(reg.channel_head("newest")["manifest_hash"], release_hash(4))
+        self.assertEqual(reg.scope_head(NEW_2)["manifest_hash"], release_hash(4))
+        self.assertEqual(reg.release_pin(release_hash(2))["predecessor"], release_hash(1))
+        self.assertEqual(list(reg.release_pins), [release_hash(n) for n in (1, 4, 2, 3)])  # append order
 
-    def test_release_scopes_are_never_rebound(self):
-        with self.assertRaisesRegex(REG.RegistryError, "rebound"):
-            self.registry(unsigned_pin(), unsigned_pin(channel="newest", manifest_hash="e" * 64))
+    def test_unknown_or_malformed_selections_name_nothing(self):
+        reg = self.registry(unsigned_pin(1), unsigned_pin(2, after=1))
+        for value in (release_hash(9), LTS, None, 7, ["x"]):
+            with self.subTest(manifest_hash=value):
+                self.assertIsNone(reg.release_pin(value))
+        for value in (NEW_3, release_hash(1), None, 7, ["x"]):
+            with self.subTest(release_scope=value):
+                self.assertEqual(reg.scope_releases(value), [])
+                self.assertIsNone(reg.scope_head(value))
+        for value in ("newest", LTS, None, 7, ["lts"]):
+            with self.subTest(channel=value):
+                self.assertIsNone(reg.channel_head(value))
+        releases = reg.scope_releases(LTS)
+        releases.clear()  # a copy: the registry's own order is unchanged
+        self.assertEqual(hashes(reg.scope_releases(LTS)), [release_hash(1), release_hash(2)])
+        empty = self.registry()
+        self.assertEqual((empty.release_pins, empty.release_channels, empty.release_families), ({}, {}, {}))
 
-    def test_a_grail_kernel_and_a_release_pin_share_their_scope(self):
-        grail = self.estate.grail_kernel(scope=LTS_1)
-        reg = REG.Registry(self.estate.base_entries() + [grail, unsigned_pin()])
-        self.assertEqual(reg.release_pin(LTS_1)["release_scope"], grail["release_scope"])
+    def test_a_channel_moves_on_from_one_family_to_the_next(self):
+        reg = self.registry(
+            unsigned_pin(1),
+            unsigned_pin(4, release_scope=NEW_2, channel="newest"),
+            unsigned_pin(5, release_scope=NEW_2, channel="newest", after=4),
+            unsigned_pin(6, release_scope=NEW_3, channel="newest", after=5, activated_utc=LATER),
+        )
+        self.assertEqual(hashes(reg.release_channels["newest"]), [release_hash(n) for n in (4, 5, 6)])
+        self.assertEqual(reg.channel_head("newest")["release_scope"], NEW_3)
+        self.assertEqual(reg.scope_head(NEW_2)["manifest_hash"], release_hash(5))  # current, no longer the head
+        self.assertEqual(hashes(reg.scope_releases(NEW_2)), [release_hash(4), release_hash(5)])
+        self.assertEqual(hashes(reg.scope_releases(NEW_3)), [release_hash(6)])
+        self.assertEqual(reg.channel_head("lts")["manifest_hash"], release_hash(1))
+
+    def test_a_release_is_pinned_once(self):
+        cases = {
+            "as its own correction": [unsigned_pin(1), unsigned_pin(1, after=1, path="releases/again.json")],
+            "at another locator": [unsigned_pin(1), unsigned_pin(1, commit="4" * 40)],
+            "in another family and channel": [unsigned_pin(1), unsigned_pin(1, release_scope=NEW_2,
+                                                                            channel="newest")],
+        }
+        for label, entries in cases.items():
+            with self.subTest(label=label):
+                with self.assertRaisesRegex(REG.RegistryError, "second release-pin for manifest_hash"):
+                    self.registry(*entries)
+
+    def test_a_family_lives_in_exactly_one_channel(self):
+        cases = {
+            "a second root in another channel": [unsigned_pin(1), unsigned_pin(2, channel="newest")],
+            "a correction appended to another channel": [
+                unsigned_pin(1), unsigned_pin(4, release_scope=NEW_2, channel="newest"),
+                unsigned_pin(2, channel="newest", after=4)],
+        }
+        for label, entries in cases.items():
+            with self.subTest(label=label):
+                with self.assertRaisesRegex(REG.RegistryError, "lives in exactly one channel"):
+                    self.registry(*entries)
 
     def test_equal_activation_is_not_a_regression(self):
-        reg = self.registry(unsigned_pin(), unsigned_pin(release_scope=LTS_2, predecessor=LTS_1))
-        self.assertEqual(reg.channel_head("lts")["release_scope"], LTS_2)
+        reg = self.registry(unsigned_pin(1), unsigned_pin(2, after=1))
+        self.assertEqual(reg.channel_head("lts")["manifest_hash"], release_hash(2))
 
     def test_channel_structure_violations_refuse_the_registry(self):
+        newest = {"channel": "newest"}
         cases = {
-            "fork": ([unsigned_pin(), unsigned_pin(release_scope=LTS_2, predecessor=LTS_1),
-                      unsigned_pin(release_scope=LTS_3, predecessor=LTS_1)], "fork"),
-            "two roots": ([unsigned_pin(), unsigned_pin(release_scope=LTS_2)], "exactly one first entry"),
-            "forward link": ([unsigned_pin(release_scope=LTS_2, predecessor=LTS_1), unsigned_pin()],
-                             "does not precede"),
-            "self link": ([unsigned_pin(predecessor=LTS_1)], "does not precede"),
-            "cycle": ([unsigned_pin(predecessor=LTS_2), unsigned_pin(release_scope=LTS_2, predecessor=LTS_1)],
-                      "does not precede"),
-            "unknown predecessor": ([unsigned_pin(), unsigned_pin(release_scope=LTS_2, predecessor=LTS_3)],
-                                    "not the release_scope of any release-pin"),
-            "cross-channel predecessor": ([unsigned_pin(), unsigned_pin(release_scope=NEWEST_1, channel="newest",
-                                                                        predecessor=LTS_1)],
-                                          "belongs to channel 'lts'"),
-            "activation regression": ([unsigned_pin(activated_utc=LATER),
-                                       unsigned_pin(release_scope=LTS_2, predecessor=LTS_1)],
+            "fork": ([unsigned_pin(1), unsigned_pin(2, after=1), unsigned_pin(3, after=1)], "fork"),
+            "two roots": ([unsigned_pin(1), unsigned_pin(2)], "exactly one first entry"),
+            "forward link": ([unsigned_pin(2, after=1), unsigned_pin(1)], "does not precede"),
+            "self link": ([unsigned_pin(1, after=1)], "does not precede"),
+            "cycle": ([unsigned_pin(1, after=2), unsigned_pin(2, after=1)], "does not precede"),
+            "unknown predecessor": ([unsigned_pin(1), unsigned_pin(2, after=3)],
+                                    "not the manifest_hash of any release-pin"),
+            "a predecessor in another channel": (
+                [unsigned_pin(1), unsigned_pin(4, release_scope=NEW_2, after=1, **newest)],
+                "is a release of channel 'lts'"),
+            "activation regression": ([unsigned_pin(1, activated_utc=LATER), unsigned_pin(2, after=1)],
                                       "activated before its predecessor"),
+            "activation regression across families": (
+                [unsigned_pin(4, release_scope=NEW_2, activated_utc=LATER, **newest),
+                 unsigned_pin(6, release_scope=NEW_3, after=4, **newest)],
+                "activated before its predecessor"),
         }
-        for label, (pins, message) in cases.items():
+        for label, (entries, message) in cases.items():
             with self.subTest(label=label):
                 with self.assertRaisesRegex(REG.RegistryError, message):
-                    self.registry(*pins)
+                    self.registry(*entries)
+
+    def test_a_familys_grail_kernel_precedes_its_first_release(self):
+        grail = self.estate.grail_kernel(scope=LTS)
+        other = self.estate.grail_kernel(scope=NEW_2)
+        accepted = {
+            "declared before the family's first release": [grail, unsigned_pin(1), unsigned_pin(2, after=1)],
+            "a family without releases yet": [unsigned_pin(1), other],
+            "one family's kernel after another family's release":
+                [unsigned_pin(1), other, unsigned_pin(4, release_scope=NEW_2, channel="newest")],
+        }
+        for label, entries in accepted.items():
+            with self.subTest(label=label):
+                self.registry(*entries)
+        refused = {
+            "after the family's only release": [unsigned_pin(1), grail],
+            "between two releases of the family": [unsigned_pin(1), grail, unsigned_pin(2, after=1)],
+            "after the first release of a family in another channel": [
+                unsigned_pin(4, release_scope=NEW_2, channel="newest"), other],
+        }
+        for label, entries in refused.items():
+            with self.subTest(label=label):
+                with self.assertRaisesRegex(REG.RegistryError, "follows that family's first release-pin"):
+                    self.registry(*entries)
 
     def test_a_refused_channel_refuses_the_whole_document(self):
         world = World()
-        manifest = world.manifest(kernel=None)
-        fork = [world.pin(manifest), world.pin(world.manifest(LTS_2, kernel=None), predecessor=LTS_1),
-                world.pin(world.manifest(LTS_3, kernel=None), predecessor=LTS_1)]
-        self.assertEqual(world.load(fork)[0], "refused")
-        self.assertEqual(world.load(fork[:2])[0], "verified")
+        first = world.pin(world.manifest(kernel=None))
+        second = world.pin(world.manifest(kernel=None, fix=1), predecessor=first)
+        fork = world.pin(world.manifest(kernel=None, fix=2), predecessor=first)
+        self.assertEqual(world.load([first, second])[0], "verified")
+        self.assertEqual(world.load([first, second, fork])[0], "refused")
+        self.assertEqual(world.load([first, second, world.grail()])[0], "refused")
 
 
 class ReleasePinDeclarationTests(unittest.TestCase):
@@ -294,7 +394,8 @@ class ReleasePinDeclarationTests(unittest.TestCase):
 
     def test_a_mutated_declaration_is_refused(self):
         for member, value in (("manifest_hash", "e" * 64), ("commit", "4" * 40), ("channel", "newest"),
-                              ("path", "releases/other.json")):
+                              ("path", "releases/other.json"), ("release_scope", NEW_2),
+                              ("activated_utc", LATER)):
             with self.subTest(member=member):
                 entry = self.world.pin(self.manifest)
                 entry[member] = value  # the document signature below is fresh; the entry's is not
@@ -305,19 +406,22 @@ class ReleasePinDeclarationTests(unittest.TestCase):
         rotation = estate.reanchor("owner", "successor", signer="owner", utc="2026-07-15T00:00:00.000Z")
         base = estate.base_entries(owner="successor")
         before = self.world.pin(self.manifest, declared="owner", activated=T0)
-        after_new = self.world.pin(self.world.manifest(NEWEST_1, kernel=None), channel="newest",
-                                   declared="successor", activated=LATER)
-        after_old = self.world.pin(self.world.manifest(NEWEST_1, kernel=None), channel="newest",
-                                   declared="owner", activated=LATER)
-        backdated = self.world.pin(self.world.manifest(NEWEST_1, kernel=None), channel="newest",
-                                   declared="successor", activated=T0)
+        correction = self.world.manifest(kernel=None, fix=1)
+        after_new = self.world.pin(correction, predecessor=before, declared="successor", activated=LATER)
+        after_old = self.world.pin(correction, predecessor=before, declared="owner", activated=LATER)
+        backdated = self.world.pin(correction, predecessor=before, declared="successor", activated=T0)
 
         def load(*entries):
-            return self.world.load([rotation, *entries], owner="successor", entries=base)[0]
+            return self.world.load([rotation, *entries], owner="successor", entries=base)
 
-        self.assertEqual(load(before, after_new), "verified")
-        self.assertEqual(load(after_old), "refused")
-        self.assertEqual(load(backdated), "refused")
+        status, _, why = load(before, after_new)
+        self.assertEqual((status, why), ("verified", "ok"))
+        for label, correction_pin in (("old owner after the rotation", after_old),
+                                      ("new owner before the rotation", backdated)):
+            with self.subTest(label=label):
+                status, _, why = load(before, correction_pin)
+                self.assertEqual(status, "refused")
+                self.assertIn("not the estate owner in effect at activated_utc", why)
 
     def test_first_seen_skew_is_bounded_at_300_seconds(self):
         edge = self.world.pin(self.manifest, activated="2026-07-01T00:05:00.000Z")
@@ -327,15 +431,19 @@ class ReleasePinDeclarationTests(unittest.TestCase):
 
     def test_persisted_release_pins_are_retained_byte_for_byte(self):
         pin = self.world.pin(self.manifest)
-        persisted = [R._strict_json(R.canonical(pin))]
-        successor = self.world.pin(self.world.manifest(LTS_2, kernel=None), predecessor=LTS_1, activated=LATER)
-        self.assertEqual(self.world.load([pin, successor], persisted_entries=persisted)[0], "verified")
-        self.assertEqual(self.world.load([], persisted_entries=persisted)[0], "refused")
-        repointed = self.world.pin(self.world.manifest(LTS_1, kernel="1.0.1"))  # same scope, new manifest
-        self.assertEqual(self.world.load([repointed], persisted_entries=persisted)[0], "refused")
+        kept = persisted(pin)
+        correction = self.world.pin(self.world.manifest(kernel=None, fix=1), predecessor=pin, activated=LATER)
+        self.assertEqual(self.world.load([pin, correction], persisted_entries=kept)[0], "verified")
+        replaced = self.world.pin(self.world.manifest(kernel=None, fix=1))  # the family's first release swapped
+        relocated = self.world.pin(self.manifest, commit="4" * 40)  # the same release at another locator
         resigned = self.world.pin(self.manifest)  # identical members, a different signature
         self.assertNotEqual(resigned["sig"], pin["sig"])
-        self.assertEqual(self.world.load([resigned], persisted_entries=persisted)[0], "refused")
+        for label, entries in (("dropped", []), ("replaced", [replaced]), ("relocated", [relocated]),
+                               ("re-signed", [resigned])):
+            with self.subTest(label=label):
+                status, _, why = self.world.load(entries, persisted_entries=kept)
+                self.assertEqual(status, "refused")
+                self.assertIn("removed or mutated", why)
 
     def test_an_exact_copy_verifies_apart_from_its_document(self):
         pin = self.world.pin(self.manifest)
@@ -380,7 +488,7 @@ class ReleaseManifestTests(unittest.TestCase):
         self.refuses(lambda m: m.pop("components"), "exactly the members")
         self.refuses(lambda m: m.update(schema="rapp/1-release-manifest-v2"), "schema")
         self.refuses(lambda m: m.update(schema="rapp/1"), "schema")
-        self.refuses(lambda m: m.update(release_scope="http://releases.example.test/acme/lts/1"), "release_scope")
+        self.refuses(lambda m: m.update(release_scope="http://releases.example.test/acme/1.0"), "release_scope")
         self.refuses(lambda m: m.update(release_scope=None), "release_scope")
         self.refuses(lambda m: m.update(components=[]), "non-empty")
         self.refuses(lambda m: m.update(components={}), "non-empty")
@@ -493,12 +601,16 @@ class ManifestOctetsTests(unittest.TestCase):
     def setUp(self):
         self.world = World()
         self.manifest, self.reg = self.world.registry([])
+        self.pin = self.reg.scope_head(LTS)
         self.octets = R.canonical(self.manifest).encode("utf-8")
 
+    def verify(self, octets, pin=None):
+        return REG.verify_release_manifest(self.reg, self.pin if pin is None else pin, octets)
+
     def test_exact_canonical_octets_verify(self):
-        result = REG.verify_release_manifest(self.reg, LTS_1, self.octets)
+        result = self.verify(self.octets)
         self.assertEqual(result, self.manifest)
-        self.assertEqual(R.H("rapp/1:particle", result), self.reg.release_pin(LTS_1)["manifest_hash"])
+        self.assertEqual(R.H("rapp/1:particle", result), self.pin["manifest_hash"])
 
     def test_any_other_octets_are_refused(self):
         pretty = json.dumps(self.manifest, indent=2, sort_keys=True).encode("utf-8")
@@ -517,34 +629,47 @@ class ManifestOctetsTests(unittest.TestCase):
         self.assertNotEqual(compact_unsorted, self.octets)
         for label, octets in cases.items():
             with self.subTest(label=label):
-                self.assertRaises(REG.RegistryError, REG.verify_release_manifest, self.reg, LTS_1, octets)
+                self.assertRaises(REG.RegistryError, self.verify, octets)
         with self.assertRaisesRegex(REG.RegistryError, "bytes"):
-            REG.verify_release_manifest(self.reg, LTS_1, R.canonical(self.manifest))
+            self.verify(R.canonical(self.manifest))
 
     def test_a_manifest_that_is_not_the_pinned_one_is_refused(self):
         other = mutated(self.manifest, lambda m: m["components"][3]["files"][0].update(size_bytes=18))
         with self.assertRaisesRegex(REG.RegistryError, "manifest_hash"):
-            REG.verify_release_manifest(self.reg, LTS_1, R.canonical(other).encode("utf-8"))
+            self.verify(R.canonical(other).encode("utf-8"))
 
     def test_a_manifest_naming_another_scope_is_refused_even_when_pinned(self):
-        foreign = self.world.manifest(LTS_2, kernel=None)
-        pin = self.world.pin(foreign, scope=LTS_1)  # an entry for LTS_1 pinning LTS_2's manifest
+        foreign = self.world.manifest(NEW_2, kernel=None)
+        pin = self.world.pin(foreign, scope=LTS)  # an LTS release pinning NEW_2's manifest
         status, reg, why = self.world.load([pin])
         self.assertEqual(status, "verified", why)
-        with self.assertRaisesRegex(REG.RegistryError, "different release_scope"):
-            REG.verify_release_manifest(reg, LTS_1, R.canonical(foreign).encode("utf-8"))
+        with self.assertRaisesRegex(REG.RegistryError, "release_scope other than its release-pin's"):
+            REG.verify_release_manifest(reg, pin, R.canonical(foreign).encode("utf-8"))
 
-    def test_an_unknown_scope_is_refused(self):
-        with self.assertRaisesRegex(REG.RegistryError, "no release-pin"):
-            REG.verify_release_manifest(self.reg, NEWEST_1, self.octets)
+    def test_only_the_registrys_own_release_pin_is_verified_against(self):
+        cases = {
+            "a relocated copy": dict(self.pin, commit="4" * 40),
+            "a re-signed copy": dict(self.pin, sig="another signature"),
+            "a copy with an extra member": dict(self.pin, note="x"),
+            "a copy that is not I-JSON": dict(self.pin, note=1.5),
+            "a release-pin of no registry": self.world.pin(self.world.manifest(NEW_2, kernel=None),
+                                                           channel="newest"),
+            "an unhashable manifest_hash": dict(self.pin, manifest_hash=["x"]),
+            "not an object": "release-pin",
+        }
+        for label, pin in cases.items():
+            with self.subTest(label=label):
+                with self.assertRaisesRegex(REG.RegistryError, "not an entry of this registry"):
+                    self.verify(self.octets, pin)
+        self.assertEqual(self.verify(self.octets, copy.deepcopy(self.pin)), self.manifest)
 
     def test_a_pinned_but_malformed_manifest_is_refused(self):
         broken = mutated(self.manifest, lambda m: m["components"].reverse())
-        pin = self.world.pin(broken, scope=LTS_1)
+        pin = self.world.pin(broken, scope=LTS)
         status, reg, _ = self.world.load([pin])
         self.assertEqual(status, "verified")
         with self.assertRaisesRegex(REG.RegistryError, "sorted ascending"):
-            REG.verify_release_manifest(reg, LTS_1, R.canonical(broken).encode("utf-8"))
+            REG.verify_release_manifest(reg, pin, R.canonical(broken).encode("utf-8"))
 
 
 class KernelCoherenceTests(unittest.TestCase):
@@ -559,8 +684,9 @@ class KernelCoherenceTests(unittest.TestCase):
     def coherent(self, manifest, registry=None):
         return REG.check_kernel_coherence(registry or self.with_grail, manifest)
 
-    def test_the_kernel_component_matches_the_scopes_grail(self):
+    def test_the_kernel_component_matches_the_familys_grail(self):
         self.assertEqual(self.coherent(self.manifest), (True, "ok"))
+        self.assertEqual(self.coherent(self.world.manifest(fix=1)), (True, "ok"))  # a correction keeps it
 
     def test_a_declared_grail_needs_exactly_one_kernel_component(self):
         no_kernel = self.world.manifest(kernel=None)
@@ -579,6 +705,7 @@ class KernelCoherenceTests(unittest.TestCase):
         self.assertEqual(self.manifest["components"][0]["files"][2]["path"], KERNEL_PATH)
         cases = {
             "repository": kernel(repository=MIRROR),
+            "repository spelled another way": kernel(repository=KERNEL + ".git"),
             "object_format": kernel(object_format="sha256", commit="1" * 64),
             "commit": kernel(commit="9" * 40),
             "immutable_ref": kernel(immutable_ref="refs/tags/brainstem-v1.0.1"),
@@ -598,9 +725,9 @@ class KernelCoherenceTests(unittest.TestCase):
         self.assertEqual(self.coherent(renamed, self.without_grail), (True, "ok"))
         self.assertEqual(self.coherent(self.world.manifest(kernel=None), self.without_grail), (True, "ok"))
 
-    def test_another_scopes_grail_does_not_count(self):
-        other_scope = REG.Registry(self.world.estate.base_entries() + [self.world.grail(scope=NEWEST_1)])
-        self.assertFalse(self.coherent(self.manifest, other_scope)[0])
+    def test_another_familys_grail_does_not_count(self):
+        other_family = REG.Registry(self.world.estate.base_entries() + [self.world.grail(scope=NEW_2)])
+        self.assertFalse(self.coherent(self.manifest, other_family)[0])
 
     def test_an_invalid_manifest_is_not_coherent(self):
         ok, why = self.coherent(mutated(self.manifest, lambda m: m.update(schema="other")))
@@ -610,10 +737,11 @@ class KernelCoherenceTests(unittest.TestCase):
     def test_verification_enforces_coherence(self):
         world = World()
         manifest = world.manifest()
-        status, reg, _ = world.load([world.pin(manifest)])  # no grail-kernel for LTS_1
+        pin = world.pin(manifest)
+        status, reg, _ = world.load([pin])  # no grail-kernel for LTS
         self.assertEqual(status, "verified")
         with self.assertRaisesRegex(REG.RegistryError, "needs a grail-kernel"):
-            REG.verify_release_manifest(reg, LTS_1, R.canonical(manifest).encode("utf-8"))
+            REG.verify_release_manifest(reg, pin, R.canonical(manifest).encode("utf-8"))
 
 
 class VerifiedSnapshotTests(unittest.TestCase):
@@ -625,11 +753,13 @@ class VerifiedSnapshotTests(unittest.TestCase):
         self.world.calls.clear()
 
     def snapshot(self, fetch=None, registry=None, **kwargs):
-        return REG.verify_snapshot(registry or self.reg, LTS_1, fetch or self.world.fetch, **kwargs)
+        if not {"release_scope", "channel", "manifest_hash"} & set(kwargs):
+            kwargs["release_scope"] = LTS
+        return REG.verify_snapshot(registry or self.reg, fetch or self.world.fetch, **kwargs)
 
     def test_the_snapshot_is_exactly_the_pinned_files(self):
         snapshot = self.snapshot()
-        pin = self.reg.release_pin(LTS_1)
+        pin = self.reg.scope_head(LTS)
         expected = {(c["id"], f["path"]): self.world.store[(c["repository"], c["commit"], f["path"])]
                     for c in self.manifest["components"] for f in c["files"]}
         self.assertEqual(snapshot, expected)
@@ -644,6 +774,31 @@ class VerifiedSnapshotTests(unittest.TestCase):
         self.assertIsNot(first, second)
         first.clear()
         self.assertEqual(len(self.snapshot()), 8)
+
+    def test_exactly_one_selector_names_the_release(self):
+        manifest_hash = self.reg.scope_head(LTS)["manifest_hash"]
+        several = [{}, {"release_scope": LTS, "channel": "lts"},
+                   {"channel": "lts", "manifest_hash": manifest_hash},
+                   {"release_scope": LTS, "manifest_hash": manifest_hash},
+                   {"release_scope": LTS, "channel": "lts", "manifest_hash": manifest_hash}]
+        for selectors in several:
+            with self.subTest(selectors=sorted(selectors)):
+                with self.assertRaisesRegex(REG.RegistryError, "select exactly one release"):
+                    REG.verify_snapshot(self.reg, self.world.fetch, **selectors)
+        self.assertEqual(self.world.calls, [])  # refused before any transport is asked
+        with self.assertRaises(TypeError):  # the selector is a keyword, never a position
+            REG.verify_snapshot(self.reg, LTS, self.world.fetch)
+        expected = self.snapshot()
+        for selectors in ({"release_scope": LTS}, {"channel": "lts"}, {"manifest_hash": manifest_hash}):
+            with self.subTest(selectors=selectors):
+                self.assertEqual(REG.verify_snapshot(self.reg, self.world.fetch, **selectors), expected)
+        unknown = [({"release_scope": NEW_2}, "release_scope"), ({"release_scope": ["x"]}, "release_scope"),
+                   ({"channel": "newest"}, "channel"), ({"channel": LTS}, "channel"),
+                   ({"manifest_hash": "e" * 64}, "manifest_hash"), ({"manifest_hash": LTS}, "manifest_hash")]
+        for selectors, named in unknown:
+            with self.subTest(selectors=selectors):
+                with self.assertRaisesRegex(REG.RegistryError, f"no release-pin entry for {named}"):
+                    REG.verify_snapshot(self.reg, self.world.fetch, **selectors)
 
     def tampering(self, target, replace):
         def fetch(repository, object_format, commit, path):
@@ -679,7 +834,7 @@ class VerifiedSnapshotTests(unittest.TestCase):
 
     def test_a_manifest_changed_at_its_locator_is_refused(self):
         newer = mutated(self.manifest, lambda m: m["components"][3]["files"][0].update(sha256="e" * 64))
-        pin = self.reg.release_pin(LTS_1)
+        pin = self.reg.scope_head(LTS)
         self.world.publish(RELEASES, pin["commit"], pin["path"], R.canonical(newer).encode("utf-8"))
         with self.assertRaisesRegex(REG.RegistryError, "manifest_hash"):
             self.snapshot()
@@ -698,11 +853,9 @@ class VerifiedSnapshotTests(unittest.TestCase):
             self.snapshot(registry=draft)
         self.assertEqual(len(self.snapshot(registry=draft, allow_draft=True)), 8)
         self.assertEqual(len(self.snapshot(allow_draft=True)), 8)
-        with self.assertRaisesRegex(REG.RegistryError, "no release-pin"):
-            REG.verify_snapshot(self.reg, NEWEST_1, self.world.fetch)
 
     def rebind_identity(self, octets):
-        """Re-pin LTS_1 with organism-alpha's identity file replaced by `octets`."""
+        """Re-pin the LTS release with organism-alpha's identity file replaced by `octets`."""
         world = World()
         world.alpha = self.world.alpha
         manifest = world.manifest()
@@ -711,7 +864,7 @@ class VerifiedSnapshotTests(unittest.TestCase):
         alpha["files"] = file_list({"rappid.json": octets, "soul.md": b"# alpha\n"})
         status, reg, why = world.load([world.grail(), world.pin(manifest)])
         self.assertEqual(status, "verified", why)
-        return lambda: REG.verify_snapshot(reg, LTS_1, world.fetch)
+        return lambda: REG.verify_snapshot(reg, world.fetch, release_scope=LTS)
 
     def test_every_door_of_record_binding_is_checked(self):
         alpha = self.world.alpha
@@ -741,7 +894,7 @@ class VerifiedSnapshotTests(unittest.TestCase):
             repository=MIRROR, object_format="sha1", commit="d" * 40, identity_path="organisms/beta/rappid.json",
             files=file_list({"organisms/beta/rappid.json": identity})))
         REG.validate_release_manifest(mirrored)
-        pin = self.reg.release_pin(LTS_1)
+        pin = self.reg.scope_head(LTS)
 
         def hostile(repository, object_format, commit, path):
             if (repository, path) == (RELEASES, pin["path"]):
@@ -756,7 +909,7 @@ class VerifiedSnapshotTests(unittest.TestCase):
         status, reg, _ = world.load([world.grail(), world.pin(manifest)])
         self.assertEqual(status, "verified")
         with self.assertRaisesRegex(REG.RegistryError, "kernel component"):
-            REG.verify_snapshot(reg, LTS_1, world.fetch)
+            REG.verify_snapshot(reg, world.fetch, release_scope=LTS)
         self.assertEqual(len(world.calls), 1)  # refused at the manifest, before any member file
 
     def test_a_component_without_files_contributes_nothing(self):
@@ -765,10 +918,104 @@ class VerifiedSnapshotTests(unittest.TestCase):
         manifest["components"][3]["files"] = []
         status, reg, _ = world.load([world.grail(), world.pin(manifest)])
         self.assertEqual(status, "verified")
-        snapshot = REG.verify_snapshot(reg, LTS_1, world.fetch)
+        snapshot = REG.verify_snapshot(reg, world.fetch, release_scope=LTS)
         self.assertEqual(len(snapshot), 7)
         self.assertNotIn("rapp-1", {cid for cid, _ in snapshot})
         self.assertNotIn(PROTOCOL, {call[0] for call in world.calls})
+
+
+class ReleaseFamilyTests(unittest.TestCase):
+    """§13.5 end to end: a family keeps its one kernel across corrections, a channel moves on to
+    the next family, a late kernel is refused, and every pinned release stays verifiable."""
+
+    def setUp(self):
+        self.world = World()
+
+    def test_an_lts_correction_keeps_the_familys_kernel(self):
+        world = self.world
+        original, correction = world.manifest(), world.manifest(fix=1)
+        first = world.pin(original)
+        second = world.pin(correction, predecessor=first, activated=LATER)
+        status, reg, why = world.load([world.grail(), first, second])
+        self.assertEqual((status, why), ("verified", "ok"))
+        self.assertEqual(reg.scope_releases(LTS), [first, second])
+        self.assertEqual(reg.scope_head(LTS), second)
+        self.assertEqual(reg.channel_head("lts"), second)
+        self.assertEqual(original["components"][0], correction["components"][0])  # one kernel, byte for byte
+        old = REG.verify_snapshot(reg, world.fetch, manifest_hash=first["manifest_hash"])
+        new = REG.verify_snapshot(reg, world.fetch, manifest_hash=second["manifest_hash"])
+        self.assertEqual(REG.verify_snapshot(reg, world.fetch, release_scope=LTS), new)
+        self.assertEqual(REG.verify_snapshot(reg, world.fetch, channel="lts"), new)
+
+        def kernel(snapshot):
+            return {key: octets for key, octets in snapshot.items() if key[0] == "brainstem"}
+        self.assertEqual(kernel(old), kernel(new))
+        self.assertEqual(len(kernel(new)), 3)
+        self.assertEqual(old[("organism-alpha", "soul.md")], b"# alpha\n")
+        self.assertEqual(new[("organism-alpha", "soul.md")], b"# alpha, correction 1\n")
+
+    def test_a_correction_cannot_change_the_familys_kernel(self):
+        world = self.world
+        first = world.pin(world.manifest())
+        drifted = world.pin(world.manifest(kernel="1.0.1", kernel_commit="4" * 40, fix=1),
+                            predecessor=first, activated=LATER)
+        status, reg, why = world.load([world.grail(), first, drifted])
+        self.assertEqual((status, why), ("verified", "ok"))  # the registry never sees manifest bytes
+        with self.assertRaisesRegex(REG.RegistryError, "kernel component"):
+            REG.verify_snapshot(reg, world.fetch, release_scope=LTS)
+        self.assertEqual(len(REG.verify_snapshot(reg, world.fetch, manifest_hash=first["manifest_hash"])), 8)
+
+    def test_the_newest_channel_moves_on_to_the_next_family(self):
+        world = self.world
+        first = world.pin(world.manifest(NEW_2, kernel="2.0.0", kernel_commit="5" * 40), channel="newest")
+        second = world.pin(world.manifest(NEW_3, kernel="3.0.0", kernel_commit="6" * 40), channel="newest",
+                           predecessor=first, activated=LATER)
+        kernels = [world.grail(NEW_2, "2.0.0", "5" * 40), world.grail(NEW_3, "3.0.0", "6" * 40)]
+        status, reg, why = world.load(kernels + [first, second])
+        self.assertEqual((status, why), ("verified", "ok"))
+        self.assertEqual(reg.release_channels["newest"], [first, second])
+        self.assertEqual((reg.channel_head("newest"), reg.scope_head(NEW_3)), (second, second))
+        self.assertEqual(reg.scope_head(NEW_2), first)  # the family it left keeps its current release
+        head = REG.verify_snapshot(reg, world.fetch, channel="newest")
+        self.assertEqual(head, REG.verify_snapshot(reg, world.fetch, release_scope=NEW_3))
+        self.assertEqual(head[("brainstem", KERNEL_PATH)], kernel_files("3.0.0")[KERNEL_PATH])
+        left = REG.verify_snapshot(reg, world.fetch, release_scope=NEW_2)
+        self.assertEqual(left[("brainstem", KERNEL_PATH)], kernel_files("2.0.0")[KERNEL_PATH])
+        swapped = world.manifest(NEW_3, kernel="2.0.0", kernel_commit="5" * 40)  # NEW_3 carrying NEW_2's kernel
+        self.assertFalse(REG.check_kernel_coherence(reg, swapped)[0])
+
+    def test_a_kernel_declared_after_its_familys_first_release_is_refused_whole(self):
+        world = self.world
+        release = world.pin(world.manifest(kernel=None))
+        self.assertEqual(world.load([release])[0], "verified")
+        status, _, why = world.load([release, world.grail()], seq=3, persisted_entries=persisted(release))
+        self.assertEqual(status, "refused")
+        self.assertIn("follows that family's first release-pin", why)
+        # Declared before the family's first release, the same kernel binds every release of it.
+        status, reg, why = world.load([world.grail(), world.pin(world.manifest())])
+        self.assertEqual((status, why), ("verified", "ok"))
+        self.assertEqual(len(REG.verify_snapshot(reg, world.fetch, release_scope=LTS)), 8)
+
+    def test_every_pinned_release_stays_verifiable_and_heads_only_advance(self):
+        world = self.world
+        grail, first = world.grail(), world.pin(world.manifest())
+        status, before, why = world.load([grail, first])
+        self.assertEqual((status, why), ("verified", "ok"))
+        original = REG.verify_snapshot(before, world.fetch, channel="lts")
+        second = world.pin(world.manifest(fix=1), predecessor=first, activated=LATER)
+        third = world.pin(world.manifest(fix=2), predecessor=second, activated=LATEST)
+        status, after, why = world.load([grail, first, second, third], seq=3,
+                                        persisted_entries=persisted(grail, first))
+        self.assertEqual((status, why), ("verified", "ok"))
+        self.assertEqual(after.channel_head("lts"), third)
+        self.assertEqual(REG.verify_snapshot(after, world.fetch, manifest_hash=first["manifest_hash"]), original)
+        self.assertEqual(after.scope_releases(LTS), [first, second, third])
+        kept = persisted(grail, first, second, third)
+        rewind = world.pin(world.manifest(fix=3), predecessor=first, activated=LATEST)
+        for label, entries in (("dropping the later releases", [grail, first]),
+                               ("forking back to the first release", [grail, first, second, third, rewind])):
+            with self.subTest(label=label):
+                self.assertEqual(world.load(entries, seq=4, persisted_entries=kept)[0], "refused")
 
 
 class GithubRawUrlTests(unittest.TestCase):
@@ -806,7 +1053,7 @@ class GithubRawUrlTests(unittest.TestCase):
 
 
 class RappCheckReleaseManifestTests(unittest.TestCase):
-    """rapp_check.py lints a release manifest as structure and canonical bytes, never authority."""
+    """rapp_check.py lints release manifests and release-pins as structure, never authority."""
 
     def repository(self, files):
         temporary = tempfile.TemporaryDirectory(prefix="rapp-check-release-")
@@ -845,24 +1092,45 @@ class RappCheckReleaseManifestTests(unittest.TestCase):
             ("c/unsorted.json", "§13.5 release manifest"),
         })
 
+    def test_a_registry_document_whose_release_pins_break_the_rules_is_a_finding(self):
+        estate = MockEstate()
+        documents = {
+            "a/registry.json": [unsigned_pin(1), unsigned_pin(2, channel="newest")],
+            "b/registry.json": [unsigned_pin(1), estate.grail_kernel(scope=LTS)],
+            "c/registry.json": [unsigned_pin(1), unsigned_pin(2, after=1)],
+        }
+        files = {path: R.canonical(estate.document(estate.base_entries() + pins, signed=False)).encode("utf-8")
+                 for path, pins in documents.items()}
+        verdict, findings, evidence = C.check_repo(self.repository(files))
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual(sorted((f["artifact"], f["rule"]) for f in findings),
+                         [("a/registry.json", "§13 registry document"),
+                          ("b/registry.json", "§13 registry document")])
+        self.assertIn("exactly one channel", findings[0]["detail"] + findings[1]["detail"])
+        self.assertEqual([item["artifact"] for item in evidence], ["c/registry.json"])
+
 
 @unittest.skipUnless(real_ed25519_signer(), "optional cryptography import is absent")
 class RealSignatureReleasePinTests(unittest.TestCase):
     """The release-pin path through the real detached-JWS boundary (§10), no mocks."""
 
-    def test_real_owner_signatures_bind_the_release_pin_and_its_snapshot(self):
+    def test_real_owner_signatures_bind_each_release_and_its_snapshot(self):
         spki_der, sign = real_ed25519_signer()
         owner = R.mint_rappid("test", "estate-owner", spki_der=spki_der)
         world = World()
-        manifest = world.manifest(kernel=None)
-        pin = world.pin(manifest)
-        pin = {k: v for k, v in pin.items() if k != "sig"}
-        pin["declared_by"] = owner
-        pin["sig"] = sign({k: v for k, v in pin.items() if k != "sig"}, owner)
+
+        def declared(pin):
+            value = {k: v for k, v in pin.items() if k != "sig"}
+            value["declared_by"] = owner
+            value["sig"] = sign({k: v for k, v in value.items() if k != "sig"}, owner)
+            return value
+
+        first = declared(world.pin(world.manifest(kernel=None)))
+        second = declared(world.pin(world.manifest(kernel=None, fix=1), predecessor=first, activated=LATER))
         entries = [{"type": "estate_owner", "rappid": owner},
                    {"type": "spki", "rappid": owner, "deprecated": False,
                     "spki_der_b64": base64.b64encode(spki_der).decode("ascii")},
-                   pin]
+                   first, second]
 
         def signed(members):
             doc = {"schema": "rapp/1-registry", "registry_seq": 1, "canonical_source": SOURCE,
@@ -872,9 +1140,11 @@ class RealSignatureReleasePinTests(unittest.TestCase):
 
         status, reg, why = REG.load_document(signed(entries), trust_anchor=owner)
         self.assertEqual((status, why), ("verified", "ok"))
-        self.assertEqual(len(REG.verify_snapshot(reg, LTS_1, world.fetch)), 5)
+        self.assertEqual(reg.channel_head("lts"), second)
+        self.assertEqual(len(REG.verify_snapshot(reg, world.fetch, release_scope=LTS)), 5)
+        self.assertEqual(len(REG.verify_snapshot(reg, world.fetch, manifest_hash=first["manifest_hash"])), 5)
         repointed = copy.deepcopy(entries)
-        repointed[2]["manifest_hash"] = "e" * 64  # a valid document signature cannot bless it
+        repointed[3]["manifest_hash"] = "e" * 64  # a valid document signature cannot bless it
         self.assertEqual(REG.load_document(signed(repointed), trust_anchor=owner)[0], "refused")
 
 

@@ -19,9 +19,12 @@ What is fully specified by §13 and enforced here:
   - declared entries (§13.4): each entry-level owner signature at its own
     `activated_utc`, never blessed by the enclosing document signature, and
     byte-for-byte retention of persisted entries once a caller has accepted them;
-  - release pins (§13.5): one `release-pin` per release scope, linear channels whose
-    head is current, the `rapp/1-release-manifest` structure, kernel coherence with the
-    scope's `grail-kernel`, and an all-or-nothing verified snapshot through a caller's fetch;
+  - release pins (§13.5): a release scope names a release family; each immutable release
+    of it is one `release-pin` entry naming its manifest by a `manifest_hash` no other
+    release-pin shares; a family lives in one channel, each channel is one linear chain
+    whose head is current, and a family's `grail-kernel` precedes its first release; the
+    `rapp/1-release-manifest` structure, kernel coherence with the family's `grail-kernel`,
+    and an all-or-nothing verified snapshot of one selected release through a caller's fetch;
   - owner-signature verification over canonical(document \\ {sig}).
 
 What stays the caller's responsibility, because a snapshot cannot prove it:
@@ -314,7 +317,7 @@ class Registry:
         self.reanchors = []      # entries, in order
         self.genesis = {}        # stream_id -> list of entries
         self.grail = {}          # grail_id -> entry
-        self.release_pins = {}   # release_scope -> release-pin entry (§13.5)
+        self.release_pins = {}   # manifest_hash -> release-pin entry, append order (§13.5)
         self.protocol_history = {}  # name -> [entries], append order
         self.master_plan = None
         self.canonical_source = None  # set by load_document from the §13.1 container
@@ -355,9 +358,12 @@ class Registry:
                     raise RegistryError(f"{where}: release_scope {e['release_scope']!r} rebound")
                 self.grail[e["grail_id"]] = e
             elif t == "release-pin":
-                if e["release_scope"] in self.release_pins:
-                    raise RegistryError(f"{where}: release_scope {e['release_scope']!r} rebound (§13.5)")
-                self.release_pins[e["release_scope"]] = e
+                if e["manifest_hash"] in self.release_pins:
+                    raise RegistryError(
+                        f"{where}: a second release-pin for manifest_hash {e['manifest_hash']}; a release "
+                        "is pinned once and never rebound (§13.3)"
+                    )
+                self.release_pins[e["manifest_hash"]] = e
             elif t == "protocol":
                 self.protocol_history.setdefault(e["name"], []).append(e)
             elif t == "estate_owner":
@@ -629,9 +635,22 @@ class Registry:
 
     # ---- §13.5 release pins ----
     def _index_release_pins(self):
-        """Chain each channel's release-pin entries (§13.5): one linear chain per channel,
-        every predecessor an earlier scope of the same channel, activation never regressing."""
+        """Index the release-pin entries and refuse the registry when they break §13.5.
+
+        A release scope names a release family, and every release of one family carries one
+        channel. Each channel's releases form one linear chain through `predecessor` — the
+        `manifest_hash` of the release a release follows in that channel — whose activation
+        never regresses. A family's grail-kernel entry, if it has one, precedes the family's
+        first release-pin in `entries`, so no later kernel can make a pinned release incoherent."""
         pins = [e for e in self.entries if e["type"] == "release-pin"]
+        channel_of = {}
+        for e in pins:
+            channel = channel_of.setdefault(e["release_scope"], e["channel"])
+            if channel != e["channel"]:
+                raise RegistryError(
+                    f"release_scope {e['release_scope']!r} has releases in channels {channel!r} and "
+                    f"{e['channel']!r}; a release family lives in exactly one channel (§13.5)"
+                )
         for e in pins:
             named = e["predecessor"]
             if named is None:
@@ -639,33 +658,57 @@ class Registry:
             prior = self.release_pins.get(named)
             if prior is None:
                 raise RegistryError(
-                    f"release-pin {e['release_scope']!r}: predecessor {named!r} is not the "
-                    "release_scope of any release-pin entry (§13.5)"
+                    f"release-pin {e['manifest_hash']}: predecessor {named} is not the manifest_hash of "
+                    "any release-pin entry (§13.5)"
                 )
             if prior["channel"] != e["channel"]:
                 raise RegistryError(
-                    f"release-pin {e['release_scope']!r} of channel {e['channel']!r}: predecessor "
-                    f"{named!r} belongs to channel {prior['channel']!r}, not this one (§13.5)"
+                    f"release-pin {e['manifest_hash']} of channel {e['channel']!r}: predecessor {named} is a "
+                    f"release of channel {prior['channel']!r}; a release follows a release of its own "
+                    "channel (§13.5)"
                 )
         self.release_channels = linear_chains(
-            pins, key=lambda e: e["channel"], ident=lambda e: e["release_scope"],
+            pins, key=lambda e: e["channel"], ident=lambda e: e["manifest_hash"],
             link=lambda e: e["predecessor"], where="release-pin channel",
         )
+        self.release_families = {}
         for channel, chain in self.release_channels.items():
             for prior, successor in zip(chain, chain[1:]):
                 # The fixed §7.4 form orders bytewise, identically to chronological order.
                 if successor["activated_utc"] < prior["activated_utc"]:
                     raise RegistryError(
-                        f"release-pin channel {channel!r}: {successor['release_scope']!r} is activated "
-                        f"before its predecessor {prior['release_scope']!r} (§13.5)"
+                        f"release-pin channel {channel!r}: release {successor['manifest_hash']} is activated "
+                        f"before its predecessor {prior['manifest_hash']} (§13.5)"
                     )
+            for e in chain:
+                self.release_families.setdefault(e["release_scope"], []).append(e)
+        first_release = {}
+        for index, e in enumerate(self.entries):
+            if e["type"] == "release-pin":
+                first_release.setdefault(e["release_scope"], index)
+            elif e["type"] == "grail-kernel" and e["release_scope"] in first_release:
+                raise RegistryError(
+                    f"entries[{index}]: the grail-kernel for release_scope {e['release_scope']!r} follows "
+                    f"that family's first release-pin, entries[{first_release[e['release_scope']]}]; a "
+                    "family's kernel is declared before its first release (§13.5)"
+                )
 
-    def release_pin(self, release_scope):
-        """The release-pin entry for `release_scope`, or None."""
-        return self.release_pins.get(release_scope) if isinstance(release_scope, str) else None
+    def release_pin(self, manifest_hash):
+        """The release-pin entry pinning `manifest_hash` — one exact release — or None."""
+        return self.release_pins.get(manifest_hash) if isinstance(manifest_hash, str) else None
+
+    def scope_releases(self, release_scope):
+        """Every release of the family `release_scope`, oldest first (chain order); [] when none."""
+        releases = self.release_families.get(release_scope) if isinstance(release_scope, str) else None
+        return list(releases or ())
+
+    def scope_head(self, release_scope):
+        """The current release of the family `release_scope` — its last in chain order — or None."""
+        releases = self.scope_releases(release_scope)
+        return releases[-1] if releases else None
 
     def channel_head(self, channel):
-        """The head release-pin of `channel` — the entry naming its current release scope — or None."""
+        """The head of `channel` — the release-pin of the channel's current release — or None."""
         chain = self.release_channels.get(channel) if isinstance(channel, str) else None
         return chain[-1] if chain else None
 
@@ -768,9 +811,10 @@ def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_uns
 
 
 # ---------------------------------------------------------------------------------------
-# §13.5 release pins, release manifests, and verified snapshots. A `release-pin` entry pins
-# one release scope's manifest by particle hash; the manifest pins every component file by
-# raw SHA-256 and length at an immutable commit; a verified snapshot is exactly those files.
+# §13.5 release pins, release manifests, and verified snapshots. A release scope names a release
+# family; a `release-pin` entry pins one immutable release of it — one manifest by particle hash;
+# the manifest pins every component file by raw SHA-256 and length at an immutable commit; a
+# verified snapshot of one release is exactly those files.
 MANIFEST_SCHEMA = "rapp/1-release-manifest"
 MANIFEST_MEMBERS = ("schema", "release_scope", "components")
 COMPONENT_MEMBERS = ("id", "kind", "rappid", "identity_path", "repository", "object_format",
@@ -794,15 +838,18 @@ def _object_id(object_format, value):
 
 
 def _validate_release_pin(entry, where):
-    """The §13.3 release-pin members. Scope uniqueness and channels span entries (Registry)."""
+    """The §13.3 release-pin members. Uniqueness, channels, families, and kernel order span
+    entries, so `Registry` checks those."""
     for member in ("release_scope", "repository"):
         if not _HTTPS.fullmatch(_str(entry, member, where)):
             raise RegistryError(f"{where}: `{member}` must be an absolute HTTPS URI")
     if not _lclabel(entry.get("channel"), 64):
         raise RegistryError(f"{where}: `channel` must be an lclabel of 1-64 characters")
     named = entry.get("predecessor")
-    if named is not None and not (isinstance(named, str) and _HTTPS.fullmatch(named)):
-        raise RegistryError(f"{where}: `predecessor` must be null or an earlier release-pin's release_scope")
+    if named is not None and not (isinstance(named, str) and _HEX64.fullmatch(named)):
+        raise RegistryError(
+            f"{where}: `predecessor` must be null or the manifest_hash of the release-pin it follows"
+        )
     _hex64(entry, "manifest_hash", where)
     if entry.get("object_format") not in ("sha1", "sha256"):
         raise RegistryError(f"{where}: `object_format` must be sha1 or sha256")
@@ -914,10 +961,11 @@ def validate_release_manifest(manifest):
 def check_kernel_coherence(registry, manifest):
     """§13.5 kernel coherence of `manifest` against `registry`. Returns (ok, why).
 
-    With a `grail-kernel` entry for the manifest's release_scope, exactly one `kernel`
-    component must carry that entry's repository, object_format, commit, and immutable_ref and
-    pin its path with its sha256 and size_bytes; without one, no component may be a `kernel`.
-    A manifest that fails `validate_release_manifest` is not coherent."""
+    With a `grail-kernel` entry for the manifest's release_scope — its family's one kernel —
+    exactly one `kernel` component must carry that entry's repository, object_format, commit,
+    and immutable_ref and pin its path with its sha256 and size_bytes; without one, no
+    component may be a `kernel`. Members compare byte for byte. A manifest that fails
+    `validate_release_manifest` is not coherent."""
     try:
         validate_release_manifest(manifest)
     except RegistryError as why:
@@ -934,7 +982,7 @@ def check_kernel_coherence(registry, manifest):
     kernel = kernels[0]
     for member in ("repository", "object_format", "commit", "immutable_ref"):
         if kernel[member] != grail[member]:
-            return False, f"kernel component `{member}` differs from the scope's grail-kernel entry (§13.5)"
+            return False, f"kernel component `{member}` differs from the family's grail-kernel entry (§13.5)"
     pinned = [f for f in kernel["files"] if f["path"] == grail["path"]]
     if not pinned:
         return False, "kernel component does not pin the grail-kernel path (§13.5)"
@@ -943,16 +991,28 @@ def check_kernel_coherence(registry, manifest):
     return True, "ok"
 
 
-def verify_release_manifest(registry, release_scope, manifest_octets):
-    """§13.5 snapshot step 2 for one release scope: the exact pinned manifest, or RegistryError.
+def _registry_release_pin(registry, pin):
+    """`pin` as one of `registry`'s own release-pin entries, byte for byte, or RegistryError."""
+    try:
+        own = registry.release_pin(pin.get("manifest_hash")) if isinstance(pin, dict) else None
+        same = own is not None and R.canonical(own) == R.canonical(pin)
+    except (ValueError, RecursionError):
+        same = False
+    if not same:
+        raise RegistryError("the release-pin is not an entry of this registry, byte for byte (§13.5)")
+    return own
 
-    `manifest_octets` are whatever bytes a transport returned for the release-pin's locator;
-    the transport is never trusted. They must be exactly canonical(manifest), hash to the
-    entry's `manifest_hash`, name `release_scope`, pass `validate_release_manifest`, and be
-    coherent with the scope's grail-kernel entry."""
-    entry = registry.release_pin(release_scope)
-    if entry is None:
-        raise RegistryError(f"no release-pin entry for release_scope {release_scope!r} (§13.5)")
+
+def verify_release_manifest(registry, pin, manifest_octets):
+    """§13.5 snapshot step 2 for one release: the exact manifest `pin` pins, or RegistryError.
+
+    `pin` is one of `registry`'s release-pin entries (an exact copy from elsewhere is the same
+    entry; any other value is refused). `manifest_octets` are whatever bytes a transport
+    returned for the pin's locator; the transport is never trusted. They must be exactly
+    canonical(manifest), hash to the pin's `manifest_hash`, name the pin's `release_scope`,
+    pass `validate_release_manifest`, and be coherent with that family's grail-kernel entry.
+    The registry's own verification is `verify_snapshot`'s step 1, not this function's."""
+    entry = _registry_release_pin(registry, pin)
     if not isinstance(manifest_octets, bytes):
         raise RegistryError("release manifest octets must be bytes")
     try:
@@ -967,8 +1027,8 @@ def verify_release_manifest(registry, release_scope, manifest_octets):
         )
     if R.H("rapp/1:particle", manifest) != entry["manifest_hash"]:
         raise RegistryError("release manifest does not hash to the release-pin's manifest_hash (§13.5)")
-    if not isinstance(manifest, dict) or manifest.get("release_scope") != release_scope:
-        raise RegistryError("release manifest names a different release_scope (§13.5)")
+    if not isinstance(manifest, dict) or manifest.get("release_scope") != entry["release_scope"]:
+        raise RegistryError("release manifest names a release_scope other than its release-pin's (§13.5)")
     validate_release_manifest(manifest)
     ok, why = check_kernel_coherence(registry, manifest)
     if not ok:
@@ -1025,17 +1085,40 @@ def _door_of_record_mismatch(component, octets):
     return None
 
 
-def verify_snapshot(registry, release_scope, fetch, *, allow_draft=False):
-    """The §13.5 verified snapshot of one release scope: {(component_id, path): octets}.
+def _select_release(registry, release_scope, channel, manifest_hash):
+    """§13.5 step 1's selection: the one release-pin named by exactly one selector."""
+    given = [value for value in (release_scope, channel, manifest_hash) if value is not None]
+    if len(given) != 1:
+        raise RegistryError(
+            "select exactly one release: release_scope= (a family's current release), channel= "
+            "(a channel's head), or manifest_hash= (one exact release) (§13.5 step 1)"
+        )
+    if release_scope is not None:
+        pin, named = registry.scope_head(release_scope), f"release_scope {release_scope!r}"
+    elif channel is not None:
+        pin, named = registry.channel_head(channel), f"channel {channel!r}"
+    else:
+        pin, named = registry.release_pin(manifest_hash), f"manifest_hash {manifest_hash!r}"
+    if pin is None:
+        raise RegistryError(f"no release-pin entry for {named} (§13.5)")
+    return pin
 
-    `registry` must be one `load_document` returned as "verified"; a "draft" is accepted
-    only with `allow_draft=True`, for rehearsal, and a Registry built directly (status None)
-    never. `fetch(repository, object_format, commit, path) -> bytes` is any transport (git, a
-    mirror, `github_raw_url`) and is never trusted: it is called once for the release-pin's
-    manifest locator and once per pinned file, and every returned byte is checked against
-    the manifest. Refusal is whole: any failure raises RegistryError and returns nothing.
-    What only git can prove — that an `immutable_ref` resolves to its `commit`, or the commit
-    of a component whose `files` is empty — is left to a git-capable verifier."""
+
+def verify_snapshot(registry, fetch, *, release_scope=None, channel=None, manifest_hash=None,
+                    allow_draft=False):
+    """The §13.5 verified snapshot of one release: {(component_id, path): octets}.
+
+    Select the release with exactly one of `release_scope=` (that family's current release),
+    `channel=` (that channel's head), or `manifest_hash=` (that exact release, current or not:
+    release-pins are persisted, so every pinned release stays verifiable). `registry` must be
+    one `load_document` returned as "verified"; a "draft" is accepted only with
+    `allow_draft=True`, for rehearsal, and a Registry built directly (status None) never.
+    `fetch(repository, object_format, commit, path) -> bytes` is any transport (git, a mirror,
+    `github_raw_url`) and is never trusted: it is called once for the release-pin's manifest
+    locator and once per pinned file, and every returned byte is checked against the manifest.
+    Refusal is whole: any failure raises RegistryError and returns nothing. What only git can
+    prove — that an `immutable_ref` resolves to its `commit`, or the commit of a component
+    whose `files` is empty — is left to a git-capable verifier."""
     accepted = ("verified", "draft") if allow_draft else ("verified",)
     status = getattr(registry, "status", None)
     if status not in accepted:
@@ -1043,11 +1126,9 @@ def verify_snapshot(registry, release_scope, fetch, *, allow_draft=False):
             f"registry status is {status!r}; a verified snapshot needs a registry that "
             f"load_document returned as {' or '.join(accepted)} (§13.5 step 1)"
         )
-    entry = registry.release_pin(release_scope)
-    if entry is None:
-        raise RegistryError(f"no release-pin entry for release_scope {release_scope!r} (§13.5)")
+    entry = _select_release(registry, release_scope, channel, manifest_hash)
     manifest = verify_release_manifest(
-        registry, release_scope, _fetch_pinned(fetch, entry, entry["path"], "release manifest")
+        registry, entry, _fetch_pinned(fetch, entry, entry["path"], "release manifest")
     )
     snapshot = {}
     for component in manifest["components"]:

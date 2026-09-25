@@ -134,11 +134,11 @@ def _grail(owner, scope="https://releases.example.test/scope/lts"):
             "activated_utc": T0, "predecessor": None, "declared_by": owner, "sig": SIG}
 
 
-# §13.5 release pins: one synthetic estate's release scopes, repositories, and files.
-LTS_1 = "https://releases.example.test/vector/lts/1"
-LTS_2 = "https://releases.example.test/vector/lts/2"
-LTS_3 = "https://releases.example.test/vector/lts/3"
-NEWEST_1 = "https://releases.example.test/vector/newest/1"
+# §13.5 release families: a release scope names one family, bound to at most one kernel forever, and
+# each immutable release of a family is one release-pin naming its manifest by manifest_hash.
+LTS = "https://releases.example.test/vector/1.0"    # the family of kernel 1.0.0-lts; channel lts
+NEW_2 = "https://releases.example.test/vector/2.0"  # a family of channel newest
+NEW_3 = "https://releases.example.test/vector/3.0"  # the family channel newest moves on to
 GIT = "https://git.example.test/vector/"
 KERNEL_FILES = {
     "kernel/VERSION": b"1.0.0-lts\n",
@@ -169,22 +169,25 @@ def _kernel_component():
                       immutable_ref="refs/tags/brainstem-v1.0.0-lts")
 
 
-def _release_files():
+def _release_files(fix=0):
+    """The component files of one release; a correction (`fix` > 0) changes organism-alpha only."""
     alpha, beta = _keyless("organism-alpha", 1), _keyless("organism-beta", 2)
+    soul = b"# organism alpha\n" if not fix else b"# organism alpha, correction %d\n" % fix
     return alpha, beta, {
         "brainstem": KERNEL_FILES,
         "organism-alpha": {"rappid.json": R.canonical({"rappid": alpha, "schema": "rapp/1"}).encode(),
-                           "soul.md": b"# organism alpha\n"},
+                           "soul.md": soul},
         "organism-beta": {"agents/beta_agent.py": b"# organism beta agent\n",
                           "rappid.json": R.canonical({"rappid": beta, "schema": "rapp/1"}).encode()},
         "rapp-1": {"SPEC.md": b"# Synthetic protocol text\n"},
     }
 
 
-def _release_manifest(scope=LTS_1, compact=False):
-    alpha, beta, files = _release_files()
+def _release_manifest(scope=LTS, compact=False, fix=0):
+    alpha, beta, files = _release_files(fix)
+    alpha_commit = "5" * 40 if not fix else ("5%x" % fix) * 20
     components = [
-        _component("organism-alpha", "organism", "alpha", "5" * 40, files["organism-alpha"],
+        _component("organism-alpha", "organism", "alpha", alpha_commit, files["organism-alpha"],
                    rappid=alpha, identity_path="rappid.json"),
         _component("rapp-1", "protocol", "protocol", "4" * 40, files["rapp-1"],
                    immutable_ref="refs/tags/rev-17"),
@@ -196,7 +199,7 @@ def _release_manifest(scope=LTS_1, compact=False):
     return {"schema": REG.MANIFEST_SCHEMA, "release_scope": scope, "components": components}
 
 
-def _release_grail(owner, scope=LTS_1):
+def _release_grail(owner, scope=LTS):
     kernel = KERNEL_FILES["kernel/brainstem.py"]
     return {"type": "grail-kernel", "release_scope": scope,
             "grail_id": "grail:" + R.Hb("rapp/1:grail", kernel), "repository": GIT + "brainstem",
@@ -206,15 +209,17 @@ def _release_grail(owner, scope=LTS_1):
             "activated_utc": T0, "predecessor": None, "declared_by": owner, "sig": SIG}
 
 
-def _release_pin(owner, scope, manifest_hash=None, channel="lts", predecessor=None,
-                 activated=T0, **changes):
-    """A release-pin entry; without a manifest, its manifest_hash is a per-scope placeholder digest."""
-    manifest_hash = manifest_hash or hashlib.sha256(scope.encode("utf-8")).hexdigest()
-    entry = {"type": "release-pin", "release_scope": scope, "channel": channel,
-             "predecessor": predecessor, "manifest_hash": manifest_hash, "repository": GIT + "releases",
-             "object_format": "sha1", "commit": "3" * 40,
-             "path": "releases/" + scope.rsplit("/vector/", 1)[1].replace("/", "-") + ".json",
-             "activated_utc": activated, "declared_by": owner, "sig": SIG}
+def _placeholder(n):
+    """The manifest_hash of placeholder release `n`; entry cases pin no real manifest."""
+    return hashlib.sha256(b"vector release %d" % n).hexdigest()
+
+
+def _release_pin(owner, scope, manifest_hash, **changes):
+    """One release-pin of the family `scope`; `changes` replace members, and `_DROP` removes one."""
+    entry = {"type": "release-pin", "release_scope": scope, "channel": "lts", "predecessor": None,
+             "manifest_hash": manifest_hash, "repository": GIT + "releases", "object_format": "sha1",
+             "commit": "3" * 40, "path": f"releases/{manifest_hash}.json", "activated_utc": T0,
+             "declared_by": owner, "sig": SIG}
     entry.update(changes)
     return {k: v for k, v in entry.items() if v is not _DROP}
 
@@ -283,9 +288,21 @@ def registry_sections():
         manifest, compact = _release_manifest(), _release_manifest(compact=True)
         octets = R.canonical(manifest).encode("utf-8")
         grail = _release_grail(owner)
-        pin = _release_pin(owner, LTS_1, R.H("rapp/1:particle", manifest))
-        pinned_registry = REG.Registry(base + [grail, pin])
-        assert REG.verify_release_manifest(pinned_registry, LTS_1, octets) == manifest
+        pin = _release_pin(owner, LTS, R.H("rapp/1:particle", manifest))
+        correction = _release_manifest(fix=1)
+        correction_pin = _release_pin(owner, LTS, R.H("rapp/1:particle", correction),
+                                      predecessor=pin["manifest_hash"], activated_utc=LATER)
+        assert correction["components"][0] == manifest["components"][0]  # a correction keeps the kernel
+        pinned_registry = REG.Registry(base + [grail, pin, correction_pin])
+        assert REG.verify_release_manifest(pinned_registry, pin, octets) == manifest
+        assert REG.verify_release_manifest(
+            pinned_registry, correction_pin, R.canonical(correction).encode("utf-8")) == correction
+
+        def order(registry):
+            """Each channel's and each family's releases in chain order; the last is current."""
+            def hashes(chains):
+                return {key: [e["manifest_hash"] for e in chain] for key, chain in sorted(chains.items())}
+            return hashes(registry.release_channels), hashes(registry.release_families)
 
         def manifest_case(label, change, intended):
             value = _changed(compact, change)
@@ -310,7 +327,7 @@ def registry_sections():
             manifest_case("an extra top-level member", lambda m: m.update(note="x"), "refuse"),
             manifest_case("another schema", lambda m: m.update(schema="rapp/1-release-manifest-v2"), "refuse"),
             manifest_case("a release_scope that is not an absolute HTTPS URI",
-                          lambda m: m.update(release_scope="http://releases.example.test/vector/lts/1"), "refuse"),
+                          lambda m: m.update(release_scope="http://releases.example.test/vector/1.0"), "refuse"),
             manifest_case("no components", lambda m: m.update(components=[]), "refuse"),
             manifest_case("components out of id order", lambda m: m["components"].reverse(), "refuse"),
             manifest_case("a duplicate component id",
@@ -338,70 +355,96 @@ def registry_sections():
                           "refuse"),
         ]
 
-        def octets_case(label, entries, data, intended):
-            expect = _verdict(lambda: REG.verify_release_manifest(REG.Registry(entries), LTS_1, data))
+        def octets_case(label, entries, manifest_hash, data, intended):
+            def decide():
+                registry = REG.Registry(entries)
+                return REG.verify_release_manifest(registry, registry.release_pin(manifest_hash), data)
+            expect = _verdict(decide)
             assert expect == intended, label
-            return {"label": label, "entries": entries, "release_scope": LTS_1, "octets_hex": data.hex(),
+            return {"label": label, "entries": entries, "manifest_hash": manifest_hash, "octets_hex": data.hex(),
                     "expect": expect}
 
+        compact_hash = R.H("rapp/1:particle", compact)
         compact_octets = R.canonical(compact).encode("utf-8")
-        pinned = base + [_release_pin(owner, LTS_1, R.H("rapp/1:particle", compact))]
-        foreign = _release_manifest(LTS_2, compact=True)
+        compact_fix = _release_manifest(compact=True, fix=1)
+        pinned = base + [_release_pin(owner, LTS, compact_hash)]
+        corrected = pinned + [_release_pin(owner, LTS, R.H("rapp/1:particle", compact_fix),
+                                           predecessor=compact_hash, activated_utc=LATER)]
+        foreign = _release_manifest(NEW_2, compact=True)
         other = _changed(compact, component(1, commit="7" * 40))
         octets_cases = [
-            octets_case("exactly canonical(manifest)", pinned, compact_octets, "accept"),
-            octets_case("pretty-printed", pinned, json.dumps(compact, indent=2, sort_keys=True).encode("utf-8"),
+            octets_case("exactly canonical(manifest)", pinned, compact_hash, compact_octets, "accept"),
+            octets_case("pretty-printed", pinned, compact_hash,
+                        json.dumps(compact, indent=2, sort_keys=True).encode("utf-8"), "refuse"),
+            octets_case("a trailing line terminator", pinned, compact_hash, compact_octets + b"\n", "refuse"),
+            octets_case("a UTF-8 byte-order mark", pinned, compact_hash, b"\xef\xbb\xbf" + compact_octets,
                         "refuse"),
-            octets_case("a trailing line terminator", pinned, compact_octets + b"\n", "refuse"),
-            octets_case("a UTF-8 byte-order mark", pinned, b"\xef\xbb\xbf" + compact_octets, "refuse"),
-            octets_case("the canonical bytes of a manifest other than the pinned one", pinned,
+            octets_case("the canonical bytes of a manifest other than the pinned one", pinned, compact_hash,
                         R.canonical(other).encode("utf-8"), "refuse"),
             octets_case("the pinned manifest names another release_scope",
-                        base + [_release_pin(owner, LTS_1, R.H("rapp/1:particle", foreign))],
-                        R.canonical(foreign).encode("utf-8"), "refuse"),
-            octets_case("no release-pin for the release_scope", base, compact_octets, "refuse"),
+                        base + [_release_pin(owner, LTS, R.H("rapp/1:particle", foreign))],
+                        R.H("rapp/1:particle", foreign), R.canonical(foreign).encode("utf-8"), "refuse"),
+            octets_case("no release-pin pins the manifest_hash", base, compact_hash, compact_octets, "refuse"),
+            octets_case("an earlier release of the family, selected by its manifest_hash after a correction",
+                        corrected, compact_hash, compact_octets, "accept"),
+            octets_case("the correction's octets for the earlier release's manifest_hash", corrected, compact_hash,
+                        R.canonical(compact_fix).encode("utf-8"), "refuse"),
         ]
 
         def entry_case(label, entries, intended):
             entries = base + entries
             expect = _verdict(lambda: REG.Registry(entries))
             assert expect == intended, label
-            heads = None
+            channels = families = None
             if expect == "accept":
-                registry = REG.Registry(entries)
-                heads = {c: registry.channel_head(c)["release_scope"] for c in sorted(registry.release_channels)}
-            return {"label": label, "entries": entries, "expect": expect, "heads": heads}
+                channels, families = order(REG.Registry(entries))
+            return {"label": label, "entries": entries, "expect": expect, "channels": channels,
+                    "families": families}
 
-        def rp(scope, **changes):
-            return _release_pin(owner, scope, **changes)
+        def rp(n, scope=LTS, after=None, **changes):
+            changes.setdefault("predecessor", None if after is None else _placeholder(after))
+            return _release_pin(owner, scope, _placeholder(n), **changes)
 
+        newest = {"channel": "newest"}
         entry_cases = [
-            entry_case("two channels; lts carries three scopes",
-                       [rp(LTS_1), rp(NEWEST_1, channel="newest"), rp(LTS_2, predecessor=LTS_1, activated=LATER),
-                        rp(LTS_3, predecessor=LTS_2, activated=LATER)], "accept"),
-            entry_case("equal activation times in one channel", [rp(LTS_1), rp(LTS_2, predecessor=LTS_1)], "accept"),
-            entry_case("a release-pin shares its scope with the scope's grail-kernel", [grail, rp(LTS_1)], "accept"),
-            entry_case("two release-pins with one release_scope", [rp(LTS_1), rp(LTS_1, channel="newest")], "refuse"),
-            entry_case("a fork: two successors of one scope",
-                       [rp(LTS_1), rp(LTS_2, predecessor=LTS_1), rp(LTS_3, predecessor=LTS_1)], "refuse"),
-            entry_case("two first entries in one channel", [rp(LTS_1), rp(LTS_2)], "refuse"),
-            entry_case("a predecessor appended after its successor", [rp(LTS_2, predecessor=LTS_1), rp(LTS_1)],
+            entry_case("an lts family with two corrections beside a newest channel",
+                       [rp(1), rp(4, NEW_2, **newest), rp(2, after=1, activated_utc=LATER),
+                        rp(3, after=2, activated_utc=LATER)], "accept"),
+            entry_case("a newest channel moving on from one family to the next",
+                       [rp(4, NEW_2, **newest), rp(5, NEW_2, after=4, **newest),
+                        rp(6, NEW_3, after=5, activated_utc=LATER, **newest)], "accept"),
+            entry_case("equal activation times in one channel", [rp(1), rp(2, after=1)], "accept"),
+            entry_case("a family's grail-kernel before its first release", [grail, rp(1), rp(2, after=1)],
+                       "accept"),
+            entry_case("a grail-kernel for a family that has no release yet", [rp(1), _grail(owner, NEW_2)],
+                       "accept"),
+            entry_case("one release pinned twice, as its own correction", [rp(1), rp(1, after=1)], "refuse"),
+            entry_case("one manifest_hash pinned by two families", [rp(1), rp(1, NEW_2, **newest)], "refuse"),
+            entry_case("one family in two channels", [rp(1), rp(2, **newest)], "refuse"),
+            entry_case("a fork: two releases follow one release", [rp(1), rp(2, after=1), rp(3, after=1)],
                        "refuse"),
-            entry_case("a predecessor in another channel",
-                       [rp(LTS_1), rp(NEWEST_1, channel="newest", predecessor=LTS_1)], "refuse"),
-            entry_case("a predecessor that is no release-pin's release_scope",
-                       [rp(LTS_1), rp(LTS_2, predecessor=LTS_3)], "refuse"),
+            entry_case("two first releases in one channel", [rp(1), rp(2)], "refuse"),
+            entry_case("a predecessor appended after its successor", [rp(2, after=1), rp(1)], "refuse"),
+            entry_case("a predecessor that is a release of another channel",
+                       [rp(1), rp(4, NEW_2, after=1, **newest)], "refuse"),
+            entry_case("a predecessor that no release-pin's manifest_hash names", [rp(1), rp(2, after=3)],
+                       "refuse"),
+            entry_case("a predecessor that names a release_scope, not a manifest_hash",
+                       [rp(1), rp(2, predecessor=LTS)], "refuse"),
             entry_case("a successor activated before its predecessor",
-                       [rp(LTS_1, activated=LATER), rp(LTS_2, predecessor=LTS_1)], "refuse"),
-            entry_case("a channel that is not an lclabel", [rp(LTS_1, channel="LTS")], "refuse"),
-            entry_case("a path outside the §9.1 grammar", [rp(LTS_1, path="releases/lts:1.json")], "refuse"),
-            entry_case("a commit of the wrong length for object_format", [rp(LTS_1, object_format="sha256")],
+                       [rp(1, activated_utc=LATER), rp(2, after=1)], "refuse"),
+            entry_case("a grail-kernel after its family's first release", [rp(1), grail], "refuse"),
+            entry_case("a grail-kernel between two releases of its family", [rp(1), grail, rp(2, after=1)],
                        "refuse"),
-            entry_case("an extra member", [rp(LTS_1, deprecated=False)], "refuse"),
-            entry_case("a missing member", [rp(LTS_1, predecessor=_DROP)], "refuse"),
+            entry_case("a channel that is not an lclabel", [rp(1, channel="LTS")], "refuse"),
+            entry_case("a path outside the §9.1 grammar", [rp(1, path="releases/lts:1.json")], "refuse"),
+            entry_case("a commit of the wrong length for object_format", [rp(1, object_format="sha256")],
+                       "refuse"),
+            entry_case("an extra member", [rp(1, deprecated=False)], "refuse"),
+            entry_case("a missing member", [rp(1, predecessor=_DROP)], "refuse"),
         ]
 
-        kernel_only = {"schema": REG.MANIFEST_SCHEMA, "release_scope": LTS_1, "components": [_kernel_component()]}
+        kernel_only = {"schema": REG.MANIFEST_SCHEMA, "release_scope": LTS, "components": [_kernel_component()]}
         assert kernel_only["components"][0]["files"][2]["path"] == grail["path"]
 
         def coherence_case(label, with_grail, value, intended):
@@ -420,11 +463,13 @@ def registry_sections():
         second_kernel = _changed(kernel_only, lambda m: m["components"].append(
             dict(copy.deepcopy(m["components"][0]), id="brainstem-copy")))
         coherence_cases = [
-            coherence_case("the kernel component equals the scope's grail-kernel", True, kernel_only, "accept"),
+            coherence_case("the kernel component equals the family's grail-kernel", True, kernel_only, "accept"),
             coherence_case("neither a grail-kernel nor a kernel component", False, compact, "accept"),
             coherence_case("a grail-kernel but no kernel component", True, compact, "refuse"),
             coherence_case("two kernel components", True, second_kernel, "refuse"),
             coherence_case("another repository", True, kernel(repository=GIT + "mirror"), "refuse"),
+            coherence_case("the same repository spelled another way", True,
+                           kernel(repository=GIT + "brainstem.git"), "refuse"),
             coherence_case("another object_format", True, kernel(object_format="sha256", commit="1" * 64), "refuse"),
             coherence_case("another commit", True, kernel(commit="9" * 40), "refuse"),
             coherence_case("another immutable_ref", True, kernel(immutable_ref="refs/tags/brainstem-v1.0.1-lts"),
@@ -435,10 +480,12 @@ def registry_sections():
                            "refuse"),
             coherence_case("the grail-kernel path pinned with another length", True, entry_point(size_bytes=1),
                            "refuse"),
-            coherence_case("a kernel component without a grail-kernel for its scope", False, kernel_only, "refuse"),
+            coherence_case("a kernel component without a grail-kernel for its family", False, kernel_only,
+                           "refuse"),
         ]
 
         unsigned_pin = {k: v for k, v in pin.items() if k != "sig"}
+        channels, families = order(pinned_registry)
         return {
             "manifest_schema": REG.MANIFEST_SCHEMA,
             "example": {
@@ -453,10 +500,20 @@ def registry_sections():
                 "release_pin": pin,
                 "release_pin_signing_payload": R.canonical(unsigned_pin),
                 "release_pin_entry_hash": REG.entry_hash(pin),
+                "correction": {
+                    "manifest": correction,
+                    "manifest_hash": R.H("rapp/1:particle", correction),
+                    "release_pin": correction_pin,
+                },
+                "channels": channels,
+                "families": families,
                 "rule": "the release-pin's manifest_hash = H('rapp/1:particle', manifest); the stored manifest "
                         "octets are exactly canonical(manifest), so raw_sha256 is their SHA-256; each file's "
                         "sha256 and size_bytes are the raw SHA-256 and length of octets_utf8's UTF-8 bytes; the "
-                        "verified snapshot is exactly these files, keyed by (component id, path)",
+                        "verified snapshot is exactly these files, keyed by (component id, path). The correction "
+                        "is the family's next release: its predecessor is the first release's manifest_hash, its "
+                        "kernel component is the same, and it becomes the head of channel lts and the family's "
+                        "current release while the first release stays verifiable by its manifest_hash",
             },
             "manifest_cases": manifest_cases,
             "octets_cases": octets_cases,

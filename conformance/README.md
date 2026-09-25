@@ -29,7 +29,7 @@ reach; the section name is the SPEC subsection it proves:
 |---|---|
 | `13_1_document` | accept or refuse each `document` exactly as §13.1 and §13.3 require (container and member shapes) |
 | `13_4_declared` | the exact `signing_payload` and `entry_hash` for `example.entry`; the declared and persisted entry types |
-| `13_release_pin` | the exact `canonical`, `manifest_hash`, and `raw_sha256` of `example.manifest` and each `example.files` digest; accept or refuse every `manifest_cases`, `octets_cases`, `entry_cases` (with their channel `heads`), and `kernel_coherence_cases` entry exactly as §13.3 and §13.5 require |
+| `13_release_pin` | the exact `canonical`, `manifest_hash`, and `raw_sha256` of `example.manifest`, each `example.files` digest, and `example.correction.manifest_hash`; accept or refuse every `manifest_cases`, `octets_cases` (the release selected by `manifest_hash`), `entry_cases`, and `kernel_coherence_cases` entry exactly as §13.3 and §13.5 require; and reproduce `channels` and `families` — each channel's and each release family's `manifest_hash`es in chain order, the last being the channel's head or the family's current release — for each accepted entry case and for `example.release_pin` followed by `example.correction.release_pin` |
 
 Signatures in the registry vectors are opaque placeholders. Signature verification needs a
 real key, so prove your §10 and §13.4 checks with your own keys; `registry_conformance.py`

@@ -657,7 +657,7 @@ def revision_payload(
     }
     payload["vocabulary"]["release-pin"] = {
         "status": "live",
-        "where": "§13.5 — the declared entry pinning one release scope's manifest",
+        "where": "§13.5 — the declared entry pinning one immutable release of a release family",
     }
     payload["vocabulary"]["release-manifest"] = {
         "status": "live",
@@ -665,7 +665,7 @@ def revision_payload(
     }
     payload["vocabulary"]["release-channel"] = {
         "status": "live",
-        "where": "§13.5 — an owner-named linear chain of release scopes; its head is current",
+        "where": "§13.5 — an owner-named linear chain of releases; its head is current",
     }
     rules = [
         {
@@ -745,9 +745,18 @@ def revision_payload(
         {
             "t": "fact",
             "c": (
-                "A release-pin entry pins one release scope's rapp/1-release-manifest by particle hash; "
-                "the manifest pins every component file by SHA-256 and length at an immutable commit and "
-                "binds each organism's door of record to one repository and commit."
+                "A release scope names a release family bound to at most one Grail kernel; each "
+                "release-pin entry pins one immutable release of it by the particle hash of its "
+                "rapp/1-release-manifest, which pins every component file by SHA-256 and length at an "
+                "immutable commit and binds each organism's door of record to one repository and commit."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "No release is ever rebound: a correction is a new release appended to its family's "
+                "channel, a family's grail-kernel precedes its first release, and every earlier release "
+                "stays verifiable by its manifest_hash."
             ),
         },
         {
