@@ -731,7 +731,8 @@ def revision_payload(
             "t": "gotcha",
             "c": (
                 "A valid registry signature never blesses a declared entry: each one carries its own "
-                "owner signature at its activated_utc, and persisted ones are retained byte-for-byte."
+                "owner signature at its activated_utc and is retained byte-for-byte once accepted; a "
+                "copy counts only when an accepted registry carries it byte-for-byte."
             ),
         },
         {

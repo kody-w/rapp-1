@@ -551,11 +551,11 @@ class GrantDeclarationTests(Base):
         self.assertEqual(self.load([self.grant(activated_utc="2026-07-01T00:05:00.001Z")],
                                    verification_utc=T0)[0], "refused")
 
-    def test_grants_are_declared_but_not_persisted(self):
+    def test_grants_are_declared_and_persisted(self):
         self.assertIn("stream-signer", REG.DECLARED_TYPES)
-        self.assertNotIn("stream-signer", REG.PERSISTED_TYPES)
+        self.assertIn("stream-signer", REG.PERSISTED_TYPES)
         entry = self.grant()
-        self.assertEqual(self.load([entry], persisted_entries=[entry])[0], "refused")
+        self.assertEqual(self.load([entry], persisted_entries=[entry])[0], "verified")
 
     def test_an_exact_copy_verifies_apart_from_its_document(self):
         entry = self.grant()
