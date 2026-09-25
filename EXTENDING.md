@@ -57,7 +57,10 @@ your registry. `Registry.verify_authorized_frame(frame, head=…, stream_id_of_r
 §7.5 that way, kind binding included, and then §13.5: a valid frame whose signer is neither
 your owner nor granted its stream, kind, and time fails at step `"authority"`, never at a §7.5
 step, and `Registry.authorization_verifier()` hands the same rule to a profile's
-`authorization_verifier`. Signature verification itself uses the optional `cryptography` import
+`authorization_verifier`. §13.5 binds a consumer that follows no profile-defined signer rule; a
+profile with its own (`rapp-work/1` §1, a `rapp-cicd/1` stage approver) keeps it and may meet it
+this way. A grant may start before its `activated_utc` and so adopt frames already published in
+its window. Signature verification itself uses the optional `cryptography` import
 inside `rapp.verify_detached_jws`; without it, signed artifacts are refused, never
 assumed.
 

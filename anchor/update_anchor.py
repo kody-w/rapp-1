@@ -739,15 +739,17 @@ def revision_payload(
             "t": "fact",
             "c": (
                 "A stream-signer entry is the estate owner's grant that one keyed signer speaks for the "
-                "estate on one stream, for the listed kinds, from since_utc until an optional until_utc; "
-                "a keyless organism's streams gain a signer that way without re-anchoring the organism."
+                "estate on one stream, for the listed kinds, from since_utc (which may precede its "
+                "activated_utc) until an optional until_utc; a keyless organism's streams gain a signer "
+                "that way without re-anchoring the organism."
             ),
         },
         {
             "t": "gotcha",
             "c": (
-                "A §7.5-valid signature is not the estate's word: require the owner or a stream-signer "
-                "grant for the stream, kind, and time; unsigned frames never speak for the estate."
+                "A §7.5-valid signature is not the estate's word: unless a profile defines the payload's "
+                "signers, require the owner or a stream-signer grant for the stream, kind, and time; "
+                "unsigned frames never speak for the estate."
             ),
         },
     ]

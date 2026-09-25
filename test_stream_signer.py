@@ -117,6 +117,7 @@ class GrantStructureTests(Base):
         reg = self.registry([grant])
         self.assertEqual(reg.stream_signers, {self.station: [grant]})
         self.assertEqual(reg.stream_grants(self.station), [grant])
+        self.assertIsNone(reg.registered_genesis(self.station))  # a grant needs no genesis entry
 
     def test_stream_id_must_have_a_stream_form(self):
         for value in ("", "net:", "net:Wire", "rappid:@test/station", self.station + ":", "body", 7, None):
@@ -247,6 +248,23 @@ class AuthorityTests(Base):
         split = self.registry([self.grant(until_utc=INSIDE), self.grant(since_utc=ROTATED, until_utc=None)])
         verdicts = [split.frame_authorized(self.pulse(utc))[0] for utc in (SINCE, INSIDE, ROTATED, FAR)]
         self.assertEqual(verdicts, [True, False, True, True])
+
+    def test_a_backdated_grant_adopts_frames_already_published_in_its_window(self):
+        first = self.pulse(SINCE)  # signed and published while no grant exists
+        second = self.pulse(LAST, head=first)
+        self.assertEqual(self.verify(self.registry(), first)[:2], (False, "authority"))
+        grant = self.grant(activated_utc=LATER)  # declared after the whole window has passed
+        self.assertTrue(grant["since_utc"] < grant["until_utc"] < grant["activated_utc"])
+        status, reg, why = self.load([grant], verification_utc=LATER)
+        self.assertEqual((status, why), ("verified", "ok"))
+        self.assertEqual(self.verify(reg, first), (True, None, "stream-signer grant"))
+        self.assertEqual(self.verify(reg, second, head=first), (True, None, "stream-signer grant"))
+        ok, why = reg.frame_authorized(self.pulse(LATER, head=second))
+        self.assertFalse(ok)  # the window bounds what it adopts, not activated_utc
+        self.assertIn("window", why)
+        straddling = self.registry([self.grant(activated_utc=INSIDE, until_utc=None)])
+        self.assertEqual([straddling.frame_authorized(self.pulse(utc))[0] for utc in (BEFORE, SINCE, INSIDE, FAR)],
+                         [False, True, True, True])
 
     def test_a_kind_the_grant_does_not_list_is_refused(self):
         reg = self.registry([self.grant(kinds=["body.notice", "body.pulse"])])
@@ -503,6 +521,40 @@ class ProfileAuthorizationTests(Base):
         self.assertIs(verifier(self.pulse(INSIDE), "any purpose"), True)
         self.assertIs(verifier(self.pulse(INSIDE, signer="crawler"), "test-pulse"), False)
 
+    def test_a_profile_defined_signer_rule_is_kept(self):
+        # §13.5 binds only a consumer with no profile-defined signer rule; a profile's own rule (here
+        # a stage-approver set) keeps governing its payload, with or without a grant.
+        reg = self.registry([self.grant()])
+        payload = {"schema": "test-pulse/1", "crawl": 1}
+        approvers = {self.keys["crawler"]}
+
+        def approver(frame, purpose=None):
+            return R.parse_detached_jws(frame["sig"])[0]["kid"] in approvers
+
+        def accept(frame, rule):
+            with self.estate.mocked():
+                return P.authoritative_frame_payload(
+                    frame, expected_schema="test-pulse/1", purpose="test-pulse", head=None,
+                    stream_id=self.station, registered_kinds=set(reg.kinds),
+                    signature_verifier=reg.signature_verifier(), authorization_verifier=rule,
+                )
+
+        by_approver = self.pulse(INSIDE, payload=payload, signer="crawler")
+        by_grantee = self.pulse(INSIDE, payload=payload)
+        self.assertFalse(reg.frame_authorized(by_approver)[0])
+        self.assertEqual(accept(by_approver, approver), payload)
+        with self.assertRaisesRegex(ValueError, "signer is not authorized"):
+            accept(by_grantee, approver)  # a grant is not the profile's approval
+        approvers.add(self.keys["signer"])
+        grant_check = reg.authorization_verifier()
+
+        def approver_and_grant(frame, purpose=None):  # a profile MAY also require the §13.5 check
+            return approver(frame, purpose) and grant_check(frame, purpose)
+
+        self.assertEqual(accept(by_grantee, approver_and_grant), payload)
+        with self.assertRaisesRegex(ValueError, "signer is not authorized"):
+            accept(by_approver, approver_and_grant)
+
 
 class GrantDeclarationTests(Base):
     def test_an_owner_declared_grant_verifies(self):
@@ -551,11 +603,35 @@ class GrantDeclarationTests(Base):
         self.assertEqual(self.load([self.grant(activated_utc="2026-07-01T00:05:00.001Z")],
                                    verification_utc=T0)[0], "refused")
 
-    def test_grants_are_declared_and_persisted(self):
+    def test_an_accepted_grant_is_retained_byte_for_byte(self):
         self.assertIn("stream-signer", REG.DECLARED_TYPES)
         self.assertIn("stream-signer", REG.PERSISTED_TYPES)
-        entry = self.grant()
-        self.assertEqual(self.load([entry], persisted_entries=[entry])[0], "verified")
+        grant = self.grant()
+        self.assertEqual(self.load([grant])[0], "verified")
+        persisted = [R._strict_json(R.canonical(grant))]  # what the consumer stored on acceptance
+
+        def later(extra):
+            document = self.estate.document(self.base() + list(extra), seq=3)
+            return self.estate.load(document, persisted_seq=2, persisted_entries=persisted)
+
+        self.assertEqual(later([grant])[0], "verified")
+        self.assertEqual(later([grant, self.grant(kinds=["body.notice"])])[0], "verified")  # growth
+        status, _, why = later([])  # dropped, though registry_seq increased
+        self.assertEqual(status, "refused")
+        self.assertIn("removed or mutated", why)
+        # An owner-signed variant in its place is refused too, narrowed as much as widened: a grant
+        # ends early only by the until_utc it was declared with, or by §10 refusing its signer.
+        variants = {"narrowed until_utc": {"until_utc": INSIDE}, "open-ended": {"until_utc": None},
+                    "widened kinds": {"kinds": ["body.notice", "body.pulse"]},
+                    "later since_utc": {"since_utc": ROTATED}, "re-signed, same members": {}}
+        for label, members in variants.items():
+            with self.subTest(label):
+                variant = self.grant(**members)
+                self.assertNotEqual(R.canonical(variant), R.canonical(grant))
+                self.assertEqual(self.load([variant])[0], "verified")  # a valid declaration on its own
+                status, _, why = later([variant])
+                self.assertEqual(status, "refused")
+                self.assertIn("removed or mutated", why)
 
     def test_an_exact_copy_verifies_apart_from_its_document(self):
         entry = self.grant()

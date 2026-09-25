@@ -16,8 +16,9 @@ What is fully specified by §13 and enforced here:
   - owner succession by re-anchor records, owner-in-effect at a time (§13.2);
   - key discovery, superseded-key and tombstone refusal at a time (§10);
   - stream signers (§13.5): each `stream-signer` grant's structure and cross-entry rules,
-    and the authority check above §7.5 — a verified frame speaks for the estate only when
-    its `kid` is the owner in effect or a signer granted its stream, kind, and time;
+    and the authority check above §7.5 for a consumer that follows no profile-defined signer
+    rule — a verified frame speaks for the estate only when its `kid` is the owner in effect
+    or a signer granted its stream, kind, and time;
   - one non-deprecated genesis per stream (§7.6); one grail-kernel per grail_id (§11.1);
   - declared entries (§13.4): each entry-level owner signature at its own
     `activated_utc`, never blessed by the enclosing document signature, and
@@ -722,8 +723,10 @@ class Registry:
 
         Authorized iff `kid` is the estate owner in effect at `utc` (§13.2), or a grant covers
         `stream_id`, `kid`, `kind`, and `utc` — and in both cases §10 does not refuse the key at
-        `utc`. It decides authority, never validity: the frame must already have passed §7.5
-        (see frame_authorized). Pure: it reads only this registry."""
+        `utc`. A grant's `activated_utc` plays no part: a grant may start before it, and then
+        adopts frames the signer already published inside its window. It decides authority,
+        never validity: the frame must already have passed §7.5 (see frame_authorized). Pure:
+        it reads only this registry."""
         if kid is None:
             return False, "an unsigned frame never speaks for the estate (§10, §13.5)"
         if not R.rappid_valid(kid):
@@ -811,7 +814,11 @@ class Registry:
         rapp_profile.authoritative_frame_payload: True only when frame_authorized(frame) holds.
         That helper asks only after its own rapp.verify_frame — pass it
         signature_verifier=self.signature_verifier() — so the signature is verified first, as
-        frame_authorized requires. `purpose` is accepted and never widens authority."""
+        frame_authorized requires. `purpose` is accepted and never widens authority.
+
+        §13.5 binds only a consumer that follows no profile-defined signer rule. A subordinate
+        profile that defines its own signer authorization (rapp-work/1 §1, a rapp-cicd/1 stage
+        approver) keeps it and MAY meet it with this verifier; nothing here replaces that rule."""
         def authorized(frame, purpose=None):
             return self.frame_authorized(frame)[0]
         return authorized

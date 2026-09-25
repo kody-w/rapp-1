@@ -1014,23 +1014,26 @@ even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-ker
 §7.5 step 6 proves that a registry-discoverable key signed a frame; it does not say whether that key
 speaks for the stream. A `stream-signer` entry is the estate's grant that `signer` may sign frames of the
 listed `kinds` on `stream_id` whose `utc` satisfies `since_utc` ≤ `utc` and, unless `until_utc` is `null`,
-`utc` < `until_utc` (bytewise, §7.4).
+`utc` < `until_utc` (bytewise, §7.4). A grant **MAY** start before its `activated_utc`; it then adopts
+frames the signer already published inside its window.
 
-A consumer that relies on a frame as the estate's statement — a network pulse, a notice, a profile
-record — **MUST**, after the frame passes §7.5 including step 6, also require that the frame's `kid` is the
-estate owner in effect at its `utc` (§13.2) or is covered by a `stream-signer` entry of the verified
-registry for that `stream_id`, `kind`, and `utc`. This authority check sits above §7.5: it adds no §7.5
-step, and a frame that fails it is still a valid `rapp/1` frame that does not speak for the estate. An
-unsigned frame never speaks for the estate (§10); its hash chain proves integrity only. A body or memory
-stream may therefore run unsigned (§8) until a signer is granted and carry signed frames after; both stay
-valid links of one chain.
+A consumer that relies on a frame as the estate's statement — a network pulse, a notice — and follows no
+profile-defined signer rule for that payload **MUST**, after the frame passes §7.5 including step 6, also
+require that the frame's `kid` is the estate owner in effect at its `utc` (§13.2) or is covered by a
+`stream-signer` entry of the verified registry for that `stream_id`, `kind`, and `utc`. This authority
+check sits above §7.5: it adds no §7.5 step, and a frame that fails it is still a valid `rapp/1` frame
+that does not speak for the estate. A subordinate profile that defines its own signer authorization (for
+example `rapp-work/1` §1, or a `rapp-cicd/1` stage approver) keeps it and **MAY** meet it with this check.
+An unsigned frame never speaks for the estate (§10); its hash chain proves integrity only. A body or
+memory stream may therefore run unsigned (§8) until a signer is granted and carry signed frames after;
+both stay valid links of one chain.
 
-Grants are permanent records of the registry and are never inherited: one ends at its `until_utc`, or
-earlier when §10 refuses the signer's key at the frame's `utc` (a rotation re-anchor supersedes it; a
-tombstone revokes it), and a rotated signer needs a new grant for its successor rappid. A keyless rappid
-(§6.2) never signs as itself — its tail is no key — so a grant is how a keyed signer speaks on a keyless
-organism's streams without re-anchoring or re-minting that identity; §6.2 and §6.3 are unchanged. A
-profile that requires signer authorization (for example `rapp-work/1` §1) **MAY** meet it with this check.
+Grants are permanent records of the registry (§13.4 retains each one byte-for-byte) and are never
+inherited: one ends at its `until_utc`, or earlier when §10 refuses the signer's key at the frame's `utc`
+(a rotation re-anchor supersedes it; a tombstone revokes it), and a rotated signer needs a new grant for
+its successor rappid. A keyless rappid (§6.2) never signs as itself — its tail is no key — so a grant is
+how a keyed signer speaks on a keyless organism's streams without re-anchoring or re-minting that
+identity; §6.2 and §6.3 are unchanged.
 
 ## 14. Security considerations
 - **Integrity:** every object is domain-separated content-addressed (§5); a hostile mirror cannot alter
@@ -1057,11 +1060,12 @@ profile that requires signer authorization (for example `rapp-work/1` §1) **MAY
   owner signature is checked at its `activated_utc`, so a valid document signature never blesses a forged
   or mutated declaration, a signed declaration that no accepted registry carries is not one, and no
   declaration can be dropped by a later registry (§13.4).
-- **Signer scope:** any registered key can yield a §7.5-valid signature on any stream; only the owner in
-  effect or a `stream-signer` grant makes a frame the estate's statement, so a station, crawler, or careless
-  key cannot speak for another stream (§13.5). Like a tombstone, a grant's window gates on the frame's
-  producer-controlled `utc`, so a signer can still stamp frames just below `until_utc` after that time
-  passes; an owner relying on that end **SHOULD** advance the stream's head past `until_utc`.
+- **Signer scope:** any registered key can yield a §7.5-valid signature on any stream. Where no
+  subordinate profile defines who signs a payload, only the owner in effect or a `stream-signer` grant
+  makes a frame the estate's statement, so a station, crawler, or careless key cannot speak for another
+  stream (§13.5). Like a tombstone, a grant's window gates on the frame's producer-controlled `utc`, so a
+  signer can still stamp frames just below `until_utc` after that time passes; an owner relying on that
+  end **SHOULD** advance the stream's head past `until_utc`.
 - **Producer-controlled `utc` (DoS/merge bias):** a future-dated head can brick a stream (successors refused
   as earlier) and bias UTC-first merges. A consumer **SHOULD** refuse a frame whose `utc` exceeds receipt
   time by >300 s, and adversarial-scope merges **SHOULD** rank by `min(utc, first-seen)`; a bricked stream

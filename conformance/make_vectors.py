@@ -202,6 +202,7 @@ def registry_sections():
 
         since, inside, revoked = "2026-07-10T00:00:00.000Z", "2026-07-20T00:00:00.000Z", "2026-07-25T00:00:00.000Z"
         rotated_at, until = "2026-07-28T00:00:00.000Z", "2026-08-10T00:00:00.000Z"
+        adopted = "2026-09-01T00:00:00.000Z"  # a backdated grant's activated_utc, after its whole window
         station = keyless("station", "5e1f0c2a7b3d4e8f9a6b1c2d3e4f5a6b")
         other = keyless("other-station", "0a1b2c3d4e5f40718293a4b5c6d7e8f9")
         signer, signer_spki = keyed("pulse-signer")
@@ -209,8 +210,10 @@ def registry_sections():
         retired, retired_spki = keyed("retired-signer")
         rotating, rotating_spki = keyed("rotating-signer", deprecated=True)  # §10: a re-anchor retires it
         successor, successor_spki = keyed("rotating-signer-next")
+        backfill, backfill_spki = keyed("backfill-signer")
         unregistered = keyed("unregistered-signer")[0]
-        members = base + [signer_spki, crawler_spki, retired_spki, rotating_spki, successor_spki] + [
+        members = base + [signer_spki, crawler_spki, retired_spki, rotating_spki, successor_spki,
+                          backfill_spki] + [
             {"type": "kind", "kind": kind, "family": family, "deprecated": deprecated}
             for kind, family, deprecated in (
                 ("body.pulse", "body", False), ("body.notice", "body", False),
@@ -244,6 +247,10 @@ def registry_sections():
                        [grant(stream_id="net:wire", kinds=["swarm.echo"])], "accept"),
             grant_case("two grants for one stream and signer",
                        [grant(until_utc=inside), grant(since_utc=revoked, until_utc=None)], "accept"),
+            grant_case("a grant that starts before its activated_utc (§13.5 MAY)",
+                       [grant(activated_utc=inside)], "accept"),
+            grant_case("a grant whose whole window precedes its activated_utc",
+                       [grant(activated_utc=adopted)], "accept"),
             grant_case("a keyless rappid as the signer", [grant(signer=station)], "refuse"),
             grant_case("a keyed signer with no spki entry in this registry", [grant(signer=unregistered)], "refuse"),
             grant_case("a kind that is not registered here", [grant(kinds=["body.heartbeat"])], "refuse"),
@@ -273,6 +280,7 @@ def registry_sections():
             grant(signer=rotating, kinds=["body.pulse"], until_utc=None),
             {"type": "re-anchor", "old_rappid": rotating, "new_rappid": successor, "case": "rotation",
              "utc": rotated_at, "sig": SIG, "old_key_sig": SIG},
+            grant(signer=backfill, kinds=["body.pulse"], activated_utc=adopted),
         ]
         registry = REG.Registry(entries)
 
@@ -302,7 +310,8 @@ def registry_sections():
                 "note": "decide each frame_summary against a registry holding exactly `entries`: authorized iff "
                         "kid is the estate owner in effect at utc (§13.2) or a stream-signer entry names kid as "
                         "signer on stream_id, lists kind, and has since_utc <= utc < until_utc (bytewise; null "
-                        "never ends), and in both cases §10 does not refuse kid's key at utc; kid null means "
+                        "never ends), and in both cases §10 does not refuse kid's key at utc; a grant's "
+                        "activated_utc plays no part (a grant may start before it, §13.5); kid null means "
                         "unsigned and is never authorized. Every frame is assumed to have passed §7.5, step 6 "
                         "included (§13.5); signatures are out of scope for these vectors",
                 "entries": entries,
@@ -339,6 +348,10 @@ def registry_sections():
                              "refused"),
                     decision("its successor, with no grant of its own", station, "body.pulse", rotated_at,
                              successor, "refused"),
+                    decision("a backdated grant adopts a frame published before its activated_utc", station,
+                             "body.pulse", inside, backfill, "authorized"),
+                    decision("a backdated grant at its activated_utc, after its window", station,
+                             "body.pulse", adopted, backfill, "refused"),
                 ],
             },
         }
