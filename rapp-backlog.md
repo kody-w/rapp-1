@@ -39,6 +39,11 @@ internals, customer content and anything a reader here has no business seeing.
       different families. Candidate rule: the first label of a kind is a namespace owned by one
       estate; the convention exists (`acme.*`, `ms-rapp.*`), the rule does not.
 
+- [ ] **`rapp-work/1`: an organization cannot bind a folder Hive (proposal, not accepted).**
+      `work.organization` names one `rapp-hive/1` Hive by RAPPID and `work.vector` records only a
+      `rapp-hive/1` checkpoint; both are closed. Draft, with `rapp-work/1` unchanged:
+      [`protocols/rapp-work/1/proposals/0010-folder-hive-binding.md`](protocols/rapp-work/1/proposals/0010-folder-hive-binding.md).
+
 - [ ] **Egg variants — closed at the protocol or estate-registered?** §9.2 calls the seven
       variants "the ratified set" and `rapp.py` hard-codes `EGG_VARIANTS`; §13.3 defines an
       `egg-variant` registry entry. Both cannot be the rule. A vendor variant is registrable but
