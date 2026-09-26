@@ -361,6 +361,21 @@ class RappCheckDiscoveryTests(unittest.TestCase):
         (repository / "z.json").write_text('{"note": "small"}', encoding="utf-8")
         self.assertEqual(C.check_repo(repository), ("CLEAN", [], []))
 
+    def test_a_release_manifest_over_the_section_4_limit_is_a_finding_not_skipped(self):
+        repository = self.fixture_repo("clean")
+        manifest = {"schema": "rapp/1-release-manifest", "release_scope": "https://releases.example.test/big",
+                    "release": "big", "components": [
+                        {"id": f"c{n}", "kind": "document", "rappid": None, "identity_path": None,
+                         "repository": "https://git.example.test/big", "object_format": "sha1", "commit": "a" * 40,
+                         "immutable_ref": None, "files": [{"path": "README.md", "sha256": "b" * 64, "size_bytes": 1}]}
+                        for n in range(9000)]}
+        self.write_json(repository / "releases" / "big.json", manifest)
+        self.assertGreater((repository / "releases" / "big.json").stat().st_size, R.MAX_CANONICAL_BYTES)
+        verdict, findings, _ = C.check_repo(repository)
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual([(item["artifact"], item["rule"]) for item in findings],
+                         [("releases/big.json", "§13.5 release manifest")])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -992,9 +992,9 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   `manifest_hash` of the `release-pin` this one follows in the same `channel`; `manifest_hash` is
   `H("rapp/1:particle", manifest)` of the release manifest (§13.5), and no two `release-pin` entries share
   it; every `release-pin` of one `release_scope` carries the same `channel`; `repository` (an absolute HTTPS
-  URI), `object_format`, `commit`, and `path` locate the manifest's octets under the `grail-kernel` rules for
-  those members, and `path` also obeys the §9.1 path grammar. It pins every component of one immutable
-  release of its family (§13.5).
+  URI), `object_format` (`"sha1"` or `"sha256"`, fixing the lowercase hexadecimal length of `commit`),
+  `commit`, and `path` (the §9.1 path grammar) locate the manifest's octets, which `manifest_hash` — not a
+  git object id — proves. It pins every component of one immutable release of its family (§13.5).
 - **estate_owner** `{type:"estate_owner", rappid}` (exactly one non-deprecated) · **master-plan**
   `{type:"master-plan", repo, path}` (Fed. Const. Art. VII).
 
@@ -1063,7 +1063,8 @@ that pins every component of that release:
   is an lclabel of 1–100 characters. `kind` is an lclabel of 1–64 characters and an extension point
   (`protocol`, `organism`, `hive`, `repository`, `document`, …); only `kernel` is reserved (below).
   `object_format` fixes the lowercase hexadecimal length of `commit` exactly as for `grail-kernel`; a
-  non-null `immutable_ref` is a full `refs/tags/...` name that **MUST** resolve exactly to `commit`.
+  non-null `immutable_ref` is a full `refs/tags/...` name that **MUST** resolve exactly to `commit` — a
+  claim a git-capable verifier checks (below), not the byte snapshot.
 - `files` is sorted ascending by the UTF-8 bytes of `path`; each `path` obeys the §9.1 path grammar, and no
   two paths of one component are equal case-insensitively or name a file and a directory above it (each
   segment compared after Unicode NFD normalization and full case folding). `sha256` is the raw SHA-256 of
@@ -1116,8 +1117,14 @@ on any failure:
    `manifest_hash` and the manifest's `release_scope` equal to its `release_scope`; then check every rule
    above, including kernel coherence;
 3. obtain every component file at its `commit` — for a GitHub repository,
-   `https://raw.githubusercontent.com/<owner>/<repository>/<commit>/<path>` — and require its length and
-   SHA-256, then check every door-of-record binding.
+   `https://raw.githubusercontent.com/<owner>/<repository>/<commit>/<path>`, each path segment
+   percent-encoded — and require its length and SHA-256, then check every door-of-record binding.
+
+These steps check bytes, so they run over any transport, raw URLs included. What only git can prove —
+that each non-null `immutable_ref` resolves to its `commit`, and the commit of a component whose `files` is
+empty — a git-capable verifier checks separately; a failure there is its own finding about that ref or
+commit, and it neither makes nor breaks a verified snapshot, whose every byte is proven by its pinned
+digest.
 
 The snapshot is exactly the pinned files. Seeds, beacons, estate catalogs, Hive indexes, member pointers,
 and moving-branch (`HEAD`) fetches are locators: they may say where to look, but content reached through
