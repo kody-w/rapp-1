@@ -100,7 +100,8 @@ class LifecycleEntryTests(LifecycleCase):
         bad = {
             "subject": [None, "", ALPHA.upper(), ALPHA.rsplit(":", 1)[0] + ":" + "a" * 32, "@acme/alpha", 7,
                         "acme/alpha", "http://git.example.test/acme/alpha", "https://",
-                        "https://git.example.test/acme/al pha", ["https://git.example.test/acme/alpha"]],
+                        "https://git.example.test/acme/al pha", ["https://git.example.test/acme/alpha"],
+                        "https:///acme/alpha", "https://user@git.example.test/acme/alpha"],
             "state": [None, "", "Active", "retired", "deleted", ["active"]],
             "superseded_by": ["", "http://git.example.test/acme/beta", "acme/beta", "https://",
                               BETA[:-1] + "A", BETA.replace("@", ""), 7],

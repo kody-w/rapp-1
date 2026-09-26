@@ -293,6 +293,7 @@ def registry_sections():
                  [notice("http://git.example.test/vector/handbook", "active")], "`subject`"),
             case("a subject that is a bare owner/repository name", [notice("vector/handbook", "active")],
                  "`subject`"),
+            case("a subject HTTPS URI with no host", [notice("https:///vector/handbook", "active")], "`subject`"),
             case("a state outside the four", [notice(alpha, "retired")], "`state`"),
             case("a superseded_by that is neither a rappid nor an HTTPS URI",
                  [notice(alpha, "deprecated", superseded_by="http://git.example.test/vector/beta")],

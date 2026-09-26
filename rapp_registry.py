@@ -221,7 +221,7 @@ def _hex64(entry, member, where):
 def lifecycle_subject_valid(value):
     """§13.5: a lifecycle subject is a §6.1 rappid (an organism) or an absolute HTTPS URI naming a
     repository (one that carries no rappid of its own). The two forms never overlap."""
-    return R.rappid_valid(value) or (isinstance(value, str) and bool(_HTTPS.fullmatch(value)))
+    return R.rappid_valid(value) or _https_uri(value)
 
 
 def _validate_lifecycle(entry, where):
