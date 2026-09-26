@@ -20,6 +20,7 @@ author:
 normative:
   RFC2119:
   RFC3339:
+  RFC3986:
   RFC5280:
   RFC5869:
   RFC6979:
@@ -48,8 +49,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame 885376fc81fcce10278903ec22b3d590f11dda27ce2a360ecf0d7649da88382e, normative
-SHA-256 09c9859132d07f7fd5353de275e5696c0fba44e0a1dd9e9cf2937f5724f1080c. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame 44fbb797972c822ff696189bd896546a797e02576b794df4f7b6cfec03d8e912, normative
+SHA-256 bda2ba4062d58bb0eb64551a990efed4c8c251a6f2263872713ec8750c5b6913. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -114,6 +115,8 @@ its `activated_utc`; a copy with its canonical form (§4) verifies against the e
 Grail kernel (§11.1, §13.5). **release manifest** — the `rapp/1-release-manifest` object a `release-pin`
 entry pins by particle hash (§13.5). **channel** — an owner-named linear chain of `release-pin` entries
 whose head pins the channel's current release (§13.5).
+**absolute HTTPS URI** — a URI {{RFC3986}} of at most 2048 printable ASCII characters whose scheme is
+`https`, whose host is not empty, and which carries no user information.
 
 # Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **{{RFC8785}} JCS** for the value `v`, defined **only**
@@ -1085,8 +1088,9 @@ that pins every component of that release:
 - The stored manifest's octets **MUST** be exactly `canonical(manifest)` — UTF-8, no byte-order mark, no
   trailing line terminator — so its raw SHA-256 and `manifest_hash` are both reproducible from the bytes.
 - **Door of record.** `rappid` and `identity_path` are both `null` or both non-null. When set,
-  `identity_path` is one of the component's `files`, and those octets parse as a §4 object whose `rappid`
-  member equals the component's `rappid` and whose `schema`, when present, is `"rapp/1"`. Such a component
+  `identity_path` is one of the component's `files`, and those octets are UTF-8 without a byte-order mark
+  and parse as a §4 object whose `rappid` member equals the component's `rappid` and whose `schema`, when
+  present, is `"rapp/1"`. Such a component
   is the estate's signed statement that, within this pinned release, the organism's door of record is
   `repository` at `commit`. A manifest **MUST NOT** bind one rappid in two components. A consumer locating
   that organism for this pinned release **MUST** use this binding, not the rappid's `@owner/slug`, a
