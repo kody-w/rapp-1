@@ -1,6 +1,6 @@
 {
  "schema": "rapp-spec-chain-index/1",
- "generated_utc": "2026-09-26T09:13:57.000Z",
+ "generated_utc": "2026-09-26T10:22:57.000Z",
  "canonical_repository": "https://github.com/kody-w/rapp-1",
  "canonical_ref": "refs/heads/main",
  "chain_path": "anchor/chain.jsonl",
@@ -27,10 +27,10 @@
  "head": {
   "seq": 17,
   "revision": "rev-17",
-  "frame_hash": "749de295fcc42849304e8ac5a83d7a6c6ec329774e837e83614ea4ee6d718a66",
-  "payload_hash": "3e3662a5916fd4256c778c92613c8176ae31d81153880ceda880f0eea6505a87",
-  "normative_sha256": "19be7967e0883b5b9f22809a92d76ee7a738e12c4d4dadeb024cdc3f71ba8ba4",
-  "normative_bytes": 108152
+  "frame_hash": "af62a8b4a7571e08dab01613c84e0d155be8d76f2db4de0f3b3517b9783a91b9",
+  "payload_hash": "8243b3d910db2be33aa55deef16435fbe0422f676a4deddc990a26b38abe0a60",
+  "normative_sha256": "6f466e0ab1808723be01d0c483c1d2c4e7ba80c74ed58c34f0d7a0de37898cae",
+  "normative_bytes": 108668
  },
  "entries": [
   {
@@ -172,9 +172,9 @@
   {
    "seq": 17,
    "revision": "rev-17",
-   "frame_hash": "749de295fcc42849304e8ac5a83d7a6c6ec329774e837e83614ea4ee6d718a66",
-   "payload_hash": "3e3662a5916fd4256c778c92613c8176ae31d81153880ceda880f0eea6505a87",
-   "object_path": "anchor/frames/749de295fcc42849304e8ac5a83d7a6c6ec329774e837e83614ea4ee6d718a66.json",
+   "frame_hash": "af62a8b4a7571e08dab01613c84e0d155be8d76f2db4de0f3b3517b9783a91b9",
+   "payload_hash": "8243b3d910db2be33aa55deef16435fbe0422f676a4deddc990a26b38abe0a60",
+   "object_path": "anchor/frames/af62a8b4a7571e08dab01613c84e0d155be8d76f2db4de0f3b3517b9783a91b9.json",
    "payload_profile": "rapp-spec-revision/1"
   }
  ]
