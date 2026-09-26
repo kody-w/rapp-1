@@ -300,6 +300,7 @@ def registry_sections():
              document(base + [{"type": "vector-future", "critical": "no"}])),
             ("a known entry type may not carry critical",
              document([base[0], dict(base[1], critical=False)])),
+            ("an entry whose type is the empty string", document(base + [{"type": ""}])),
             ("canonical_source with a character RFC 3986 does not allow",
              document(base, canonical_source="https://registry.example.test/<r>.json")),
             ("canonical_source with a port that is not a number",
