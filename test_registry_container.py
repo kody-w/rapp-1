@@ -100,6 +100,48 @@ class RegistryContainerTests(unittest.TestCase):
             REG.validate_document({k: v for k, v in doc.items() if k != "canonical_source"})
 
 
+class DocumentLimitTests(unittest.TestCase):
+    """§4(d) and §3: a registry is one §4 value, and its URIs are absolute HTTPS URIs."""
+
+    def setUp(self):
+        self.estate = MockEstate()
+
+    def draft(self, document):
+        return REG.load_document(document, trust_anchor=self.estate.keys["owner"], allow_unsigned=True)
+
+    def test_a_document_beyond_the_section_4_limits_is_refused(self):
+        base = self.estate.base_entries()
+        kinds = [{"type": "kind", "kind": f"body.k{n}", "family": "body", "deprecated": False}
+                 for n in range(16000)]
+        oversized = self.estate.document(base + kinds, signed=False)
+        self.assertGreater(len(R.canonical(oversized).encode("utf-8")), R.MAX_CANONICAL_BYTES)
+        with self.assertRaisesRegex(REG.RegistryError, "not a §4 value: .*1 MiB"):
+            REG.validate_document(oversized)
+        self.assertEqual(self.draft(oversized)[0], "refused")
+        for depth, expect in ((70, "refused"), (10, "draft")):
+            nested = "x"
+            for _ in range(depth):
+                nested = [nested]
+            with self.subTest(depth=depth):
+                document = self.estate.document(base, signed=False, extra={"note": nested})
+                status, _, why = self.draft(document)
+                self.assertEqual(status, expect, why)
+                if expect == "refused":
+                    self.assertIn("nesting depth exceeds 64", why)
+
+    def test_absolute_https_uris_are_strict(self):
+        base = self.estate.base_entries()
+        for source in ("https:///rapp-registry.json", "https://?x", "https://user@registry.example.test/r.json",
+                       "https://registry.example.test/r json", "https://registry.exämple.test/r.json",
+                       "https://[::1/r.json", "http://registry.example.test/r.json", "https://"):
+            with self.subTest(source=source):
+                with self.assertRaisesRegex(REG.RegistryError, "canonical_source"):
+                    REG.validate_document(self.estate.document(base, signed=False, source=source))
+        for source in ("https://registry.example.test:8443/r.json?v=1#top", "https://[::1]/r.json"):
+            with self.subTest(source=source):
+                self.assertEqual(self.draft(self.estate.document(base, signed=False, source=source))[0], "draft")
+
+
 class ProtocolPinTests(unittest.TestCase):
     def pin(self, spec_hash, deprecated, name="rapp-work/1"):
         return {"type": "protocol", "name": name, "spec_repo": "https://github.com/kody-w/rapp-1",
@@ -310,6 +352,11 @@ class DeclaredEntryTests(unittest.TestCase):
             ok, why = reg.declared_entry_ok(entry, verification_utc=year)
         self.assertFalse(ok)
         self.assertIn("first-seen time: not the fixed §7.4 UTC form", why)
+        # Owner tenure and key acceptability compare times bytewise, so they refuse the form too.
+        with self.assertRaisesRegex(REG.RegistryError, "not the fixed §7.4 UTC form"):
+            reg.owner_at(year)
+        self.assertEqual(reg.signer_acceptable(self.estate.keys["owner"], year),
+                         (False, "the artifact's time is not the fixed §7.4 UTC form"))
 
 
 class LinearChainTests(unittest.TestCase):

@@ -12,9 +12,9 @@ prepared chain snapshot has been accepted onto canonical protected main under
 the transition in §12.2. **Obsoletes / consolidates:**
 `rapp-frame/2.0`, `rapp-frame/2.1`, `rapp-rappid-spec/2.0`, `rapp-protocol/1.0`, all scattered egg specs
 (§9 subsumes them), and `OSI.md`. This is the current materialized view of the single living standard;
-the consolidated specs are retired historical record (Protocol Constitution Article 6). Rev-14 becomes
-the published current revision when the source merge and append-only anchor update carrying these exact
-bytes complete.
+the consolidated specs are retired historical record (Protocol Constitution Article 6). This revision
+becomes the published current revision when the source merge and append-only anchor update carrying these
+exact bytes complete.
 
 **Rides existing standards; invents nothing:** requirement terms [RFC 2119]/[RFC 8174]; JSON restricted to
 I-JSON [RFC 7493] over [RFC 8259]; canonicalization [RFC 8785] (JCS); hashing SHA-256 [FIPS 180-4] with
@@ -83,6 +83,8 @@ the currently served release is immutable even while a separate candidate lineag
 its `activated_utc`; a copy with its canonical form (§4) verifies against the estate's registry (§13.4).
 **stream signer** — a keyed signer an estate has granted, by a `stream-signer` entry, to speak for it on
 one stream (§13.5).
+**absolute HTTPS URI** — a URI [RFC 3986] of at most 2048 printable ASCII characters whose scheme is
+`https`, whose host is not empty, and which carries no user information.
 
 ## 4. Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **[RFC 8785] JCS** for the value `v`, defined **only**
