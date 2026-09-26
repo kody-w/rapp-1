@@ -20,6 +20,7 @@ author:
 normative:
   RFC2119:
   RFC3339:
+  RFC3986:
   RFC5280:
   RFC5869:
   RFC6979:
@@ -48,8 +49,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame 37f61f170909de3a3923b9672775461a6e81a464942b6b58f35b961e29710540, normative
-SHA-256 4e5541d07cca82634c883612e87c0566cb25509b047348a08cd023dca0e7b638. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame 61ecd7034608c29619d04046aa3e1ab55507d36ccf06b8c9487133756347f400, normative
+SHA-256 a37ea243e103bc4a6f50b3e9c5f4aba3d4f486538ffbef1d04fea5d7a7e4b1b4. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -112,6 +113,8 @@ the currently served release is immutable even while a separate candidate lineag
 its `activated_utc`; a copy with its canonical form (§4) verifies against the estate's registry (§13.4).
 **stream signer** — a keyed signer an estate has granted, by a `stream-signer` entry, to speak for it on
 one stream (§13.5).
+**absolute HTTPS URI** — a URI {{RFC3986}} of at most 2048 printable ASCII characters whose scheme is
+`https`, whose host is not empty, and which carries no user information.
 
 # Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **{{RFC8785}} JCS** for the value `v`, defined **only**
