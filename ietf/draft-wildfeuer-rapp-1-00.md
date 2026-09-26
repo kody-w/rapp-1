@@ -50,8 +50,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame 510a8fcaa04a1e937fed428bba9a95e976c7c41e47b3fb62b253ed0abbb6575d, normative
-SHA-256 247d10dd815db03a1b2f4410bb3c4fcdda4540e0f4593961abe8053fa6b1591c. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame 617c59576f77970b85706969544000e3301e7df2019871a33a3814621f21a9fb, normative
+SHA-256 b45de7dbe74ba0bbd5da0bcbfafc07e87aa3ff184cfc7a9a44b84fd127f83825. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
