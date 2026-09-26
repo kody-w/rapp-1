@@ -211,7 +211,9 @@ unverified until the estate that pins this root is anchored". Rev-17 answers bot
   release costs one entry however many components it pins, so spend them on releases and changes: pin
   every LTS correction, pin the newest channel at milestones rather than every build, and declare
   notices only for changes. At that cadence the budget lasts years; a continuation mechanism is recorded
-  in `rapp-backlog.md` for design before an estate approaches the cap.
+  in `rapp-backlog.md` for design before an estate approaches the cap. Publish the registry compact,
+  ideally canonical: §4 measures the canonical form, but the reference reader (`rapp._strict_json`) also
+  refuses input over 1 MiB as stored, and a pretty-printed registry is about an eighth larger.
 
 ## 7. Owner-only choices
 
@@ -336,9 +338,9 @@ reference's.
       ]
     },
     "path": {
-      "description": "ASCII §9.1 path grammar (rapp._path_valid; rev-17 manifests and locators are ASCII): relative POSIX path, no empty/'.'/'..' segment, no '\\\\' or ':' or control character, no segment ending in space or dot, no Windows reserved name, no drive prefix; printable ASCII only (so already NFC)",
+      "description": "ASCII §9.1 path grammar (rapp._path_valid; rev-17 manifests and locators are ASCII): relative POSIX path, no empty/'.'/'..' segment, no '\\\\' or ':' or control character, no segment ending in space or dot, no Windows reserved name, no drive prefix; ASCII only (so already NFC; DEL is allowed, as §9.1 forbids only C0 controls)",
       "type": "string",
-      "pattern": "^(?![A-Za-z]:)(?!\\.\\.?(?:/|$))(?!(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$))[\\x20-\\x2e\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7e]*[\\x21-\\x2d\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7e](?:/(?!\\.\\.?(?:/|$))(?!(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$))[\\x20-\\x2e\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7e]*[\\x21-\\x2d\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7e])*$"
+      "pattern": "^(?![A-Za-z]:)(?!\\.\\.?(?:/|$))(?!(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$))[\\x20-\\x2e\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7f]*[\\x21-\\x2d\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7f](?:/(?!\\.\\.?(?:/|$))(?!(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$))[\\x20-\\x2e\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7f]*[\\x21-\\x2d\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7f])*$"
     },
     "uint53": {
       "description": "written without fraction or exponent (JSON Schema's integer also admits 1.0, which §13.1 refuses)",

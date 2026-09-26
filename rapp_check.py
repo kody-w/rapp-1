@@ -158,6 +158,15 @@ def _oversized_schema(path, size, budget):
         return None
 
 
+def _number_or_json(exc, section):
+    """Why a registry or manifest failed strict parsing: a number the section forbids (a fraction, an
+    exponent, or beyond 2^53-1), else not strict I-JSON (§4)."""
+    text = str(exc)
+    if "floats require" in text or "interoperable range" in text:
+        return f"every number must be an integer written without fraction or exponent, within ±(2^53-1) ({section}): {text}"
+    return f"not strict I-JSON (§4): {text}"
+
+
 def _looks_like_frame(blob):
     """Recognize ambiguous exact Frames without accepting ordinary lookalikes."""
     try:
@@ -439,11 +448,11 @@ def check_repo(root, signature_verifier=None):
         except Exception as exc:
             if not is_required and blob is not None and _lenient_schema(blob) == REG.DOCUMENT_SCHEMA:
                 has_artifact = True
-                finding(rel, "§13 registry document", f"not strict I-JSON (§4): {exc}")
+                finding(rel, "§13 registry document", _number_or_json(exc, "§13.1"))
                 return
             if not is_required and blob is not None and _lenient_schema(blob) == REG.MANIFEST_SCHEMA:
                 has_artifact = True
-                finding(rel, "§13.5 release manifest", f"not strict I-JSON (§4): {exc}")
+                finding(rel, "§13.5 release manifest", _number_or_json(exc, "§13.5"))
                 return
             candidate = is_required or (
                 blob is not None and _looks_like_frame(blob)
@@ -499,14 +508,33 @@ def check_repo(root, signature_verifier=None):
             unknown(os.path.relpath(path, root), f"cannot stat JSON: {exc}")
             continue
         if size > R.MAX_CANONICAL_BYTES:
-            # Too large for §4, so never a valid artifact, and never charged to frame discovery; but a
-            # registry or release manifest that grew past the limit is reported, not skipped.
+            # Never charged to frame discovery. §4's 1 MiB bounds the canonical form, not the stored
+            # bytes, so a registry or release manifest stored with whitespace is measured canonically:
+            # over the limit it is a finding; within it, a valid registry the reference reader
+            # (`rapp._strict_json`) still cannot read as stored, which is reported as advice.
             claimed = _oversized_schema(path, size, sniff_budget)
             if claimed in (REG.DOCUMENT_SCHEMA, REG.MANIFEST_SCHEMA):
                 has_artifact = True
+                rel = os.path.relpath(path, root)
                 what = "§13 registry document" if claimed == REG.DOCUMENT_SCHEMA else "§13.5 release manifest"
-                finding(os.path.relpath(path, root), what,
-                        f"exceeds §4's 1 MiB limit ({size} bytes); refuse, never repair")
+                try:
+                    blob = _read_blob(path, _SNIFF_LIMIT)
+                    value = json.loads(blob)
+                    canonical_octets = R.canonical(value).encode("utf-8")
+                    R._strict_json(canonical_octets)  # §4(d): at most 1 MiB canonical, nested at most 64
+                except Exception as exc:
+                    finding(rel, what, f"not a §4 value within its 1 MiB canonical limit ({size} bytes stored): {exc}")
+                    continue
+                if claimed == REG.MANIFEST_SCHEMA:
+                    release_manifest(rel, blob, value)  # stored octets must be exactly canonical (§13.5)
+                    continue
+                registry_document(rel, value)
+                evidence.append({
+                    "artifact": rel,
+                    "ok": (f"stored as {size} bytes, {len(canonical_octets)} canonical: within §4's 1 MiB, "
+                           "but the reference reader refuses input over 1 MiB as stored; publish it compact"),
+                    "status": "unverified",
+                })
             continue
         if count >= _MAX_JSON_FILES or total + size > _MAX_JSON_BYTES:
             unknown(".", "bounded frame discovery JSON budget exhausted")

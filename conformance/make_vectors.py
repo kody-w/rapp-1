@@ -315,6 +315,10 @@ def registry_sections():
              document(base + [{"type": "vector-future", "weight": 0.5}])),
             ("canonical_source with a character RFC 3986 does not allow",
              document(base, canonical_source="https://registry.example.test/<r>.json")),
+            ("canonical_source with a query holding a malformed percent-encoding",
+             document(base, canonical_source="https://registry.example.test/r.json?v=%zz")),
+            ("canonical_source with a query holding a character RFC 3986 does not allow",
+             document(base, canonical_source="https://registry.example.test/r.json?v=a|b")),
             ("canonical_source with a port that is not a number",
              document(base, canonical_source="https://registry.example.test:port/r.json")),
             ("an extra member nested deeper than §4 allows", document(base, note=too_deep)),
@@ -453,6 +457,7 @@ def registry_sections():
                           component(0, identity_path="identity.json"), "refuse"),
             manifest_case("one rappid bound by two components", component(1, rappid=alpha, identity_path="SPEC.md"),
                           "refuse"),
+            manifest_case("a file path that is not ASCII", paths("docs/caf\u00e9.md"), "refuse"),
         ]
 
         def octets_case(label, entries, manifest_hash, data, intended):
@@ -546,6 +551,9 @@ def registry_sections():
                        "refuse"),
             entry_case("a channel that is not an lclabel", [rp(1, channel="LTS")], "refuse"),
             entry_case("a path outside the §9.1 grammar", [rp(1, path="releases/lts:1.json")], "refuse"),
+            entry_case("a locator path that is not ASCII", [rp(1, path="releases/r\u00e9lease.json")], "refuse"),
+            entry_case("two grail-kernel entries for one release scope, with different kernels",
+                       [grail, dict(grail, grail_id="grail:" + "b" * 64, sha256="b" * 64)], "refuse"),
             entry_case("a commit of the wrong length for object_format", [rp(1, object_format="sha256")],
                        "refuse"),
             entry_case("an extra member", [rp(1, deprecated=False)], "refuse"),

@@ -1311,9 +1311,10 @@ registry.
   `release_scope` and `repository` included, and `protocol` `spec_repo`, which it now specifies — so a
   value outside §3 that rev-16's reference accepted (user information, an empty host or port, a port
   above 65535, a fragment, a non-ASCII character, a malformed percent-encoding, more than 2048
-  characters) is now refused (no published registry carries one); keeps every number in a registry an
-  integer within ±(2^53−1); says a consumer ignores an entry type it does not implement unless the entry
-  is marked critical;
+  characters) is now refused (no published registry carries one); requires every number in a registry,
+  and in an identity file, to be written as an integer within ±(2^53−1), where rev-16 allowed any §4
+  number; says a consumer ignores an entry type it does not implement unless the entry is marked
+  critical;
   generalizes the `grail-kernel` entry-level owner signature into §13.4 declared entries, each verified
   at its own `activated_utc` and retained byte-for-byte once accepted; and adds three declared entry
   types. **Release pins** (§13.5): a release scope names a release family bound to at most one kernel, and

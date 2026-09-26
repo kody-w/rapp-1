@@ -50,7 +50,8 @@ internals, customer content and anything a reader here has no business seeing.
       about 0.65–0.95 KB, so a registry holds roughly 1,100–1,500 declared entries beside its other
       entries. At one entry per release, notices only for changes, and newest pinned at milestones
       that lasts years; a continuation — a successor document that carries retained entries forward
-      by hash — needs its own design before an estate approaches the cap.
+      by hash — needs its own design before an estate approaches the cap. The reference reader
+      (`rapp._strict_json`) refuses input over 1 MiB as stored, so a registry is published compact.
 
 - [ ] **`rapp.utc_valid` accepts non-ASCII digits in the year.** Python's `\d` matches other
       scripts' digits, so `٢٠٢٦-08-01T00:00:00.000Z` passes it, though §7.4's form is 24 ASCII

@@ -333,12 +333,25 @@ class RappCheckDiscoveryTests(unittest.TestCase):
         oversized["entries"] += [{"type": "kind", "kind": f"body.k{n}", "family": "body", "deprecated": False}
                                  for n in range(16000)]
         self.write_json(repository / "big" / "registry.json", oversized)
-        self.assertGreater((repository / "big" / "registry.json").stat().st_size, R.MAX_CANONICAL_BYTES)
+        self.assertGreater(len(R.canonical(oversized).encode("utf-8")), R.MAX_CANONICAL_BYTES)  # §4 measures this
         verdict, findings, _ = C.check_repo(repository)
         self.assertEqual(verdict, "DRIFT")
         self.assertEqual([(item["artifact"], item["rule"]) for item in findings],
                          [("big/registry.json", "§13 registry document")])
-        self.assertIn("exceeds §4's 1 MiB limit", findings[0]["detail"])
+        self.assertIn("1 MiB canonical limit", findings[0]["detail"])
+
+    def test_a_registry_stored_with_whitespace_is_measured_canonically(self):
+        repository = self.fixture_repo("clean")
+        document = self.registry_document()
+        document["entries"] += [{"type": "kind", "kind": f"body.k{n}", "family": "body", "deprecated": False}
+                                for n in range(12000)]
+        path = repository / "registry.json"
+        path.write_text(json.dumps(document, indent=2, sort_keys=True), encoding="utf-8")
+        self.assertGreater(path.stat().st_size, R.MAX_CANONICAL_BYTES)
+        self.assertLess(len(R.canonical(document).encode("utf-8")), R.MAX_CANONICAL_BYTES)
+        verdict, findings, evidence = C.check_repo(repository)
+        self.assertEqual((verdict, findings), ("COMPLIANT", []))  # valid under §4: advice, not drift
+        self.assertTrue(any("publish it compact" in item["ok"] for item in evidence))
 
     def test_an_ignored_entry_type_in_a_registry_is_a_finding(self):
         repository = self.fixture_repo("clean")

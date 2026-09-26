@@ -625,6 +625,50 @@
    },
    {
     "document": {
+     "canonical_source": "https://registry.example.test/r.json?v=%zz",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "refuse",
+    "label": "canonical_source with a query holding a malformed percent-encoding"
+   },
+   {
+    "document": {
+     "canonical_source": "https://registry.example.test/r.json?v=a|b",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "refuse",
+    "label": "canonical_source with a query holding a character RFC 3986 does not allow"
+   },
+   {
+    "document": {
      "canonical_source": "https://registry.example.test:port/r.json",
      "entries": [
       {
@@ -4707,6 +4751,92 @@
        "commit": "3333333333333333333333333333333333333333",
        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
        "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/rélease.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "families": null,
+     "label": "a locator path that is not ASCII"
+    },
+    {
+     "channels": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+       "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/brainstem",
+       "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+       "sig": "<detached-jws>",
+       "size_bytes": 36,
+       "type": "grail-kernel"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/brainstem",
+       "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "sig": "<detached-jws>",
+       "size_bytes": 36,
+       "type": "grail-kernel"
+      }
+     ],
+     "expect": "refuse",
+     "families": null,
+     "label": "two grail-kernel entries for one release scope, with different kernels"
+    },
+    {
+     "channels": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
        "object_format": "sha256",
        "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
        "predecessor": null,
@@ -8087,6 +8217,56 @@
         "kind": "protocol",
         "object_format": "sha1",
         "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "a file path that is not ASCII",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "docs/café.md",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "size_bytes": 1
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
         "repository": "https://git.example.test/vector/protocol"
        }
       ],

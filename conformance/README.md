@@ -45,8 +45,10 @@ and dated). Conformance classes (Producer, Consumer, Router/Mirror) are in SPEC 
 ## What the reference does not do
 
 `rapp.py` refuses non-integer JSON numbers instead of implementing full RFC 8785 number
-serialization. An implementation that handles them is more complete, not less conformant;
-the vectors use integers only. The reference also verifies §10 signatures only when the
+serialization. For values checked by `vectors.json`, an implementation that handles them is more
+complete, not less conformant; those vectors use integers only. A registry and an identity file are
+different: §13.1 and §13.5 require every number in them to be written as an integer, so
+`registry-vectors.json` expects `0.5`, `1.0`, and `1e0` to be refused there. The reference also verifies §10 signatures only when the
 optional `cryptography` import is present; an implementation with native Ed25519 is fine.
 
 ## Regenerate after a revision
