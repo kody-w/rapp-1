@@ -140,6 +140,15 @@ def _grail(owner, scope="https://releases.example.test/scope/lts"):
 LTS = "https://releases.example.test/vector/1.0"    # the family of kernel 1.0.0-lts; channel lts
 NEW_2 = "https://releases.example.test/vector/2.0"  # a family of channel newest
 LTS_CASED = LTS.replace("releases.example.test", "Releases.example.test")  # RFC 3986-equivalent, not byte-equal
+# §3 full tag names that git's ref-name rules (`git check-ref-format`) refuse, one per rule.
+_BAD_TAG_NAMES = (
+    ("refs/tags/a..b", "a '..'"), ("refs/tags/.hidden", "a component starting with '.'"),
+    ("refs/tags/x.lock", "a component ending in '.lock'"), ("refs/tags/a.", "a trailing '.'"),
+    ("refs/tags/a/", "a trailing '/'"), ("refs/tags/a//b", "an empty component"),
+    ("refs/tags/a@{1}", "'@{'"), ("refs/tags/a b", "a space"), ("refs/tags/a\nb", "a control character"),
+    ("refs/tags/a\x7fb", "DEL"), ("refs/tags/a~b", "'~'"), ("refs/tags/a^b", "'^'"), ("refs/tags/a:b", "':'"),
+    ("refs/tags/a?b", "'?'"), ("refs/tags/a*b", "'*'"), ("refs/tags/a[b", "'['"), ("refs/tags/a\\b", "a backslash"),
+)
 NEW_3 = "https://releases.example.test/vector/3.0"  # the family channel newest moves on to
 GIT = "https://git.example.test/vector/"
 KERNEL_FILES = {
@@ -501,6 +510,12 @@ def registry_sections():
                           component(0, immutable_ref="refs/tags/../../heads/main"), "refuse"),
             manifest_case("an immutable_ref that is a bare refs/tags/", component(0, immutable_ref="refs/tags/"),
                           "refuse"),
+            *[manifest_case(f"an immutable_ref git's ref-name rules refuse: {why}", component(0, immutable_ref=ref),
+                            "refuse") for ref, why in _BAD_TAG_NAMES],
+            manifest_case("a non-ASCII immutable_ref, which git accepts but §3 does not",
+                          component(0, immutable_ref="refs/tags/\u00e9"), "refuse"),
+            manifest_case("an immutable_ref of nested tag components", component(0, immutable_ref="refs/tags/lts/v1.0.0"),
+                          "accept"),
         ]
 
         def octets_case(label, entries, manifest_hash, data, intended):
@@ -574,6 +589,10 @@ def registry_sections():
                        "accept"),
             entry_case("a grail-kernel for a family that has no release yet", [rp(1), _grail(owner, NEW_2)],
                        "accept"),
+            *[entry_case(f"a grail-kernel immutable_ref git's ref-name rules refuse: {why}",
+                         [dict(_grail(owner, NEW_2), immutable_ref=ref)], "refuse") for ref, why in _BAD_TAG_NAMES],
+            entry_case("a non-ASCII grail-kernel immutable_ref, which git accepts but §3 does not",
+                       [dict(_grail(owner, NEW_2), immutable_ref="refs/tags/\u00e9")], "refuse"),
             entry_case("one release pinned twice, as its own correction", [rp(1), rp(1, after=1)], "refuse"),
             entry_case("one manifest_hash pinned by two families", [rp(1), rp(1, NEW_2, **newest)], "refuse"),
             entry_case("a newest family graduating to an lts line: the lts channel pins a release of it",
@@ -1099,7 +1118,18 @@ def registry_sections():
             grant_case("since_utc not the fixed §7.4 form", [grant(since_utc="2026-07-10T00:00:00Z")], "refuse"),
         ]
 
-        entries = members + [
+        # The estate owner itself rotates at `handover` (§13.2): owner authority follows its tenure.
+        heir, heir_spki = keyed("estate-owner-next")
+        shelved, shelved_spki = keyed("shelved-signer", deprecated=True)  # retired: no re-anchor names it
+        handover = "2026-08-20T00:00:00.000Z"
+        succeeded = [{"type": "estate_owner", "rappid": heir} if e["type"] == "estate_owner"
+                     else dict(e, deprecated=True) if e["type"] == "spki" and e["rappid"] == owner  # §10
+                     else e for e in members]
+        entries = succeeded + [
+            heir_spki,
+            shelved_spki,
+            {"type": "re-anchor", "old_rappid": owner, "new_rappid": heir, "case": "rotation",
+             "utc": handover, "sig": SIG, "old_key_sig": SIG},
             grant(),
             grant(stream_id=station + ":main", kinds=["memory.save"], until_utc=None),
             grant(stream_id="net:wire", kinds=["swarm.echo"], until_utc=None),
@@ -1108,9 +1138,11 @@ def registry_sections():
             grant(signer=rotating, kinds=["body.pulse"], until_utc=None),
             {"type": "re-anchor", "old_rappid": rotating, "new_rappid": successor, "case": "rotation",
              "utc": rotated_at, "sig": SIG, "old_key_sig": SIG},
-            grant(signer=backfill, kinds=["body.pulse"], activated_utc=adopted),
+            grant(signer=shelved, kinds=["body.pulse"], until_utc=None),
+            grant(signer=backfill, kinds=["body.pulse"], activated_utc=adopted, declared_by=heir),
         ]
         registry = REG.Registry(entries)
+        assert registry.owner_at(T0) == owner and registry.owner_at(handover) == heir
 
         def decision(label, stream_id, kind, utc, kid, intended):
             ok, why = registry.authority_decision(stream_id, kid, kind, utc)
@@ -1138,7 +1170,8 @@ def registry_sections():
                 "note": "decide each frame_summary against a registry holding exactly `entries`: authorized iff "
                         "kid is the estate owner in effect at utc (§13.2) or a stream-signer entry names kid as "
                         "signer on stream_id, lists kind, and has since_utc <= utc < until_utc (bytewise; null "
-                        "never ends), and in both cases §10 does not refuse kid's key at utc; a grant's "
+                        "never ends), and in both cases kid's key is acceptable at utc (§13.4 item 1: not "
+                        "superseded or tombstoned by then, and not retired); a grant's "
                         "activated_utc plays no part (a grant may start before it, §13.7); kid null means "
                         "unsigned and is never authorized. Every frame is assumed to have passed §7.5, step 6 "
                         "included (§13.7); signatures are out of scope for these vectors",
@@ -1180,6 +1213,14 @@ def registry_sections():
                              "body.pulse", inside, backfill, "authorized"),
                     decision("a backdated grant at its activated_utc, after its window", station,
                              "body.pulse", adopted, backfill, "refused"),
+                    decision("a retired signer (its spki deprecated, no re-anchor naming it) inside its window",
+                             station, "body.pulse", inside, shelved, "refused"),
+                    decision("the first estate owner at its own rotation's utc", other, "body.pulse", handover,
+                             owner, "refused"),
+                    decision("the successor estate owner from that utc", other, "body.pulse", handover, heir,
+                             "authorized"),
+                    decision("the successor estate owner before its tenure", other, "body.pulse", inside, heir,
+                             "refused"),
                 ],
             },
         }

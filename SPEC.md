@@ -1038,7 +1038,7 @@ time-scoped, and both are monotone given the §13.1 no-rollback rule. A declared
 authenticated at its own `activated_utc`, never at the time it is read. The lifecycle state in effect
 (§13.6) is evaluated at the time asked about, and a stream-signer window (§13.7) at a frame's `utc`; because
 every declared entry is retained (§13.4), a later registry can add a notice or a grant but never withdraw
-one: a grant ends only at its `until_utc` or where §10 refuses its signer's key. The rules of
+one: a grant ends only at its `until_utc` or where its signer's key is not acceptable (§13.7). The rules of
 §§13.5–13.7 — release pins, lifecycle notices, stream signers — sit above §7.5 and never add a §7.5 step.
 
 ### 13.4 Declared entries (entry-level owner signatures)
@@ -1047,7 +1047,9 @@ A **declared entry** carries its own `activated_utc` (the §7.4 form), `declared
 declared entry types are `grail-kernel`, `release-pin`, `lifecycle`, and `stream-signer`. For every declared
 entry a consumer **MUST**:
 1. require `declared_by` to be the estate owner in effect at `activated_utc` (§13.2), with a §13 `spki`
-   entry whose key §10 does not refuse (as superseded or tombstoned) at `activated_utc`;
+   entry whose key is **acceptable** at `activated_utc`: not superseded by a re-anchor or tombstoned at or
+   before that time (§10), and not retired — an `spki` entry flagged `deprecated` that no re-anchor names
+   makes its key unacceptable at every time;
 2. verify `sig` with that registry key — the enclosing §13.1 signature never substitutes for it;
 3. refuse an entry whose `activated_utc` is more than 300 seconds after the verifier's first-seen time
    for that entry; and
@@ -1229,16 +1231,19 @@ memory stream may therefore run unsigned (§8) until a signer is granted and car
 both stay valid links of one chain.
 
 Grants are permanent records of the registry (§13.4 retains each one byte-for-byte) and are never
-inherited: one ends at its `until_utc`, or earlier when §10 refuses the signer's key at the frame's `utc`
-(a rotation re-anchor supersedes it; a tombstone revokes it), and a rotated signer needs a new grant for
-its successor rappid. A keyless rappid (§6.2) never signs as itself — its tail is no key — so a grant is
+inherited: one ends at its `until_utc`, or earlier when the signer's key is not acceptable (§13.4 item 1)
+at the frame's `utc` — a rotation re-anchor supersedes it and a tombstone revokes it from their times on,
+while retiring its `spki` entry with no re-anchor refuses it at every time, so the grant then covers none
+of the signer's frames, earlier ones included — and a rotated signer needs a new grant for its successor
+rappid. A keyless rappid (§6.2) never signs as itself — its tail is no key — so a grant is
 how a keyed signer speaks on a keyless organism's streams without re-anchoring or re-minting that
 identity; §6.2 and §6.3 are unchanged.
 
 A registry whose `stream-signer` entries break the §13.3 rules for them is refused whole. Authority is
 decided against the verified registry in hand. Because a newer registry can add a grant that adopts earlier
 frames, but can never withdraw one (§13.4), a consumer that caches a refusal re-evaluates it against a newer
-registry.
+registry; and because a newer registry can still supersede, tombstone, or retire the signer's key, one that
+caches an acceptance does too.
 
 ## 14. Security considerations
 - **Integrity:** every object is domain-separated content-addressed (§5); a hostile mirror cannot alter

@@ -15,7 +15,7 @@ from pathlib import Path
 import rapp as R
 import rapp_check as C
 import rapp_registry as REG
-from registry_fixtures import MockEstate, SOURCE, T0, real_ed25519_signer
+from registry_fixtures import BAD_TAG_NAMES, MockEstate, SOURCE, T0, real_ed25519_signer
 
 LATER = "2026-08-01T00:00:00.000Z"
 LATEST = "2026-09-01T00:00:00.000Z"
@@ -663,8 +663,8 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertIs(REG.validate_release_manifest(value), value)
 
     def test_an_immutable_ref_is_a_full_tag_name(self):
-        for ref in ("refs/tags/", "refs/tags/../../heads/main", "refs/tags/a..b", "refs/tags/x\n", "refs/tags/\u00e9",
-                    "refs/tags/.hidden", "refs/tags/x.lock", "refs/tags/a b", "refs/heads/main"):
+        for ref in ("refs/tags/", "refs/tags/../../heads/main", "refs/tags/x\n", "refs/tags/\u00e9",
+                    "refs/heads/main") + BAD_TAG_NAMES:
             with self.subTest(ref=ref):
                 self.refuses(lambda m, r=ref: m["components"][3].update(immutable_ref=r), "full tag name")
         value = mutated(self.manifest, lambda m: m["components"][3].update(immutable_ref="refs/tags/rev-17/a"))

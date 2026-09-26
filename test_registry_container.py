@@ -8,7 +8,7 @@ from pathlib import Path
 
 import rapp as R
 import rapp_registry as REG
-from registry_fixtures import MockEstate, SOURCE, T0, real_ed25519_signer
+from registry_fixtures import BAD_TAG_NAMES, MockEstate, SOURCE, T0, real_ed25519_signer
 
 LATER = "2026-08-01T00:00:00.000Z"
 
@@ -191,10 +191,13 @@ class UriBoundaryTests(unittest.TestCase):
     def test_a_grail_kernels_immutable_ref_is_a_full_tag_name(self):
         kernel = self.estate.grail_kernel()
         self.assertEqual(REG.validate_entry(kernel), "grail-kernel")
-        for ref in ("refs/tags/", "refs/tags/a..b", "refs/tags/\u00e9", "refs/tags/x.lock"):
+        for ref in ("refs/tags/", "refs/tags/\u00e9", "refs/heads/main") + BAD_TAG_NAMES:
             with self.subTest(ref=ref):
                 with self.assertRaisesRegex(REG.RegistryError, "full tag name"):
                     REG.validate_entry(dict(kernel, immutable_ref=ref))
+        for ref in ("refs/tags/lts/v1.0.0", "refs/tags/a@b", "refs/tags/v1.0.0-rc.1"):
+            with self.subTest(ref=ref):
+                self.assertEqual(REG.validate_entry(dict(kernel, immutable_ref=ref)), "grail-kernel")
 
     def test_every_https_member_meets_section_3(self):
         base = self.estate.base_entries()
@@ -342,6 +345,17 @@ class DeclaredEntryTests(unittest.TestCase):
         entry = self.estate.grail_kernel()
         entry["size_bytes"] = 2048
         self.assertEqual(self.load([entry])[0], "refused")
+
+    def test_a_retired_owner_key_declares_nothing(self):
+        # §13.4 item 1: an spki entry flagged deprecated that no re-anchor names is retired, and its key
+        # is acceptable at no time. The document signature is §13.1's check against the trust anchor.
+        owner = self.estate.keys["owner"]
+        retired = [dict(e, deprecated=True) if e["type"] == "spki" and e["rappid"] == owner else e
+                   for e in self.estate.base_entries()]
+        self.assertEqual(self.load([], entries=retired)[:3:2], ("verified", "ok"))
+        status, _, why = self.load([self.estate.grail_kernel()], entries=retired)
+        self.assertEqual(status, "refused")
+        self.assertIn("declared_by key refused at activated_utc: spki entry deprecated", why)
 
     def test_owner_tenure_is_evaluated_at_activated_utc(self):
         rotation = self.estate.reanchor("owner", "successor", signer="owner", utc="2026-07-15T00:00:00.000Z")
@@ -622,6 +636,35 @@ class DesignRecordSchemaTests(unittest.TestCase):
         self.assertEqual(defs["lifecycle"]["properties"]["state"]["enum"], list(REG.LIFECYCLE_STATES))
         excluded = defs["stream-signer"]["properties"]["kinds"]["items"]["allOf"][1]["not"]["enum"]
         self.assertEqual(excluded, list(REG.REGENESIS_KINDS))
+
+
+PUBLISHED = Path(__file__).resolve().parent / "tests" / "fixtures" / "registry" / "ecosystem-spec-seq2.json.fixture"
+PUBLISHED_OWNER = "rappid:@kody-w/estate-owner:b5814e45e9988df835dfd58d152a6fb05b6510a087a35c24374a1c4ab833c122"
+
+
+class PublishedRegistryTests(unittest.TestCase):
+    """The one published signed registry keeps its verdict under rev-17. The fixture is a byte copy of
+    kody-w/rapp-map `ecosystem-spec.json` at 4c8ba6bbe73125cc980d0c3b38c59c99e4b231c0 (registry_seq 2):
+    the estate's registry, carried here only as a regression oracle, never as authority."""
+
+    def setUp(self):
+        self.document = R._strict_json(PUBLISHED.read_bytes())
+
+    def test_it_has_the_section_13_1_container_and_only_known_entry_types(self):
+        self.assertIs(REG.validate_document(self.document), self.document)
+        registry = REG.Registry(self.document["entries"])
+        self.assertEqual((self.document["registry_seq"], registry.estate_owner), (2, PUBLISHED_OWNER))
+        self.assertEqual(registry.unknown_entries, [])
+        self.assertFalse(any(e["type"] in REG.DECLARED_TYPES for e in self.document["entries"]))
+        self.assertIsNotNone(registry.current_protocol("rapp/1"))  # the sole non-deprecated pin
+
+    @unittest.skipUnless(real_ed25519_signer(), "optional cryptography import is absent")
+    def test_it_still_verifies_against_its_trust_anchor(self):
+        status, registry, why = REG.load_document(self.document, trust_anchor=PUBLISHED_OWNER,
+                                                  canonical_source=self.document["canonical_source"])
+        self.assertEqual((status, why), ("verified", "ok"))
+        tampered = dict(self.document, registry_seq=3)
+        self.assertEqual(REG.load_document(tampered, trust_anchor=PUBLISHED_OWNER)[0], "refused")
 
 
 @unittest.skipUnless(real_ed25519_signer(), "optional cryptography import is absent")

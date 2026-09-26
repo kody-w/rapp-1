@@ -836,8 +836,9 @@ def revision_payload(
             "t": "pattern",
             "c": (
                 "Authority is decided against the verified registry in hand: a newer registry can add a "
-                "stream-signer grant that adopts earlier frames but never withdraw one, so re-evaluate a "
-                "cached refusal against a newer registry."
+                "stream-signer grant that adopts earlier frames but never withdraw one, and can still "
+                "supersede, tombstone, or retire the signer's key, so re-evaluate a cached refusal or "
+                "acceptance against a newer registry."
             ),
         },
     ]

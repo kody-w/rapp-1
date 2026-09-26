@@ -16,6 +16,11 @@ import rapp_registry as REG
 SOURCE = "https://registry.example.test/rapp-registry.json"
 T0 = "2026-07-01T00:00:00.000Z"
 LATE = "2099-12-31T23:59:59.999Z"
+# Names git's ref-name rules (`git check-ref-format`) refuse, one per rule the reference implements (§3).
+BAD_TAG_NAMES = ("refs/tags/a..b", "refs/tags/.hidden", "refs/tags/x.lock", "refs/tags/a.", "refs/tags/a/",
+                 "refs/tags/a//b", "refs/tags/a@{1}", "refs/tags/a b", "refs/tags/a\nb", "refs/tags/a\x7fb",
+                 "refs/tags/a~b", "refs/tags/a^b", "refs/tags/a:b", "refs/tags/a?b", "refs/tags/a*b",
+                 "refs/tags/a[b", "refs/tags/a\\b")
 
 
 class MockEstate:

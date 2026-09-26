@@ -251,7 +251,9 @@ Every branch runs the full CI-equivalent gate: `conformance.py` (22), `operation
 front doors, the Internet-Draft, `conformance/make_vectors.py --check`, parity, `rapp_check.py .`, every
 example, `test_rapp_work`, and the token and envelope proof in §1, on Python 3.9 and 3.14, plus a
 `signatures` CI job that runs the registry suite with real Ed25519 keys and refuses skips. Against real
-data: the published estate registry (`registry_seq` 2) still verifies; `rapp_check.py` gives byte-identical
+data: the published estate registry (`registry_seq` 2) still verifies — `PublishedRegistryTests` checks a
+byte copy pinned at `kody-w/rapp-map` `4c8ba6b` on every run, with real signatures in the `signatures`
+job; `rapp_check.py` gives byte-identical
 output with and without rev-17 on RAPP, the model Hive, the public Hive copy, and `rapp-estate`, and on
 `rapp-map`, which holds the estate registry, the same verdict with one added line reporting that
 registry's §13.1 structure; and the network's first pulse verifies as a frame and correctly does not yet

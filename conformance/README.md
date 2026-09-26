@@ -21,10 +21,16 @@ For each section, your implementation must:
 | `7_frame` | verify `genesis` and `child` as a chain; refuse every `tampers[]` frame at exactly `expect_step` |
 | `9_egg` | pack a `session` egg from `manifest` that is byte-identical to `egg_octets_hex`, and compute `egg_address` |
 
-`registry-vectors.json` does the same for the §13 registry, derived from `rapp_registry.py`.
-Each section lists inputs and the verdict (`accept` or `refuse`) your registry reader must
-reach. A section is named for the SPEC subsection it proves, or for its declared entry type:
-`13_release_pin` proves §13.5, `13_lifecycle` §13.6, and `13_stream_signer` §13.7.
+`registry-vectors.json` does the same for the §13 registry, derived from `rapp_registry.py`
+(its `derived_from`). Each section lists inputs and the verdict (`accept` or `refuse`) your
+registry reader must reach. A section is named for the SPEC subsection it proves, or for its
+declared entry type: `13_release_pin` proves §13.5, `13_lifecycle` §13.6, and
+`13_stream_signer` §13.7. The verdicts judge structure, uniqueness, chains, and history, never
+signatures (`signature_boundary`): `accept` means your reader finds the document or entries
+well formed, so an unsigned draft (`sig` null) is accepted there although §13.1 refuses it as
+authority. Each `rule` and `note` member explains its section in words; the constants
+`declared_types`, `persisted_types`, `first_seen_skew_seconds` (§13.4), `manifest_schema`
+(§13.5), and `states` (§13.6) are the values your reader must use.
 
 | section | must produce / decide |
 |---|---|

@@ -45,8 +45,9 @@ whether a copy is a declaration — come only from a registry `load_document` re
 What stays the caller's responsibility, because a snapshot cannot prove it:
   - freshness, trusted heads, registry high-water marks, first-seen times, and the
     append provenance of each entry (see `load_document`);
-  - re-evaluating a cached authority refusal against a newer registry, which can add a
-    grant that adopts earlier frames but never withdraw one (§13.7).
+  - re-evaluating a cached authority answer against a newer registry, which can add a
+    grant that adopts earlier frames but never withdraw one, and can still supersede,
+    tombstone, or retire the signer's key (§13.7).
 
 Nothing here can make an unsigned registry authoritative. `load_document` reports
 "verified" only after a §10 signature by the estate owner verifies AND that owner is the
@@ -727,7 +728,9 @@ class Registry:
     # ---- §10 signer acceptability at a time ----
     def signer_acceptable(self, kid, utc):
         """Is a `sig` by `kid` on an artifact at `utc` acceptable: key discoverable, not
-        superseded by a re-anchor at or before utc, not tombstoned at or before utc."""
+        superseded by a re-anchor at or before utc, not tombstoned at or before utc, and not
+        retired — an `spki` entry flagged deprecated that no re-anchor names refuses its key at
+        every time (§13.4 item 1)."""
         return self._signer_acceptable(kid, utc)
 
     def _signer_acceptable(self, kid, utc, ignored_reanchor=None, match_key_aliases=False):
@@ -1232,8 +1235,8 @@ class Registry:
         with `kind` at `utc`? Returns (ok, reason); `kid` None means the frame is unsigned.
 
         Authorized iff `kid` is the estate owner in effect at `utc` (§13.2), or a grant covers
-        `stream_id`, `kid`, `kind`, and `utc` — and in both cases §10 does not refuse the key at
-        `utc`. A grant's `activated_utc` plays no part: a grant may start before it, and then
+        `stream_id`, `kid`, `kind`, and `utc` — and in both cases the key is acceptable at `utc`
+        (§13.4 item 1: not superseded or tombstoned by then, and not retired). A grant's `activated_utc` plays no part: a grant may start before it, and then
         adopts frames the signer already published inside its window. It decides authority,
         never validity: the frame must already have passed §7.5 (see frame_authorized). Pure:
         it reads only this registry's entries and does not check `status` — it is the rule, not

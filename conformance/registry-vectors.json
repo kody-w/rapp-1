@@ -4169,6 +4169,654 @@
       },
       {
        "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22",
+       "immutable_ref": "refs/tags/a..b",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/estate/kernel",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "sig": "<detached-jws>",
+       "size_bytes": 1024,
+       "type": "grail-kernel"
+      }
+     ],
+     "expect": "refuse",
+     "families": null,
+     "label": "a grail-kernel immutable_ref git's ref-name rules refuse: a '..'"
+    },
+    {
+     "channels": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22",
+       "immutable_ref": "refs/tags/.hidden",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/estate/kernel",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "sig": "<detached-jws>",
+       "size_bytes": 1024,
+       "type": "grail-kernel"
+      }
+     ],
+     "expect": "refuse",
+     "families": null,
+     "label": "a grail-kernel immutable_ref git's ref-name rules refuse: a component starting with '.'"
+    },
+    {
+     "channels": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22",
+       "immutable_ref": "refs/tags/x.lock",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/estate/kernel",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "sig": "<detached-jws>",
+       "size_bytes": 1024,
+       "type": "grail-kernel"
+      }
+     ],
+     "expect": "refuse",
+     "families": null,
+     "label": "a grail-kernel immutable_ref git's ref-name rules refuse: a component ending in '.lock'"
+    },
+    {
+     "channels": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22",
+       "immutable_ref": "refs/tags/a.",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/estate/kernel",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "sig": "<detached-jws>",
+       "size_bytes": 1024,
+       "type": "grail-kernel"
+      }
+     ],
+     "expect": "refuse",
+     "families": null,
+     "label": "a grail-kernel immutable_ref git's ref-name rules refuse: a trailing '.'"
+    },
+    {
+     "channels": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22",
+       "immutable_ref": "refs/tags/a/",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/estate/kernel",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "sig": "<detached-jws>",
+       "size_bytes": 1024,
+       "type": "grail-kernel"
+      }
+     ],
+     "expect": "refuse",
+     "families": null,
+     "label": "a grail-kernel immutable_ref git's ref-name rules refuse: a trailing '/'"
+    },
+    {
+     "channels": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22",
+       "immutable_ref": "refs/tags/a//b",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/estate/kernel",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "sig": "<detached-jws>",
+       "size_bytes": 1024,
+       "type": "grail-kernel"
+      }
+     ],
+     "expect": "refuse",
+     "families": null,
+     "label": "a grail-kernel immutable_ref git's ref-name rules refuse: an empty component"
+    },
+    {
+     "channels": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22",
+       "immutable_ref": "refs/tags/a@{1}",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/estate/kernel",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "sig": "<detached-jws>",
+       "size_bytes": 1024,
+       "type": "grail-kernel"
+      }
+     ],
+     "expect": "refuse",
+     "families": null,
+     "label": "a grail-kernel immutable_ref git's ref-name rules refuse: '@{'"
+    },
+    {
+     "channels": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22",
+       "immutable_ref": "refs/tags/a b",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/estate/kernel",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "sig": "<detached-jws>",
+       "size_bytes": 1024,
+       "type": "grail-kernel"
+      }
+     ],
+     "expect": "refuse",
+     "families": null,
+     "label": "a grail-kernel immutable_ref git's ref-name rules refuse: a space"
+    },
+    {
+     "channels": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22",
+       "immutable_ref": "refs/tags/a\nb",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/estate/kernel",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "sig": "<detached-jws>",
+       "size_bytes": 1024,
+       "type": "grail-kernel"
+      }
+     ],
+     "expect": "refuse",
+     "families": null,
+     "label": "a grail-kernel immutable_ref git's ref-name rules refuse: a control character"
+    },
+    {
+     "channels": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22",
+       "immutable_ref": "refs/tags/ab",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/estate/kernel",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "sig": "<detached-jws>",
+       "size_bytes": 1024,
+       "type": "grail-kernel"
+      }
+     ],
+     "expect": "refuse",
+     "families": null,
+     "label": "a grail-kernel immutable_ref git's ref-name rules refuse: DEL"
+    },
+    {
+     "channels": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22",
+       "immutable_ref": "refs/tags/a~b",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/estate/kernel",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "sig": "<detached-jws>",
+       "size_bytes": 1024,
+       "type": "grail-kernel"
+      }
+     ],
+     "expect": "refuse",
+     "families": null,
+     "label": "a grail-kernel immutable_ref git's ref-name rules refuse: '~'"
+    },
+    {
+     "channels": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22",
+       "immutable_ref": "refs/tags/a^b",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/estate/kernel",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "sig": "<detached-jws>",
+       "size_bytes": 1024,
+       "type": "grail-kernel"
+      }
+     ],
+     "expect": "refuse",
+     "families": null,
+     "label": "a grail-kernel immutable_ref git's ref-name rules refuse: '^'"
+    },
+    {
+     "channels": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22",
+       "immutable_ref": "refs/tags/a:b",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/estate/kernel",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "sig": "<detached-jws>",
+       "size_bytes": 1024,
+       "type": "grail-kernel"
+      }
+     ],
+     "expect": "refuse",
+     "families": null,
+     "label": "a grail-kernel immutable_ref git's ref-name rules refuse: ':'"
+    },
+    {
+     "channels": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22",
+       "immutable_ref": "refs/tags/a?b",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/estate/kernel",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "sig": "<detached-jws>",
+       "size_bytes": 1024,
+       "type": "grail-kernel"
+      }
+     ],
+     "expect": "refuse",
+     "families": null,
+     "label": "a grail-kernel immutable_ref git's ref-name rules refuse: '?'"
+    },
+    {
+     "channels": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22",
+       "immutable_ref": "refs/tags/a*b",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/estate/kernel",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "sig": "<detached-jws>",
+       "size_bytes": 1024,
+       "type": "grail-kernel"
+      }
+     ],
+     "expect": "refuse",
+     "families": null,
+     "label": "a grail-kernel immutable_ref git's ref-name rules refuse: '*'"
+    },
+    {
+     "channels": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22",
+       "immutable_ref": "refs/tags/a[b",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/estate/kernel",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "sig": "<detached-jws>",
+       "size_bytes": 1024,
+       "type": "grail-kernel"
+      }
+     ],
+     "expect": "refuse",
+     "families": null,
+     "label": "a grail-kernel immutable_ref git's ref-name rules refuse: '['"
+    },
+    {
+     "channels": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22",
+       "immutable_ref": "refs/tags/a\\b",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/estate/kernel",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "sig": "<detached-jws>",
+       "size_bytes": 1024,
+       "type": "grail-kernel"
+      }
+     ],
+     "expect": "refuse",
+     "families": null,
+     "label": "a grail-kernel immutable_ref git's ref-name rules refuse: a backslash"
+    },
+    {
+     "channels": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "blob": "2222222222222222222222222222222222222222",
+       "commit": "1111111111111111111111111111111111111111",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "grail_id": "grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22",
+       "immutable_ref": "refs/tags/é",
+       "mode": "100644",
+       "object_format": "sha1",
+       "path": "kernel/brainstem.py",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/estate/kernel",
+       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "sig": "<detached-jws>",
+       "size_bytes": 1024,
+       "type": "grail-kernel"
+      }
+     ],
+     "expect": "refuse",
+     "families": null,
+     "label": "a non-ASCII grail-kernel immutable_ref, which git accepts but §3 does not"
+    },
+    {
+     "channels": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
        "channel": "lts",
        "commit": "3333333333333333333333333333333333333333",
        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
@@ -9143,6 +9791,956 @@
       "release_scope": "https://releases.example.test/vector/1.0",
       "schema": "rapp/1-release-manifest"
      }
+    },
+    {
+     "expect": "refuse",
+     "label": "an immutable_ref git's ref-name rules refuse: a '..'",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": "refs/tags/a..b",
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an immutable_ref git's ref-name rules refuse: a component starting with '.'",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": "refs/tags/.hidden",
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an immutable_ref git's ref-name rules refuse: a component ending in '.lock'",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": "refs/tags/x.lock",
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an immutable_ref git's ref-name rules refuse: a trailing '.'",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": "refs/tags/a.",
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an immutable_ref git's ref-name rules refuse: a trailing '/'",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": "refs/tags/a/",
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an immutable_ref git's ref-name rules refuse: an empty component",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": "refs/tags/a//b",
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an immutable_ref git's ref-name rules refuse: '@{'",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": "refs/tags/a@{1}",
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an immutable_ref git's ref-name rules refuse: a space",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": "refs/tags/a b",
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an immutable_ref git's ref-name rules refuse: a control character",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": "refs/tags/a\nb",
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an immutable_ref git's ref-name rules refuse: DEL",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": "refs/tags/ab",
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an immutable_ref git's ref-name rules refuse: '~'",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": "refs/tags/a~b",
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an immutable_ref git's ref-name rules refuse: '^'",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": "refs/tags/a^b",
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an immutable_ref git's ref-name rules refuse: ':'",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": "refs/tags/a:b",
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an immutable_ref git's ref-name rules refuse: '?'",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": "refs/tags/a?b",
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an immutable_ref git's ref-name rules refuse: '*'",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": "refs/tags/a*b",
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an immutable_ref git's ref-name rules refuse: '['",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": "refs/tags/a[b",
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an immutable_ref git's ref-name rules refuse: a backslash",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": "refs/tags/a\\b",
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "a non-ASCII immutable_ref, which git accepts but §3 does not",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": "refs/tags/é",
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "accept",
+     "label": "an immutable_ref of nested tag components",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": "refs/tags/lts/v1.0.0",
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
     }
    ],
    "manifest_schema": "rapp/1-release-manifest",
@@ -9715,15 +11313,55 @@
        "utc": "2026-09-01T00:00:00.000Z"
       },
       "label": "a backdated grant at its activated_utc, after its window"
+     },
+     {
+      "expect": "refused",
+      "frame_summary": {
+       "kid": "rappid:@vector/shelved-signer:2ddc04eb0f107f0b843ffcdeacfcbb59b527c5826d0b66bf60ddf1313b1e537e",
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+       "utc": "2026-07-20T00:00:00.000Z"
+      },
+      "label": "a retired signer (its spki deprecated, no re-anchor naming it) inside its window"
+     },
+     {
+      "expect": "refused",
+      "frame_summary": {
+       "kid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/other-station:8b39ec1ba6b99dbe2e6d62ac259a27b9ca53be2f55745f981fae6c20a55e62f1",
+       "utc": "2026-08-20T00:00:00.000Z"
+      },
+      "label": "the first estate owner at its own rotation's utc"
+     },
+     {
+      "expect": "authorized",
+      "frame_summary": {
+       "kid": "rappid:@vector/estate-owner-next:486c646f4fa2867915fa024c6ecb2fb1717454c0294fbc1728fdc5ed05d92eff",
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/other-station:8b39ec1ba6b99dbe2e6d62ac259a27b9ca53be2f55745f981fae6c20a55e62f1",
+       "utc": "2026-08-20T00:00:00.000Z"
+      },
+      "label": "the successor estate owner from that utc"
+     },
+     {
+      "expect": "refused",
+      "frame_summary": {
+       "kid": "rappid:@vector/estate-owner-next:486c646f4fa2867915fa024c6ecb2fb1717454c0294fbc1728fdc5ed05d92eff",
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/other-station:8b39ec1ba6b99dbe2e6d62ac259a27b9ca53be2f55745f981fae6c20a55e62f1",
+       "utc": "2026-07-20T00:00:00.000Z"
+      },
+      "label": "the successor estate owner before its tenure"
      }
     ],
     "entries": [
      {
-      "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "rappid": "rappid:@vector/estate-owner-next:486c646f4fa2867915fa024c6ecb2fb1717454c0294fbc1728fdc5ed05d92eff",
       "type": "estate_owner"
      },
      {
-      "deprecated": false,
+      "deprecated": true,
       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
       "type": "spki"
@@ -9813,6 +11451,27 @@
       "type": "kind"
      },
      {
+      "deprecated": false,
+      "rappid": "rappid:@vector/estate-owner-next:486c646f4fa2867915fa024c6ecb2fb1717454c0294fbc1728fdc5ed05d92eff",
+      "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogZXN0YXRlLW93bmVyLW5leHQ=",
+      "type": "spki"
+     },
+     {
+      "deprecated": true,
+      "rappid": "rappid:@vector/shelved-signer:2ddc04eb0f107f0b843ffcdeacfcbb59b527c5826d0b66bf60ddf1313b1e537e",
+      "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogc2hlbHZlZC1zaWduZXI=",
+      "type": "spki"
+     },
+     {
+      "case": "rotation",
+      "new_rappid": "rappid:@vector/estate-owner-next:486c646f4fa2867915fa024c6ecb2fb1717454c0294fbc1728fdc5ed05d92eff",
+      "old_key_sig": "<detached-jws>",
+      "old_rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "sig": "<detached-jws>",
+      "type": "re-anchor",
+      "utc": "2026-08-20T00:00:00.000Z"
+     },
+     {
       "activated_utc": "2026-07-01T00:00:00.000Z",
       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
       "kinds": [
@@ -9894,8 +11553,21 @@
       "utc": "2026-07-28T00:00:00.000Z"
      },
      {
-      "activated_utc": "2026-09-01T00:00:00.000Z",
+      "activated_utc": "2026-07-01T00:00:00.000Z",
       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "kinds": [
+       "body.pulse"
+      ],
+      "sig": "<detached-jws>",
+      "signer": "rappid:@vector/shelved-signer:2ddc04eb0f107f0b843ffcdeacfcbb59b527c5826d0b66bf60ddf1313b1e537e",
+      "since_utc": "2026-07-10T00:00:00.000Z",
+      "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+      "type": "stream-signer",
+      "until_utc": null
+     },
+     {
+      "activated_utc": "2026-09-01T00:00:00.000Z",
+      "declared_by": "rappid:@vector/estate-owner-next:486c646f4fa2867915fa024c6ecb2fb1717454c0294fbc1728fdc5ed05d92eff",
       "kinds": [
        "body.pulse"
       ],
@@ -9907,7 +11579,7 @@
       "until_utc": "2026-08-10T00:00:00.000Z"
      }
     ],
-    "note": "decide each frame_summary against a registry holding exactly `entries`: authorized iff kid is the estate owner in effect at utc (§13.2) or a stream-signer entry names kid as signer on stream_id, lists kind, and has since_utc <= utc < until_utc (bytewise; null never ends), and in both cases §10 does not refuse kid's key at utc; a grant's activated_utc plays no part (a grant may start before it, §13.7); kid null means unsigned and is never authorized. Every frame is assumed to have passed §7.5, step 6 included (§13.7); signatures are out of scope for these vectors"
+    "note": "decide each frame_summary against a registry holding exactly `entries`: authorized iff kid is the estate owner in effect at utc (§13.2) or a stream-signer entry names kid as signer on stream_id, lists kind, and has since_utc <= utc < until_utc (bytewise; null never ends), and in both cases kid's key is acceptable at utc (§13.4 item 1: not superseded or tombstoned by then, and not retired); a grant's activated_utc plays no part (a grant may start before it, §13.7); kid null means unsigned and is never authorized. Every frame is assumed to have passed §7.5, step 6 included (§13.7); signatures are out of scope for these vectors"
    },
    "example": {
     "entry": {
