@@ -11,7 +11,8 @@ What is fully specified by §13 and enforced here:
   - the document container (§13.1): exactly `schema`, `registry_seq`,
     `canonical_source`, `entries`, and `sig` carry meaning; any other top-level
     member is covered by `sig` and carries none;
-  - every entry type and its exact member set (§13.3);
+  - every entry type and its exact member set (§13.3), and an entry of a type this reference does not
+    implement ignored unless it is marked critical, which refuses the registry (`unknown_entries`);
   - kind grammar and family binding; family ↔ stream_id-form compatibility (§6.1.1, §7.2);
   - owner succession by re-anchor records, owner-in-effect at a time (§13.2);
   - key discovery, superseded-key and tombstone refusal at a time (§10);
@@ -42,8 +43,8 @@ rappid the caller obtained out of band (the trust anchor); an unsigned document 
 a "draft", and a registry that names any other owner is refused outright.
 """
 import base64
+import ipaddress
 import re
-import urllib.parse
 from datetime import datetime, timezone
 
 import rapp as R
@@ -59,7 +60,17 @@ _KIND = re.compile(rf"({_LCLABEL})\.({_LCLABEL})")
 _LABEL = re.compile(_LCLABEL)
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 _HEX40 = re.compile(r"[0-9a-f]{40}")
-_HTTPS = re.compile(r"https://[\x21-\x7e]+")  # printable ASCII after the scheme: no space, no control
+# RFC 3986 pieces, applied by hand so the verdict never depends on the Python version's urllib.
+_URI_SAFE = r"A-Za-z0-9\-._~!$&'()*+,;="  # unreserved and sub-delims
+_PCT = r"%[0-9A-Fa-f]{2}"
+_REG_NAME = re.compile(rf"(?:[{_URI_SAFE}]|{_PCT})+")
+_PCHAR = rf"(?:[{_URI_SAFE}:@]|{_PCT})"
+_PATH_ABEMPTY = re.compile(rf"(?:/{_PCHAR}*)*")
+_QUERY = re.compile(rf"(?:{_PCHAR}|[/?])*")
+_IPV_FUTURE = re.compile(rf"v[0-9A-Fa-f]+\.[{_URI_SAFE}:]+")
+_PORT = re.compile(r"[0-9]{1,5}")
+# RFC 8141 assigned-name: "urn:" NID ":" NSS, with no r-, q-, or f-component.
+_URN = re.compile(rf"urn:[A-Za-z0-9][A-Za-z0-9-]{{0,30}}[A-Za-z0-9]:{_PCHAR}(?:{_PCHAR}|/)*")
 
 # §13.1 — the registry document container (rev-17 closure).
 DOCUMENT_SCHEMA = "rapp/1-registry"
@@ -105,15 +116,49 @@ def entry_hash(entry):
 
 
 def _https_uri(value):
-    """An absolute HTTPS URI (§3): scheme `https`, a non-empty host, no user information, printable
-    ASCII only, at most 2048 characters — the rule `rapp_profile.https_uri` also applies."""
-    if not (isinstance(value, str) and len(value) <= 2048 and _HTTPS.fullmatch(value)):
+    """An absolute HTTPS URI (§3), by RFC 3986's grammar: `https://` authority path-abempty [`?` query]
+    with no fragment, at most 2048 characters; the authority is a host and an optional port, with no
+    user information; the host is a non-empty reg-name or an IP literal (an IPv6 address with no zone,
+    or IPvFuture); a port is 1-5 digits at most 65535. Parsed here, not by urllib, whose port and
+    IP-literal rules differ between Python versions. (`rapp_profile.https_uri`, used by the
+    operational profiles, is looser; registry members follow §3.)"""
+    if not (isinstance(value, str) and len(value) <= 2048 and value.startswith("https://")):
+        return False
+    rest = value[len("https://"):]
+    cut = min([i for i in (rest.find("/"), rest.find("?"), rest.find("#")) if i != -1], default=len(rest))
+    authority, tail = rest[:cut], rest[cut:]
+    path, question, query = tail.partition("?")
+    if "#" in tail or not _PATH_ABEMPTY.fullmatch(path) or (question and not _QUERY.fullmatch(query)):
+        return False
+    if authority.startswith("["):
+        close = authority.find("]")
+        literal, port = authority[1:close], authority[close + 1:]
+        if close == -1 or not (_IPV_FUTURE.fullmatch(literal) or _ipv6_address(literal)):
+            return False
+    else:
+        host, colon, digits = authority.partition(":")
+        if not _REG_NAME.fullmatch(host):
+            return False
+        port = colon + digits
+    return port == "" or (port[0] == ":" and bool(_PORT.fullmatch(port[1:])) and int(port[1:]) <= 65535)
+
+
+def _ipv6_address(text):
+    """An RFC 3986 IPv6address: what `ipaddress` accepts, with no zone identifier."""
+    if "%" in text:
         return False
     try:
-        parts = urllib.parse.urlsplit(value)
-        return bool(parts.hostname) and "@" not in parts.netloc
-    except ValueError:  # e.g. an unterminated IPv6 literal
+        ipaddress.IPv6Address(text)
+    except ValueError:
         return False
+    return True
+
+
+def _canonical_source_ok(value):
+    """§13.1: an absolute HTTPS URI (§3) for a registry published on the web, or a URN (RFC 8141,
+    lowercase `urn:`, no r-, q-, or f-component, at most 2048 characters) for one kept in a private
+    store, such as a private Hive's registry history."""
+    return _https_uri(value) or (isinstance(value, str) and len(value) <= 2048 and bool(_URN.fullmatch(value)))
 
 
 def _utc_form(value):
@@ -372,11 +417,23 @@ class Registry:
         self.stream_signers = {}  # stream_id -> [stream-signer grants], append order (§13.5)
         self.protocol_history = {}  # name -> [entries], append order
         self.master_plan = None
+        self.unknown_entries = []  # indices of entries of types this reference does not implement (§13.3)
         self.canonical_source = None  # set by load_document from the §13.1 container
         self.status = None  # "verified" or "draft" when load_document returns it; None when built directly
         owners, reanchored = [], set()
         for i, e in enumerate(entries):
             where = f"entries[{i}]"
+            unknown = e.get("type") if isinstance(e, dict) else None
+            if isinstance(unknown, str) and unknown and unknown not in ENTRY_MEMBERS:
+                # §13.3: an entry type this consumer does not implement is ignored — it grants, revokes,
+                # binds, pins, and declares nothing here — unless it is marked critical.
+                if "critical" in e and e["critical"] is not False:
+                    raise RegistryError(
+                        f"{where}: entry type {unknown!r} is marked critical and this consumer does not "
+                        "implement it; the registry is refused whole (§13.3)"
+                    )
+                self.unknown_entries.append(i)
+                continue
             t = validate_entry(e, where)
             if t == "kind":
                 if e["kind"] in self.kinds:
@@ -911,8 +968,8 @@ def validate_document(doc):
     if not (isinstance(seq, int) and not isinstance(seq, bool) and 0 <= seq <= 2**53 - 1):
         raise RegistryError("registry_seq must be uint53")
     source = doc["canonical_source"]
-    if not _https_uri(source):
-        raise RegistryError("canonical_source must be an absolute HTTPS URI (§13.1)")
+    if not _canonical_source_ok(source):
+        raise RegistryError("canonical_source must be an absolute HTTPS URI or a URN (§13.1)")
     if not isinstance(doc[ENTRIES_MEMBER], list):
         raise RegistryError("entries must be a JSON array (§13.1)")
     sig = doc["sig"]

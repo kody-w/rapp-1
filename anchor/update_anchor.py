@@ -738,6 +738,14 @@ def revision_payload(
         {
             "t": "fact",
             "c": (
+                "A consumer ignores a registry entry of a type it does not implement, unless the entry "
+                "is marked critical, which refuses the whole registry; so one estate registry can keep "
+                "growing after an LTS consumer is pinned, and an ignored entry grants nothing."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
                 "A stream-signer entry is the estate owner's grant that one keyed signer speaks for the "
                 "estate on one stream, for the listed kinds, from since_utc (which may precede its "
                 "activated_utc) until an optional until_utc; a keyless organism's streams gain a signer "
