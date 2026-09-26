@@ -93,7 +93,9 @@ one stream (§13.7). **absolute HTTPS URI** — an absolute URI [RFC 3986] (so w
 host that is a non-empty reg-name or an IP literal (an IPv6 address with no zone, or IPvFuture), and, when
 a `:` follows the host, a port of one to five digits no greater than 65535. **full tag name** —
 `refs/tags/` followed by a non-empty ASCII name that git's ref-name rules (`git check-ref-format`) accept;
-every `immutable_ref` is one (§13.3, §13.5).
+every `immutable_ref` is one (§13.3, §13.5). **§7.4 time** — a string in the §7.4 fixed form, 24 ASCII
+octets, that is also a calendar-valid [RFC 3339] `date-time`, exactly as §7.5 step 1 requires of a frame's
+`utc`; every time member of a registry entry is one, and they compare bytewise (§13).
 
 ## 4. Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **[RFC 8785] JCS** for the value `v`, defined **only**
@@ -990,7 +992,7 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   regular blob with `mode` `"100644"` or `"100755"` and object id `blob`;
   `path` is a relative NFC POSIX path with no empty, `"."`, or `".."` component; `sha256` is the raw
   kernel bytes' 64-lowercase-hex SHA-256; `size_bytes` is their positive `uint53` length;
-  `activated_utc` has the exact §7.4 form; `predecessor` is null or another `grail_id`; `declared_by` is
+  `activated_utc` is a §7.4 time (§3); `predecessor` is null or another `grail_id`; `declared_by` is
   a keyed rappid; and `sig` is a detached §10 JWS whose protected `kid` equals `declared_by`, over
   `canonical(entry \ {sig})`. The entry is additionally covered by the registry's §13.1 signature. A
   consumer verifies the entry signer as the estate owner in effect at `activated_utc`, verifies the
@@ -1011,7 +1013,7 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   declared_by, sig}` — exactly these members; a declared entry (§13.4). `subject` is what the notice is
   about: a §6.1 rappid (an organism) or an absolute HTTPS URI naming a repository (§13.6); `state` is
   `"active"`, `"deprecated"`, `"superseded"`, or `"archived"`; `superseded_by` is `null` or another subject
-  of either form; `since_utc` has the §7.4 form; `previous` is `null` or `H("rapp/1:particle", e)` of the
+  of either form; `since_utc` is a §7.4 time (§3); `previous` is `null` or `H("rapp/1:particle", e)` of the
   earlier `lifecycle` entry `e` for the same `subject` that this one follows (§13.6).
 - **stream-signer** `{type:"stream-signer", stream_id, signer, kinds, since_utc, until_utc,
   activated_utc, declared_by, sig}` — exactly these members; a declared entry (§13.4). `stream_id` has a
@@ -1019,7 +1021,7 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   registry; `kinds` is a non-empty array of distinct kinds in ascending bytewise order, each registered
   (deprecated or not) in the same registry with a family compatible with `stream_id`'s form (§7.2) and
   none of the three re-genesis kinds `memory.re-genesis`, `swarm.re-genesis`, and `body.re-genesis`
-  (§12.1 reserves them for the owner); `since_utc` has the §7.4 form; `until_utc` is `null` or a §7.4
+  (§12.1 reserves them for the owner); `since_utc` is a §7.4 time (§3); `until_utc` is `null` or a §7.4
   time after `since_utc` (§13.7).
 - **estate_owner** `{type:"estate_owner", rappid}` (exactly one non-deprecated) · **master-plan**
   `{type:"master-plan", repo, path}` (Fed. Const. Art. VII).
@@ -1046,7 +1048,7 @@ re-evaluates a cached lifecycle or authority answer against a newer registry. Th
 release pins, lifecycle notices, stream signers — sit above §7.5 and never add a §7.5 step.
 
 ### 13.4 Declared entries (entry-level owner signatures)
-A **declared entry** carries its own `activated_utc` (the §7.4 form), `declared_by` (a keyed rappid), and
+A **declared entry** carries its own `activated_utc` (a §7.4 time, §3), `declared_by` (a keyed rappid), and
 `sig` (a detached §10 JWS whose protected `kid` equals `declared_by`, over `canonical(entry \ {sig})`). The
 declared entry types are `grail-kernel`, `release-pin`, `lifecycle`, and `stream-signer`. For every declared
 entry a consumer **MUST**:
@@ -1330,10 +1332,11 @@ caches an acceptance does too.
   value outside §3 that rev-16's reference accepted (user information, an empty host or port, a port
   above 65535, a fragment, a non-ASCII character, a malformed percent-encoding, more than 2048
   characters) is now refused (no published registry carries one), and every `immutable_ref`, the
-  `grail-kernel`'s included, to be a full tag name (§3); requires every number in a registry,
-  and in an identity file, to be written as an integer within ±(2^53−1), where rev-16 allowed any §4
-  number; says a consumer ignores an entry type it does not implement unless the entry is marked
-  critical;
+  `grail-kernel`'s included, to be a full tag name (§3), and every registry time member to be a §7.4
+  time (§3: the fixed form in ASCII and a calendar date-time); requires a registry's octets to be UTF-8
+  without a byte-order mark, and every number in a registry, and in an identity file, to be written as
+  an integer within ±(2^53−1), where rev-16 allowed any §4 number; says a consumer ignores an entry type
+  it does not implement unless the entry is marked critical;
   generalizes the `grail-kernel` entry-level owner signature into §13.4 declared entries, each verified
   at its own `activated_utc`, carried once, and, once accepted, retained byte-for-byte ahead of every
   later declaration; and adds three declared entry types. **Release pins** (§13.5): a release scope

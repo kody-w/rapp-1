@@ -195,7 +195,7 @@ class GrantTimeFormTests(Base):
         reg = self.registry([self.grant(until_utc=None)])
         self.assertFalse(reg.grant_covers(self.station, self.keys["signer"], "body.pulse", year))
         self.assertEqual(reg.authority_decision(self.station, self.keys["signer"], "body.pulse", year),
-                         (False, "utc is not the fixed §7.4 form"))
+                         (False, "utc is not a §7.4 time"))
 
 
 class GrantCrossEntryTests(Base):

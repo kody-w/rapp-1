@@ -1130,6 +1130,8 @@ def registry_sections():
             grant_case("until_utc omitted rather than null", [grant(until_utc=_DROP)], "refuse"),
             grant_case("an extra member", [grant(deprecated=False)], "refuse"),
             grant_case("since_utc not the fixed §7.4 form", [grant(since_utc="2026-07-10T00:00:00Z")], "refuse"),
+            grant_case("until_utc in the fixed form but not a calendar date-time (§3: a §7.4 time)",
+                       [grant(until_utc="2026-02-30T00:00:00.000Z")], "refuse"),
         ]
 
         # The estate owner itself rotates at `handover` (§13.2): owner authority follows its tenure.

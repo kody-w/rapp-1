@@ -224,14 +224,14 @@ def _utc_millis(value, where):
     """A §7.4 time as exact integer milliseconds since the POSIX epoch. Float seconds cannot hold
     every millisecond instant exactly, and §13.4 item 3's 300-second bound is exact."""
     if not _utc_form(value):
-        raise RegistryError(f"{where}: not the fixed §7.4 UTC form")
+        raise RegistryError(f"{where}: not a §7.4 time")
     parsed = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
     return (parsed - _EPOCH) // timedelta(milliseconds=1)
 
 
 def activated_within_bound(activated_utc, first_seen_utc):
     """§13.4 item 3: False when `activated_utc` is more than 300 seconds after the verifier's
-    first-seen time for the entry, computed exactly; RegistryError unless both have the §7.4 form."""
+    first-seen time for the entry, computed exactly; RegistryError unless both are §7.4 times (§3)."""
     later = _utc_millis(activated_utc, "activated_utc") - _utc_millis(first_seen_utc, "first-seen time")
     return later <= FIRST_SEEN_SKEW_SECONDS * 1000
 
@@ -317,7 +317,8 @@ def _rappid(entry, member, where):
 
 def _utc(entry, member, where):
     if not _utc_form(entry.get(member)):
-        raise RegistryError(f"{where}: `{member}` is not the fixed §7.4 UTC form")
+        raise RegistryError(f"{where}: `{member}` is not a §7.4 time (the fixed form in ASCII, and a real "
+                            "calendar date-time)")
     return entry[member]
 
 
@@ -714,7 +715,7 @@ class Registry:
         """The estate-owner rappid in effect at `utc` (walks re-anchor records backwards). A `utc`
         that is not the fixed, ASCII §7.4 form raises RegistryError: tenure compares bytewise."""
         if not _utc_form(utc):
-            raise RegistryError("owner_at: the time is not the fixed §7.4 UTC form")
+            raise RegistryError("owner_at: the time is not a §7.4 time")
         owner, seen = self.estate_owner, set()
         while True:
             if owner in seen:
@@ -735,7 +736,7 @@ class Registry:
 
     def _signer_acceptable(self, kid, utc, ignored_reanchor=None, match_key_aliases=False):
         if not _utc_form(utc):
-            return False, "the artifact's time is not the fixed §7.4 UTC form"
+            return False, "the artifact's time is not a §7.4 time"
         e = self.spki.get(kid)
         if e is None:
             return False, "no spki entry for kid (registry absence is refusal)"
@@ -1159,14 +1160,14 @@ class Registry:
         (bytewise, §7.4). None means no declared lifecycle at `utc` — never deprecation.
         It is the estate's answer, so it is given only by a registry load_document returned as
         "verified" (a "draft" only with `allow_draft=True`, as a rehearsal; a Registry built
-        directly never): otherwise, and for a `utc` that is not the fixed §7.4 form, it raises
+        directly never): otherwise, and for a `utc` that is not a §7.4 time, it raises
         RegistryError (a ValueError) rather than return a None that could read as "no notice".
         For a component of a release manifest, ask about `lifecycle_subject(component)`."""
         refusal = self._status_refusal(allow_draft, "the lifecycle in effect (§13.6)")
         if refusal:
             raise RegistryError(refusal)
         if not _utc_form(utc):
-            raise RegistryError("lifecycle query time is not the fixed §7.4 UTC form")
+            raise RegistryError("lifecycle query time is not a §7.4 time")
         in_effect = None
         for notice in self.lifecycle_chain(subject):
             if notice["since_utc"] > utc:
@@ -1249,7 +1250,7 @@ class Registry:
         if not R.rappid_valid(kid):
             return False, "kid is not a §6.1 rappid"
         if not _utc_form(utc):
-            return False, "utc is not the fixed §7.4 form"
+            return False, "utc is not a §7.4 time"
         try:
             owner = self.owner_at(utc)
         except RegistryError as why:

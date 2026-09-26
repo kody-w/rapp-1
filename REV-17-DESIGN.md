@@ -282,7 +282,7 @@ reference's.
       "pattern": "^rappid:@(?=[a-z0-9-]{1,39}/)[a-z0-9]+(?:-[a-z0-9]+)*/(?=[a-z0-9-]{1,100}:)[a-z0-9]+(?:-[a-z0-9]+)*:[0-9a-f]{64}(?![\\s\\S])"
     },
     "utc": {
-      "description": "§7.4 fixed UTC form; must also be a real calendar time (rapp.utc_valid)",
+      "description": "a §7.4 time (§3): the §7.4 fixed form in ASCII and also a real calendar date-time (rapp.utc_valid), which a pattern cannot express",
       "type": "string",
       "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z(?![\\s\\S])"
     },
@@ -392,6 +392,129 @@ reference's.
           }
         }
       }
+    },
+    "grail_id": {
+      "description": "grail:<64 lowercase hex>, 'grail:' || Hb('rapp/1:grail', kernel bytes)",
+      "type": "string",
+      "pattern": "^grail:[0-9a-f]{64}(?![\\s\\S])"
+    },
+    "grail-kernel": {
+      "description": "§13.3 grail-kernel (declared, persisted): rev-16's members, with rev-17 holding release_scope and repository to §3's absolute HTTPS URI, immutable_ref to a full tag name, and activated_utc to a §7.4 time. Not expressible here: grail_id and sha256/size_bytes computed over the kernel bytes; no two grail-kernel entries share release_scope or grail_id; predecessor names another grail-kernel entry of the registry, with no cycle; immutable_ref resolves to commit, and path at commit to one regular blob with that mode and blob id (a git-capable verifier's check); path is NFC (not checked by the reference; see rapp-backlog.md); the entry precedes its release_scope's first release-pin and no consumer-accepted release of that family.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "release_scope",
+        "grail_id",
+        "repository",
+        "immutable_ref",
+        "object_format",
+        "commit",
+        "path",
+        "mode",
+        "blob",
+        "sha256",
+        "size_bytes",
+        "activated_utc",
+        "predecessor",
+        "declared_by",
+        "sig"
+      ],
+      "properties": {
+        "type": {
+          "const": "grail-kernel"
+        },
+        "release_scope": {
+          "$ref": "#/$defs/https"
+        },
+        "grail_id": {
+          "$ref": "#/$defs/grail_id"
+        },
+        "repository": {
+          "$ref": "#/$defs/https"
+        },
+        "immutable_ref": {
+          "$ref": "#/$defs/full_tag_name"
+        },
+        "object_format": {
+          "enum": [
+            "sha1",
+            "sha256"
+          ]
+        },
+        "commit": {
+          "type": "string"
+        },
+        "path": {
+          "description": "a relative POSIX path with no empty, '.', or '..' component",
+          "type": "string",
+          "pattern": "^(?!\\.\\.?(?:/|(?![\\s\\S])))[^/]+(?:/(?!\\.\\.?(?:/|(?![\\s\\S])))[^/]+)*(?![\\s\\S])"
+        },
+        "mode": {
+          "enum": [
+            "100644",
+            "100755"
+          ]
+        },
+        "blob": {
+          "type": "string"
+        },
+        "sha256": {
+          "$ref": "#/$defs/hex64"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "activated_utc": {
+          "$ref": "#/$defs/utc"
+        },
+        "predecessor": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/grail_id"
+            }
+          ]
+        },
+        "declared_by": {
+          "$ref": "#/$defs/rappid"
+        },
+        "sig": {
+          "$ref": "#/$defs/sig"
+        }
+      },
+      "allOf": [
+        {
+          "$ref": "#/$defs/object_id_by_format"
+        },
+        {
+          "if": {
+            "properties": {
+              "object_format": {
+                "const": "sha1"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "blob": {
+                "pattern": "^[0-9a-f]{40}(?![\\s\\S])"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "blob": {
+                "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+              }
+            }
+          }
+        }
+      ]
     },
     "release-pin": {
       "description": "§13.3/§13.5 release-pin (declared, persisted). Cross-entry rules not expressible here: manifest_hash unique; predecessor names an EARLIER release-pin of the same channel; one root and no fork per channel; activated_utc never decreases along a channel; a family's releases may span channels (newest graduating to LTS) and its current release is its pin last in entries; a scope's grail-kernel (if any) precedes its first release-pin; path is ASCII (a pattern cannot state NFC).",
@@ -779,7 +902,7 @@ reference's.
       }
     },
     "registry-document": {
-      "description": "§13.1 registry document: exactly these five members carry meaning; any other top-level member is covered by sig and carries none. sig null = unsigned draft, never authority. Each entry of a type defined here matches its schema; an entry of a type a consumer does not implement is ignored unless it carries critical other than false, which refuses the registry (§13.3). Not expressible here: at most 1 MiB canonical and nested at most 64 deep (§4(d)); every number anywhere an integer within ±(2^53-1) (§13.1); the other known types' own rules and every cross-entry rule (the reference checks them); no two declared entries with the same canonical form (§13.4); against a consumer's history, the declared entries it accepted come first, unchanged and in order (§13.4).",
+      "description": "§13.1 registry document: exactly these five members carry meaning; any other top-level member is covered by sig and carries none. sig null = unsigned draft, never authority. Each entry of a type defined here matches its schema; an entry of a type a consumer does not implement is ignored unless it carries critical other than false, which refuses the registry (§13.3). Not expressible here: at most 1 MiB canonical and nested at most 64 deep (§4(d)); every number anywhere an integer within ±(2^53-1) (§13.1); the own rules of the rev-16 types other than grail-kernel, and every cross-entry rule (the reference checks them); no two declared entries with the same canonical form (§13.4); against a consumer's history, the declared entries it accepted come first, unchanged and in order (§13.4).",
       "type": "object",
       "required": [
         "schema",
@@ -812,6 +935,18 @@ reference's.
               }
             },
             "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "grail-kernel"
+                    }
+                  }
+                },
+                "then": {
+                  "$ref": "#/$defs/grail-kernel"
+                }
+              },
               {
                 "if": {
                   "properties": {

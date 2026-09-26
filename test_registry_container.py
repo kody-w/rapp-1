@@ -535,7 +535,7 @@ class DeclaredEntryTests(unittest.TestCase):
                 ("revoked_utc", {"type": "tombstone", "rappid": worker, "revoked_utc": year, "sig": "s"}),
                 ("utc", dict(self.estate.reanchor("owner", "successor", signer="owner"), utc=year))):
             with self.subTest(member=member):
-                with self.assertRaisesRegex(REG.RegistryError, f"`{member}` is not the fixed §7.4 UTC form"):
+                with self.assertRaisesRegex(REG.RegistryError, f"`{member}` is not a §7.4 time"):
                     REG.validate_entry(entry)
         # The caller's first-seen and tombstone issuance contexts are time values too.
         entry = self.estate.grail_kernel()
@@ -554,12 +554,12 @@ class DeclaredEntryTests(unittest.TestCase):
         with self.estate.mocked():
             ok, why = reg.declared_entry_ok(entry, verification_utc=year)
         self.assertFalse(ok)
-        self.assertIn("first-seen time: not the fixed §7.4 UTC form", why)
+        self.assertIn("first-seen time: not a §7.4 time", why)
         # Owner tenure and key acceptability compare times bytewise, so they refuse the form too.
-        with self.assertRaisesRegex(REG.RegistryError, "not the fixed §7.4 UTC form"):
+        with self.assertRaisesRegex(REG.RegistryError, "not a §7.4 time"):
             reg.owner_at(year)
         self.assertEqual(reg.signer_acceptable(self.estate.keys["owner"], year),
-                         (False, "the artifact's time is not the fixed §7.4 UTC form"))
+                         (False, "the artifact's time is not a §7.4 time"))
 
 
 class LinearChainTests(unittest.TestCase):
@@ -634,7 +634,7 @@ class DesignRecordSchemaTests(unittest.TestCase):
         block = re.search(r"<!-- schemas:begin -->\s*```json\n(.*?)\n```\s*<!-- schemas:end -->", text, re.S)
         self.assertIsNotNone(block, "the design record's schema block is missing")
         defs = json.loads(block.group(1))["$defs"]
-        for name in ("release-pin", "lifecycle", "stream-signer"):
+        for name in ("grail-kernel", "release-pin", "lifecycle", "stream-signer"):
             with self.subTest(entry=name):
                 required, optional = REG.ENTRY_MEMBERS[name]
                 self.assertEqual((set(defs[name]["required"]), optional), (required, set()))

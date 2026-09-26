@@ -12390,6 +12390,26 @@
       ],
       "expect": "refuse",
       "label": "since_utc not the fixed §7.4 form"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.notice",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-02-30T00:00:00.000Z"
+       }
+      ],
+      "expect": "refuse",
+      "label": "until_utc in the fixed form but not a calendar date-time (§3: a §7.4 time)"
      }
     ],
     "note": "each case's registry is a §13.1 document whose entries are base_entries followed by the case's entries; accept or refuse it exactly as §13.3 requires"

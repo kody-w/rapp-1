@@ -221,8 +221,15 @@ class LifecycleStatusTests(LifecycleCase):
                 self.assertRefused(dict(self.notice(ALPHA, "active"), **{member: arabic_indic_year}),
                                    reason=re.escape(f"`{member}`"))
         registry = self.registry(self.notice(ALPHA, "active"))
-        with self.assertRaisesRegex(REG.RegistryError, "fixed §7.4"):
+        with self.assertRaisesRegex(REG.RegistryError, "not a §7.4 time"):
             registry.lifecycle_state_at(ALPHA, arabic_indic_year)
+        # A §7.4 time (§3) is also a real calendar date-time, as §7.5 step 1 requires of a frame's utc.
+        february_30 = "2026-02-30T00:00:00.000Z"
+        self.assertEqual(len(february_30.encode("ascii")), 24)
+        for member in ("since_utc", "activated_utc"):
+            with self.subTest(member=member, value=february_30):
+                self.assertRefused(dict(self.notice(ALPHA, "active"), **{member: february_30}),
+                                   reason=re.escape(f"`{member}` is not a §7.4 time"))
 
 
 class LifecycleChainTests(LifecycleCase):
