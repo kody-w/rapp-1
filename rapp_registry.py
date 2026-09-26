@@ -81,7 +81,7 @@ _REG_NAME = re.compile(rf"(?:[{_URI_SAFE}]|{_PCT})+")
 _PCHAR = rf"(?:[{_URI_SAFE}:@]|{_PCT})"
 _PATH_ABEMPTY = re.compile(rf"(?:/{_PCHAR}*)*")
 _QUERY = re.compile(rf"(?:{_PCHAR}|[/?])*")
-_IPV_FUTURE = re.compile(rf"v[0-9A-Fa-f]+\.[{_URI_SAFE}:]+")
+_IPV_FUTURE = re.compile(rf"[vV][0-9A-Fa-f]+\.[{_URI_SAFE}:]+")  # RFC 3986 literals are case-insensitive
 _PORT = re.compile(r"[0-9]{1,5}")
 # RFC 8141 assigned-name: "urn:" NID ":" NSS, with no r-, q-, or f-component.
 _URN = re.compile(rf"urn:[A-Za-z0-9][A-Za-z0-9-]{{0,30}}[A-Za-z0-9]:{_PCHAR}(?:{_PCHAR}|/)*")
@@ -138,7 +138,8 @@ def _https_uri(value):
     """An absolute HTTPS URI (§3), by RFC 3986's grammar: `https://` authority path-abempty [`?` query]
     with no fragment, at most 2048 characters; the authority is a host and an optional port, with no
     user information; the host is a non-empty reg-name or an IP literal (an IPv6 address with no zone,
-    or IPvFuture); a port is 1-5 digits at most 65535. Parsed here, not by urllib, whose port and
+    or IPvFuture); a `:` after the host is followed by a port of 1-5 digits at most 65535 (so an empty
+    port is refused). Parsed here, not by urllib, whose port and
     IP-literal rules differ between Python versions. (`rapp_profile.https_uri`, used by the
     operational profiles, is looser; registry members follow §3.)"""
     if not (isinstance(value, str) and len(value) <= 2048 and value.startswith("https://")):

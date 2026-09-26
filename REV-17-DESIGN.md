@@ -262,10 +262,10 @@ reference's.
       "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
     },
     "https": {
-      "description": "§3 absolute HTTPS URI (RFC 3986 grammar, no fragment): lowercase https, a host that is a non-empty reg-name or an IP literal, no user information, an optional port of 1-5 digits, at most 2048 characters; ALSO the port at most 65535 and the IP literal a real IPv6 address (no zone) or IPvFuture, which this pattern does not check",
+      "description": "§3 absolute HTTPS URI (RFC 3986 grammar, no fragment): lowercase https, a host that is a non-empty reg-name or an IP literal, no user information, after a ':' a port of 1-5 digits, at most 2048 characters; ALSO the port at most 65535 and the IP literal a real IPv6 address (no zone) or IPvFuture, which this pattern does not check",
       "type": "string",
       "maxLength": 2048,
-      "pattern": "^https://(?:(?:[A-Za-z0-9\\-._~!$&'()*+,;=]|%[0-9A-Fa-f]{2})+|\\[(?:[0-9A-Fa-f:.]+|v[0-9A-Fa-f]+\\.[A-Za-z0-9\\-._~!$&'()*+,;=:]+)\\])(?::[0-9]{1,5})?(?:/(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})*)*(?:\\?(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})*)?$"
+      "pattern": "^https://(?:(?:[A-Za-z0-9\\-._~!$&'()*+,;=]|%[0-9A-Fa-f]{2})+|\\[(?:[0-9A-Fa-f:.]+|[vV][0-9A-Fa-f]+\\.[A-Za-z0-9\\-._~!$&'()*+,;=:]+)\\])(?::[0-9]{1,5})?(?:/(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})*)*(?:\\?(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})*)?$"
     },
     "canonical_source": {
       "description": "§13.1: an absolute HTTPS URI (§3), or a URN (RFC 8141: lowercase urn:, a 2-32 character namespace, no r-, q-, or f-component) for a registry kept in a private store",

@@ -90,8 +90,8 @@ that has no rappid, is active, deprecated, superseded, or archived, and since wh
 **stream signer** — a keyed signer an estate has granted, by a `stream-signer` entry, to speak for it on
 one stream (§13.7). **absolute HTTPS URI** — an absolute URI [RFC 3986] (so with no fragment) of at most
 2048 characters whose scheme is the lowercase `https` and whose authority carries no user information, a
-host that is a non-empty reg-name or an IP literal (an IPv6 address with no zone, or IPvFuture), and, if
-present, a port of one to five digits no greater than 65535.
+host that is a non-empty reg-name or an IP literal (an IPv6 address with no zone, or IPvFuture), and, when
+a `:` follows the host, a port of one to five digits no greater than 65535.
 
 ## 4. Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **[RFC 8785] JCS** for the value `v`, defined **only**

@@ -144,12 +144,12 @@ class DocumentLimitTests(unittest.TestCase):
                        "https://registry.example.test:-0/r.json", "https://[zz]/r.json", "https://[::1]x/r.json",
                        "https://registry.example.test/a[b].json", "https://[::1%25eth0]/r.json",
                        "https://registry.example.test/r.json#top", "urn:x:registry", "URN:rapp:registry",
-                       "urn:rapp:registry#top"):
+                       "urn:rapp:registry#top", "https://registry.example.test:/r.json"):
             with self.subTest(source=source):
                 with self.assertRaisesRegex(REG.RegistryError, "canonical_source"):
                     REG.validate_document(self.estate.document(base, signed=False, source=source))
         for source in ("https://registry.example.test:8443/r.json?v=1", "https://[::1]/r.json",
-                       "https://registry.example.test/a%20b/r.json",
+                       "https://registry.example.test/a%20b/r.json", "https://[v7.a]/r.json", "https://[V7.a]/r.json",
                        "urn:rapp:private-hive:" + "ab" * 32 + ":registry-history"):  # a private Hive's
             with self.subTest(source=source):
                 self.assertEqual(self.draft(self.estate.document(base, signed=False, source=source))[0], "draft")
