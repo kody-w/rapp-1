@@ -82,7 +82,7 @@ in chapter 10.
 | **[`ietf/`](ietf/)** | `draft-wildfeuer-rapp-1-00` — the spec rendered as an Internet-Draft (CI refuses a copy that does not render the chain head); an RFC number outlives every platform |
 | **[`MIRRORS.md`](MIRRORS.md)** | where else the standard lives — Software Heritage, Wayback, git mirrors, paper |
 | **[`EXTENDING.md`](EXTENDING.md)** | how to extend RAPP without touching this repo — your own estate, your own signed registry, your own kinds; what still needs a revision |
-| **[`rapp_registry.py`](rapp_registry.py)** | the §13 registry as executable checks, stdlib only — exact entry shapes, kind↔family↔stream binding, owner succession, tombstones, declared entries; `examples/07_your_own_estate.py` drives it |
+| **[`rapp_registry.py`](rapp_registry.py)** | the §13 registry as executable checks, stdlib only — exact entry shapes, kind↔family↔stream binding, owner succession, tombstones, declared entries, stream signers; `examples/07_your_own_estate.py` drives it |
 | **[`PROMPTS.md`](PROMPTS.md)** | the prompt book — every task as a copy-paste prompt for your brainstem or brainsurgeon; you never type code |
 | **[`rapp.py`](rapp.py)** | the reference implementation, stdlib only, ~140 lines you are meant to read |
 | **[`conformance.py`](conformance.py)** | test vectors V1–V9; run it, watch it go green |
@@ -271,7 +271,8 @@ come back, because everyone building on it turns the same bytes into the same tr
 ## Status
 
 RAPP rev-17 (draft for owner ratification) closes the §13 registry container and adds
-declared entries without changing any frozen form.
+declared entries — stream signers — so an estate can let a key speak for it on one stream,
+without changing any frozen form.
 
 RAPP rev-14 makes selected `anchor/chain.jsonl` frames carry normative content,
 while owner-ratified protected-main acceptance selects the authoritative chain.

@@ -15,7 +15,7 @@ signs. This page is the lane. Nothing on it needs a change to `rapp/1`.
 | your signers and their keys | `spki` entries; rotation by `re-anchor`; compromise by `tombstone` | §10, §13.2 |
 | your production runtime pinned | a `grail-kernel` entry | §11.1 |
 | to let a key speak for you on one stream (a pulse, a notice feed) | `stream-signer` grants — keyless organisms stay keyless | §13.5 |
-| your own signature on each of those two (a kernel, a grant) | a declared entry: signed by the owner in effect at its `activated_utc`, retained byte-for-byte once accepted; a copy elsewhere counts only when byte-identical | §13.4 |
+| your own signature on each of those two (a kernel, a grant) | a declared entry: signed by the owner in effect at its `activated_utc`, retained unchanged once accepted; a copy elsewhere counts only when its canonical form equals a carried entry's | §13.4 |
 | a subordinate profile (`acme-factory/1`) with its own normative text | **your** repository; adopted by a `protocol` entry pinning repo, path, and SHA-256 | §11.2, `protocols/README.md` |
 | tooling that needs a library (Ed25519 signing, HSMs, a database) | **your** repository; it imports `rapp.py`'s canonicalizer, never re-types it | Art. 10 |
 | to say which RAPP/1 you implement | a `protocol` entry `name:"rapp/1"` whose `spec_hash` comes from **this** repository's anchor | §13.3 |
