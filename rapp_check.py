@@ -106,15 +106,22 @@ def _strict_json(path):
     return R._strict_json(_read_blob(path, R.MAX_CANONICAL_BYTES))
 
 
+_SCHEMA_CLAIM = re.compile(rb'"schema"\s*:\s*"(rapp/1-registry|rapp/1-release-manifest)"')
+
+
 def _lenient_schema(blob):
     """The top-level `schema` of a JSON object that failed strict parsing, or None.
 
     Only names what the document claims to be, so a registry that is not strict
-    I-JSON (a duplicate member, a float) is reported rather than skipped."""
+    I-JSON (a duplicate member, a float) is reported rather than skipped. Numbers stay
+    strings, and a text the parser cannot finish (nesting past the recursion limit)
+    falls back to a byte scan for a registry or manifest claim, so the verdict does not
+    depend on the Python version's integer-digit or recursion limits."""
     try:
-        value = json.loads(blob)
-    except Exception:
-        return None
+        value = json.loads(blob, parse_int=str, parse_float=str)
+    except (ValueError, RecursionError):
+        match = _SCHEMA_CLAIM.search(blob) if isinstance(blob, bytes) else None
+        return match.group(1).decode("ascii") if match else None
     return value.get("schema") if isinstance(value, dict) else None
 
 

@@ -37,7 +37,7 @@ Evidence is quoted from `main` at `591e014` (rev-16).
 | 8a | Registry container | **Yes** | `EXTENDING.md`: "nothing names the member that holds the entries or how `canonical_source` is carried". | §13.1 names exactly `schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; any other member carries no meaning. `canonical_source` is an absolute HTTPS URI, or a URN for a registry kept in a private store — RAPP's private Hives already sign `rapp/1-registry` documents whose `canonical_source` is a `urn:`. §3 defines an absolute HTTPS URI by RFC 3986's grammar (no fragment, a non-empty host, a port of at most 65535, no user information), which the reference parses itself so its verdict is the same on every Python 3.9 and later. The reference enforces §4's 1 MiB and depth-64 limits on the document. The published registry already has this shape and still verifies. |
 | 8b | Entry-level signatures | **Yes** | §13.3 `grail-kernel`: "A consumer verifies the entry signer as the estate owner in effect at `activated_utc`"; §11.1: `activated_utc` "**MUST NOT** be more than 300 seconds after the verifier's first-seen time". The reference checked only tombstone and re-anchor signatures. | §13.4 declared entries: owner-in-effect signature at `activated_utc`, a per-entry first-seen bound, copies that count only in canonical form, and retention of every accepted declaration. |
 | 8b2 | Entry types a consumer does not implement | **Yes** | §12: everything "still grows under `rapp/1`: … registry entry types"; §13.3 has no rule for an unknown type, and the reference refused the whole registry (rev-16 on a rev-17 entry: `unknown entry type 'release-pin'`). The estate keeps one registry for the LTS line and the newest channel, so every later entry type would cut off consumers pinned to rev-17. | §13.3: an unknown type is ignored — covered by `sig`, counted by §4, granting nothing — unless it carries `critical` other than `false`, which refuses the registry (as §11.2 item 7 refuses "unknown required policy semantics"). Rollout: consumers running rev-16 refuse any registry that carries a rev-17 entry, since they predate this rule, so the estate adds rev-17 entries only after its consumers run rev-17. |
-| 8c | LTS corrections | **Yes, inside 1** | §11.1: "at most one `grail-kernel` entry for each `grail_id`" and "an existing scope is never rebound": a correction that keeps kernel v0.6.9 cannot declare it again under a new scope. | A release scope names a release **family** with at most one kernel; its releases are successive `release-pin` entries in one channel. A new kernel is a new family (a new scope). |
+| 8c | LTS corrections | **Yes, inside 1** | §11.1: "at most one `grail-kernel` entry for each `grail_id`" and "an existing scope is never rebound": a correction that keeps kernel v0.6.9 cannot declare it again under a new scope. | A release scope names a release **family** with at most one kernel; its releases are successive `release-pin` entries. A new kernel is a new family (a new scope). A family's releases may be pinned in more than one channel, so a kernel family first shipped on `newest` graduates to an LTS line when the LTS channel pins a release of it — keeping its one kernel binding, which §11.1 would never let a second scope repeat; a family's current release is its pin that appears last in `entries`. |
 | 8d | Reference answers from unverified registries | tooling | `Registry.protocols` returned the first pin per name — for the published registry, a deprecated one; authority answers ignored whether the registry had been verified. | `current_protocol` returns the sole non-deprecated pin. Every answer — `verify_snapshot`, `frame_authorized`, `verify_authorized_frame`, the lifecycle in effect (`lifecycle_at`, `lifecycle_state_at`, `successor_at`), and `declared_entry_ok` for a copy — comes only from a registry `load_document` returned as verified (a draft only with `allow_draft=True`); structural accessors stay readable. Registry time values must be ASCII, because the frozen `rapp.utc_valid` also accepts other scripts' digits. |
 
 Not blocking the lock, and left open in `rapp-backlog.md`: tombstone issuance time, kind ownership across
@@ -99,7 +99,8 @@ registry      {schema:"rapp/1-registry", registry_seq, canonical_source, entries
 - **Release pins (§13.5).** `release_scope` names a release family; a family's `grail-kernel`, if any,
   appears before its first `release-pin`, and none joins a family after one of its releases was accepted.
   `channel` is an lclabel; each channel is one linear chain through `predecessor` (the `manifest_hash` of
-  the pin it follows), and its head is the channel's current release. `manifest_hash` is unique. The
+  the pin it follows), and its head is the channel's current release. A family's releases may span
+  channels (newest graduating to LTS); its current release is its pin that appears last in `entries`. `manifest_hash` is unique. The
   manifest is stored as exactly `canonical(manifest)` at an immutable commit. Components are sorted by
   `id`; files by the UTF-8 bytes of `path`, under the §9.1 path grammar; `sha256` is over raw bytes. A
   component with `rappid` names its door of record through `identity_path`. When the family has a kernel,
@@ -176,7 +177,10 @@ unverified until the estate that pins this root is anchored". Rev-17 answers bot
 - **Families, channels, scopes.** One release scope per kernel family, for example an LTS family bound to
   kernel `brainstem-v0.6.9` and a newest family per newest kernel. Corrections of the LTS release are new
   `release-pin` entries of the same scope in the LTS channel; the newest channel moves to each new family.
-  Channel names are lclabels; the portfolio's words `rapp1-lts` and `newest` fit.
+  When a newest kernel graduates to LTS, the LTS channel pins a new release (a new `release` name) of that
+  same family — never a second scope for the same kernel, which §11.1 refuses. Channel names are lclabels;
+  the portfolio's words `rapp1-lts` and `newest` fit. Keep every number in a registry, and in an identity
+  file, an integer within ±(2^53−1); a later entry type carries other quantities as strings.
 - **Manifests.** Publish each manifest as exactly its canonical bytes in a **public** repository at an
   immutable commit (the release pin's locator), for example under `releases/<manifest_hash>.json`. The
   kernel component carries the `grail-kernel` entry's repository, object format, commit, and tag, pins the
@@ -265,10 +269,10 @@ reference's.
       "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
     },
     "https": {
-      "description": "§3 absolute HTTPS URI (RFC 3986 grammar, no fragment): lowercase https, a host that is a non-empty reg-name or an IP literal, no user information, after a ':' a port of 1-5 digits, at most 2048 characters; ALSO the port at most 65535 and the IP literal a real IPv6 address (no zone) or IPvFuture, which this pattern does not check",
+      "description": "§3 absolute HTTPS URI (RFC 3986 grammar, no fragment): lowercase https, a host that is a non-empty reg-name or an IP literal, no user information, after a ':' a port of 1-5 digits no greater than 65535, at most 2048 characters; ALSO the IP literal a real IPv6 address (no zone) or IPvFuture, which this pattern does not check",
       "type": "string",
       "maxLength": 2048,
-      "pattern": "^https://(?:(?:[A-Za-z0-9\\-._~!$&'()*+,;=]|%[0-9A-Fa-f]{2})+|\\[(?:[0-9A-Fa-f:.]+|[vV][0-9A-Fa-f]+\\.[A-Za-z0-9\\-._~!$&'()*+,;=:]+)\\])(?::[0-9]{1,5})?(?:/(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})*)*(?:\\?(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})*)?$"
+      "pattern": "^https://(?:(?:[A-Za-z0-9\\-._~!$&'()*+,;=]|%[0-9A-Fa-f]{2})+|\\[(?:[0-9A-Fa-f:.]+|[vV][0-9A-Fa-f]+\\.[A-Za-z0-9\\-._~!$&'()*+,;=:]+)\\])(?::(?:[0-9]{1,4}|0[0-9]{4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]))?(?:/(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})*)*(?:\\?(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})*)?$"
     },
     "canonical_source": {
       "description": "§13.1: an absolute HTTPS URI (§3), or a URN (RFC 8141: lowercase urn:, a 2-32 character namespace, no r-, q-, or f-component) for a registry kept in a private store",
@@ -752,7 +756,7 @@ reference's.
       }
     },
     "registry-document": {
-      "description": "§13.1 registry document: exactly these five members carry meaning; any other top-level member is covered by sig and carries none. sig null = unsigned draft, never authority. Each entry of a type defined here matches its schema; an entry of a type a consumer does not implement is ignored unless it carries critical other than false, which refuses the registry (§13.3). Not expressible here: at most 1 MiB canonical and nested at most 64 deep (§4(d)); the other known types' own rules and every cross-entry rule (the reference checks them).",
+      "description": "§13.1 registry document: exactly these five members carry meaning; any other top-level member is covered by sig and carries none. sig null = unsigned draft, never authority. Each entry of a type defined here matches its schema; an entry of a type a consumer does not implement is ignored unless it carries critical other than false, which refuses the registry (§13.3). Not expressible here: at most 1 MiB canonical and nested at most 64 deep (§4(d)); every number anywhere an integer within ±(2^53-1) (§13.1); the other known types' own rules and every cross-entry rule (the reference checks them).",
       "type": "object",
       "required": [
         "schema",

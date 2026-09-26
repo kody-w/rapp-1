@@ -294,7 +294,7 @@ class ReleaseChannelTests(unittest.TestCase):
         )
         self.assertEqual(hashes(reg.release_channels["newest"]), [release_hash(n) for n in (4, 6, 5)])
         self.assertEqual(reg.channel_head("newest")["manifest_hash"], release_hash(5))
-        # The family it returned to: its current release is still its last release in chain order.
+        # The family it returned to: its current release is its last release in entries order.
         self.assertEqual(hashes(reg.scope_releases(NEW_2)), [release_hash(4), release_hash(5)])
         self.assertEqual(reg.scope_head(NEW_2)["manifest_hash"], release_hash(5))
         self.assertEqual(reg.scope_head(NEW_3)["manifest_hash"], release_hash(6))  # the family it left
@@ -311,17 +311,28 @@ class ReleaseChannelTests(unittest.TestCase):
                 with self.assertRaisesRegex(REG.RegistryError, "second release-pin for manifest_hash"):
                     self.registry(*entries)
 
-    def test_a_family_lives_in_exactly_one_channel(self):
-        cases = {
-            "a second root in another channel": [unsigned_pin(1), unsigned_pin(2, channel="newest")],
-            "a correction appended to another channel": [
-                unsigned_pin(1), unsigned_pin(4, release_scope=NEW_2, channel="newest"),
-                unsigned_pin(2, channel="newest", after=4)],
-        }
-        for label, entries in cases.items():
-            with self.subTest(label=label):
-                with self.assertRaisesRegex(REG.RegistryError, "lives in exactly one channel"):
-                    self.registry(*entries)
+    def test_a_newest_family_graduates_to_an_lts_line(self):
+        # The 2.0 family ships on newest, then the lts channel moves on from the 1.x family to a release
+        # of it: one family, one kernel binding (§11.1), releases in two channels.
+        reg = self.registry(
+            unsigned_pin(1),
+            unsigned_pin(4, release_scope=NEW_2, channel="newest"),
+            unsigned_pin(5, release_scope=NEW_2, channel="newest", after=4, activated_utc=LATER),
+            unsigned_pin(7, release_scope=NEW_2, after=1, activated_utc=LATER),
+            unsigned_pin(6, release_scope=NEW_3, channel="newest", after=5, activated_utc=LATEST),
+        )
+        self.assertEqual(hashes(reg.release_channels["lts"]), [release_hash(1), release_hash(7)])
+        self.assertEqual(hashes(reg.release_channels["newest"]), [release_hash(n) for n in (4, 5, 6)])
+        self.assertEqual(hashes(reg.scope_releases(NEW_2)), [release_hash(n) for n in (4, 5, 7)])
+        self.assertEqual(reg.scope_head(NEW_2)["manifest_hash"], release_hash(7))  # last in entries order
+        self.assertEqual(reg.channel_head("lts")["release_scope"], NEW_2)
+        self.assertEqual(reg.channel_head("newest")["release_scope"], NEW_3)
+        # A later lts correction of the graduated family follows the lts head, as any correction does.
+        correction = unsigned_pin(8, release_scope=NEW_2, after=7, activated_utc=LATEST)
+        self.assertEqual(self.registry(
+            unsigned_pin(1), unsigned_pin(4, release_scope=NEW_2, channel="newest"),
+            unsigned_pin(7, release_scope=NEW_2, after=1, activated_utc=LATER), correction,
+        ).scope_head(NEW_2)["manifest_hash"], release_hash(8))
 
     def test_equal_activation_is_not_a_regression(self):
         reg = self.registry(unsigned_pin(1), unsigned_pin(2, after=1))
@@ -1265,7 +1276,7 @@ class RappCheckReleaseManifestTests(unittest.TestCase):
     def test_a_registry_document_whose_release_pins_break_the_rules_is_a_finding(self):
         estate = MockEstate()
         documents = {
-            "a/registry.json": [unsigned_pin(1), unsigned_pin(2, channel="newest")],
+            "a/registry.json": [unsigned_pin(1), unsigned_pin(2, after=1), unsigned_pin(3, after=1)],
             "b/registry.json": [unsigned_pin(1), estate.grail_kernel(scope=LTS)],
             "c/registry.json": [unsigned_pin(1), unsigned_pin(2, after=1)],
         }
@@ -1276,7 +1287,7 @@ class RappCheckReleaseManifestTests(unittest.TestCase):
         self.assertEqual(sorted((f["artifact"], f["rule"]) for f in findings),
                          [("a/registry.json", "§13 registry document"),
                           ("b/registry.json", "§13 registry document")])
-        self.assertIn("exactly one channel", findings[0]["detail"] + findings[1]["detail"])
+        self.assertIn("fork", findings[0]["detail"] + findings[1]["detail"])
         self.assertEqual([item["artifact"] for item in evidence], ["c/registry.json"])
 
 

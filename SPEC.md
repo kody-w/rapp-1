@@ -926,8 +926,12 @@ forge that estate).
   §13.3 entries in append order; `sig` is `null` only on an unsigned draft. Any other top-level member is
   covered by `sig` but carries no RAPP/1 meaning: a consumer **MUST NOT** read an entry, key, trust,
   policy, or freshness claim from it. A consumer that obtained a canonical source out of band with the
-  trust anchor **MUST** refuse a document whose `canonical_source` differs. A document that carries its
-  entries under any other member, or lacks one of these five members, is not a `rapp/1-registry`.
+  trust anchor **MUST** refuse a document whose `canonical_source` differs from it in any byte. A document
+  that carries its entries under any other member, or lacks one of these five members, is not a
+  `rapp/1-registry`. Every number anywhere in the document — in an entry of any type, including one a
+  consumer does not implement, and in any other member — is an integer of magnitude at most 2^53−1, so
+  every consumer computes the same `canonical(registry \ {sig})`; a later entry type carries any other
+  quantity as a string.
 - The registry document **MUST** carry a top-level `registry_seq` (uint53) and a detached §10 JWS `sig` over
   `canonical(registry \ {sig})` with `kid` = the `estate_owner` rappid. A consumer **MUST** verify this
   signature against an SPKI whose `Hb("rapp/1:rappid", SPKI_DER)` equals the anchor rappid's tail (the SPKI
@@ -994,10 +998,10 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   release family (§11.1); `channel` is an lclabel of 1–64 characters; `predecessor` is `null` or the
   `manifest_hash` of the `release-pin` this one follows in the same `channel`; `manifest_hash` is
   `H("rapp/1:particle", manifest)` of the release manifest (§13.5), and no two `release-pin` entries share
-  it; every `release-pin` of one `release_scope` carries the same `channel`; `repository` (an absolute HTTPS
-  URI), `object_format` (`"sha1"` or `"sha256"`, fixing the lowercase hexadecimal length of `commit`),
-  `commit`, and `path` (the §9.1 path grammar) locate the manifest's octets, which `manifest_hash` — not a
-  git object id — proves. It pins every component of one immutable release of its family (§13.5).
+  it; `repository` (an absolute HTTPS URI), `object_format` (`"sha1"` or `"sha256"`, fixing the lowercase
+  hexadecimal length of `commit`), `commit`, and `path` (the §9.1 path grammar) locate the manifest's
+  octets, which `manifest_hash` — not a git object id — proves. It pins every component of one immutable
+  release of its family (§13.5).
 - **lifecycle** `{type:"lifecycle", subject, state, superseded_by, since_utc, previous, activated_utc,
   declared_by, sig}` — exactly these members; a declared entry (§13.4). `subject` is what the notice is
   about: a §6.1 rappid (an organism) or an absolute HTTPS URI naming a repository (§13.6); `state` is
@@ -1095,8 +1099,8 @@ that pins every component of that release:
   trailing line terminator — so its raw SHA-256 and `manifest_hash` are both reproducible from the bytes.
 - **Door of record.** `rappid` and `identity_path` are both `null` or both non-null. When set,
   `identity_path` is one of the component's `files`, and those octets are UTF-8 without a byte-order mark
-  and parse as a §4 object whose `rappid` member equals the component's `rappid` and whose `schema`, when
-  present, is `"rapp/1"`. Such a component
+  and parse as a §4 object whose numbers, if any, are integers of magnitude at most 2^53−1, whose `rappid`
+  member equals the component's `rappid`, and whose `schema`, when present, is `"rapp/1"`. Such a component
   is the estate's signed statement that, within this pinned release, the organism's door of record is
   `repository` at `commit`. A manifest **MUST NOT** bind one rappid in two components. A consumer locating
   that organism for this pinned release **MUST** use this binding, not the rappid's `@owner/slug`, a
@@ -1116,12 +1120,13 @@ that pins every component of that release:
 - **Channels.** The `release-pin` entries of one `channel` form one linear chain through `predecessor`:
   exactly one has `predecessor:null`, each other names a `release-pin` of the same `channel` that appears
   earlier in `entries`, no two name the same predecessor, and none has an `activated_utc` before its
-  predecessor's. Every release pin of one family belongs to one channel; a channel may move from one family
-  to another — a newest channel moves on to each new family, while an LTS channel stays in one family and
-  appends its corrections. The chain's **head** — the release pin no other names as its predecessor — pins
-  the channel's current release, and the last release of a family in chain order is that family's
-  **current release**. A channel may return to an earlier family; that family's current release is still
-  its last release in chain order. A channel head **MAY** serve as the authenticated owner-controlled
+  predecessor's. A channel may move from one family to another — a newest channel moves on to each new
+  family, while an LTS channel appends corrections of its family — and one family's releases may be pinned
+  in more than one channel: a family first released on a newest channel graduates to an LTS line when the
+  LTS channel pins a release of it, and it keeps its one kernel (§11.1). The chain's **head** — the release
+  pin no other names as its predecessor — pins the channel's current release, and a family's **current
+  release** is its `release-pin` that appears last in `entries`, in whichever channel (each channel's chain
+  order agrees with `entries` order). A channel head **MAY** serve as the authenticated owner-controlled
   release policy that selects a `release_scope` for §11.1 item 1. A pinned release is never rebound or
   retired by editing: its successor in the channel supersedes it, and every earlier release stays
   verifiable by its `manifest_hash`; because every declared entry is persisted (§13.4), a channel's head
@@ -1298,10 +1303,12 @@ registry.
   (`schema`, `registry_seq`, `canonical_source` — an absolute HTTPS URI or a URN — `entries`, `sig`; any
   other member carries no meaning; a document lacking one of the five is not a `rapp/1-registry`); defines
   an absolute HTTPS URI (§3) and holds every member specified as one to it — `grail-kernel`
-  `release_scope` and `repository` and `protocol` `spec_repo` included — so a value with user information,
-  an empty host, or a port above 65535, which rev-16's reference accepted, is now refused (no published
-  registry carries one); says a consumer ignores an entry type it does not implement unless the entry is
-  marked critical;
+  `release_scope` and `repository` included, and `protocol` `spec_repo`, which it now specifies — so a
+  value outside §3 that rev-16's reference accepted (user information, an empty host or port, a port
+  above 65535, a fragment, a non-ASCII character, a malformed percent-encoding, more than 2048
+  characters) is now refused (no published registry carries one); keeps every number in a registry an
+  integer within ±(2^53−1); says a consumer ignores an entry type it does not implement unless the entry
+  is marked critical;
   generalizes the `grail-kernel` entry-level owner signature into §13.4 declared entries, each verified
   at its own `activated_utc` and retained byte-for-byte once accepted; and adds three declared entry
   types. **Release pins** (§13.5): a release scope names a release family bound to at most one kernel, and

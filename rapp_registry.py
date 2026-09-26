@@ -22,8 +22,8 @@ What is fully specified by §13 and enforced here:
     retention of persisted entries, unchanged in canonical form (§4), once a caller has accepted them;
   - release pins (§13.5): a release scope names a release family; each pinned release of it
     is one `release-pin` entry naming its manifest by a `manifest_hash` no other
-    release-pin shares; a family lives in one channel, each channel is one linear chain of
-    release pins whose head is current, and a family's `grail-kernel` precedes its first
+    release-pin shares; a family's releases may span channels (newest graduating to LTS), each
+    channel is one linear chain of release pins whose head is current, and a family's `grail-kernel` precedes its first
     release-pin and, given the caller's persisted entries, is never added once a release of
     the family was accepted; the `rapp/1-release-manifest` structure and its `release`
     name, kernel coherence with the family's `grail-kernel`, and an all-or-nothing
@@ -124,6 +124,15 @@ ENTRY_MEMBERS = {
 
 class RegistryError(ValueError):
     """A registry that must be refused, whole (§7.5-style: never partial, never repaired)."""
+
+
+def _verify_jws(value, sig, der, kid):
+    """`rapp.verify_detached_jws`, refusing rather than raising when a hostile protected header nests
+    past the interpreter's recursion limit (`rapp.parse_detached_jws` is frozen; this module is not)."""
+    try:
+        return R.verify_detached_jws(value, sig, der, expected_kid=kid)
+    except RecursionError:
+        return False, "detached JWS protected header nests too deeply to parse"
 
 
 def entry_hash(entry):
@@ -718,7 +727,7 @@ class Registry:
         def verify(unsigned, sig, expected_signer=None):
             try:
                 header = R.parse_detached_jws(sig)[0]
-            except ValueError as why:
+            except (ValueError, RecursionError) as why:
                 return False, str(why)
             kid = header["kid"]
             if expected_signer is not None and kid != expected_signer:
@@ -729,7 +738,7 @@ class Registry:
             ok, why = self.signer_acceptable(kid, utc)
             if not ok:
                 return False, why
-            return R.verify_detached_jws(unsigned, sig, self.spki_der(kid), expected_kid=kid)
+            return _verify_jws(unsigned, sig, self.spki_der(kid), kid)
         return verify
 
     def registered_genesis(self, stream_id):
@@ -793,7 +802,7 @@ class Registry:
             if skew > FIRST_SEEN_SKEW_SECONDS:
                 return False, f"{kind}: activated_utc is more than 300 s after first-seen (§13.4)"
         unsigned = {k: v for k, v in entry.items() if k != "sig"}
-        ok, why = R.verify_detached_jws(unsigned, entry["sig"], self.spki_der(signer), expected_kid=signer)
+        ok, why = _verify_jws(unsigned, entry["sig"], self.spki_der(signer), signer)
         if not ok:
             return False, f"{kind} entry signature refused: {why}"
         return True, "ok"
@@ -865,7 +874,7 @@ class Registry:
             der = self.spki_der(expected_kid)
             if der is None:
                 return False, "lifecycle signer has no registered spki"
-            return R.verify_detached_jws(value, sig, der, expected_kid=expected_kid)
+            return _verify_jws(value, sig, der, expected_kid)
 
         for entry in self.entries:
             kind = entry["type"]
@@ -913,22 +922,15 @@ class Registry:
     def _index_release_pins(self):
         """Index the release-pin entries and refuse the registry when they break §13.5.
 
-        A release scope names a release family, and every release pin of one family carries one
-        channel. Each channel's release pins form one linear chain through `predecessor` — the
-        `manifest_hash` of the pinned release each one follows in that channel — whose activation
-        never regresses. A family's grail-kernel entry, if it has one, precedes the family's
+        A release scope names a release family, whose releases may be pinned in more than one channel
+        (a family first released on newest graduates to an LTS line by being pinned there too). Each
+        channel's release pins form one linear chain through `predecessor` — the `manifest_hash` of
+        the pinned release each one follows in that channel — whose activation never regresses; a
+        family's releases are its pins in `entries` order, the last being its current release. A family's grail-kernel entry, if it has one, precedes the family's
         first release-pin in `entries`, so no kernel appended later can make a pinned release
         incoherent; `_check_release_history` refuses one inserted earlier, given the caller's
         persisted entries."""
         pins = [e for e in self.entries if e["type"] == "release-pin"]
-        channel_of = {}
-        for e in pins:
-            channel = channel_of.setdefault(e["release_scope"], e["channel"])
-            if channel != e["channel"]:
-                raise RegistryError(
-                    f"release_scope {e['release_scope']!r} has release pins in channels {channel!r} and "
-                    f"{e['channel']!r}; a release family lives in exactly one channel (§13.5)"
-                )
         for e in pins:
             named = e["predecessor"]
             if named is None:
@@ -949,7 +951,10 @@ class Registry:
             pins, key=lambda e: e["channel"], ident=lambda e: e["manifest_hash"],
             link=lambda e: e["predecessor"], where="release-pin channel",
         )
+        # entries order extends every channel's chain order (a predecessor always appears earlier)
         self.release_families = {}
+        for e in pins:
+            self.release_families.setdefault(e["release_scope"], []).append(e)
         for channel, chain in self.release_channels.items():
             for prior, successor in zip(chain, chain[1:]):
                 # The fixed §7.4 form orders bytewise, identically to chronological order.
@@ -958,8 +963,6 @@ class Registry:
                         f"release-pin channel {channel!r}: release-pin {successor['manifest_hash']} is "
                         f"activated before its predecessor {prior['manifest_hash']} (§13.5)"
                     )
-            for e in chain:
-                self.release_families.setdefault(e["release_scope"], []).append(e)
         first_release = {}
         for index, e in enumerate(self.entries):
             if e["type"] == "release-pin":
@@ -1003,13 +1006,14 @@ class Registry:
         return self.release_pins.get(manifest_hash) if isinstance(manifest_hash, str) else None
 
     def scope_releases(self, release_scope):
-        """The release pins of every release of the family `release_scope`, oldest first (chain
-        order); [] when none."""
+        """The release pins of every release of the family `release_scope`, oldest first (`entries`
+        order, which every channel's chain order agrees with), in whichever channels; [] when none."""
         releases = self.release_families.get(release_scope) if isinstance(release_scope, str) else None
         return list(releases or ())
 
     def scope_head(self, release_scope):
-        """The release pin of the family's current release — its last in chain order — or None."""
+        """The release pin of the family's current release — its last in `entries` order, in whichever
+        channel — or None."""
         releases = self.scope_releases(release_scope)
         return releases[-1] if releases else None
 
@@ -1234,7 +1238,7 @@ class Registry:
             return False, "an unsigned frame never speaks for the estate (§10, §13.7)"
         try:
             kid = R.parse_detached_jws(sig)[0]["kid"]
-        except (ValueError, TypeError) as why:
+        except (ValueError, TypeError, RecursionError) as why:
             return False, f"sig is not a §10 detached JWS: {why}"
         return self.authority_decision(frame.get("stream_id"), kid, frame.get("kind"), frame.get("utc"))
 
@@ -1381,7 +1385,7 @@ def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_uns
     der = reg.spki_der(reg.estate_owner)
     if der is None:
         return "refused", None, "no spki entry for the estate_owner; the tail check cannot run"
-    ok, why = R.verify_detached_jws(unsigned, sig, der, expected_kid=reg.estate_owner)
+    ok, why = _verify_jws(unsigned, sig, der, reg.estate_owner)
     if not ok:
         return "refused", None, why
     try:

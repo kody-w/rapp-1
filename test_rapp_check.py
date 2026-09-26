@@ -351,6 +351,21 @@ class RappCheckDiscoveryTests(unittest.TestCase):
                          [("registry.json", "§13 registry document")])
         self.assertIn("'tombstone ' is not one this checker implements", findings[0]["detail"])
 
+    def test_registry_findings_do_not_depend_on_the_python_version(self):
+        repository = self.fixture_repo("clean")
+        text = json.dumps(self.registry_document(), sort_keys=True)
+        # A 5000-digit integer (refused by json.loads on 3.11+) and nesting past 3.9's recursion limit.
+        (repository / "a").mkdir()
+        (repository / "a" / "registry.json").write_text(
+            text[:-1] + ', "note": ' + "9" * 5000 + "}", encoding="utf-8")
+        (repository / "b").mkdir()
+        (repository / "b" / "registry.json").write_text(
+            text[:-1] + ', "note": ' + "[" * 3000 + "]" * 3000 + "}", encoding="utf-8")
+        verdict, findings, _ = C.check_repo(repository)
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual(sorted((item["artifact"], item["rule"]) for item in findings),
+                         [("a/registry.json", "§13 registry document"), ("b/registry.json", "§13 registry document")])
+
     def test_large_ordinary_json_never_exhausts_frame_discovery(self):
         repository = self.fixture_repo("clean")
         data = repository / "data"

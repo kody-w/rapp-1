@@ -466,6 +466,143 @@
    },
    {
     "document": {
+     "canonical_source": "https://registry.example.test:65535/r.json",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "accept",
+    "label": "canonical_source with port 65535"
+   },
+   {
+    "document": {
+     "canonical_source": "https://registry.example.test:65536/r.json",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "refuse",
+    "label": "canonical_source with port 65536"
+   },
+   {
+    "document": {
+     "canonical_source": "https://registry.example.test/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "accept",
+    "label": "canonical_source of exactly 2048 characters"
+   },
+   {
+    "document": {
+     "canonical_source": "https://registry.example.test/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "refuse",
+    "label": "canonical_source of 2049 characters"
+   },
+   {
+    "document": {
+     "canonical_source": "urn:nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn:registry",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "accept",
+    "label": "a URN canonical_source with a 32-character namespace"
+   },
+   {
+    "document": {
+     "canonical_source": "urn:nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn:registry",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "refuse",
+    "label": "a URN canonical_source with a 33-character namespace"
+   },
+   {
+    "expect": "refuse",
+    "json_text": "{\"canonical_source\":\"https://registry.example.test/rapp-registry.json\",\"entries\":[{\"rappid\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"type\":\"estate_owner\"},{\"deprecated\":false,\"rappid\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"spki_der_b64\":\"dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5\",\"type\":\"spki\"},{\"type\":\"vector-future\",\"weight\":0.5}],\"registry_seq\":1,\"schema\":\"rapp/1-registry\",\"sig\":\"<detached-jws>\"}",
+    "label": "a fraction in an entry of a type this reference does not implement"
+   },
+   {
+    "document": {
      "canonical_source": "https://registry.example.test/<r>.json",
      "entries": [
       {
@@ -2382,6 +2519,115 @@
      "label": "a three-organism cycle through a deprecation's recommended successor"
     },
     {
+     "current": {
+      "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d": {
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55"
+      },
+      "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744": {
+       "state": "superseded",
+       "superseded_by": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d"
+      }
+     },
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "subject": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "3b0a20ee02df491e514563772fa48e8e8e7834709ee7592328016a9adddf207d",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "subject": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "superseded_by": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "subject": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "superseded_by": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "accept",
+     "label": "at one instant the later notice of a chain is in effect: alpha names beta then gamma, beta names alpha"
+    },
+    {
+     "current": null,
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "subject": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "superseded_by": "rappid:@vector/gamma:ff00acf6b8412be0123e0ee3d87fd84b528d292e5b3ee2e5c070b126974e8e55",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": "1f71cc2774d25ffeb0a5228d9f6b2173413878908ae299a28d396670f9e01609",
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "subject": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "superseded_by": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "type": "lifecycle"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "previous": null,
+       "sig": "<detached-jws>",
+       "since_utc": "2026-07-01T00:00:00.000Z",
+       "state": "superseded",
+       "subject": "rappid:@vector/beta:6f350d6ebab7e122044e37492e8ae29e0264dd8ced3b637ba6b0df0e8280c744",
+       "superseded_by": "rappid:@vector/alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+       "type": "lifecycle"
+      }
+     ],
+     "expect": "refuse",
+     "label": "at one instant the later notice closes the loop: alpha names gamma then beta, beta names alpha"
+    },
+    {
      "current": null,
      "entries": [
       {
@@ -3754,7 +4000,106 @@
      "label": "one manifest_hash pinned by two families"
     },
     {
-     "channels": null,
+     "channels": {
+      "lts": [
+       "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "6160702512022082415c2a803f13f3773e1133cf1fce4a3a6e889687c6ffad7d"
+      ],
+      "newest": [
+       "d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710",
+       "95176f87c8c5636fe476863d7a3f36c6ddc5c090eb020a8fc0a5d37a8a31c82b"
+      ]
+     },
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "newest",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710",
+       "object_format": "sha1",
+       "path": "releases/d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "channel": "newest",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "95176f87c8c5636fe476863d7a3f36c6ddc5c090eb020a8fc0a5d37a8a31c82b",
+       "object_format": "sha1",
+       "path": "releases/95176f87c8c5636fe476863d7a3f36c6ddc5c090eb020a8fc0a5d37a8a31c82b.json",
+       "predecessor": "d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710",
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "6160702512022082415c2a803f13f3773e1133cf1fce4a3a6e889687c6ffad7d",
+       "object_format": "sha1",
+       "path": "releases/6160702512022082415c2a803f13f3773e1133cf1fce4a3a6e889687c6ffad7d.json",
+       "predecessor": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "accept",
+     "families": {
+      "https://releases.example.test/vector/1.0": [
+       "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6"
+      ],
+      "https://releases.example.test/vector/2.0": [
+       "d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710",
+       "95176f87c8c5636fe476863d7a3f36c6ddc5c090eb020a8fc0a5d37a8a31c82b",
+       "6160702512022082415c2a803f13f3773e1133cf1fce4a3a6e889687c6ffad7d"
+      ]
+     },
+     "label": "a newest family graduating to an lts line: the lts channel pins a release of it"
+    },
+    {
+     "channels": {
+      "lts": [
+       "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6"
+      ],
+      "newest": [
+       "c8d1d8089f5d28f117b0d8ed309748a7c63d281fb81af76566161e919fc9328a"
+      ]
+     },
      "entries": [
       {
        "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
@@ -3795,9 +4140,14 @@
        "type": "release-pin"
       }
      ],
-     "expect": "refuse",
-     "families": null,
-     "label": "one family in two channels"
+     "expect": "accept",
+     "families": {
+      "https://releases.example.test/vector/1.0": [
+       "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "c8d1d8089f5d28f117b0d8ed309748a7c63d281fb81af76566161e919fc9328a"
+      ]
+     },
+     "label": "one family's first releases in two channels, each a channel root"
     },
     {
      "channels": null,

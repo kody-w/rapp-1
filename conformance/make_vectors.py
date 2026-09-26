@@ -301,6 +301,18 @@ def registry_sections():
             ("a known entry type may not carry critical",
              document([base[0], dict(base[1], critical=False)])),
             ("an entry whose type is the empty string", document(base + [{"type": ""}])),
+            ("canonical_source with port 65535", document(base, canonical_source="https://registry.example.test:65535/r.json")),
+            ("canonical_source with port 65536", document(base, canonical_source="https://registry.example.test:65536/r.json")),
+            ("canonical_source of exactly 2048 characters",
+             document(base, canonical_source="https://registry.example.test/" + "a" * (2048 - 30))),
+            ("canonical_source of 2049 characters",
+             document(base, canonical_source="https://registry.example.test/" + "a" * (2049 - 30))),
+            ("a URN canonical_source with a 32-character namespace",
+             document(base, canonical_source="urn:" + "n" * 32 + ":registry")),
+            ("a URN canonical_source with a 33-character namespace",
+             document(base, canonical_source="urn:" + "n" * 33 + ":registry")),
+            ("a fraction in an entry of a type this reference does not implement",
+             document(base + [{"type": "vector-future", "weight": 0.5}])),
             ("canonical_source with a character RFC 3986 does not allow",
              document(base, canonical_source="https://registry.example.test/<r>.json")),
             ("canonical_source with a port that is not a number",
@@ -358,7 +370,8 @@ def registry_sections():
             pinned_registry, correction_pin, R.canonical(correction).encode("utf-8"), allow_draft=True) == correction
 
         def order(registry):
-            """Each channel's and each family's releases in chain order; the last is current."""
+            """Each channel's releases in chain order and each family's in `entries` order (in
+            whichever channels); the last of each is its current release."""
             def hashes(chains):
                 return {key: [e["manifest_hash"] for e in chain] for key, chain in sorted(chains.items())}
             return hashes(registry.release_channels), hashes(registry.release_families)
@@ -500,7 +513,11 @@ def registry_sections():
                        "accept"),
             entry_case("one release pinned twice, as its own correction", [rp(1), rp(1, after=1)], "refuse"),
             entry_case("one manifest_hash pinned by two families", [rp(1), rp(1, NEW_2, **newest)], "refuse"),
-            entry_case("one family in two channels", [rp(1), rp(2, **newest)], "refuse"),
+            entry_case("a newest family graduating to an lts line: the lts channel pins a release of it",
+                       [rp(1), rp(4, NEW_2, **newest), rp(5, NEW_2, after=4, activated_utc=LATER, **newest),
+                        rp(7, NEW_2, after=1, activated_utc=LATER)], "accept"),
+            entry_case("one family's first releases in two channels, each a channel root",
+                       [rp(1), rp(2, **newest)], "accept"),
             entry_case("a fork: two releases follow one release", [rp(1), rp(2, after=1), rp(3, after=1)],
                        "refuse"),
             entry_case("two first releases in one channel", [rp(1), rp(2)], "refuse"),
@@ -768,6 +785,14 @@ def registry_sections():
             case("a three-organism cycle through a deprecation's recommended successor",
                  [s1, notice(beta, "archived", superseded_by=gamma),
                   notice(gamma, "deprecated", superseded_by=alpha)], "cycle"),
+            case("at one instant the later notice of a chain is in effect: alpha names beta then gamma, beta names alpha",
+                 [s1, notice(alpha, "superseded", previous=s1, superseded_by=gamma),
+                  notice(beta, "superseded", superseded_by=alpha)], "accept"),
+            case("at one instant the later notice closes the loop: alpha names gamma then beta, beta names alpha",
+                 [notice(alpha, "superseded", superseded_by=gamma),
+                  notice(alpha, "superseded", previous=notice(alpha, "superseded", superseded_by=gamma),
+                         superseded_by=beta),
+                  notice(beta, "superseded", superseded_by=alpha)], f"in effect at {T0} form a cycle"),
             case("a cycle across forms: a repository superseded by an organism that names the repository",
                  [notice(handbook, "superseded", superseded_by=alpha), notice(alpha, "superseded", superseded_by=handbook)],
                  f"in effect at {T0} form a cycle"),

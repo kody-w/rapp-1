@@ -155,6 +155,63 @@ class DocumentLimitTests(unittest.TestCase):
                 self.assertEqual(self.draft(self.estate.document(base, signed=False, source=source))[0], "draft")
 
 
+class UriBoundaryTests(unittest.TestCase):
+    """§3 and §13.1 at their edges, for every member that carries an absolute HTTPS URI or a URN."""
+
+    def setUp(self):
+        self.estate = MockEstate()
+
+    def source_ok(self, source):
+        document = self.estate.document(self.estate.base_entries(), signed=False, source=source)
+        return REG.load_document(document, trust_anchor=self.estate.keys["owner"], allow_unsigned=True)[0] == "draft"
+
+    def test_ports_and_lengths_at_their_limits(self):
+        stem = "https://registry.example.test/"
+        self.assertTrue(self.source_ok("https://registry.example.test:65535/r.json"))
+        self.assertTrue(self.source_ok("https://registry.example.test:0/r.json"))
+        for port in ("65536", "99999", "123456"):
+            with self.subTest(port=port):
+                self.assertFalse(self.source_ok(f"https://registry.example.test:{port}/r.json"))
+        self.assertTrue(self.source_ok(stem + "a" * (2048 - len(stem))))
+        self.assertFalse(self.source_ok(stem + "a" * (2049 - len(stem))))
+        urn = "urn:rapp:"
+        self.assertTrue(self.source_ok(urn + "a" * (2048 - len(urn))))
+        self.assertFalse(self.source_ok(urn + "a" * (2049 - len(urn))))
+        self.assertTrue(self.source_ok("urn:" + "n" * 32 + ":registry"))
+        self.assertFalse(self.source_ok("urn:" + "n" * 33 + ":registry"))
+
+    def test_every_https_member_meets_section_3(self):
+        base = self.estate.base_entries()
+        pin = {"type": "protocol", "name": "example/1", "spec_repo": "https://git.example.test/spec",
+               "spec_path": "SPEC.md", "spec_hash": "a" * 64, "deprecated": False}
+        self.assertEqual(REG.validate_entry(pin), "protocol")
+        kernel = self.estate.grail_kernel()
+        bad = ("https://user@git.example.test/spec", "https://git.example.test:65536/spec",
+               "https://git.example.test/spec#readme", "https:///spec")
+        for value in bad:
+            for label, entry in (("spec_repo", dict(pin, spec_repo=value)),
+                                 ("repository", dict(kernel, repository=value)),
+                                 ("release_scope", dict(kernel, release_scope=value))):
+                with self.subTest(member=label, value=value):
+                    with self.assertRaisesRegex(REG.RegistryError, f"`{label}`"):
+                        REG.Registry(base + [entry])
+
+    def test_every_number_in_a_registry_is_an_integer_within_2_to_the_53(self):
+        base = self.estate.base_entries()
+        for label, document in (
+                ("a fraction in an unknown entry", self.estate.document(
+                    base + [{"type": "future-policy", "weight": 0.5}], signed=False)),
+                ("an integer past 2^53-1 in an unknown entry", self.estate.document(
+                    base + [{"type": "future-policy", "weight": 2 ** 53}], signed=False)),
+                ("a fraction in another member", self.estate.document(base, signed=False,
+                                                                      extra={"staleness_days": 7.5}))):
+            with self.subTest(label):
+                status, _, why = REG.load_document(document, trust_anchor=self.estate.keys["owner"],
+                                                   allow_unsigned=True)
+                self.assertEqual(status, "refused")
+                self.assertIn("§4", why)
+
+
 class UnknownEntryTypeTests(unittest.TestCase):
     """§13.3: an entry type this consumer does not implement is ignored unless it is marked critical."""
 

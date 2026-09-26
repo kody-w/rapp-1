@@ -487,6 +487,18 @@ class LifecycleCycleTests(LifecycleCase):
         undone = self.notice(ALPHA, "active", since=T2, previous=a1, activated=T2)
         self.assertIsNone(self.registry(a1, undone, b1, b2).successor_at(ALPHA, T1))
 
+    def test_at_one_instant_the_later_notice_of_a_chain_is_the_one_in_effect(self):
+        # ALPHA names BETA, then (same since_utc) GAMMA; BETA names ALPHA. Only the later notice is in
+        # effect, so ALPHA -> GAMMA and BETA -> ALPHA do not loop; in the other order they do.
+        a1 = self.notice(ALPHA, "superseded", superseded_by=BETA)
+        a2 = self.notice(ALPHA, "superseded", previous=a1, superseded_by=GAMMA)
+        b1 = self.notice(BETA, "superseded", superseded_by=ALPHA)
+        registry = self.registry(a1, a2, b1)
+        self.assertEqual((registry.successor_at(ALPHA, T0), registry.successor_at(BETA, T0)), (GAMMA, ALPHA))
+        c1 = self.notice(ALPHA, "superseded", superseded_by=GAMMA)
+        c2 = self.notice(ALPHA, "superseded", previous=c1, superseded_by=BETA)
+        self.assertRefused(c1, c2, b1, reason=f"in effect at {re.escape(T0)} form a cycle")
+
     def test_a_later_notice_can_close_a_cycle_its_first_notice_did_not(self):
         g1 = self.notice(GAMMA, "active")
         g2 = self.notice(GAMMA, "superseded", since=T1, previous=g1, superseded_by=DELTA, activated=T1)
