@@ -243,7 +243,8 @@ refused("so does a file of the same length with other bytes", lambda: REG.verify
 print("\ndoors of record (§13.5):")
 MONOREPO = GIT + "monorepo"
 STORE[(MONOREPO, "8a" * 20, "organisms/widget-factory/rappid.json")] = identity(widget)  # byte-identical copy
-pinned = REG.verify_release_manifest(reg, lts_2, fetch(RELEASES, "sha1", RELEASES_COMMIT, lts_2["path"]))
+pinned = REG.verify_release_manifest(reg, lts_2, fetch(RELEASES, "sha1", RELEASES_COMMIT, lts_2["path"]),
+                                     allow_draft=True)  # the estate's statement, rehearsed on a draft
 doors = {c["rappid"]: c["repository"] for c in pinned["components"] if c["rappid"]}
 show("each keyless member's door of record is the repository its release binds",
      doors == {widget: GIT + "widget-factory", ledger: GIT + "ledger", network: GIT + "network"})

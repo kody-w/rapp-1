@@ -34,15 +34,17 @@ Evidence is quoted from `main` at `591e014` (rev-16).
 | 5 | Keyless identities for about 300 station repos; can estate-bound keys be added without a re-anchor (§§6.2, 6.3)? | **No new mechanism** | §6.2: keyless "`tail = Hb("rapp/1:rappid", uuid4_octets)`"; "Re-anchor is lawful in exactly three cases"; §10: keyless rappids "assert location, not authorship"; §12 freezes §6.1–6.2. | A keyless identity can never gain its own key: there is no lawful fourth re-anchor case, and adding one would change a frozen form (`rapp/2`). Estate-bound keys are added without any re-anchor as `stream-signer` grants — authority, not identity. Releases (component `rappid: null`) and lifecycle notices (repository subjects) need no rappid, so the lock needs no station minting. |
 | 6 | Should the discovery chain (seed, beacon, sniff schemas) become a RAPP/1 subordinate protocol? | **No** | Constitution Art. 17: this repository is "canonicalization, content addressing, identity, frames, wire, eggs, trust, registries, and protocol-level profiles", while RAPP keeps the "foundation, product home, reference implementation, organism model, and philosophy". The seed is an observation-only document, and the live beacon and `estate.json` paths serve placeholder status documents. | None here. §13.5 makes every discovery document a locator, so trust never depends on it; the LTS manifest pins the discovery convention and its resolver by digest as RAPP files. Revisit only if a second independent resolver needs a wire contract. |
 | 7 | `body.pulse` binding, payload, and stream id | **No core change** | §7.2 defines the `body` family; the published estate registry (`registry_seq` 2) binds `body.pulse` to it; §6.1.1: a body stream id is a rappid; §8: "memory/body-stream frames **MAY** be unsigned"; §13.3: "every stream registers its creation genesis". The network's live stream `rappid:@kody-w/rapp1-network:71216534…` is keyless; its first pulse is a valid `rapp/1` frame that binds to `body.pulse` (checked with this reference), and its genesis is not yet registered. | None. The stream id is the network organism's rappid; the payload belongs to the network convention (RAPP), and an estate may adopt a written payload contract with an ordinary `protocol` entry. The estate registers the stream's `genesis`, then grants a keyed pulse signer (§13.7). Until then pulses are integrity-only. |
-| 8a | Registry container | **Yes** | `EXTENDING.md`: "nothing names the member that holds the entries or how `canonical_source` is carried". | §13.1 names exactly `schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; any other member carries no meaning. §3 defines an absolute HTTPS URI (RFC 3986 characters, a non-empty host, a numeric port, no user information). The reference now enforces §4's 1 MiB and depth-64 limits on the document. The published registry already has this shape and still verifies. |
+| 8a | Registry container | **Yes** | `EXTENDING.md`: "nothing names the member that holds the entries or how `canonical_source` is carried". | §13.1 names exactly `schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; any other member carries no meaning. `canonical_source` is an absolute HTTPS URI, or a URN for a registry kept in a private store — RAPP's private Hives already sign `rapp/1-registry` documents whose `canonical_source` is a `urn:`. §3 defines an absolute HTTPS URI by RFC 3986's grammar (no fragment, a non-empty host, a port of at most 65535, no user information), which the reference parses itself so its verdict never depends on the Python version. The reference enforces §4's 1 MiB and depth-64 limits on the document. The published registry already has this shape and still verifies. |
 | 8b | Entry-level signatures | **Yes** | §13.3 `grail-kernel`: "A consumer verifies the entry signer as the estate owner in effect at `activated_utc`"; §11.1: `activated_utc` "**MUST NOT** be more than 300 seconds after the verifier's first-seen time". The reference checked only tombstone and re-anchor signatures. | §13.4 declared entries: owner-in-effect signature at `activated_utc`, a per-entry first-seen bound, copies that count only in canonical form, and retention of every accepted declaration. |
+| 8b2 | Entry types a consumer does not implement | **Yes** | §12: everything "still grows under `rapp/1`: … registry entry types"; §13.3 has no rule for an unknown type, and the reference refused the whole registry (rev-16 on a rev-17 entry: `unknown entry type 'release-pin'`). The estate keeps one registry for the LTS line and the newest channel, so every later entry type would cut off consumers pinned to rev-17. | §13.3: an unknown type is ignored — covered by `sig`, counted by §4, granting nothing — unless it carries `critical` other than `false`, which refuses the registry (as §11.2 item 7 refuses "unknown required policy semantics"). Rollout: consumers running rev-16 refuse any registry that carries a rev-17 entry, since they predate this rule, so the estate adds rev-17 entries only after its consumers run rev-17. |
 | 8c | LTS corrections | **Yes, inside 1** | §11.1: "at most one `grail-kernel` entry for each `grail_id`" and "an existing scope is never rebound": a correction that keeps kernel v0.6.9 cannot declare it again under a new scope. | A release scope names a release **family** with at most one kernel; its releases are successive `release-pin` entries in one channel. A new kernel is a new family (a new scope). |
 | 8d | Reference answers from unverified registries | tooling | `Registry.protocols` returned the first pin per name — for the published registry, a deprecated one; authority answers ignored whether the registry had been verified. | `current_protocol` returns the sole non-deprecated pin. Every answer — `verify_snapshot`, `frame_authorized`, `verify_authorized_frame`, the lifecycle in effect (`lifecycle_at`, `lifecycle_state_at`, `successor_at`), and `declared_entry_ok` for a copy — comes only from a registry `load_document` returned as verified (a draft only with `allow_draft=True`); structural accessors stay readable. Registry time values must be ASCII, because the frozen `rapp.utc_valid` also accepts other scripts' digits. |
 
 Not blocking the lock, and left open in `rapp-backlog.md`: tombstone issuance time, kind ownership across
-estates, egg-variant closure, the registry's lifetime capacity (§6), and a `rapp.utc_valid` fix for
+estates, egg-variant closure, the registry's lifetime capacity (§6), a `rapp.utc_valid` fix for
 non-ASCII digits in frames (the registry already refuses them; `rapp.py` changes only through its parity
-process). One limit is recorded for estates rather than changed here: profile adoption
+process), and the Unicode version behind §9.1's path-set folding, which a release manifest reuses (frozen;
+an estate avoids paths that collide only under a newer Unicode version). One limit is recorded for estates rather than changed here: profile adoption
 pins are estate-wide, and `rapp-work/1` requires exactly one active pin per profile name whose hash is the
 implementation's own, so the LTS line and the newest channel share each profile text. A changed profile
 text is therefore a new profile name (for example `rapp-work/2`) adopted beside the old one, never a moved
@@ -90,6 +92,7 @@ manifest      {schema:"rapp/1-release-manifest", release_scope, release, compone
 component     {id, kind, rappid, identity_path, repository, object_format, commit, immutable_ref,
                files:[{path, sha256, size_bytes}]}
 registry      {schema:"rapp/1-registry", registry_seq, canonical_source, entries, sig}
+              canonical_source: an absolute HTTPS URI (§3), or a URN for a private store
 ```
 
 - **Release pins (§13.5).** `release_scope` names a release family; a family's `grail-kernel`, if any,
@@ -159,6 +162,11 @@ unverified until the estate that pins this root is anchored". Rev-17 answers bot
 
 ## 6. For the estate that signs
 
+- **Rollout.** A consumer that runs rev-16 refuses a registry carrying any rev-17 entry, so add the first
+  `release-pin`, `lifecycle`, or `stream-signer` entry only after rev-17 is accepted and the estate's
+  consumers run it. From rev-17 on, a later entry type that is not marked critical no longer cuts off an
+  LTS consumer. Check your own registry's `unknown_entries` is empty: a misspelled type is ignored, not
+  refused.
 - **Entry order.** `estate_owner` and `spki`; `kind`; the pulse stream's `genesis`; each family's
   `grail-kernel` before that family's first `release-pin`; the `release-pin` entries; `lifecycle` notices;
   `stream-signer` grants after their signer's `spki` and their kinds.
@@ -209,6 +217,11 @@ unverified until the estate that pins this root is anchored". Rev-17 answers bot
 5. **"A successor release uses a new scope."** Recommendation: read it as a successor release family — a new
    kernel — using a new scope, while corrections that keep the LTS kernel stay in the LTS scope. §11.1's
    one `grail-kernel` per `grail_id` requires this.
+6. **Unknown entry types.** Recommendation: accept §13.3's rule (ignored unless marked critical). Without it,
+   the LTS line and the newest channel would need separate registries, each with its own trust root, as soon
+   as the newest channel needs an entry type the LTS consumers lack.
+7. **`canonical_source`.** Recommendation: an HTTPS URI for the public estate registry; a URN only for a
+   registry kept in a private store, as RAPP's private Hives already do.
 
 ## 8. Verification
 
@@ -249,10 +262,23 @@ reference's.
       "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
     },
     "https": {
-      "description": "§3 absolute HTTPS URI: RFC 3986 characters with well-formed percent-encodings, scheme https, a non-empty host, no user information, at most 2048 characters; ALSO a real host name, a port within 0-65535, and a well-formed IPv6 literal, which this pattern does not check",
+      "description": "§3 absolute HTTPS URI (RFC 3986 grammar, no fragment): lowercase https, a host that is a non-empty reg-name or an IP literal, no user information, an optional port of 1-5 digits, at most 2048 characters; ALSO the port at most 65535 and the IP literal a real IPv6 address (no zone) or IPvFuture, which this pattern does not check",
       "type": "string",
       "maxLength": 2048,
-      "pattern": "^https://(?:(?:[A-Za-z0-9\\-._~!$&'()*+,;=]|%[0-9A-Fa-f]{2})+|\\[[0-9A-Za-z:.]+\\])(?::[0-9]*)?(?:[/?#](?:[A-Za-z0-9\\-._~!$&'()*+,;=:@/?#\\[\\]]|%[0-9A-Fa-f]{2})*)?$"
+      "pattern": "^https://(?:(?:[A-Za-z0-9\\-._~!$&'()*+,;=]|%[0-9A-Fa-f]{2})+|\\[(?:[0-9A-Fa-f:.]+|v[0-9A-Fa-f]+\\.[A-Za-z0-9\\-._~!$&'()*+,;=:]+)\\])(?::[0-9]{1,5})?(?:/(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})*)*(?:\\?(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})*)?$"
+    },
+    "canonical_source": {
+      "description": "§13.1: an absolute HTTPS URI (§3), or a URN (RFC 8141: lowercase urn:, a 2-32 character namespace, no r-, q-, or f-component) for a registry kept in a private store",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/https"
+        },
+        {
+          "type": "string",
+          "maxLength": 2048,
+          "pattern": "^urn:[A-Za-z0-9][A-Za-z0-9-]{0,30}[A-Za-z0-9]:(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@/]|%[0-9A-Fa-f]{2})*$"
+        }
+      ]
     },
     "hex64": {
       "type": "string",
@@ -723,7 +749,7 @@ reference's.
       }
     },
     "registry-document": {
-      "description": "§13.1 registry document: exactly these five members carry meaning; any other top-level member is covered by sig and carries none. sig null = unsigned draft, never authority. Not expressible here: at most 1 MiB canonical and nested at most 64 deep (§4(d)).",
+      "description": "§13.1 registry document: exactly these five members carry meaning; any other top-level member is covered by sig and carries none. sig null = unsigned draft, never authority. Each entry of a type defined here matches its schema; an entry of a type a consumer does not implement is ignored unless it carries critical other than false, which refuses the registry (§13.3). Not expressible here: at most 1 MiB canonical and nested at most 64 deep (§4(d)).",
       "type": "object",
       "required": [
         "schema",
@@ -740,7 +766,7 @@ reference's.
           "$ref": "#/$defs/uint53"
         },
         "canonical_source": {
-          "$ref": "#/$defs/https"
+          "$ref": "#/$defs/canonical_source"
         },
         "entries": {
           "type": "array"

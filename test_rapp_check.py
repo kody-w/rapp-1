@@ -327,6 +327,19 @@ class RappCheckDiscoveryTests(unittest.TestCase):
             },
         )
 
+    def test_a_registry_over_the_section_4_limit_is_a_finding_not_skipped(self):
+        repository = self.fixture_repo("clean")
+        oversized = self.registry_document()
+        oversized["entries"] += [{"type": "kind", "kind": f"body.k{n}", "family": "body", "deprecated": False}
+                                 for n in range(16000)]
+        self.write_json(repository / "big" / "registry.json", oversized)
+        self.assertGreater((repository / "big" / "registry.json").stat().st_size, R.MAX_CANONICAL_BYTES)
+        verdict, findings, _ = C.check_repo(repository)
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual([(item["artifact"], item["rule"]) for item in findings],
+                         [("big/registry.json", "§13 registry document")])
+        self.assertIn("exceeds §4's 1 MiB limit", findings[0]["detail"])
+
 
 if __name__ == "__main__":
     unittest.main()

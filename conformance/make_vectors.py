@@ -244,6 +244,16 @@ def registry_sections():
     """Ordered (name, builder) pairs; each change to §13 appends its own section."""
     owner, base = _estate()
 
+    def rehearsal(entries):
+        """A registry of these entries as load_document returns an unsigned draft (vectors carry
+        placeholder signatures); answers that need a verified registry are asked with allow_draft."""
+        status, registry, why = REG.load_document(
+            {"schema": "rapp/1-registry", "registry_seq": 1, "canonical_source": SOURCE, "entries": entries,
+             "sig": None}, trust_anchor=owner, allow_unsigned=True)
+        if status != "draft":
+            raise REG.RegistryError(why)
+        return registry
+
     def document(members, **changes):
         value = {"schema": "rapp/1-registry", "registry_seq": 1, "canonical_source": SOURCE,
                  "entries": members, "sig": SIG}
@@ -267,8 +277,29 @@ def registry_sections():
             ("canonical_source with an empty host", document(base, canonical_source="https:///rapp-registry.json")),
             ("canonical_source with user information",
              document(base, canonical_source="https://user@registry.example.test/r.json")),
-            ("canonical_source with a port, a query, and a fragment",
-             document(base, canonical_source="https://registry.example.test:8443/r.json?v=1#top")),
+            ("canonical_source with a port and a query",
+             document(base, canonical_source="https://registry.example.test:8443/r.json?v=1")),
+            ("canonical_source with a fragment (an absolute URI has none)",
+             document(base, canonical_source="https://registry.example.test/r.json#top")),
+            ("canonical_source a URN, as for a private Hive's registry history",
+             document(base, canonical_source="urn:rapp:private-hive:" + "ab" * 32 + ":registry-history")),
+            ("canonical_source a URN with a one-character namespace",
+             document(base, canonical_source="urn:x:registry")),
+            ("canonical_source with a signed port", document(base, canonical_source="https://registry.example.test:+443/r.json")),
+            ("canonical_source with an IP literal that is not an IPv6 address",
+             document(base, canonical_source="https://[zz]/r.json")),
+            ("canonical_source with a bracket outside an IP literal",
+             document(base, canonical_source="https://registry.example.test/a[b].json")),
+            ("an entry of a type this reference does not implement is ignored",
+             document(base + [{"type": "vector-future", "note": "grants nothing"}])),
+            ("an unknown entry type with critical false is ignored",
+             document(base + [{"type": "vector-future", "critical": False}])),
+            ("an unknown entry type marked critical refuses the registry",
+             document(base + [{"type": "vector-future", "critical": True}])),
+            ("an unknown entry type whose critical is not false refuses the registry",
+             document(base + [{"type": "vector-future", "critical": "no"}])),
+            ("a known entry type may not carry critical",
+             document([base[0], dict(base[1], critical=False)])),
             ("canonical_source with a character RFC 3986 does not allow",
              document(base, canonical_source="https://registry.example.test/<r>.json")),
             ("canonical_source with a port that is not a number",
@@ -320,10 +351,10 @@ def registry_sections():
         correction_pin = _release_pin(owner, LTS, R.H("rapp/1:particle", correction),
                                       predecessor=pin["manifest_hash"], activated_utc=LATER)
         assert correction["components"][0] == manifest["components"][0]  # a correction keeps the kernel
-        pinned_registry = REG.Registry(base + [grail, pin, correction_pin])
-        assert REG.verify_release_manifest(pinned_registry, pin, octets) == manifest
+        pinned_registry = rehearsal(base + [grail, pin, correction_pin])
+        assert REG.verify_release_manifest(pinned_registry, pin, octets, allow_draft=True) == manifest
         assert REG.verify_release_manifest(
-            pinned_registry, correction_pin, R.canonical(correction).encode("utf-8")) == correction
+            pinned_registry, correction_pin, R.canonical(correction).encode("utf-8"), allow_draft=True) == correction
 
         def order(registry):
             """Each channel's and each family's releases in chain order; the last is current."""
@@ -401,8 +432,9 @@ def registry_sections():
 
         def octets_case(label, entries, manifest_hash, data, intended):
             def decide():
-                registry = REG.Registry(entries)
-                return REG.verify_release_manifest(registry, registry.release_pin(manifest_hash), data)
+                registry = rehearsal(entries)
+                return REG.verify_release_manifest(registry, registry.release_pin(manifest_hash), data,
+                                                   allow_draft=True)
             expect = _verdict(decide)
             assert expect == intended, label
             return {"label": label, "entries": entries, "manifest_hash": manifest_hash, "octets_hex": data.hex(),
@@ -692,6 +724,8 @@ def registry_sections():
             case("a subject that is a bare owner/repository name", [notice("vector/handbook", "active")],
                  "`subject`"),
             case("a subject HTTPS URI with no host", [notice("https:///vector/handbook", "active")], "`subject`"),
+            case("a subject HTTPS URI whose IP literal is not an IPv6 address",
+                 [notice("https://[zz]/vector/handbook", "active")], "`subject`"),
             case("a state outside the four", [notice(alpha, "retired")], "`state`"),
             case("a superseded_by that is neither a rappid nor an HTTPS URI",
                  [notice(alpha, "deprecated", superseded_by="http://git.example.test/vector/beta")],
