@@ -20,6 +20,7 @@ author:
 normative:
   RFC2119:
   RFC3339:
+  RFC3986:
   RFC5280:
   RFC5869:
   RFC6979:
@@ -48,8 +49,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame 84f69397f1faf88c583d8135500a3a443c5c15da299affddea3cbd38bd173d9d, normative
-SHA-256 07b39ea4b4717da1039398732493a9685bd637db7bbd72e4499c25daf584093e. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame b8a16c448fc68b5cd34d6e452ea66e07d2125a10145d16d9a9a281df55d5cc06, normative
+SHA-256 4d5c18e1c90b3f7bb051ab4481affdd92ff4201b30b2f367b4aac857902a1806. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -112,6 +113,8 @@ the currently served release is immutable even while a separate candidate lineag
 its `activated_utc`; a copy with its canonical form (§4) verifies against the estate's registry (§13.4).
 **lifecycle notice** — an estate-signed `lifecycle` entry stating whether an organism, or a repository
 that has no rappid, is active, deprecated, superseded, or archived, and since when (§13.5).
+**absolute HTTPS URI** — a URI {{RFC3986}} of at most 2048 printable ASCII characters whose scheme is
+`https`, whose host is not empty, and which carries no user information.
 
 # Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **{{RFC8785}} JCS** for the value `v`, defined **only**
