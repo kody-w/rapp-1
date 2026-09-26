@@ -50,8 +50,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame 494dc28053a914f6f11b776b2e646c825bc4a43d93a7728f606d0782801b6735, normative
-SHA-256 84ad61dc32642d0e7a015e920f5010a8be4d5e4c12eb57196c4468e19a7d881d. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame 749de295fcc42849304e8ac5a83d7a6c6ec329774e837e83614ea4ee6d718a66, normative
+SHA-256 19be7967e0883b5b9f22809a92d76ee7a738e12c4d4dadeb024cdc3f71ba8ba4. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -1047,8 +1047,9 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   §6.1.1 form; `signer` is a keyed rappid with a §13 `spki` entry (deprecated or not) in the same
   registry; `kinds` is a non-empty array of distinct kinds in ascending bytewise order, each registered
   (deprecated or not) in the same registry with a family compatible with `stream_id`'s form (§7.2) and
-  none a `*.re-genesis` kind (§12.1 reserves those for the owner); `since_utc` has the §7.4 form;
-  `until_utc` is `null` or a §7.4 time after `since_utc` (§13.7).
+  none of the three re-genesis kinds `memory.re-genesis`, `swarm.re-genesis`, and `body.re-genesis`
+  (§12.1 reserves them for the owner); `since_utc` has the §7.4 form; `until_utc` is `null` or a §7.4
+  time after `since_utc` (§13.7).
 - **estate_owner** `{type:"estate_owner", rappid}` (exactly one non-deprecated) · **master-plan**
   `{type:"master-plan", repo, path}` (Fed. Const. Art. VII).
 
@@ -1092,9 +1093,10 @@ is not a declaration however well it is signed. `H("rapp/1:particle", entry)` ov
 entry names it, so a registry carries each declared entry once: a registry in which two declared entries
 have the same canonical form is refused whole. Every declared entry is persisted: once a consumer has
 accepted one it **MUST** persist the canonical entry, and every later accepted registry **MUST** retain it
-byte-for-byte and keep the persisted entries in the order they were appended (`entries` is append-ordered,
-§13.1); removal, mutation, or reordering is a permanent refusal even when `registry_seq` increased (§11.1
-item 9 states the rule for `grail-kernel`).
+byte-for-byte in the order it was appended (`entries` is append-ordered, §13.1): a later registry appends,
+so the declared entries a consumer accepted come first among its declared entries, in their order.
+Removal, mutation, reordering, or a declared entry placed before one the consumer accepted is a permanent
+refusal even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-kernel`).
 
 ## Release pins, release manifests, and verified snapshots
 A **release scope** (§11.1) names one release family — for example an LTS line whose corrections all keep
