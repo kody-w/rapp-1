@@ -729,8 +729,8 @@ class Registry:
     def signer_acceptable(self, kid, utc):
         """Is a `sig` by `kid` on an artifact at `utc` acceptable: key discoverable, not
         superseded by a re-anchor at or before utc, not tombstoned at or before utc, and not
-        retired — an `spki` entry flagged deprecated that no re-anchor names refuses its key at
-        every time (§13.4 item 1)."""
+        retired — an `spki` entry flagged deprecated that no re-anchor names as its `old_rappid`
+        (a successor key included) refuses its key at every time (§13.4 item 1)."""
         return self._signer_acceptable(kid, utc)
 
     def _signer_acceptable(self, kid, utc, ignored_reanchor=None, match_key_aliases=False):
@@ -1414,10 +1414,12 @@ def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_uns
     the current time for one never seen before); `verification_utc` is the shortcut when every
     declared entry is being seen for the first time now; a signed registry that carries a declared
     entry is refused when neither is supplied. `persisted_entries` are the canonical
-    declared entries the caller accepted before — all of them; each must still be present byte
-    for byte and in their relative order (pass them in the order the accepted registry held them), and a
-    `grail-kernel` that is not among them is refused when its family has a persisted `release-pin`
-    (§13.5: no kernel joins a family after a release of it was accepted).
+    declared entries the caller accepted before — all of them, in the order the accepted registry
+    held them; each must still be present byte for byte, in that order, and ahead of every declared
+    entry not among them (a later registry appends, §13.4), and a `grail-kernel` that is not among
+    them is refused when its family has a persisted `release-pin` (§13.5: no kernel joins a family
+    after a release of it was accepted). These history checks are structural, so an unsigned draft
+    is held to them too: a rehearsal shows what a consumer with that history would refuse.
     Freshness, append provenance, and historical migration proofs remain caller
     responsibilities; a verified registry snapshot alone cannot establish them. A returned
     registry records its status in `registry.status` ("verified" or "draft"): `verify_snapshot`,
@@ -1453,10 +1455,17 @@ def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_uns
         return "refused", None, "estate_owner does not match the out-of-band trust anchor (§13.1)"
     sig = doc["sig"]
     if sig is None:
-        if allow_unsigned:
-            reg.status = "draft"
-            return "draft", reg, "unsigned: a draft, never authority (§13.1)"
-        return "refused", None, "unsigned registry (§13.1 MUST refuse)"
+        if not allow_unsigned:
+            return "refused", None, "unsigned registry (§13.1 MUST refuse)"
+        if persisted_entries is not None:
+            try:
+                ok, why = reg.check_retained(persisted_entries)
+            except RegistryError as refusal:
+                ok, why = False, str(refusal)
+            if not ok:
+                return "refused", None, why
+        reg.status = "draft"
+        return "draft", reg, "unsigned: a draft, never authority (§13.1)"
     unsigned = {k: v for k, v in doc.items() if k != "sig"}
     der = reg.spki_der(reg.estate_owner)
     if der is None:

@@ -143,7 +143,8 @@ frames already published in its window. Authority is decided against the verifie
 registry in hand: a newer registry can add a grant that adopts earlier frames but never
 withdraw one, so re-evaluate a cached refusal against a newer registry — and a cached
 acceptance too, since a newer registry can still supersede, tombstone, or retire the signer's
-key (an `spki` entry flagged `deprecated` that no re-anchor names refuses its key at every time).
+key (an `spki` entry flagged `deprecated` that no re-anchor names as its `old_rappid` refuses its
+key at every time).
 
 This is still not a complete distributed consumer. The caller retains trusted
 heads and registry high-water marks, enforces freshness, and verifies the history

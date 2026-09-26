@@ -1121,6 +1121,9 @@ def registry_sections():
         # The estate owner itself rotates at `handover` (§13.2): owner authority follows its tenure.
         heir, heir_spki = keyed("estate-owner-next")
         shelved, shelved_spki = keyed("shelved-signer", deprecated=True)  # retired: no re-anchor names it
+        # A rotation's successor key, later retired too: being a re-anchor's new_rappid does not count.
+        renewed, renewed_spki = keyed("renewed-signer", deprecated=True)
+        renewed_next, renewed_next_spki = keyed("renewed-signer-next", deprecated=True)
         handover = "2026-08-20T00:00:00.000Z"
         succeeded = [{"type": "estate_owner", "rappid": heir} if e["type"] == "estate_owner"
                      else dict(e, deprecated=True) if e["type"] == "spki" and e["rappid"] == owner  # §10
@@ -1128,6 +1131,10 @@ def registry_sections():
         entries = succeeded + [
             heir_spki,
             shelved_spki,
+            renewed_spki,
+            renewed_next_spki,
+            {"type": "re-anchor", "old_rappid": renewed, "new_rappid": renewed_next, "case": "rotation",
+             "utc": rotated_at, "sig": SIG, "old_key_sig": SIG},
             {"type": "re-anchor", "old_rappid": owner, "new_rappid": heir, "case": "rotation",
              "utc": handover, "sig": SIG, "old_key_sig": SIG},
             grant(),
@@ -1139,6 +1146,7 @@ def registry_sections():
             {"type": "re-anchor", "old_rappid": rotating, "new_rappid": successor, "case": "rotation",
              "utc": rotated_at, "sig": SIG, "old_key_sig": SIG},
             grant(signer=shelved, kinds=["body.pulse"], until_utc=None),
+            grant(signer=renewed_next, kinds=["body.pulse"], until_utc=None),
             grant(signer=backfill, kinds=["body.pulse"], activated_utc=adopted, declared_by=heir),
         ]
         registry = REG.Registry(entries)
@@ -1171,7 +1179,8 @@ def registry_sections():
                         "kid is the estate owner in effect at utc (§13.2) or a stream-signer entry names kid as "
                         "signer on stream_id, lists kind, and has since_utc <= utc < until_utc (bytewise; null "
                         "never ends), and in both cases kid's key is acceptable at utc (§13.4 item 1: not "
-                        "superseded or tombstoned by then, and not retired); a grant's "
+                        "superseded or tombstoned by then, and not retired, i.e. its spki flagged deprecated "
+                        "with no re-anchor naming it as old_rappid); a grant's "
                         "activated_utc plays no part (a grant may start before it, §13.7); kid null means "
                         "unsigned and is never authorized. Every frame is assumed to have passed §7.5, step 6 "
                         "included (§13.7); signatures are out of scope for these vectors",
@@ -1215,6 +1224,8 @@ def registry_sections():
                              "body.pulse", adopted, backfill, "refused"),
                     decision("a retired signer (its spki deprecated, no re-anchor naming it) inside its window",
                              station, "body.pulse", inside, shelved, "refused"),
+                    decision("a successor key, later retired with no re-anchor away from it", station, "body.pulse",
+                             until, renewed_next, "refused"),
                     decision("the first estate owner at its own rotation's utc", other, "body.pulse", handover,
                              owner, "refused"),
                     decision("the successor estate owner from that utc", other, "body.pulse", handover, heir,

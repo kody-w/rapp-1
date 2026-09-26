@@ -11327,6 +11327,16 @@
      {
       "expect": "refused",
       "frame_summary": {
+       "kid": "rappid:@vector/renewed-signer-next:b9931770385af42a1276b207db4e0e7a59437124596ae25418f67dcf6e53b024",
+       "kind": "body.pulse",
+       "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+       "utc": "2026-08-10T00:00:00.000Z"
+      },
+      "label": "a successor key, later retired with no re-anchor away from it"
+     },
+     {
+      "expect": "refused",
+      "frame_summary": {
        "kid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
        "kind": "body.pulse",
        "stream_id": "rappid:@vector/other-station:8b39ec1ba6b99dbe2e6d62ac259a27b9ca53be2f55745f981fae6c20a55e62f1",
@@ -11463,6 +11473,27 @@
       "type": "spki"
      },
      {
+      "deprecated": true,
+      "rappid": "rappid:@vector/renewed-signer:4da7890f8ee1d75604cd1266501a2f88370e5d50284ac1c51fe16eb6ecb6d36b",
+      "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogcmVuZXdlZC1zaWduZXI=",
+      "type": "spki"
+     },
+     {
+      "deprecated": true,
+      "rappid": "rappid:@vector/renewed-signer-next:b9931770385af42a1276b207db4e0e7a59437124596ae25418f67dcf6e53b024",
+      "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogcmVuZXdlZC1zaWduZXItbmV4dA==",
+      "type": "spki"
+     },
+     {
+      "case": "rotation",
+      "new_rappid": "rappid:@vector/renewed-signer-next:b9931770385af42a1276b207db4e0e7a59437124596ae25418f67dcf6e53b024",
+      "old_key_sig": "<detached-jws>",
+      "old_rappid": "rappid:@vector/renewed-signer:4da7890f8ee1d75604cd1266501a2f88370e5d50284ac1c51fe16eb6ecb6d36b",
+      "sig": "<detached-jws>",
+      "type": "re-anchor",
+      "utc": "2026-07-28T00:00:00.000Z"
+     },
+     {
       "case": "rotation",
       "new_rappid": "rappid:@vector/estate-owner-next:486c646f4fa2867915fa024c6ecb2fb1717454c0294fbc1728fdc5ed05d92eff",
       "old_key_sig": "<detached-jws>",
@@ -11566,6 +11597,19 @@
       "until_utc": null
      },
      {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "kinds": [
+       "body.pulse"
+      ],
+      "sig": "<detached-jws>",
+      "signer": "rappid:@vector/renewed-signer-next:b9931770385af42a1276b207db4e0e7a59437124596ae25418f67dcf6e53b024",
+      "since_utc": "2026-07-10T00:00:00.000Z",
+      "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+      "type": "stream-signer",
+      "until_utc": null
+     },
+     {
       "activated_utc": "2026-09-01T00:00:00.000Z",
       "declared_by": "rappid:@vector/estate-owner-next:486c646f4fa2867915fa024c6ecb2fb1717454c0294fbc1728fdc5ed05d92eff",
       "kinds": [
@@ -11579,7 +11623,7 @@
       "until_utc": "2026-08-10T00:00:00.000Z"
      }
     ],
-    "note": "decide each frame_summary against a registry holding exactly `entries`: authorized iff kid is the estate owner in effect at utc (§13.2) or a stream-signer entry names kid as signer on stream_id, lists kind, and has since_utc <= utc < until_utc (bytewise; null never ends), and in both cases kid's key is acceptable at utc (§13.4 item 1: not superseded or tombstoned by then, and not retired); a grant's activated_utc plays no part (a grant may start before it, §13.7); kid null means unsigned and is never authorized. Every frame is assumed to have passed §7.5, step 6 included (§13.7); signatures are out of scope for these vectors"
+    "note": "decide each frame_summary against a registry holding exactly `entries`: authorized iff kid is the estate owner in effect at utc (§13.2) or a stream-signer entry names kid as signer on stream_id, lists kind, and has since_utc <= utc < until_utc (bytewise; null never ends), and in both cases kid's key is acceptable at utc (§13.4 item 1: not superseded or tombstoned by then, and not retired, i.e. its spki flagged deprecated with no re-anchor naming it as old_rappid); a grant's activated_utc plays no part (a grant may start before it, §13.7); kid null means unsigned and is never authorized. Every frame is assumed to have passed §7.5, step 6 included (§13.7); signatures are out of scope for these vectors"
    },
    "example": {
     "entry": {

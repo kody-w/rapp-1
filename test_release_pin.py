@@ -1270,6 +1270,33 @@ class ReleaseHistoryTests(unittest.TestCase):
         self.assertEqual((status, why), ("verified", "ok"))
         self.assertEqual(reg.scope_head(LTS), correction)  # appended last, so the family's current release
 
+    def test_a_rehearsed_draft_is_held_to_the_same_history(self):
+        # The history checks are structural, so a draft rehearsing the next registry against a
+        # consumer's accepted entries is refused exactly where the signed registry would be.
+        world = self.world
+        correction = world.pin(world.manifest(kernel=None, fix=1), predecessor=self.release, activated=LATER)
+        other = world.pin(world.manifest(NEW_2, kernel=None), channel="newest")
+        for label, entries, expect in (
+                ("appended correction", [self.release, correction], "draft"),
+                ("accepted release dropped", [], "removed or mutated"),
+                ("kernel inserted ahead of the accepted release", [self.grail, self.release],
+                 "was added after a release of that family was accepted"),
+                ("another family's release placed ahead of the accepted one", [other, self.release],
+                 "is placed before this accepted")):
+            with self.subTest(label):
+                signed = world.load(entries, seq=3, persisted_entries=self.kept)
+                draft = world.load(entries, seq=3, persisted_entries=self.kept, signed=False, allow_unsigned=True)
+                if expect == "draft":
+                    self.assertEqual((signed[0], draft[0]), ("verified", "draft"))
+                else:
+                    self.assertEqual((signed[0], draft[0]), ("refused", "refused"))
+                    self.assertIn(expect, signed[2])
+                    self.assertEqual(draft[2], signed[2])
+        # Without a history, a draft is judged on its own entries only.
+        self.assertEqual(world.load([other, self.release], seq=3, signed=False, allow_unsigned=True)[0], "draft")
+        self.assertEqual(world.load([self.grail, self.release], seq=3, signed=False, allow_unsigned=True)[0],
+                         "draft")
+
     def test_history_is_every_declared_entry_the_consumer_accepted(self):
         world = self.world
         grail, first = world.grail(), world.pin(world.manifest())

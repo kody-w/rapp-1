@@ -390,6 +390,28 @@ class AuthorityTests(Base):
         self.assertFalse(reg.frame_authorized(self.pulse(ROTATED))[0])
         self.assertEqual(self.load([old_grant, rotation, new_grant], entries=entries)[0], "verified")
 
+    def test_a_retired_successor_key_is_refused_at_every_time(self):
+        # Retired means flagged deprecated with no re-anchor naming the key as its old_rappid (§13.4
+        # item 1). Being a re-anchor's successor does not count, so a rotated-to key later retired
+        # speaks for the estate at no time.
+        rotation = self.estate.reanchor("signer", "signer-next", signer="owner", utc=ROTATED)
+        grant = self.grant(signer=self.keys["signer-next"], until_utc=None)
+
+        def retiring(*names):
+            keys = {self.keys[name] for name in names}
+            return [dict(e, deprecated=True) if e["type"] == "spki" and e["rappid"] in keys else e
+                    for e in self.base()]
+
+        retired = self.registry([rotation, grant], entries=retiring("signer", "signer-next"))
+        for utc in (INSIDE, LATER, FAR):
+            with self.subTest(utc=utc):
+                ok, why = retired.authority_decision(self.station, self.keys["signer-next"], "body.pulse", utc)
+                self.assertFalse(ok)
+                self.assertIn("spki entry deprecated", why)
+        live = self.registry([rotation, grant], entries=retiring("signer"))
+        self.assertEqual(live.authority_decision(self.station, self.keys["signer-next"], "body.pulse", LATER),
+                         (True, "stream-signer grant"))
+
     def test_owner_authority_follows_the_owners_tenure(self):
         handover = self.estate.reanchor("owner", "heir", signer="owner", utc=ROTATED)
         reg = self.registry([handover], entries=self.base(owner="heir"))
