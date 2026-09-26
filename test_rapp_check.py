@@ -9,6 +9,7 @@ import unittest
 
 import rapp as R
 import rapp_check as C
+import rapp_registry as REG
 
 
 ROOT = Path(__file__).resolve().parent
@@ -389,7 +390,8 @@ class RappCheckDiscoveryTests(unittest.TestCase):
         self.assertIn("estate_owner", details["b/registry.json"])
         self.assertEqual(evidence, [])
 
-    def test_a_registry_stored_with_whitespace_is_measured_canonically(self):
+    def test_a_registry_stored_past_1_mib_is_a_finding_though_its_canonical_form_fits(self):
+        # §13.1 bounds a registry's stored octets at 1 MiB as well as its canonical form (§4(d)).
         repository = self.fixture_repo("clean")
         document = self.registry_document()
         document["entries"] += [{"type": "kind", "kind": f"body.k{n}", "family": "body", "deprecated": False}
@@ -399,8 +401,31 @@ class RappCheckDiscoveryTests(unittest.TestCase):
         self.assertGreater(path.stat().st_size, R.MAX_CANONICAL_BYTES)
         self.assertLess(len(R.canonical(document).encode("utf-8")), R.MAX_CANONICAL_BYTES)
         verdict, findings, evidence = C.check_repo(repository)
-        self.assertEqual((verdict, findings), ("COMPLIANT", []))  # valid under §4: advice, not drift
-        self.assertTrue(any("publish it compact" in item["ok"] for item in evidence))
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual([(item["artifact"], item["rule"]) for item in findings],
+                         [("registry.json", "§13 registry document")])
+        self.assertIn("at most 1 MiB as stored", findings[0]["detail"])
+        self.assertEqual(evidence, [])
+        with self.assertRaisesRegex(REG.RegistryError, "at most 1 MiB as stored"):
+            REG.parse_document(path.read_bytes())
+        compact = R.canonical(document).encode("utf-8")  # the same registry published compact
+        self.assertEqual(REG.parse_document(compact), document)
+        path.write_bytes(compact)
+        self.assertEqual(C.check_repo(repository)[:2], ("COMPLIANT", []))
+
+    def test_a_registry_past_1_mib_in_utf16_is_a_finding_not_skipped(self):
+        repository = self.fixture_repo("clean")
+        document = self.registry_document()
+        document["entries"] += [{"type": "kind", "kind": f"body.k{n}", "family": "body", "deprecated": False}
+                                for n in range(8000)]
+        path = repository / "registry.json"
+        path.write_bytes(json.dumps(document, sort_keys=True).encode("utf-16"))
+        self.assertGreater(path.stat().st_size, R.MAX_CANONICAL_BYTES)
+        verdict, findings, _ = C.check_repo(repository)
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual([(item["artifact"], item["rule"]) for item in findings],
+                         [("registry.json", "§13 registry document")])
+        self.assertIn("UTF-8 without a byte-order mark", findings[0]["detail"])
 
     def test_an_ignored_entry_type_in_a_registry_is_a_finding(self):
         repository = self.fixture_repo("clean")

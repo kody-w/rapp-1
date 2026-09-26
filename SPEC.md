@@ -924,8 +924,9 @@ forge that estate).
   out-of-band exactly once (QR, invite, docs) the way a root-CA certificate is.
 - **The document.** A registry is one §4 object whose meaningful members are exactly `schema`
   (`"rapp/1-registry"`), `registry_seq`, `canonical_source`, `entries`, and `sig`, stored and served as
-  UTF-8 octets without a byte-order mark (I-JSON, §4): a consumer refuses any other encoding rather than
-  guess one. `canonical_source` names
+  UTF-8 octets without a byte-order mark (I-JSON, §4), at most 1 MiB as stored as well as canonically
+  (§4(d)), so a reader can stop one octet past 1 MiB: a consumer refuses any other encoding rather than
+  guess one, and refuses larger octets. `canonical_source` names
   the owner-selected location of record for this document: an absolute HTTPS URI (§3) for a registry
   published on the web, or a URN [RFC 8141] of at most 2048 characters — lowercase `urn:`, with no r-, q-,
   or f-component — for one kept in a private store, such as a private Hive's registry history; `entries` is the array of
@@ -1337,7 +1338,7 @@ caches an acceptance does too.
   characters) is now refused (no published registry carries one), and every `immutable_ref`, the
   `grail-kernel`'s included, to be a full tag name (§3), and every registry time member to be a §7.4
   time (§3: the fixed form in ASCII and a calendar date-time); requires a registry's octets to be UTF-8
-  without a byte-order mark, and every number in a registry, and in an identity file, to be written as
+  without a byte-order mark and at most 1 MiB as stored, and every number in a registry, and in an identity file, to be written as
   an integer within ±(2^53−1), where rev-16 allowed any §4 number; says a consumer ignores an entry type
   it does not implement unless the entry is marked critical;
   generalizes the `grail-kernel` entry-level owner signature into §13.4 declared entries, each verified

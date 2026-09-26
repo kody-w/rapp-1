@@ -14,9 +14,11 @@ a verified registry's `release-pin`. It classifies a repo as:
 
 A registry entry of a type this checker does not implement is a finding: every consumer
 at this revision ignores it (§13.3), which silently drops a misspelled entry, so lint a
-later revision's registry with that revision's checker. A JSON file over §4's 1 MiB that
-names a registry or manifest schema near its start or end is parsed up to 8 MiB (64 MiB
-in all); one past those bounds is reported as not checked, never skipped.
+later revision's registry with that revision's checker. A registry or release manifest
+over 1 MiB as stored is a finding (§13.1, §13.5), and so is one in UTF-16 or UTF-32; such a
+file, found by the schema it names near its start or end, is parsed up to 8 MiB (64 MiB in
+all) so the finding names what else is wrong, and one past those bounds is reported as not
+checked, never skipped.
 
 Usage:  python3 rapp_check.py <repo_path> [--json]
 Exit:   0 CLEAN/COMPLIANT · 1 DRIFT · 2 error
@@ -135,7 +137,11 @@ _SNIFF_LIMIT = 8 * R.MAX_CANONICAL_BYTES   # an oversized file is parsed only up
 _SNIFF_WINDOW = 64 * 1024                  # bytes read from each end before any parse
 _MAX_SNIFF_BYTES = 64 * 1024 * 1024        # full parses of oversized files, apart from frame discovery
 _SNIFF_MARKERS = (b'"rapp/1-registry"', b'"rapp/1-release-manifest"')
+# The same claims in the encodings a strict UTF-8 reader refuses (§13.1), so they are reported, not skipped.
+_WIDE_MARKERS = tuple(marker.decode("ascii").encode(codec) for marker in _SNIFF_MARKERS
+                      for codec in ("utf-16-le", "utf-16-be", "utf-32-le", "utf-32-be"))
 _NOT_PARSED = "not parsed"  # names a schema near an end, but past the sniff limit or budget
+_NOT_UTF8 = "not UTF-8"     # names a schema near an end in UTF-16 or UTF-32
 
 
 def _oversized_schema(path, size, budget):
@@ -144,7 +150,7 @@ def _oversized_schema(path, size, budget):
     only a file whose first or last 64 KiB names one of the two schemas (a canonical document sorts
     `schema` near its end) is parsed, only up to 8 MiB, and only while `budget` (a one-item list of
     remaining bytes, kept apart from frame discovery's) allows; past those bounds it is `_NOT_PARSED`,
-    which the caller reports as not checked."""
+    which the caller reports as not checked, and a claim written in UTF-16 or UTF-32 is `_NOT_UTF8`."""
     try:
         info = os.lstat(path)
         if not stat.S_ISREG(info.st_mode):
@@ -156,7 +162,7 @@ def _oversized_schema(path, size, budget):
     except OSError:
         return None
     if not any(marker in head or marker in tail for marker in _SNIFF_MARKERS):
-        return None
+        return _NOT_UTF8 if any(marker in head or marker in tail for marker in _WIDE_MARKERS) else None
     if size > _SNIFF_LIMIT or size > budget[0]:
         return _NOT_PARSED
     budget[0] -= size
@@ -403,8 +409,9 @@ def check_repo(root, signature_verifier=None):
 
     records = {}
 
-    def registry_document(rel, document):
-        """Lint one registry document; True when it raised no finding."""
+    def registry_document(rel, document, report=True):
+        """Lint one registry document; True when it raised no finding. `report=False` records no
+        structure evidence (the caller reports the document another way)."""
         try:
             REG.validate_document(document)
             registry = REG.Registry(document[REG.ENTRIES_MEMBER])
@@ -422,6 +429,8 @@ def check_repo(root, signature_verifier=None):
             if document["sig"] is None
             else "owner signature needs the out-of-band trust anchor"
         )
+        if not report:
+            return not registry.unknown_entries
         evidence.append(
             {
                 "artifact": rel,
@@ -532,11 +541,16 @@ def check_repo(root, signature_verifier=None):
             unknown(os.path.relpath(path, root), f"cannot stat JSON: {exc}")
             continue
         if size > R.MAX_CANONICAL_BYTES:
-            # Never charged to frame discovery. §4's 1 MiB bounds the canonical form, not the stored
-            # bytes, so a registry or release manifest stored with whitespace is measured canonically:
-            # over the limit it is a finding; within it, a valid registry the reference reader
-            # (`rapp._strict_json`) still cannot read as stored, which is reported as advice.
+            # Never charged to frame discovery. A registry or release manifest is at most 1 MiB as stored
+            # (§13.1, §13.5), so one past it is always a finding; it is still parsed, up to the sniff
+            # limit, so the finding also names what else is wrong with it.
             claimed = _oversized_schema(path, size, sniff_budget)
+            if claimed == _NOT_UTF8:
+                has_artifact = True
+                finding(os.path.relpath(path, root), "§13 registry document",
+                        f"{size} bytes in UTF-16 or UTF-32 naming a registry or release manifest schema: a registry "
+                        "document is UTF-8 without a byte-order mark and at most 1 MiB as stored (§13.1)")
+                continue
             if claimed == _NOT_PARSED:
                 has_artifact = True
                 unknown(os.path.relpath(path, root),
@@ -562,14 +576,10 @@ def check_repo(root, signature_verifier=None):
                 if claimed == REG.MANIFEST_SCHEMA:
                     release_manifest(rel, blob, value)  # stored octets must be exactly canonical (§13.5)
                     continue
-                if not registry_document(rel, value):
+                if not registry_document(rel, value, report=False):
                     continue
-                evidence.append({
-                    "artifact": rel,
-                    "ok": (f"stored as {size} bytes, {len(canonical_octets)} canonical: within §4's 1 MiB, "
-                           "but the reference reader refuses input over 1 MiB as stored; publish it compact"),
-                    "status": "unverified",
-                })
+                finding(rel, what, f"stored as {size} bytes, {len(canonical_octets)} canonical: a registry "
+                        "document is at most 1 MiB as stored (§13.1); publish it compact")
             continue
         if count >= _MAX_JSON_FILES or total + size > _MAX_JSON_BYTES:
             unknown(".", "bounded frame discovery JSON budget exhausted")

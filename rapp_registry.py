@@ -1757,11 +1757,13 @@ def _utf8_text_problem(octets, what):
 
 
 def parse_document(octets):
-    """A registry document from the octets a transport returned (§13.1): UTF-8 without a byte-order
-    mark, then a strict §4 value — never a guessed UTF-16 or UTF-32 text. Pass the result to
-    load_document. RegistryError otherwise."""
+    """A registry document from the octets a transport returned (§13.1): at most 1 MiB as stored,
+    UTF-8 without a byte-order mark, then a strict §4 value — never a guessed UTF-16 or UTF-32 text.
+    Pass the result to load_document. RegistryError otherwise."""
     if not isinstance(octets, bytes):
         raise RegistryError("registry document octets must be bytes")
+    if len(octets) > R.MAX_CANONICAL_BYTES:
+        raise RegistryError(f"a registry document is at most 1 MiB as stored, not {len(octets)} octets (§13.1)")
     why = _utf8_text_problem(octets, "a registry document")
     if why:
         raise RegistryError(f"{why} (§13.1)")

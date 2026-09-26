@@ -221,8 +221,8 @@ unverified until the estate that pins this root is anchored". Rev-17 answers bot
   every LTS correction, pin the newest channel at milestones rather than every build, and declare
   notices only for changes. At that cadence the budget lasts years; a continuation mechanism is recorded
   in `rapp-backlog.md` for design before an estate approaches the cap. Publish the registry compact,
-  ideally canonical: §4 measures the canonical form, but the reference reader (`rapp._strict_json`) also
-  refuses input over 1 MiB as stored, and a pretty-printed registry is about an eighth larger.
+  ideally canonical: §13.1 bounds it at 1 MiB as stored as well as canonically, and a pretty-printed
+  registry is about an eighth larger than its canonical form.
 
 ## 7. Owner-only choices
 
@@ -366,6 +366,12 @@ reference's.
       "minimum": 0,
       "maximum": 9007199254740991
     },
+    "positive_uint53": {
+      "description": "a uint53 of at least 1, written without fraction or exponent (JSON Schema's integer also admits 1.0, which §13.1 refuses)",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
     "sig": {
       "description": "detached §10 JWS (kid = declared_by) over canonical(entry \\ {sig})",
       "type": "string",
@@ -464,9 +470,7 @@ reference's.
           "$ref": "#/$defs/hex64"
         },
         "size_bytes": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 9007199254740991
+          "$ref": "#/$defs/positive_uint53"
         },
         "activated_utc": {
           "$ref": "#/$defs/utc"
@@ -1026,12 +1030,14 @@ reference's.
           }
         },
         "sig": {
+          "description": "the §13.1 document signature: a detached §10 JWS with kid = the estate_owner rappid over canonical(registry \\ {sig}); null only on an unsigned draft, never authority",
           "anyOf": [
             {
               "type": "null"
             },
             {
-              "$ref": "#/$defs/sig"
+              "type": "string",
+              "minLength": 1
             }
           ]
         }
