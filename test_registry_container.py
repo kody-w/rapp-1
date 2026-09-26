@@ -81,6 +81,14 @@ class RegistryContainerTests(unittest.TestCase):
             self.estate.load(doc, canonical_source="https://mirror.example.test/r.json")[0],
             "refused",
         )
+        # "differs from it in any byte" (§13.1): spellings RFC 3986 normalization would equate still differ.
+        for spelled in (SOURCE.replace("registry.example.test", "Registry.example.test"),
+                        SOURCE.replace("registry.example.test", "registry.example.test:443")):
+            with self.subTest(obtained=spelled):
+                self.assertTrue(REG._canonical_source_ok(spelled))
+                status, _, why = self.estate.load(doc, canonical_source=spelled)
+                self.assertEqual(status, "refused")
+                self.assertIn("canonical_source differs", why)
 
     def test_unhashable_entry_type_is_a_refusal_not_a_crash(self):
         for bad in ([], {}, 7, None):
@@ -355,6 +363,22 @@ class DeclaredEntryTests(unittest.TestCase):
         late = self.estate.grail_kernel(activated="2026-07-01T00:05:00.001Z")
         self.assertEqual(self.load([late], verification_utc=T0)[0], "refused")
         self.assertEqual(self.load([entry], verification_utc="not-a-time")[0], "refused")
+
+    def test_the_300_second_bound_is_exact_where_float_seconds_are_not(self):
+        # Just below 2^31 s (and 2^30, 2^32), float POSIX seconds round the two instants apart, so a
+        # float subtraction reads exactly 300 s as 300.0000002 s and refuses it. The bound is exact.
+        for seen, exact, late in (("2038-01-19T03:09:08.056Z", "2038-01-19T03:14:08.056Z", "2038-01-19T03:14:08.057Z"),
+                                  ("2004-01-10T13:32:04.002Z", "2004-01-10T13:37:04.002Z", "2004-01-10T13:37:04.003Z"),
+                                  ("2106-02-07T06:23:16.001Z", "2106-02-07T06:28:16.001Z", "2106-02-07T06:28:16.002Z")):
+            with self.subTest(first_seen=seen):
+                self.assertTrue(REG.activated_within_bound(exact, seen))
+                self.assertFalse(REG.activated_within_bound(late, seen))
+                entry = self.estate.grail_kernel(activated=exact)
+                self.assertEqual(self.load([entry], verification_utc=seen)[:3:2], ("verified", "ok"))
+                self.assertEqual(self.load([self.estate.grail_kernel(activated=late)], verification_utc=seen)[0],
+                                 "refused")
+        with self.assertRaises(REG.RegistryError):
+            REG.activated_within_bound("2026-07-01T00:05:00Z", T0)
 
     def test_first_seen_is_resolved_per_entry(self):
         early = self.estate.grail_kernel(activated=T0)

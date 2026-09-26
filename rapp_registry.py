@@ -58,7 +58,7 @@ import hashlib
 import ipaddress
 import re
 import urllib.parse
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import rapp as R
 
@@ -216,11 +216,23 @@ def _utc_form(value):
     return R.utc_valid(value) and value.isascii()
 
 
-def _utc_seconds(value, where):
+_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+
+
+def _utc_millis(value, where):
+    """A §7.4 time as exact integer milliseconds since the POSIX epoch. Float seconds cannot hold
+    every millisecond instant exactly, and §13.4 item 3's 300-second bound is exact."""
     if not _utc_form(value):
         raise RegistryError(f"{where}: not the fixed §7.4 UTC form")
     parsed = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
-    return parsed.timestamp()
+    return (parsed - _EPOCH) // timedelta(milliseconds=1)
+
+
+def activated_within_bound(activated_utc, first_seen_utc):
+    """§13.4 item 3: False when `activated_utc` is more than 300 seconds after the verifier's
+    first-seen time for the entry, computed exactly; RegistryError unless both have the §7.4 form."""
+    later = _utc_millis(activated_utc, "activated_utc") - _utc_millis(first_seen_utc, "first-seen time")
+    return later <= FIRST_SEEN_SKEW_SECONDS * 1000
 
 
 def linear_chains(items, *, key, ident, link, where):
@@ -641,7 +653,17 @@ class Registry:
                     raise RegistryError(f"grail-kernel predecessor cycle through {gid}")
                 seen.add(cur)
                 cur = self.grail[cur]["predecessor"]
-        self._declared = {R.canonical(e) for e in entries if e["type"] in DECLARED_TYPES}
+        # §13.4: a declared entry is named by its particle hash, so a registry carries each one once.
+        self._declared = {}  # canonical form -> index in entries
+        for i, e in enumerate(entries):
+            if e["type"] in DECLARED_TYPES:
+                own = R.canonical(e)
+                if own in self._declared:
+                    raise RegistryError(
+                        f"entries[{i}]: duplicate {e['type']} entry, identical to entries[{self._declared[own]}]; "
+                        "a registry carries each declared entry once (§13.4)"
+                    )
+                self._declared[own] = i
         self._succession = {r["new_rappid"]: r for r in self.reanchors}
         succession_by_tail = {}
         for record in self.reanchors:
@@ -809,10 +831,10 @@ class Registry:
             return False, f"{kind}: declared_by key refused at activated_utc: {why}"
         if verification_utc is not None:
             try:
-                skew = _utc_seconds(activated, "activated_utc") - _utc_seconds(verification_utc, "first-seen time")
+                timely = activated_within_bound(activated, verification_utc)
             except RegistryError as why:
                 return False, str(why)
-            if skew > FIRST_SEEN_SKEW_SECONDS:
+            if not timely:
                 return False, f"{kind}: activated_utc is more than 300 s after first-seen (§13.4)"
         unsigned = {k: v for k, v in entry.items() if k != "sig"}
         ok, why = _verify_jws(unsigned, entry["sig"], self.spki_der(signer), signer)
@@ -854,15 +876,20 @@ class Registry:
         persisted entries in the order the accepted registry held them. Then the §13.5 release history
         against those same entries."""
         persisted_entries = list(persisted_entries)  # read twice: presence and order, then release history
-        position = {}
-        for index, e in enumerate(self.entries):
-            if e["type"] in PERSISTED_TYPES:
-                position.setdefault(R.canonical(e), index)
-        previous = -1
+        position = self._declared  # canonical form -> index; each declared entry appears once (§13.4)
+        previous, held = -1, set()
         for i, entry in enumerate(persisted_entries):
             if not isinstance(entry, dict) or entry.get("type") not in PERSISTED_TYPES:
                 return False, f"persisted_entries[{i}] is not a persisted entry type (§13.4)"
-            at = position.get(R.canonical(entry))
+            try:
+                own = R.canonical(entry)
+            except (ValueError, RecursionError) as why:
+                return False, f"persisted_entries[{i}] is not a §4 value: {why}"
+            if own in held:
+                return False, (f"persisted_entries[{i}] repeats an earlier persisted entry; an accepted "
+                               "registry carries each declared entry once (§13.4)")
+            held.add(own)
+            at = position.get(own)
             if at is None:
                 return False, f"a persisted {entry['type']} entry was removed or mutated (§13.4)"
             if at <= previous:

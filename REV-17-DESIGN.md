@@ -82,7 +82,9 @@ accepted declaration is retained unchanged, and in its append order, by every la
 current release, its last pin in `entries`, can never move back), and a copy elsewhere counts only when its
 canonical form equals that of an entry of an accepted registry, however it is formatted. Every
 `immutable_ref` is a full tag name (§3): `refs/tags/` and a name git's ref-name rules accept.
-`H("rapp/1:particle", entry)` over the complete signed entry names it.
+`H("rapp/1:particle", entry)` over the complete signed entry names it, so a registry carries each declared
+entry once: two with the same canonical form refuse the registry (re-issuing a grant, which a deterministic
+Ed25519 signature reproduces byte for byte, adds nothing).
 
 ```text
 release-pin   {type:"release-pin", release_scope, channel, predecessor, manifest_hash,
@@ -556,7 +558,7 @@ reference's.
       ]
     },
     "stream-signer": {
-      "description": "§13.3/§13.7 stream-signer grant (declared, persisted). Not expressible here: kinds strictly ascending bytewise; until_utc (when not null) after since_utc; signer has an spki entry in the same registry; every kind is registered in the same registry (deprecated or not) with a family whose stream form is stream_id's.",
+      "description": "§13.3/§13.7 stream-signer grant (declared, persisted). Not expressible here: kinds strictly ascending bytewise; until_utc (when not null) after since_utc; signer has an spki entry in the same registry; every kind is registered in the same registry (deprecated or not) with a family whose stream form is stream_id's; no other declared entry of the registry has the same canonical form (§13.4).",
       "type": "object",
       "additionalProperties": false,
       "required": [

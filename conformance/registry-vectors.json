@@ -969,6 +969,62 @@
     "rule": "sig = detached JWS (kid == declared_by == owner in effect at activated_utc) over canonical(entry \\ {sig}); entry_hash = H('rapp/1:particle', entry) with sig",
     "signing_payload": "{\"activated_utc\":\"2026-07-01T00:00:00.000Z\",\"blob\":\"2222222222222222222222222222222222222222\",\"commit\":\"1111111111111111111111111111111111111111\",\"declared_by\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"grail_id\":\"grail:298c04b06963b8c4274bbf305093b8034e1427b7a179ff867e7a92d52b590c22\",\"immutable_ref\":\"refs/tags/kernel-v1\",\"mode\":\"100644\",\"object_format\":\"sha1\",\"path\":\"kernel/brainstem.py\",\"predecessor\":null,\"release_scope\":\"https://releases.example.test/scope/lts\",\"repository\":\"https://git.example.test/estate/kernel\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"size_bytes\":1024,\"type\":\"grail-kernel\"}"
    },
+   "first_seen_cases": [
+    {
+     "activated_utc": "2026-07-01T00:05:00.000Z",
+     "expect": "accept",
+     "first_seen": "2026-07-01T00:00:00.000Z",
+     "label": "exactly 300 s after first-seen"
+    },
+    {
+     "activated_utc": "2026-07-01T00:05:00.001Z",
+     "expect": "refuse",
+     "first_seen": "2026-07-01T00:00:00.000Z",
+     "label": "300.001 s after first-seen"
+    },
+    {
+     "activated_utc": "2026-07-01T00:00:00.000Z",
+     "expect": "accept",
+     "first_seen": "2026-07-02T00:00:00.000Z",
+     "label": "before first-seen"
+    },
+    {
+     "activated_utc": "2004-01-10T13:37:04.002Z",
+     "expect": "accept",
+     "first_seen": "2004-01-10T13:32:04.002Z",
+     "label": "exactly 300 s, just below 2^30 s, where float seconds read more"
+    },
+    {
+     "activated_utc": "2004-01-10T13:37:04.003Z",
+     "expect": "refuse",
+     "first_seen": "2004-01-10T13:32:04.002Z",
+     "label": "300.001 s, just below 2^30 s"
+    },
+    {
+     "activated_utc": "2038-01-19T03:14:08.056Z",
+     "expect": "accept",
+     "first_seen": "2038-01-19T03:09:08.056Z",
+     "label": "exactly 300 s, just below 2^31 s, where float seconds read more"
+    },
+    {
+     "activated_utc": "2038-01-19T03:14:08.057Z",
+     "expect": "refuse",
+     "first_seen": "2038-01-19T03:09:08.056Z",
+     "label": "300.001 s, just below 2^31 s"
+    },
+    {
+     "activated_utc": "2106-02-07T06:28:16.001Z",
+     "expect": "accept",
+     "first_seen": "2106-02-07T06:23:16.001Z",
+     "label": "exactly 300 s, just below 2^32 s, where float seconds read more"
+    },
+    {
+     "activated_utc": "2106-02-07T06:28:16.002Z",
+     "expect": "refuse",
+     "first_seen": "2106-02-07T06:23:16.001Z",
+     "label": "300.001 s, just below 2^32 s"
+    }
+   ],
    "first_seen_skew_seconds": 300,
    "persisted_types": [
     "grail-kernel",
@@ -6433,6 +6489,186 @@
       "size_bytes": 36,
       "type": "grail-kernel"
      },
+     "label": "the same repository with its host in another case",
+     "manifest": {
+      "components": [
+       {
+        "commit": "1111111111111111111111111111111111111111",
+        "files": [
+         {
+          "path": "kernel/VERSION",
+          "sha256": "6378a2f0f862dfbd894799c13030445a9464dd56046328ceeb093b5491665e35",
+          "size_bytes": 10
+         },
+         {
+          "path": "kernel/agents/basic_agent.py",
+          "sha256": "c148203b5f51d866ba50238d2083d8746513c176e0b782391c5848aadf3a7524",
+          "size_bytes": 56
+         },
+         {
+          "path": "kernel/brainstem.py",
+          "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+          "size_bytes": 36
+         }
+        ],
+        "id": "brainstem",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+        "kind": "kernel",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://Git.example.test/vector/brainstem"
+       }
+      ],
+      "release": "vector-1.0.0-kernel",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "accept",
+     "grail_kernel": {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "blob": "2222222222222222222222222222222222222222",
+      "commit": "1111111111111111111111111111111111111111",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+      "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+      "mode": "100644",
+      "object_format": "sha1",
+      "path": "kernel/brainstem.py",
+      "predecessor": null,
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "repository": "https://git.example.test/vector/brainstem",
+      "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+      "sig": "<detached-jws>",
+      "size_bytes": 36,
+      "type": "grail-kernel"
+     },
+     "label": "a release_scope that differs from the grail-kernel's only in host case is a family without a kernel",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": null,
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://Releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "grail_kernel": {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "blob": "2222222222222222222222222222222222222222",
+      "commit": "1111111111111111111111111111111111111111",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+      "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+      "mode": "100644",
+      "object_format": "sha1",
+      "path": "kernel/brainstem.py",
+      "predecessor": null,
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "repository": "https://git.example.test/vector/brainstem",
+      "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+      "sig": "<detached-jws>",
+      "size_bytes": 36,
+      "type": "grail-kernel"
+     },
+     "label": "a kernel component there",
+     "manifest": {
+      "components": [
+       {
+        "commit": "1111111111111111111111111111111111111111",
+        "files": [
+         {
+          "path": "kernel/VERSION",
+          "sha256": "6378a2f0f862dfbd894799c13030445a9464dd56046328ceeb093b5491665e35",
+          "size_bytes": 10
+         },
+         {
+          "path": "kernel/agents/basic_agent.py",
+          "sha256": "c148203b5f51d866ba50238d2083d8746513c176e0b782391c5848aadf3a7524",
+          "size_bytes": 56
+         },
+         {
+          "path": "kernel/brainstem.py",
+          "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+          "size_bytes": 36
+         }
+        ],
+        "id": "brainstem",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+        "kind": "kernel",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/brainstem"
+       }
+      ],
+      "release": "vector-1.0.0-kernel",
+      "release_scope": "https://Releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "grail_kernel": {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "blob": "2222222222222222222222222222222222222222",
+      "commit": "1111111111111111111111111111111111111111",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+      "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+      "mode": "100644",
+      "object_format": "sha1",
+      "path": "kernel/brainstem.py",
+      "predecessor": null,
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "repository": "https://git.example.test/vector/brainstem",
+      "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+      "sig": "<detached-jws>",
+      "size_bytes": 36,
+      "type": "grail-kernel"
+     },
      "label": "another object_format",
      "manifest": {
       "components": [
@@ -8744,6 +8980,38 @@
        "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
        "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
        "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "f10a43f6bb90194fd5dcbb4c38c247820d0f9e3d22af14018aae6a9de97874c6",
+       "object_format": "sha1",
+       "path": "releases/f10a43f6bb90194fd5dcbb4c38c247820d0f9e3d22af14018aae6a9de97874c6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "label": "the pinned manifest spells its release_scope's host in another case",
+     "manifest_hash": "f10a43f6bb90194fd5dcbb4c38c247820d0f9e3d22af14018aae6a9de97874c6",
+     "octets_hex": "7b22636f6d706f6e656e7473223a5b7b22636f6d6d6974223a2235353535353535353535353535353535353535353535353535353535353535353535353535353535222c2266696c6573223a5b7b2270617468223a227261707069642e6a736f6e222c22736861323536223a2238313934616530613630393638653239303034343865343732373237333534303232653338616461383936353064373466643234646336363066633635653163222c2273697a655f6279746573223a3132357d2c7b2270617468223a22736f756c2e6d64222c22736861323536223a2266313261616631363830346438366563353066303766616462616463363430653730386538626133323265363136353032636162636430383732346239353833222c2273697a655f6279746573223a31377d5d2c226964223a226f7267616e69736d2d616c706861222c226964656e746974795f70617468223a227261707069642e6a736f6e222c22696d6d757461626c655f726566223a6e756c6c2c226b696e64223a226f7267616e69736d222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f616c706861227d2c7b22636f6d6d6974223a2234343434343434343434343434343434343434343434343434343434343434343434343434343434222c2266696c6573223a5b7b2270617468223a22535045432e6d64222c22736861323536223a2263333330366161666532656131613235393536373432383833623262613834353733346634333332633434386266646136666433626564626233383365343036222c2273697a655f6279746573223a32367d5d2c226964223a22726170702d31222c226964656e746974795f70617468223a6e756c6c2c22696d6d757461626c655f726566223a22726566732f746167732f7265762d3137222c226b696e64223a2270726f746f636f6c222c226f626a6563745f666f726d6174223a2273686131222c22726170706964223a6e756c6c2c227265706f7369746f7279223a2268747470733a2f2f6769742e6578616d706c652e746573742f766563746f722f70726f746f636f6c227d5d2c2272656c65617365223a22766563746f722d312e302e302d636f6d70616374222c2272656c656173655f73636f7065223a2268747470733a2f2f52656c65617365732e6578616d706c652e746573742f766563746f722f312e30222c22736368656d61223a22726170702f312d72656c656173652d6d616e6966657374227d"
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
       }
      ],
      "expect": "refuse",
@@ -9775,6 +10043,40 @@
       ],
       "expect": "refuse",
       "label": "a duplicate kind"
+     },
+     {
+      "entries": [
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.notice",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       },
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "body.notice",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "refuse",
+      "label": "the same grant twice (a registry carries each declared entry once, §13.4)"
      },
      {
       "entries": [

@@ -9,6 +9,7 @@ file can drift from the reference.
   python3 conformance/make_vectors.py --check    # exit 1 if a committed file differs
 """
 import base64, copy, hashlib, json, os, sys
+from datetime import datetime, timezone
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 import rapp as R
@@ -138,6 +139,7 @@ def _grail(owner, scope="https://releases.example.test/scope/lts"):
 # each immutable release of a family is one release-pin naming its manifest by manifest_hash.
 LTS = "https://releases.example.test/vector/1.0"    # the family of kernel 1.0.0-lts; channel lts
 NEW_2 = "https://releases.example.test/vector/2.0"  # a family of channel newest
+LTS_CASED = LTS.replace("releases.example.test", "Releases.example.test")  # RFC 3986-equivalent, not byte-equal
 NEW_3 = "https://releases.example.test/vector/3.0"  # the family channel newest moves on to
 GIT = "https://git.example.test/vector/"
 KERNEL_FILES = {
@@ -364,10 +366,39 @@ def registry_sections():
     def declared_cases():
         entry = _grail(owner)
         unsigned = {k: v for k, v in entry.items() if k != "sig"}
+
+        def float_seconds(utc):
+            return datetime.strptime(utc, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc).timestamp()
+
+        def bound_case(label, first_seen, activated_utc, intended, float_trap=False):
+            expect = "accept" if REG.activated_within_bound(activated_utc, first_seen) else "refuse"
+            assert expect == intended, label
+            # Each trap case is one a float-seconds subtraction misjudges; keep it one.
+            assert not float_trap or float_seconds(activated_utc) - float_seconds(first_seen) > 300, label
+            return {"label": label, "first_seen": first_seen, "activated_utc": activated_utc, "expect": expect}
+
+        first_seen_cases = [
+            bound_case("exactly 300 s after first-seen", T0, "2026-07-01T00:05:00.000Z", "accept"),
+            bound_case("300.001 s after first-seen", T0, "2026-07-01T00:05:00.001Z", "refuse"),
+            bound_case("before first-seen", "2026-07-02T00:00:00.000Z", T0, "accept"),
+            bound_case("exactly 300 s, just below 2^30 s, where float seconds read more",
+                       "2004-01-10T13:32:04.002Z", "2004-01-10T13:37:04.002Z", "accept", float_trap=True),
+            bound_case("300.001 s, just below 2^30 s", "2004-01-10T13:32:04.002Z", "2004-01-10T13:37:04.003Z",
+                       "refuse"),
+            bound_case("exactly 300 s, just below 2^31 s, where float seconds read more",
+                       "2038-01-19T03:09:08.056Z", "2038-01-19T03:14:08.056Z", "accept", float_trap=True),
+            bound_case("300.001 s, just below 2^31 s", "2038-01-19T03:09:08.056Z", "2038-01-19T03:14:08.057Z",
+                       "refuse"),
+            bound_case("exactly 300 s, just below 2^32 s, where float seconds read more",
+                       "2106-02-07T06:23:16.001Z", "2106-02-07T06:28:16.001Z", "accept", float_trap=True),
+            bound_case("300.001 s, just below 2^32 s", "2106-02-07T06:23:16.001Z", "2106-02-07T06:28:16.002Z",
+                       "refuse"),
+        ]
         return {
             "declared_types": list(REG.DECLARED_TYPES),
             "persisted_types": list(REG.PERSISTED_TYPES),
             "first_seen_skew_seconds": REG.FIRST_SEEN_SKEW_SECONDS,
+            "first_seen_cases": first_seen_cases,
             "example": {
                 "entry": entry,
                 "signing_payload": R.canonical(unsigned),
@@ -489,6 +520,7 @@ def registry_sections():
         corrected = pinned + [_release_pin(owner, LTS, R.H("rapp/1:particle", compact_fix),
                                            predecessor=compact_hash, activated_utc=LATER)]
         foreign = _release_manifest(NEW_2, compact=True)
+        cased = _changed(compact, lambda m: m.update(release_scope=LTS_CASED))
         other = _changed(compact, component(1, commit="7" * 40))
         octets_cases = [
             octets_case("exactly canonical(manifest)", pinned, compact_hash, compact_octets, "accept"),
@@ -502,6 +534,9 @@ def registry_sections():
             octets_case("the pinned manifest names another release_scope",
                         base + [_release_pin(owner, LTS, R.H("rapp/1:particle", foreign))],
                         R.H("rapp/1:particle", foreign), R.canonical(foreign).encode("utf-8"), "refuse"),
+            octets_case("the pinned manifest spells its release_scope's host in another case",
+                        base + [_release_pin(owner, LTS, R.H("rapp/1:particle", cased))],
+                        R.H("rapp/1:particle", cased), R.canonical(cased).encode("utf-8"), "refuse"),
             octets_case("no release-pin pins the manifest_hash", base, compact_hash, compact_octets, "refuse"),
             octets_case("an earlier release of the family, selected by its manifest_hash after a correction",
                         corrected, compact_hash, compact_octets, "accept"),
@@ -668,6 +703,14 @@ def registry_sections():
             coherence_case("another repository", True, kernel(repository=GIT + "mirror"), "refuse"),
             coherence_case("the same repository spelled another way", True,
                            kernel(repository=GIT + "brainstem.git"), "refuse"),
+            coherence_case("the same repository with its host in another case", True,
+                           kernel(repository=GIT.replace("git.example.test", "Git.example.test") + "brainstem"),
+                           "refuse"),
+            coherence_case("a release_scope that differs from the grail-kernel's only in host case is a family "
+                           "without a kernel", True, _changed(compact, lambda m: m.update(release_scope=LTS_CASED)),
+                           "accept"),
+            coherence_case("a kernel component there", True,
+                           _changed(kernel_only, lambda m: m.update(release_scope=LTS_CASED)), "refuse"),
             coherence_case("another object_format", True, kernel(object_format="sha256", commit="1" * 64), "refuse"),
             coherence_case("another commit", True, kernel(commit="9" * 40), "refuse"),
             coherence_case("another immutable_ref", True, kernel(immutable_ref="refs/tags/brainstem-v1.0.1-lts"),
@@ -1030,6 +1073,8 @@ def registry_sections():
             grant_case("'-' after '.' is out of bytewise order",
                        [grant(kinds=["body.pulse", "body-sensor.pulse"])], "refuse"),
             grant_case("a duplicate kind", [grant(kinds=["body.pulse", "body.pulse"])], "refuse"),
+            grant_case("the same grant twice (a registry carries each declared entry once, §13.4)",
+                       [grant(), grant()], "refuse"),
             grant_case("no kinds", [grant(kinds=[])], "refuse"),
             grant_case("until_utc equal to since_utc (an empty window)", [grant(until_utc=since)], "refuse"),
             grant_case("until_utc before since_utc", [grant(until_utc=T0)], "refuse"),

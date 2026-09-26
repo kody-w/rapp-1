@@ -237,6 +237,19 @@ class GrantCrossEntryTests(Base):
         self.assertFalse(ok)
         self.assertIn("deprecated", why)
 
+    def test_a_registry_carries_each_grant_once(self):
+        # A declared entry is named by its particle hash (§13.4), and a deterministic signature
+        # re-issues a grant byte for byte, so a repeat is refused rather than retained twice.
+        grant = self.grant()
+        with self.assertRaisesRegex(REG.RegistryError, r"duplicate stream-signer entry, identical to entries\["):
+            self.registry([grant, copy.deepcopy(grant)])
+        with self.assertRaisesRegex(REG.RegistryError, "duplicate stream-signer entry"):
+            self.registry([grant, self.grant(kinds=["body.notice"]), R._strict_json(R.canonical(grant))])
+        # Two grants that differ in any byte — here only their signatures — are two declarations.
+        again = self.grant()
+        self.assertNotEqual(again["sig"], grant["sig"])
+        self.assertEqual(len(self.registry([grant, again]).stream_grants(self.station)), 2)
+
 
 class AuthorityTests(Base):
     def test_an_owner_signed_frame_speaks_for_the_estate_without_a_grant(self):
@@ -685,6 +698,11 @@ class GrantDeclarationTests(Base):
         status, _, why = later([])  # dropped, though registry_seq increased
         self.assertEqual(status, "refused")
         self.assertIn("removed or mutated", why)
+        # No accepted registry repeats a declared entry (§13.4), so a persisted list that does is refused.
+        status, _, why = self.estate.load(self.estate.document(self.base() + [grant], seq=3), persisted_seq=2,
+                                          persisted_entries=persisted + persisted)
+        self.assertEqual(status, "refused")
+        self.assertIn("repeats an earlier persisted entry", why)
         # An owner-signed variant in its place is refused too, narrowed as much as widened: a grant
         # ends early only by the until_utc it was declared with, or by §10 refusing its signer.
         variants = {"narrowed until_utc": {"until_utc": INSIDE}, "open-ended": {"until_utc": None},
@@ -739,6 +757,14 @@ class RealSignatureTests(unittest.TestCase):
         status, reg, why = REG.load_document(document(base + [declared(grant, owner_sign, owner)]),
                                              trust_anchor=owner, verification_utc=T0)
         self.assertEqual((status, why), ("verified", "ok"))
+        # Ed25519 is deterministic: re-issuing the grant reproduces it byte for byte, and a registry
+        # carries each declared entry once (§13.4).
+        reissued = declared(grant, owner_sign, owner)
+        self.assertEqual(R.canonical(reissued), R.canonical(declared(grant, owner_sign, owner)))
+        status, _, why = REG.load_document(document(base + [reissued, declared(grant, owner_sign, owner)]),
+                                           trust_anchor=owner, verification_utc=T0)
+        self.assertEqual(status, "refused")
+        self.assertIn("duplicate stream-signer entry", why)
         self_grant = declared(dict(grant, declared_by=signer), signer_sign, signer)
         status, _, why = REG.load_document(document(base + [self_grant]), trust_anchor=owner,
                                            verification_utc=T0)

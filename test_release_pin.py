@@ -747,6 +747,13 @@ class ManifestOctetsTests(unittest.TestCase):
         self.assertEqual(status, "verified", why)
         with self.assertRaisesRegex(REG.RegistryError, "release_scope other than its release-pin's"):
             REG.verify_release_manifest(reg, pin, R.canonical(foreign).encode("utf-8"))
+        # Compared byte for byte: the pin's own scope with its host in another case is another scope.
+        cased = self.world.manifest(LTS.replace("releases.example", "Releases.example"), kernel=None)
+        pin = self.world.pin(cased, scope=LTS)
+        status, reg, why = self.world.load([pin])
+        self.assertEqual(status, "verified", why)
+        with self.assertRaisesRegex(REG.RegistryError, "release_scope other than its release-pin's"):
+            REG.verify_release_manifest(reg, pin, R.canonical(cased).encode("utf-8"))
 
     def test_only_the_registrys_own_release_pin_is_verified_against(self):
         cases = {
@@ -814,6 +821,8 @@ class KernelCoherenceTests(unittest.TestCase):
         cases = {
             "repository": kernel(repository=MIRROR),
             "repository spelled another way": kernel(repository=KERNEL + ".git"),
+            # Byte for byte (§13.5): an RFC 3986-equivalent spelling is still another spelling.
+            "repository host in another case": kernel(repository=KERNEL.replace("git.example", "Git.example")),
             "object_format": kernel(object_format="sha256", commit="1" * 64),
             "commit": kernel(commit="9" * 40),
             "immutable_ref": kernel(immutable_ref="refs/tags/brainstem-v1.0.1"),
@@ -836,6 +845,17 @@ class KernelCoherenceTests(unittest.TestCase):
     def test_another_familys_grail_does_not_count(self):
         other_family = REG.Registry(self.world.estate.base_entries() + [self.world.grail(scope=NEW_2)])
         self.assertFalse(self.coherent(self.manifest, other_family)[0])
+
+    def test_a_family_is_found_by_its_exact_release_scope(self):
+        # A scope that differs from the grail-kernel's only in host case names another family, one
+        # without a kernel: its manifests carry no kernel component, and one that does is refused.
+        cased = LTS.replace("releases.example", "Releases.example")
+        self.assertTrue(REG._https_uri(cased))
+        without = mutated(self.world.manifest(kernel=None), lambda m: m.update(release_scope=cased))
+        self.assertEqual(self.coherent(without), (True, "ok"))
+        ok, why = self.coherent(mutated(self.manifest, lambda m: m.update(release_scope=cased)))
+        self.assertFalse(ok)
+        self.assertIn("needs a grail-kernel entry for this release_scope", why)
 
     def test_an_invalid_manifest_is_not_coherent(self):
         ok, why = self.coherent(mutated(self.manifest, lambda m: m.update(schema="other")))

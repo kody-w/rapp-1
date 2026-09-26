@@ -1058,11 +1058,12 @@ carried elsewhere — a Hive notice, a member file, a release receipt — is a d
 canonical form equals that of an entry of an accepted registry of the estate, and it is then authenticated
 by the same checks; a copy whose canonical form differs in any byte, or that no accepted registry carries,
 is not a declaration however well it is signed. `H("rapp/1:particle", entry)` over the complete signed
-entry names it. Every declared entry is persisted: once a consumer has accepted one it **MUST** persist the
-canonical entry, and every later accepted registry **MUST** retain it byte-for-byte and keep the persisted
-entries in the order they were appended (`entries` is append-ordered, §13.1); removal, mutation, or
-reordering is a permanent refusal even when `registry_seq` increased (§11.1 item 9 states the rule for
-`grail-kernel`).
+entry names it, so a registry carries each declared entry once: a registry in which two declared entries
+have the same canonical form is refused whole. Every declared entry is persisted: once a consumer has
+accepted one it **MUST** persist the canonical entry, and every later accepted registry **MUST** retain it
+byte-for-byte and keep the persisted entries in the order they were appended (`entries` is append-ordered,
+§13.1); removal, mutation, or reordering is a permanent refusal even when `registry_seq` increased (§11.1
+item 9 states the rule for `grail-kernel`).
 
 ### 13.5 Release pins, release manifests, and verified snapshots
 A **release scope** (§11.1) names one release family — for example an LTS line whose corrections all keep
