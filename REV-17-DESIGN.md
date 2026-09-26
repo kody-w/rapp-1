@@ -30,11 +30,11 @@ Evidence is quoted from `main` at `591e014` (rev-16).
 | 1 | Component pins per release scope, so the LTS scope pins every component | **Yes** | §11.1: "at most one `grail-kernel` entry for any release scope" and "an existing scope is never rebound"; §13.3 `grail-kernel`: `path` at `commit` "**MUST** resolve through the repository tree to exactly one regular blob"; §13.3 `protocol` is "an estate adoption pin" with no scope and no commit. One kernel file per scope cannot pin a release of many repositories, and §4 caps a registry at 1 MiB. | `release-pin` declared entry naming a `rapp/1-release-manifest` by particle hash; release families, channels, kernel coherence and order, and all-or-nothing verified snapshots (§13.5) |
 | 2 | Estate-signed lifecycle (deprecated, superseded, archived; `superseded_by`, since) | **Yes** | §13.3: "retirement is a `deprecated:true` flag" on registry entries only; §10: "Compromise is declared by an owner-signed **tombstone**" (keys, not organisms); §6.2: "Re-anchor is lawful in exactly three cases" (identity, not succession). Nothing carries a successor or a start time. | `lifecycle` declared entry: one signed chain per **subject**, a rappid or the HTTPS URI of a repository that has no rappid (§13.6) |
 | 3 | Stream signer authorization for the network's `body.pulse` stream | **Yes** | §7.5 step 6: "if `sig`≠null, verify per §10"; §10 resolves the signer's key "from the §13 registry" — any registered key, on any stream. Role binding exists only where a rule names it: invites "**MUST** verify with `kid` in the §13.2 estate-owner succession", sealed eggs need `kid` "exactly equal to `manifest.rappid`", and owner-signed registry records. | `stream-signer` declared grant; an authority check above §7.5 that adds no §7.5 step (§13.7) |
-| 4 | Estate-signed member inventory binding: rappid, then repo, then raw base, then LTS ref | **Yes, inside 1** | §6.1: `owner = lclabel ; the lowercase GitHub login` and `slug = lclabel` — a rappid names no repository (repository names such as `RAPP` or `RAPP_Store` are not lclabels); §10 names "the door-of-record `rappid.json`", but nothing binds one. | Each manifest component binds `rappid` (optional) → `repository` → `commit` (the LTS ref) → `files` (bytes), with `identity_path` proving the door of record (§13.5). The raw base is not signed: for GitHub it is derived (`https://raw.githubusercontent.com/<owner>/<repo>/<commit>/<path>`), and any other transport (a LAN host, `file://`) is fine because every byte is checked against the pinned digest. Signing it would add no security and would tie releases to one substrate. |
+| 4 | Estate-signed member inventory binding: rappid, then repo, then raw base, then LTS ref | **Yes, inside 1** | §6.1: `owner = lclabel ; the lowercase GitHub login` and `slug = lclabel` — a rappid names no repository (repository names such as `RAPP` or `RAPP_Store` are not lclabels); §10 names "the door-of-record `rappid.json`", but nothing binds one. | Each manifest component binds `rappid` (optional) → `repository` → `commit` (the LTS ref) → `files` (bytes), with `identity_path` proving the door of record (§13.5). The raw base is not signed: for GitHub it is derived (`https://raw.githubusercontent.com/<owner>/<repo>/<commit>/<path>`, each path segment percent-encoded), and any other transport (a LAN host, `file://`) is fine because every byte is checked against the pinned digest; only what git alone can prove — that a tag resolves to its commit — is left to a git-capable verifier, as a separate finding. Signing it would add no security and would tie releases to one substrate. |
 | 5 | Keyless identities for about 300 station repos; can estate-bound keys be added without a re-anchor (§§6.2, 6.3)? | **No new mechanism** | §6.2: keyless "`tail = Hb("rapp/1:rappid", uuid4_octets)`"; "Re-anchor is lawful in exactly three cases"; §10: keyless rappids "assert location, not authorship"; §12 freezes §6.1–6.2. | A keyless identity can never gain its own key: there is no lawful fourth re-anchor case, and adding one would change a frozen form (`rapp/2`). Estate-bound keys are added without any re-anchor as `stream-signer` grants — authority, not identity. Releases (component `rappid: null`) and lifecycle notices (repository subjects) need no rappid, so the lock needs no station minting. |
 | 6 | Should the discovery chain (seed, beacon, sniff schemas) become a RAPP/1 subordinate protocol? | **No** | Constitution Art. 17: this repository is "canonicalization, content addressing, identity, frames, wire, eggs, trust, registries, and protocol-level profiles", while RAPP keeps the "foundation, product home, reference implementation, organism model, and philosophy". The seed is an observation-only document, and the live beacon and `estate.json` paths serve placeholder status documents. | None here. §13.5 makes every discovery document a locator, so trust never depends on it; the LTS manifest pins the discovery convention and its resolver by digest as RAPP files. Revisit only if a second independent resolver needs a wire contract. |
 | 7 | `body.pulse` binding, payload, and stream id | **No core change** | §7.2 defines the `body` family; the published estate registry (`registry_seq` 2) binds `body.pulse` to it; §6.1.1: a body stream id is a rappid; §8: "memory/body-stream frames **MAY** be unsigned"; §13.3: "every stream registers its creation genesis". The network's live stream `rappid:@kody-w/rapp1-network:71216534…` is keyless; its first pulse is a valid `rapp/1` frame that binds to `body.pulse` (checked with this reference), and its genesis is not yet registered. | None. The stream id is the network organism's rappid; the payload belongs to the network convention (RAPP), and an estate may adopt a written payload contract with an ordinary `protocol` entry. The estate registers the stream's `genesis`, then grants a keyed pulse signer (§13.7). Until then pulses are integrity-only. |
-| 8a | Registry container | **Yes** | `EXTENDING.md`: "nothing names the member that holds the entries or how `canonical_source` is carried". | §13.1 names exactly `schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; any other member carries no meaning. `canonical_source` is an absolute HTTPS URI, or a URN for a registry kept in a private store — RAPP's private Hives already sign `rapp/1-registry` documents whose `canonical_source` is a `urn:`. §3 defines an absolute HTTPS URI by RFC 3986's grammar (no fragment, a non-empty host, a port of at most 65535, no user information), which the reference parses itself so its verdict never depends on the Python version. The reference enforces §4's 1 MiB and depth-64 limits on the document. The published registry already has this shape and still verifies. |
+| 8a | Registry container | **Yes** | `EXTENDING.md`: "nothing names the member that holds the entries or how `canonical_source` is carried". | §13.1 names exactly `schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; any other member carries no meaning. `canonical_source` is an absolute HTTPS URI, or a URN for a registry kept in a private store — RAPP's private Hives already sign `rapp/1-registry` documents whose `canonical_source` is a `urn:`. §3 defines an absolute HTTPS URI by RFC 3986's grammar (no fragment, a non-empty host, a port of at most 65535, no user information), which the reference parses itself so its verdict is the same on every Python 3.9 and later. The reference enforces §4's 1 MiB and depth-64 limits on the document. The published registry already has this shape and still verifies. |
 | 8b | Entry-level signatures | **Yes** | §13.3 `grail-kernel`: "A consumer verifies the entry signer as the estate owner in effect at `activated_utc`"; §11.1: `activated_utc` "**MUST NOT** be more than 300 seconds after the verifier's first-seen time". The reference checked only tombstone and re-anchor signatures. | §13.4 declared entries: owner-in-effect signature at `activated_utc`, a per-entry first-seen bound, copies that count only in canonical form, and retention of every accepted declaration. |
 | 8b2 | Entry types a consumer does not implement | **Yes** | §12: everything "still grows under `rapp/1`: … registry entry types"; §13.3 has no rule for an unknown type, and the reference refused the whole registry (rev-16 on a rev-17 entry: `unknown entry type 'release-pin'`). The estate keeps one registry for the LTS line and the newest channel, so every later entry type would cut off consumers pinned to rev-17. | §13.3: an unknown type is ignored — covered by `sig`, counted by §4, granting nothing — unless it carries `critical` other than `false`, which refuses the registry (as §11.2 item 7 refuses "unknown required policy semantics"). Rollout: consumers running rev-16 refuse any registry that carries a rev-17 entry, since they predate this rule, so the estate adds rev-17 entries only after its consumers run rev-17. |
 | 8c | LTS corrections | **Yes, inside 1** | §11.1: "at most one `grail-kernel` entry for each `grail_id`" and "an existing scope is never rebound": a correction that keeps kernel v0.6.9 cannot declare it again under a new scope. | A release scope names a release **family** with at most one kernel; its releases are successive `release-pin` entries in one channel. A new kernel is a new family (a new scope). |
@@ -52,7 +52,8 @@ pin; a release manifest also pins the texts each release was built against.
 
 ## 3. Reuse before adding
 
-The nine existing §13.3 entry types were each considered first.
+The existing §13.3 entry types were each considered first: the nine that record an estate's facts, below,
+and `estate_owner` and `master-plan`, which name the owner and its plan.
 
 - **`grail-kernel`** pins one blob per scope, and one entry per `grail_id`: it cannot pin a release of many
   repositories, nor the kernel's companion files, and a correction cannot repeat it. Rev-17 keeps it as the
@@ -103,7 +104,9 @@ registry      {schema:"rapp/1-registry", registry_seq, canonical_source, entries
   `id`; files by the UTF-8 bytes of `path`, under the §9.1 path grammar; `sha256` is over raw bytes. A
   component with `rappid` names its door of record through `identity_path`. When the family has a kernel,
   exactly one `kind:"kernel"` component matches the `grail-kernel` entry. An identity file is UTF-8 with
-  no byte-order mark. A verified snapshot is every pinned file, checked by length and SHA-256, or nothing.
+  no byte-order mark. A verified snapshot is every pinned file, checked by length and SHA-256, or nothing;
+  it checks bytes only, so it runs over raw URLs, and whether a tag resolves to its commit is a separate
+  check for a git-capable verifier.
 - **Lifecycle notices (§13.6).** `state` is `active`, `deprecated`, `superseded`, or `archived`; `active`
   names no successor and `superseded` must name one. `subject` and `superseded_by` are rappids or HTTPS
   repository URIs, compared byte-for-byte. One chain per subject through `previous` =
@@ -165,8 +168,8 @@ unverified until the estate that pins this root is anchored". Rev-17 answers bot
 - **Rollout.** A consumer that runs rev-16 refuses a registry carrying any rev-17 entry, so add the first
   `release-pin`, `lifecycle`, or `stream-signer` entry only after rev-17 is accepted and the estate's
   consumers run it. From rev-17 on, a later entry type that is not marked critical no longer cuts off an
-  LTS consumer. Check your own registry's `unknown_entries` is empty: a misspelled type is ignored, not
-  refused.
+  LTS consumer. Check your own registry's `unknown_entries` is empty (`rapp_check.py` reports each one):
+  a misspelled type is ignored, not refused.
 - **Entry order.** `estate_owner` and `spki`; `kind`; the pulse stream's `genesis`; each family's
   `grail-kernel` before that family's first `release-pin`; the `release-pin` entries; `lifecycle` notices;
   `stream-signer` grants after their signer's `spki` and their kinds.
@@ -749,7 +752,7 @@ reference's.
       }
     },
     "registry-document": {
-      "description": "§13.1 registry document: exactly these five members carry meaning; any other top-level member is covered by sig and carries none. sig null = unsigned draft, never authority. Each entry of a type defined here matches its schema; an entry of a type a consumer does not implement is ignored unless it carries critical other than false, which refuses the registry (§13.3). Not expressible here: at most 1 MiB canonical and nested at most 64 deep (§4(d)).",
+      "description": "§13.1 registry document: exactly these five members carry meaning; any other top-level member is covered by sig and carries none. sig null = unsigned draft, never authority. Each entry of a type defined here matches its schema; an entry of a type a consumer does not implement is ignored unless it carries critical other than false, which refuses the registry (§13.3). Not expressible here: at most 1 MiB canonical and nested at most 64 deep (§4(d)); the other known types' own rules and every cross-entry rule (the reference checks them).",
       "type": "object",
       "required": [
         "schema",
@@ -769,7 +772,95 @@ reference's.
           "$ref": "#/$defs/canonical_source"
         },
         "entries": {
-          "type": "array"
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "release-pin"
+                    }
+                  }
+                },
+                "then": {
+                  "$ref": "#/$defs/release-pin"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "lifecycle"
+                    }
+                  }
+                },
+                "then": {
+                  "$ref": "#/$defs/lifecycle"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "stream-signer"
+                    }
+                  }
+                },
+                "then": {
+                  "$ref": "#/$defs/stream-signer"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "protocol",
+                        "kind",
+                        "egg-variant",
+                        "error-code",
+                        "genesis",
+                        "spki",
+                        "tombstone",
+                        "re-anchor",
+                        "grail-kernel",
+                        "release-pin",
+                        "lifecycle",
+                        "stream-signer",
+                        "estate_owner",
+                        "master-plan"
+                      ]
+                    }
+                  }
+                },
+                "then": {
+                  "not": {
+                    "required": [
+                      "critical"
+                    ]
+                  }
+                },
+                "else": {
+                  "properties": {
+                    "critical": {
+                      "const": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
         },
         "sig": {
           "anyOf": [

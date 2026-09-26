@@ -340,6 +340,27 @@ class RappCheckDiscoveryTests(unittest.TestCase):
                          [("big/registry.json", "§13 registry document")])
         self.assertIn("exceeds §4's 1 MiB limit", findings[0]["detail"])
 
+    def test_an_ignored_entry_type_in_a_registry_is_a_finding(self):
+        repository = self.fixture_repo("clean")
+        document = self.registry_document()
+        document["entries"].append({"type": "tombstone ", "rappid": document["entries"][0]["rappid"]})
+        self.write_json(repository / "registry.json", document)
+        verdict, findings, _ = C.check_repo(repository)
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual([(item["artifact"], item["rule"]) for item in findings],
+                         [("registry.json", "§13 registry document")])
+        self.assertIn("'tombstone ' is not one this checker implements", findings[0]["detail"])
+
+    def test_large_ordinary_json_never_exhausts_frame_discovery(self):
+        repository = self.fixture_repo("clean")
+        data = repository / "data"
+        data.mkdir()
+        block = ("[" + ",".join(["1234567"] * 262144) + "]").encode("ascii")  # about 2 MiB, not RAPP
+        for n in range(33):  # more than the 64 MiB frame-discovery budget in all
+            (data / f"series-{n:02d}.json").write_bytes(block)
+        (repository / "z.json").write_text('{"note": "small"}', encoding="utf-8")
+        self.assertEqual(C.check_repo(repository), ("CLEAN", [], []))
+
     def test_a_release_manifest_over_the_section_4_limit_is_a_finding_not_skipped(self):
         repository = self.fixture_repo("clean")
         manifest = {"schema": "rapp/1-release-manifest", "release_scope": "https://releases.example.test/big",

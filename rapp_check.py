@@ -118,13 +118,33 @@ def _lenient_schema(blob):
     return value.get("schema") if isinstance(value, dict) else None
 
 
-_SNIFF_LIMIT = 8 * R.MAX_CANONICAL_BYTES
+_SNIFF_LIMIT = 8 * R.MAX_CANONICAL_BYTES   # an oversized file is parsed only up to this size
+_SNIFF_WINDOW = 64 * 1024                  # bytes read from each end before any parse
+_MAX_SNIFF_BYTES = 64 * 1024 * 1024        # full parses of oversized files, apart from frame discovery
+_SNIFF_MARKERS = (b'"rapp/1-registry"', b'"rapp/1-release-manifest"')
 
 
-def _oversized_schema(path):
-    """The top-level `schema` a JSON file too large for §4 claims, when it is small enough to sniff
-    (at most 8 MiB), else None — so a registry or release manifest over the 1 MiB limit is reported,
-    not skipped."""
+def _oversized_schema(path, size, budget):
+    """The top-level `schema` an over-§4 JSON file claims, so a registry or release manifest that grew
+    past 1 MiB is reported rather than skipped; None for anything else. Cheap for ordinary data files:
+    only a file whose first or last 64 KiB names one of the two schemas (a canonical document sorts
+    `schema` near its end) is parsed, only up to 8 MiB, and only while `budget` (a one-item list of
+    remaining bytes, kept apart from frame discovery's) allows. Best effort, never a finding by itself."""
+    try:
+        info = os.lstat(path)
+        if not stat.S_ISREG(info.st_mode):
+            return None
+        with open(path, "rb") as source:
+            head = source.read(_SNIFF_WINDOW)
+            source.seek(max(0, size - _SNIFF_WINDOW))
+            tail = source.read(_SNIFF_WINDOW)
+    except OSError:
+        return None
+    if not any(marker in head or marker in tail for marker in _SNIFF_MARKERS):
+        return None
+    if size > _SNIFF_LIMIT or size > budget[0]:
+        return None
+    budget[0] -= size
     try:
         return _lenient_schema(_read_blob(path, _SNIFF_LIMIT))
     except Exception:
@@ -356,6 +376,12 @@ def check_repo(root, signature_verifier=None):
         except (REG.RegistryError, ValueError) as exc:
             finding(rel, "§13 registry document", str(exc))
             return
+        for index in registry.unknown_entries:
+            # Every consumer at this revision ignores it (§13.3); in an estate's own registry that is
+            # most often a misspelled type, which silently drops the entry (a tombstone, a notice).
+            finding(rel, "§13 registry document",
+                    f"entries[{index}]: type {registry.entries[index]['type']!r} is not one this checker "
+                    "implements, so it is ignored (§13.3); check for a misspelled type")
         state = (
             "unsigned draft"
             if document["sig"] is None
@@ -453,6 +479,7 @@ def check_repo(root, signature_verifier=None):
 
     # Bounded exact-shape discovery finds Frames regardless of filename/layout.
     count = total = 0
+    sniff_budget = [_MAX_SNIFF_BYTES]
     for path in (
         p
         for p in json_paths
@@ -465,16 +492,14 @@ def check_repo(root, signature_verifier=None):
             unknown(os.path.relpath(path, root), f"cannot stat JSON: {exc}")
             continue
         if size > R.MAX_CANONICAL_BYTES:
-            # Too large for §4, so never a valid artifact; but a registry or release manifest that
-            # grew past the limit is reported, not skipped, when it is small enough to sniff.
-            if size <= _SNIFF_LIMIT and count < _MAX_JSON_FILES and total + size <= _MAX_JSON_BYTES:
-                count, total = count + 1, total + size
-                claimed = _oversized_schema(path)
-                if claimed in (REG.DOCUMENT_SCHEMA, REG.MANIFEST_SCHEMA):
-                    has_artifact = True
-                    what = "§13 registry document" if claimed == REG.DOCUMENT_SCHEMA else "§13.5 release manifest"
-                    finding(os.path.relpath(path, root), what,
-                            f"exceeds §4's 1 MiB limit ({size} bytes); refuse, never repair")
+            # Too large for §4, so never a valid artifact, and never charged to frame discovery; but a
+            # registry or release manifest that grew past the limit is reported, not skipped.
+            claimed = _oversized_schema(path, size, sniff_budget)
+            if claimed in (REG.DOCUMENT_SCHEMA, REG.MANIFEST_SCHEMA):
+                has_artifact = True
+                what = "§13 registry document" if claimed == REG.DOCUMENT_SCHEMA else "§13.5 release manifest"
+                finding(os.path.relpath(path, root), what,
+                        f"exceeds §4's 1 MiB limit ({size} bytes); refuse, never repair")
             continue
         if count >= _MAX_JSON_FILES or total + size > _MAX_JSON_BYTES:
             unknown(".", "bounded frame discovery JSON budget exhausted")

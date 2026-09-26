@@ -921,8 +921,8 @@ forge that estate).
 - **The document.** A registry is one §4 object whose meaningful members are exactly `schema`
   (`"rapp/1-registry"`), `registry_seq`, `canonical_source`, `entries`, and `sig`. `canonical_source` names
   the owner-selected location of record for this document: an absolute HTTPS URI (§3) for a registry
-  published on the web, or a URN [RFC 8141] — lowercase `urn:`, with no r-, q-, or f-component — for one
-  kept in a private store, such as a private Hive's registry history; `entries` is the array of
+  published on the web, or a URN [RFC 8141] of at most 2048 characters — lowercase `urn:`, with no r-, q-,
+  or f-component — for one kept in a private store, such as a private Hive's registry history; `entries` is the array of
   §13.3 entries in append order; `sig` is `null` only on an unsigned draft. Any other top-level member is
   covered by `sig` but carries no RAPP/1 meaning: a consumer **MUST NOT** read an entry, key, trust,
   policy, or freshness claim from it. A consumer that obtained a canonical source out of band with the
@@ -952,12 +952,12 @@ expressed inside the registry it signs.
 The registry is an I-JSON document; every entry is append-only (never removed/renamed; retirement is a
 `deprecated:true` flag). Entry types and their exact members:
 - **protocol** `{type:"protocol", name, spec_repo, spec_path, spec_hash, deprecated}` — an estate
-  adoption pin, never a power to redefine a protocol. An entry with `name:"rapp/1"` that is used for a
-  current-conformance claim **MUST** set `spec_repo:"https://github.com/kody-w/rapp-1"`,
-  `spec_path:"SPEC.md"`, and `spec_hash` to a normative SHA-256 published by a verified frame in this
-  repository's anchor chain. A historical RAPP/1 pin may be retained only as `deprecated:true`; it does
-  not override the current anchor. Other protocol entries are subordinate to their own canonical
-  authorities and **MUST NOT** claim the `rapp/1` name or namespace.
+  adoption pin, never a power to redefine a protocol; `spec_repo` is an absolute HTTPS URI (§3). An entry
+  with `name:"rapp/1"` that is used for a current-conformance claim **MUST** set
+  `spec_repo:"https://github.com/kody-w/rapp-1"`, `spec_path:"SPEC.md"`, and `spec_hash` to a normative
+  SHA-256 published by a verified frame in this repository's anchor chain. A historical RAPP/1 pin may be
+  retained only as `deprecated:true`; it does not override the current anchor. Other protocol entries are
+  subordinate to their own canonical authorities and **MUST NOT** claim the `rapp/1` name or namespace.
 - **kind** `{type:"kind", kind, family, deprecated}` (incl. the three `*.re-genesis` kinds)
 - **egg-variant** `{type:"egg-variant", variant, deprecated}` · **error-code** `{type:"error-code", code}`
   (both closed namespaces; unregistered value = not conformant)
@@ -995,9 +995,9 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   `manifest_hash` of the `release-pin` this one follows in the same `channel`; `manifest_hash` is
   `H("rapp/1:particle", manifest)` of the release manifest (§13.5), and no two `release-pin` entries share
   it; every `release-pin` of one `release_scope` carries the same `channel`; `repository` (an absolute HTTPS
-  URI), `object_format`, `commit`, and `path` locate the manifest's octets under the `grail-kernel` rules for
-  those members, and `path` also obeys the §9.1 path grammar. It pins every component of one immutable
-  release of its family (§13.5).
+  URI), `object_format` (`"sha1"` or `"sha256"`, fixing the lowercase hexadecimal length of `commit`),
+  `commit`, and `path` (the §9.1 path grammar) locate the manifest's octets, which `manifest_hash` — not a
+  git object id — proves. It pins every component of one immutable release of its family (§13.5).
 - **lifecycle** `{type:"lifecycle", subject, state, superseded_by, since_utc, previous, activated_utc,
   declared_by, sig}` — exactly these members; a declared entry (§13.4). `subject` is what the notice is
   about: a §6.1 rappid (an organism) or an absolute HTTPS URI naming a repository (§13.6); `state` is
@@ -1014,14 +1014,16 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
 - **estate_owner** `{type:"estate_owner", rappid}` (exactly one non-deprecated) · **master-plan**
   `{type:"master-plan", repo, path}` (Fed. Const. Art. VII).
 
-An entry whose `type` is a string naming no entry type a consumer implements is an entry that consumer
-does not understand. It stays covered by the registry's `sig` and counts toward the §4 limits, and the
-consumer **MUST** ignore it — it grants, revokes, binds, pins, and declares nothing for that consumer —
-unless it carries a member `critical` with any value other than `false`, in which case the consumer
-**MUST** refuse the whole registry. Whoever defines an entry type after this revision marks it critical
-exactly when an older consumer that ignored it would accept what the new type refuses; the types above
-never carry `critical`. A registry can therefore grow without cutting off a consumer pinned to an earlier
-revision, and no consumer takes an entry it cannot read for one it can.
+An entry whose `type` is a non-empty string naming no entry type a consumer implements is an entry that
+consumer does not understand. It stays covered by the registry's `sig` and counts toward the §4 limits,
+and the consumer **MUST** ignore it — it grants, revokes, binds, pins, and declares nothing for that
+consumer — unless it carries a member `critical` with any value other than `false`, in which case the
+consumer **MUST** refuse the whole registry. Whoever defines an entry type after this revision marks it
+critical when ignoring its entries could let an older consumer accept a key, signature, frame, release,
+or claim that those entries refuse or withdraw; that a malformed entry of the type refuses the registry
+for a consumer that implements it does not by itself make the type critical. The types above never carry
+`critical`. A registry can therefore grow without cutting off a consumer pinned to an earlier revision,
+and no consumer takes an entry it cannot read for one it can.
 
 §7.5 steps 1–5 are time-independent (append-only lookups); step 6 (tombstones) and §13.2 owner tenure are
 time-scoped, and both are monotone given the §13.1 no-rollback rule. A declared entry (§13.4) is
@@ -1081,7 +1083,8 @@ that pins every component of that release:
   is an lclabel of 1–100 characters. `kind` is an lclabel of 1–64 characters and an extension point
   (`protocol`, `organism`, `hive`, `repository`, `document`, …); only `kernel` is reserved (below).
   `object_format` fixes the lowercase hexadecimal length of `commit` exactly as for `grail-kernel`; a
-  non-null `immutable_ref` is a full `refs/tags/...` name that **MUST** resolve exactly to `commit`.
+  non-null `immutable_ref` is a full `refs/tags/...` name that **MUST** resolve exactly to `commit` — a
+  claim a git-capable verifier checks (below), not the byte snapshot.
 - `files` is sorted ascending by the UTF-8 bytes of `path`; each `path` obeys the §9.1 path grammar, and no
   two paths of one component are equal case-insensitively or name a file and a directory above it (each
   segment compared after Unicode NFD normalization and full case folding). `sha256` is the raw SHA-256 of
@@ -1134,8 +1137,14 @@ on any failure:
    `manifest_hash` and the manifest's `release_scope` equal to its `release_scope`; then check every rule
    above, including kernel coherence;
 3. obtain every component file at its `commit` — for a GitHub repository,
-   `https://raw.githubusercontent.com/<owner>/<repository>/<commit>/<path>` — and require its length and
-   SHA-256, then check every door-of-record binding.
+   `https://raw.githubusercontent.com/<owner>/<repository>/<commit>/<path>`, each path segment
+   percent-encoded — and require its length and SHA-256, then check every door-of-record binding.
+
+These steps check bytes, so they run over any transport, raw URLs included. What only git can prove —
+that each non-null `immutable_ref` resolves to its `commit`, and the commit of a component whose `files` is
+empty — a git-capable verifier checks separately; a failure there is its own finding about that ref or
+commit, and it neither makes nor breaks a verified snapshot, whose every byte is proven by its pinned
+digest.
 
 The snapshot is exactly the pinned files. Seeds, beacons, estate catalogs, Hive indexes, member pointers,
 and moving-branch (`HEAD`) fetches are locators: they may say where to look, but content reached through
@@ -1240,7 +1249,8 @@ registry.
   declaration can be dropped by a later registry (§13.4).
 - **Entry types a consumer does not implement:** ignoring one never widens what an older consumer trusts —
   an ignored entry grants nothing — and a type whose omission would weaken a refusal is marked critical, so
-  an older consumer refuses the registry rather than trusting less than the estate states (§13.3).
+  an older consumer refuses the registry rather than accept what the estate has refused or withdrawn
+  (§13.3).
 - **Release rebinding and partial snapshots:** an accepted `release-pin` cannot be dropped or re-pointed by
   a later registry (§13.4), no kernel can join a family after a release of it was accepted, and a verified
   snapshot is all-or-nothing, so a hostile mirror cannot splice stale or unpinned member content into it
@@ -1286,8 +1296,11 @@ registry.
 ### Revision log
 - **rev-17 (registry closure for the distributed Hive)** — names the §13.1 document container
   (`schema`, `registry_seq`, `canonical_source` — an absolute HTTPS URI or a URN — `entries`, `sig`; any
-  other member carries no meaning; a document lacking one of the five is not a `rapp/1-registry`), and
-  says a consumer ignores an entry type it does not implement unless the entry is marked critical;
+  other member carries no meaning; a document lacking one of the five is not a `rapp/1-registry`); defines
+  an absolute HTTPS URI (§3), which every such member now meets — `grail-kernel` `release_scope` and
+  `repository` and `protocol` `spec_repo` included, so a value with user information, an empty host, or a
+  port above 65535, once accepted, is now refused; says a consumer ignores an entry type it does not
+  implement unless the entry is marked critical;
   generalizes the `grail-kernel` entry-level owner signature into §13.4 declared entries, each verified
   at its own `activated_utc` and retained byte-for-byte once accepted; and adds three declared entry
   types. **Release pins** (§13.5): a release scope names a release family bound to at most one kernel, and

@@ -163,9 +163,15 @@ def _https_uri(value):
     return port == "" or (port[0] == ":" and bool(_PORT.fullmatch(port[1:])) and int(port[1:]) <= 65535)
 
 
+_DEC_OCTET = r"(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])"
+_IPV4_TAIL = re.compile(rf"{_DEC_OCTET}(?:\.{_DEC_OCTET}){{3}}")
+
+
 def _ipv6_address(text):
-    """An RFC 3986 IPv6address: what `ipaddress` accepts, with no zone identifier."""
-    if "%" in text:
+    """An RFC 3986 IPv6address: what `ipaddress` accepts, with no zone identifier, and an embedded IPv4
+    part checked here against RFC 3986's dec-octet (no leading zero), which CPython before 3.9.5
+    did not refuse — so the verdict is the same on every Python 3.9 and later."""
+    if "%" in text or ("." in text and not _IPV4_TAIL.fullmatch(text.rsplit(":", 1)[-1])):
         return False
     try:
         ipaddress.IPv6Address(text)
