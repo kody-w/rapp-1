@@ -334,6 +334,10 @@ def registry_sections():
              document(base + [{"type": "vector-future", "weight": 0.5}])),
             ("canonical_source with a character RFC 3986 does not allow",
              document(base, canonical_source="https://registry.example.test/<r>.json")),
+            ("canonical_source with a malformed percent-encoding in its host",
+             document(base, canonical_source="https://registry.ex%zz.test/r.json")),
+            ("canonical_source with a percent-encoded host",
+             document(base, canonical_source="https://registry.ex%41mple.test/r.json")),
             ("canonical_source with a query holding a malformed percent-encoding",
              document(base, canonical_source="https://registry.example.test/r.json?v=%zz")),
             ("canonical_source with a query holding a character RFC 3986 does not allow",
@@ -370,6 +374,16 @@ def registry_sections():
             out.append(case)
         for label, text in texts:
             out.append({"label": label, "expect": _registry_accepts(json.loads(text)), "json_text": text})
+        # §13.1 fixes the octets too: UTF-8 without a byte-order mark, never a guessed encoding.
+        for label, octets in (("the document as UTF-8 octets", plain.encode("utf-8")),
+                              ("a UTF-8 byte-order mark", b"\xef\xbb\xbf" + plain.encode("utf-8")),
+                              ("UTF-16 with its byte-order mark", plain.encode("utf-16")),
+                              ("UTF-32LE without a byte-order mark", plain.encode("utf-32-le"))):
+            try:
+                expect = _registry_accepts(REG.parse_document(octets))
+            except REG.RegistryError:
+                expect = "refuse"
+            out.append({"label": label, "expect": expect, "octets_hex": octets.hex()})
         return out
 
     def declared_cases():

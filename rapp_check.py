@@ -487,6 +487,10 @@ def check_repo(root, signature_verifier=None):
             and value.get("schema") == REG.DOCUMENT_SCHEMA
         ):
             has_artifact = True
+            encoding = REG._utf8_text_problem(blob, "a registry document")
+            if encoding:  # the strict parser guessed UTF-16/UTF-32 or dropped a BOM; I-JSON is UTF-8 (§13.1)
+                finding(rel, "§13 registry document", f"{encoding} (§13.1)")
+                return
             registry_document(rel, value)
             return
         if (
@@ -546,6 +550,9 @@ def check_repo(root, signature_verifier=None):
                 what = "§13 registry document" if claimed == REG.DOCUMENT_SCHEMA else "§13.5 release manifest"
                 try:
                     blob = _read_blob(path, _SNIFF_LIMIT)
+                    encoding = REG._utf8_text_problem(blob, what)
+                    if encoding:
+                        raise ValueError(encoding)
                     value = json.loads(blob, object_pairs_hook=_no_duplicate_members)  # never collapse one
                     canonical_octets = R.canonical(value).encode("utf-8")
                     R._strict_json(canonical_octets)  # §4(d): at most 1 MiB canonical, nested at most 64

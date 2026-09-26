@@ -208,9 +208,10 @@ unverified until the estate that pins this root is anchored". Rev-17 answers bot
   grant `{stream_id: <network rappid>, signer: <pulse key rappid>, kinds: ["body.pulse"], since_utc,
   until_utc: null}` for a dedicated keyed pulse key whose private half never enters a repository. This
   keeps the stream and its history; a new keyed stream would start another.
-- **Loading and persistence.** Load a signed registry that carries declared entries with
+- **Loading and persistence.** Publish the registry as UTF-8 without a byte-order mark (§13.1), and read
+  it with `parse_document(octets)`. Load a signed registry that carries declared entries with
   `verification_utc=` (first sighting) or `first_seen=` (from persisted first-seen times), persist every
-  accepted declared entry, and pass them back as `persisted_entries=` next time.
+  accepted declared entry in its registry order, and pass them back as `persisted_entries=` next time.
 - **Size.** The registry is capped at 1 MiB canonical (§4) and every entry is append-only, so it has a
   lifetime budget. With realistic URIs and an EdDSA signature a declared entry is 0.65–0.95 KB (a
   `release-pin` about 0.95 KB, a notice 0.65–0.75 KB, a grant about 0.75 KB); the published registry's

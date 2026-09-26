@@ -921,7 +921,9 @@ forge that estate).
   `Hb("rapp/1:rappid", SPKI_DER)`, the rappid **is** a self-certifying key fingerprint, distributed
   out-of-band exactly once (QR, invite, docs) the way a root-CA certificate is.
 - **The document.** A registry is one §4 object whose meaningful members are exactly `schema`
-  (`"rapp/1-registry"`), `registry_seq`, `canonical_source`, `entries`, and `sig`. `canonical_source` names
+  (`"rapp/1-registry"`), `registry_seq`, `canonical_source`, `entries`, and `sig`, stored and served as
+  UTF-8 octets without a byte-order mark (I-JSON, §4): a consumer refuses any other encoding rather than
+  guess one. `canonical_source` names
   the owner-selected location of record for this document: an absolute HTTPS URI (§3) for a registry
   published on the web, or a URN [RFC 8141] of at most 2048 characters — lowercase `urn:`, with no r-, q-,
   or f-component — for one kept in a private store, such as a private Hive's registry history; `entries` is the array of

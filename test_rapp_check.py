@@ -353,6 +353,21 @@ class RappCheckDiscoveryTests(unittest.TestCase):
                          [("big/registry.json", "verification unavailable", "unverified")])
         self.assertIn("was not checked", findings[0]["detail"])
 
+    def test_a_registry_stored_in_another_encoding_is_a_finding(self):
+        # §13.1: UTF-8 without a byte-order mark; the strict parser alone would guess UTF-16 or UTF-32.
+        repository = self.fixture_repo("clean")
+        text = json.dumps(self.registry_document(), sort_keys=True)
+        for name, octets in (("bom", b"\xef\xbb\xbf" + text.encode("utf-8")), ("utf16", text.encode("utf-16")),
+                             ("utf32", text.encode("utf-32-le"))):
+            (repository / name).mkdir()
+            (repository / name / "registry.json").write_bytes(octets)
+        verdict, findings, evidence = C.check_repo(repository)
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual(sorted((item["artifact"], item["rule"]) for item in findings),
+                         [(f"{name}/registry.json", "§13 registry document") for name in ("bom", "utf16", "utf32")])
+        self.assertTrue(all("UTF-8" in item["detail"] for item in findings))
+        self.assertEqual(evidence, [])
+
     def test_padding_past_1_mib_hides_no_defect(self):
         repository = self.fixture_repo("clean")
         text = json.dumps(self.registry_document(), sort_keys=True)

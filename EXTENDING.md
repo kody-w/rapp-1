@@ -40,7 +40,9 @@ disagreeing on everything else. That is the point.
    published, reviewed, and rehearsed, and it authorizes nothing (§13.1). The reference
    (`rapp_registry.load_document`) reports it as `draft`, never `verified`. The loader also
    requires the caller's out-of-band trust anchor (the estate-owner rappid) and refuses a
-   registry that names any other owner before it looks at the signature.
+   registry that names any other owner before it looks at the signature. Read the document's
+   octets with `rapp_registry.parse_document`, which refuses anything but UTF-8 without a
+   byte-order mark (§13.1) rather than guess an encoding.
 5. **Pin through the anchor, not by hand.** Read `spec.normative_sha256` from
    `anchor/orient.json` (or a commit-pinned copy of it) when you write your `protocol`
    entry. A hand-typed hash rots silently; `examples/07_your_own_estate.py` shows the

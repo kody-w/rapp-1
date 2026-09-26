@@ -1738,17 +1738,40 @@ def _pinned_file_mismatch(item, octets):
     return None
 
 
-def _door_of_record_mismatch(component, octets):
-    # json.loads would guess UTF-16 or UTF-32 from a byte-order mark or from NUL bytes; the identity
-    # file is UTF-8 without one, and NUL is never part of a UTF-8 JSON text.
+def _utf8_text_problem(octets, what):
+    """Why `octets` are not UTF-8 JSON text without a byte-order mark, or None. json.loads would guess
+    UTF-16 or UTF-32 from a byte-order mark or from NUL bytes; I-JSON is UTF-8 (§4), and NUL is never
+    part of a UTF-8 JSON text."""
     if octets.startswith(b"\xef\xbb\xbf"):
-        return "identity file must be UTF-8 without a byte-order mark"
+        return f"{what} must be UTF-8 without a byte-order mark"
     try:
         octets.decode("utf-8")
     except UnicodeDecodeError:
-        return "identity file must be UTF-8"
+        return f"{what} must be UTF-8"
     if b"\x00" in octets:
-        return "identity file must be UTF-8 JSON text, which never holds a NUL byte"
+        return f"{what} must be UTF-8 JSON text, which never holds a NUL byte"
+    return None
+
+
+def parse_document(octets):
+    """A registry document from the octets a transport returned (§13.1): UTF-8 without a byte-order
+    mark, then a strict §4 value — never a guessed UTF-16 or UTF-32 text. Pass the result to
+    load_document. RegistryError otherwise."""
+    if not isinstance(octets, bytes):
+        raise RegistryError("registry document octets must be bytes")
+    why = _utf8_text_problem(octets, "a registry document")
+    if why:
+        raise RegistryError(f"{why} (§13.1)")
+    try:
+        return R._strict_json(octets)
+    except (ValueError, RecursionError) as why:
+        raise RegistryError(f"a registry document must be a §4 value (§13.1): {why}")
+
+
+def _door_of_record_mismatch(component, octets):
+    why = _utf8_text_problem(octets, "identity file")
+    if why:
+        return why
     try:
         identity = R._strict_json(octets)
     except (ValueError, RecursionError) as why:

@@ -109,6 +109,24 @@ class RegistryContainerTests(unittest.TestCase):
         with self.assertRaises(REG.RegistryError):
             REG.validate_document({k: v for k, v in doc.items() if k != "canonical_source"})
 
+    def test_registry_octets_are_utf8_without_a_byte_order_mark(self):
+        # §13.1: a consumer refuses another encoding rather than guess one, as json.loads would.
+        doc = self.estate.document(self.estate.base_entries())
+        text = json.dumps(doc, indent=1)
+        self.assertEqual(REG.parse_document(text.encode("utf-8")), doc)
+        self.assertEqual(REG.parse_document(R.canonical(doc).encode("utf-8")), doc)
+        for label, octets, why in (("a UTF-8 byte-order mark", b"\xef\xbb\xbf" + text.encode("utf-8"), "byte-order mark"),
+                                   ("UTF-16 with its byte-order mark", text.encode("utf-16"), "must be UTF-8"),
+                                   ("UTF-16LE", text.encode("utf-16-le"), "NUL"),
+                                   ("UTF-32LE", text.encode("utf-32-le"), "NUL"),
+                                   ("Latin-1", text.replace("}", ', "note": "caf\u00e9"}').encode("latin-1"),
+                                    "must be UTF-8"),
+                                   ("not a §4 value", text.encode("utf-8")[:-1] + b', "n": 1.5}', "§4 value"),
+                                   ("not bytes", text, "must be bytes")):
+            with self.subTest(label):
+                with self.assertRaisesRegex(REG.RegistryError, why):
+                    REG.parse_document(octets)
+
 
 class DocumentLimitTests(unittest.TestCase):
     """§4(d) and §3: a registry is one §4 value, and its URIs are absolute HTTPS URIs."""
@@ -145,6 +163,7 @@ class DocumentLimitTests(unittest.TestCase):
                        "https://registry.example.test/r json", "https://registry.exämple.test/r.json",
                        "https://[::1/r.json", "http://registry.example.test/r.json", "https://",
                        "https://registry.example.test/<r>.json", "https://registry.example.test/%zz.json",
+                       "https://registry.ex%zz.test/r.json", "https://registry.ex%4/r.json",
                        "https://registry.example.test:port/r.json", "https://@registry.example.test/r.json",
                        "https://:8443/r.json", "HTTPS://registry.example.test/r.json",
                        # Refused on every Python version: parsed by RFC 3986's grammar, never by urllib.
@@ -648,7 +667,7 @@ class PublishedRegistryTests(unittest.TestCase):
     the estate's registry, carried here only as a regression oracle, never as authority."""
 
     def setUp(self):
-        self.document = R._strict_json(PUBLISHED.read_bytes())
+        self.document = REG.parse_document(PUBLISHED.read_bytes())  # UTF-8, no byte-order mark (§13.1)
 
     def test_it_has_the_section_13_1_container_and_only_known_entry_types(self):
         self.assertIs(REG.validate_document(self.document), self.document)
