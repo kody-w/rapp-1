@@ -1,5 +1,9 @@
 # RAPP — the wire that carries agents
 
+<!-- rapp1:network-header:start -->
+[![RAPP/1](https://kody-w.github.io/rapp-hive-public/portfolio/badges/rapp-1.svg)](https://github.com/kody-w/rapp-hive-public/blob/main/portfolio/repos/rapp-1.md) · **New to RAPP?** [Start here: get your Brainstem →](https://github.com/kody-w/rapp-installer#start-here)
+<!-- rapp1:network-header:end -->
+
 > The language is **RAPP**. Its durable programs travel under one wire tag, `rapp/1`, and its
 > executable grammar is the protocol specified by this repository.
 
