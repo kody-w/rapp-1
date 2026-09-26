@@ -55,8 +55,9 @@ internals, customer content and anything a reader here has no business seeing.
 - [ ] **`rapp.utc_valid` accepts non-ASCII digits in the year.** Python's `\d` matches other
       scripts' digits, so `٢٠٢٦-08-01T00:00:00.000Z` passes it, though §7.4's form is 24 ASCII
       octets and bytewise order equals time order only for those. `rapp_registry` refuses such values
-      in every registry time member and query; frames still go through `rapp.py`, which is
-      parity-pinned, so its fix and a conformance vector belong to a reviewed reference change.
+      in every registry time member, first-seen and issuance time, and owner-tenure and
+      key-acceptability check; `rapp.verify_frame` itself is parity-pinned, so its fix and a
+      conformance vector belong to a reviewed reference change.
 
 ## Known limit
 

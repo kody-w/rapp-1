@@ -255,12 +255,21 @@ def registry_sections():
                 "spec_path": "SPEC.md", "spec_hash": spec_hash, "deprecated": deprecated}
 
     def document_cases():
+        too_deep = "x"
+        for _ in range(64):  # with the document and its member, 66 levels: §4 allows 64
+            too_deep = [too_deep]
         cases = [
             ("the five-member container", document(base)),
             ("unsigned draft container (sig null)", document(base, sig=None)),
             ("other top-level members carry no meaning", document(base, estate="vector", published_utc=T0)),
             ("missing canonical_source", document(base, canonical_source=_DROP)),
             ("non-HTTPS canonical_source", document(base, canonical_source="http://registry.example.test/r.json")),
+            ("canonical_source with an empty host", document(base, canonical_source="https:///rapp-registry.json")),
+            ("canonical_source with user information",
+             document(base, canonical_source="https://user@registry.example.test/r.json")),
+            ("canonical_source with a port, a query, and a fragment",
+             document(base, canonical_source="https://registry.example.test:8443/r.json?v=1#top")),
+            ("an extra member nested deeper than §4 allows", document(base, note=too_deep)),
             ("entries under another member name", {**document(base, entries=_DROP), "items": base}),
             ("entries is not an array", document(base, entries={})),
             ("missing sig member", document(base, sig=_DROP)),
@@ -272,10 +281,11 @@ def registry_sections():
         for label, doc in cases:
             case = {"label": label, "expect": _registry_accepts(doc)}
             try:
-                R.canonical(doc)
+                R._strict_json(R.canonical(doc))
                 case["document"] = doc
             except ValueError:
-                # Not I-JSON at all: carried as text, like 4_refuse, so this file stays strict I-JSON.
+                # Not I-JSON, or nested beyond §4's depth: carried as text, like 4_refuse, so this file
+                # stays strict I-JSON within §4's limits.
                 case["json_text"] = json.dumps(doc, sort_keys=True, separators=(",", ":"))
             out.append(case)
         return out

@@ -60,7 +60,7 @@ _KIND = re.compile(rf"({_LCLABEL})\.({_LCLABEL})")
 _LABEL = re.compile(_LCLABEL)
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 _HEX40 = re.compile(r"[0-9a-f]{40}")
-_HTTPS = re.compile(r"https://[^\s]+")
+_HTTPS = re.compile(r"https://[\x21-\x7e]+")  # printable ASCII after the scheme: no space, no control
 _OBJECT_ID = {"sha1": _HEX40, "sha256": _HEX64}  # object_format -> commit/blob grammar
 
 # §13.1 — the registry document container (rev-17 closure).
@@ -104,6 +104,18 @@ def entry_hash(entry):
     This is how a later entry names an earlier one, and how a caller keys
     persisted or first-seen state: any byte of difference is a different entry."""
     return R.H("rapp/1:particle", entry)
+
+
+def _https_uri(value):
+    """An absolute HTTPS URI (§3): scheme `https`, a non-empty host, no user information, printable
+    ASCII only, at most 2048 characters — the rule `rapp_profile.https_uri` also applies."""
+    if not (isinstance(value, str) and len(value) <= 2048 and _HTTPS.fullmatch(value)):
+        return False
+    try:
+        parts = urllib.parse.urlsplit(value)
+        return bool(parts.hostname) and "@" not in parts.netloc
+    except ValueError:  # e.g. an unterminated IPv6 literal
+        return False
 
 
 def _utc_form(value):
@@ -265,7 +277,7 @@ def validate_entry(entry, where="entry"):
         )
     if t == "protocol":
         _str(entry, "name", where); _str(entry, "spec_path", where); _bool(entry, "deprecated", where)
-        if not _HTTPS.fullmatch(_str(entry, "spec_repo", where)):
+        if not _https_uri(_str(entry, "spec_repo", where)):
             raise RegistryError(f"{where}: `spec_repo` must be an absolute HTTPS URI")
         _hex64(entry, "spec_hash", where)
         name = entry["name"]
@@ -315,7 +327,7 @@ def validate_entry(entry, where="entry"):
             _str(entry, "old_key_sig", where)
     elif t == "grail-kernel":
         for m in ("release_scope", "repository"):
-            if not _HTTPS.fullmatch(_str(entry, m, where)):
+            if not _https_uri(_str(entry, m, where)):
                 raise RegistryError(f"{where}: `{m}` must be an absolute HTTPS URI")
         if not _str(entry, "immutable_ref", where).startswith("refs/tags/"):
             raise RegistryError(f"{where}: `immutable_ref` must be a full refs/tags/... name")
@@ -494,7 +506,10 @@ class Registry:
 
     # ---- §13.2 owner succession ----
     def owner_at(self, utc):
-        """The estate-owner rappid in effect at `utc` (walks re-anchor records backwards)."""
+        """The estate-owner rappid in effect at `utc` (walks re-anchor records backwards). A `utc`
+        that is not the fixed, ASCII §7.4 form raises RegistryError: tenure compares bytewise."""
+        if not _utc_form(utc):
+            raise RegistryError("owner_at: the time is not the fixed §7.4 UTC form")
         owner, seen = self.estate_owner, set()
         while True:
             if owner in seen:
@@ -512,6 +527,8 @@ class Registry:
         return self._signer_acceptable(kid, utc)
 
     def _signer_acceptable(self, kid, utc, ignored_reanchor=None, match_key_aliases=False):
+        if not _utc_form(utc):
+            return False, "the artifact's time is not the fixed §7.4 UTC form"
         e = self.spki.get(kid)
         if e is None:
             return False, "no spki entry for kid (registry absence is refusal)"
@@ -860,13 +877,17 @@ def validate_document(doc):
     if not (isinstance(seq, int) and not isinstance(seq, bool) and 0 <= seq <= 2**53 - 1):
         raise RegistryError("registry_seq must be uint53")
     source = doc["canonical_source"]
-    if not (isinstance(source, str) and _HTTPS.fullmatch(source)):
+    if not _https_uri(source):
         raise RegistryError("canonical_source must be an absolute HTTPS URI (§13.1)")
     if not isinstance(doc[ENTRIES_MEMBER], list):
         raise RegistryError("entries must be a JSON array (§13.1)")
     sig = doc["sig"]
     if sig is not None and not (isinstance(sig, str) and sig):
         raise RegistryError("sig must be a detached JWS string or null (§13.1)")
+    try:  # §4(d): a registry is one §4 value — at most 1 MiB canonical, nested at most 64 deep
+        R._strict_json(R.canonical(doc).encode("utf-8"))
+    except (ValueError, RecursionError) as why:
+        raise RegistryError(f"registry document is not a §4 value: {why}")
     return doc
 
 
@@ -898,9 +919,9 @@ def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_uns
     Freshness, append provenance, and historical migration proofs remain caller
     responsibilities; a verified registry snapshot alone cannot establish them. A returned
     registry records its status in `registry.status` ("verified" or "draft"): `verify_snapshot`
-    and `declared_entry_ok` check it, so only a "verified" registry gives the estate's snapshots
-    and says for the estate whether a copy is a declaration (a draft only with
-    `allow_draft=True`, as a rehearsal); a Registry constructed directly has status None.
+    and `declared_entry_ok` check it, so only a "verified" registry's snapshots and copy checks
+    (§13.4, §13.5) are the estate's (a draft only with `allow_draft=True`, as a rehearsal); a
+    Registry constructed directly has status None.
     `tombstone_issued_at(entry_hash)` must resolve authenticated issuance/append
     context to a fixed UTC string. It is trusted caller configuration, never a
     field read from the untrusted document. No resolver means tombstones are
