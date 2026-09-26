@@ -50,8 +50,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame 627aa0f07283aedb4752be6322ae6c845f4a51bc25b7e58e2ba4f3e4ff73b1ca, normative
-SHA-256 13b494f0cdf995a87b452f37ca2f5b24f68ed7a6c178054ea5fe572a630bc458. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame 3f5652a2b761d00687b3d6e0a8c44e5dc9bf6233ea30cdb6411bb72d07283f7a, normative
+SHA-256 0a047ae07ac71867b9c35bbd13c90e6464a2ee12437de0b8fbce4a701db22df4. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -121,8 +121,8 @@ that has no rappid, is active, deprecated, superseded, or archived, and since wh
 **stream signer** — a keyed signer an estate has granted, by a `stream-signer` entry, to speak for it on
 one stream (§13.7). **absolute HTTPS URI** — an absolute URI {{RFC3986}} (so with no fragment) of at most
 2048 characters whose scheme is the lowercase `https` and whose authority carries no user information, a
-host that is a non-empty reg-name or an IP literal (an IPv6 address with no zone, or IPvFuture), and, if
-present, a port of one to five digits no greater than 65535.
+host that is a non-empty reg-name or an IP literal (an IPv6 address with no zone, or IPvFuture), and, when
+a `:` follows the host, a port of one to five digits no greater than 65535.
 
 # Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **{{RFC8785}} JCS** for the value `v`, defined **only**
