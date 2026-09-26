@@ -20,6 +20,7 @@ author:
 normative:
   RFC2119:
   RFC3339:
+  RFC3986:
   RFC5280:
   RFC5869:
   RFC6979:
@@ -48,8 +49,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame ecf99169da4def2c0970c2a897b44476eb3e5b296b05e860664ed430ec883123, normative
-SHA-256 ef4a6ac61d7a41decb25407376f6fee299bb0f2d4c93382f3466e6332e2d968b. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame f777eddd44f50433c8e6f6c45d0def46c3032aa7517fcb930d2bddd3a4466546, normative
+SHA-256 c9065091a76d4fd3a8f6cdae027f69f8cdb6ba92a9c76d5df164caa5c748115b. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -110,6 +111,8 @@ the currently served release is immutable even while a separate candidate lineag
 **deployment cell** — an independently observable and isolatable runtime failure domain governed by
 `rapp-deploy/1`. **declared entry** — a §13.3 registry entry that carries its own owner signature made at
 its `activated_utc`; a copy with its canonical form (§4) verifies against the estate's registry (§13.4).
+**absolute HTTPS URI** — a URI {{RFC3986}} of at most 2048 printable ASCII characters whose scheme is
+`https`, whose host is not empty, and which carries no user information.
 
 # Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **{{RFC8785}} JCS** for the value `v`, defined **only**
