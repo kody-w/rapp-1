@@ -50,8 +50,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame af62a8b4a7571e08dab01613c84e0d155be8d76f2db4de0f3b3517b9783a91b9, normative
-SHA-256 6f466e0ab1808723be01d0c483c1d2c4e7ba80c74ed58c34f0d7a0de37898cae. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame 28b0166934bab62cfc8a9f04cad01c3d8dd6de060c9289f1f624b04fee7fcf47, normative
+SHA-256 464dbb9289c919024395d550fa97a6a0fb460bf850c9f5b53f2b6412f69f6f65. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -1068,9 +1068,11 @@ and no consumer takes an entry it cannot read for one it can.
 time-scoped, and both are monotone given the §13.1 no-rollback rule. A declared entry (§13.4) is
 authenticated at its own `activated_utc`, never at the time it is read. The lifecycle state in effect
 (§13.6) is evaluated at the time asked about, and a stream-signer window (§13.7) at a frame's `utc`; because
-every declared entry is retained (§13.4), a later registry can add a notice or a grant but never withdraw
-one: a grant ends only at its `until_utc` or where its signer's key is not acceptable (§13.7). The rules of
-§§13.5–13.7 — release pins, lifecycle notices, stream signers — sit above §7.5 and never add a §7.5 step.
+every declared entry is retained (§13.4), a later registry can add a notice or a grant but never remove
+one. A later notice can still change the state in effect, even at times before it was declared (§13.6), and
+a grant ends only at its `until_utc` or where its signer's key is not acceptable (§13.7), so a consumer
+re-evaluates a cached lifecycle or authority answer against a newer registry. The rules of §§13.5–13.7 —
+release pins, lifecycle notices, stream signers — sit above §7.5 and never add a §7.5 step.
 
 ## Declared entries (entry-level owner signatures)
 A **declared entry** carries its own `activated_utc` (the §7.4 form), `declared_by` (a keyed rappid), and
@@ -1080,7 +1082,8 @@ entry a consumer **MUST**:
 1. require `declared_by` to be the estate owner in effect at `activated_utc` (§13.2), with a §13 `spki`
    entry whose key is **acceptable** at `activated_utc`: not superseded by a re-anchor or tombstoned at or
    before that time (§10), and not retired — an `spki` entry flagged `deprecated` that no re-anchor names
-   makes its key unacceptable at every time;
+   as its `old_rappid` makes its key unacceptable at every time, a successor key of an earlier re-anchor
+   included;
 2. verify `sig` with that registry key — the enclosing §13.1 signature never substitutes for it;
 3. refuse an entry whose `activated_utc` is more than 300 seconds after the verifier's first-seen time
    for that entry; and
@@ -1264,9 +1267,9 @@ both stay valid links of one chain.
 Grants are permanent records of the registry (§13.4 retains each one byte-for-byte) and are never
 inherited: one ends at its `until_utc`, or earlier when the signer's key is not acceptable (§13.4 item 1)
 at the frame's `utc` — a rotation re-anchor supersedes it and a tombstone revokes it from their times on,
-while retiring its `spki` entry with no re-anchor refuses it at every time, so the grant then covers none
-of the signer's frames, earlier ones included — and a rotated signer needs a new grant for its successor
-rappid. A keyless rappid (§6.2) never signs as itself — its tail is no key — so a grant is
+while retiring its `spki` entry with no re-anchor away from it refuses it at every time, so the grant then
+covers none of the signer's frames, earlier ones included — and a rotated signer needs a new grant for its
+successor rappid. A keyless rappid (§6.2) never signs as itself — its tail is no key — so a grant is
 how a keyed signer speaks on a keyless organism's streams without re-anchoring or re-minting that
 identity; §6.2 and §6.3 are unchanged.
 
