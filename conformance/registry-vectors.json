@@ -425,6 +425,128 @@
        "type": "estate_owner"
       },
       {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "critical": null,
+       "type": "vector-future"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "refuse",
+    "label": "an unknown entry type whose critical is null refuses the registry"
+   },
+   {
+    "document": {
+     "canonical_source": "https://registry.example.test/rapp-registry.json",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "critical": 0,
+       "type": "vector-future"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "refuse",
+    "label": "an unknown entry type whose critical is 0 refuses the registry"
+   },
+   {
+    "document": {
+     "canonical_source": "https://registry.example.test/rapp-registry.json",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "critical": "",
+       "type": "vector-future"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "refuse",
+    "label": "an unknown entry type whose critical is the empty string refuses the registry"
+   },
+   {
+    "document": {
+     "canonical_source": "urn:rapp:registry?+r",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "refuse",
+    "label": "a URN canonical_source with an r-component"
+   },
+   {
+    "document": {
+     "canonical_source": "urn:rapp:registry?=q",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "refuse",
+    "label": "a URN canonical_source with a q-component"
+   },
+   {
+    "document": {
+     "canonical_source": "https://registry.example.test/rapp-registry.json",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
        "critical": false,
        "deprecated": false,
        "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
@@ -5216,6 +5338,29 @@
     "release_pin_signing_payload": "{\"activated_utc\":\"2026-07-01T00:00:00.000Z\",\"channel\":\"lts\",\"commit\":\"3333333333333333333333333333333333333333\",\"declared_by\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"manifest_hash\":\"f712ed847642b82e20eff18fe2aace3052ae79dddfb4f278d3d0c54869c25f2c\",\"object_format\":\"sha1\",\"path\":\"releases/f712ed847642b82e20eff18fe2aace3052ae79dddfb4f278d3d0c54869c25f2c.json\",\"predecessor\":null,\"release_scope\":\"https://releases.example.test/vector/1.0\",\"repository\":\"https://git.example.test/vector/releases\",\"type\":\"release-pin\"}",
     "rule": "the release-pin's manifest_hash = H('rapp/1:particle', manifest), whose `release` name is part of those bytes but never selects a release; the stored manifest octets are exactly canonical(manifest), so raw_sha256 is their SHA-256; each file's sha256 and size_bytes are the raw SHA-256 and length of octets_utf8's UTF-8 bytes; the verified snapshot is exactly these files, keyed by (component id, path). The correction is the family's next release, with its own release name: its predecessor is the first release's manifest_hash, its kernel component is the same, and it supersedes the first release as the head of channel lts and the family's current release, while the first release stays verifiable by its manifest_hash"
    },
+   "file_cases": [
+    {
+     "expect": "accept",
+     "label": "length and digest both match",
+     "octets_hex": "2320612070696e6e65642066696c650a",
+     "sha256": "e450eb0ac6942725536d04ed01bf9f398e67ca649bf89c8bc94f2ef35be26918",
+     "size_bytes": 16
+    },
+    {
+     "expect": "refuse",
+     "label": "the right digest with another length",
+     "octets_hex": "2320612070696e6e65642066696c650a",
+     "sha256": "e450eb0ac6942725536d04ed01bf9f398e67ca649bf89c8bc94f2ef35be26918",
+     "size_bytes": 17
+    },
+    {
+     "expect": "refuse",
+     "label": "the right length with another digest",
+     "octets_hex": "2320612070696e6e65642066696c650a",
+     "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+     "size_bytes": 16
+    }
+   ],
    "history_cases": [
     {
      "entries": [
@@ -5781,6 +5926,24 @@
      "expect": "refuse",
      "label": "a number written with a fraction",
      "octets_hex": "7b22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c22736368656d61223a22726170702f31222c2276657273696f6e223a312e357d",
+     "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d"
+    },
+    {
+     "expect": "refuse",
+     "label": "a number written 1.0",
+     "octets_hex": "7b22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c22736368656d61223a22726170702f31222c2276657273696f6e223a312e307d",
+     "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d"
+    },
+    {
+     "expect": "refuse",
+     "label": "a number written with an exponent",
+     "octets_hex": "7b22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c22736368656d61223a22726170702f31222c2276657273696f6e223a3165307d",
+     "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d"
+    },
+    {
+     "expect": "accept",
+     "label": "a number written -0, which is zero",
+     "octets_hex": "7b22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c22736368656d61223a22726170702f31222c2276657273696f6e223a2d307d",
      "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d"
     },
     {
@@ -8259,6 +8422,106 @@
           "path": "docs/café.md",
           "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
           "size_bytes": 1
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an immutable_ref that is not a full tag name (it climbs out of refs/tags/)",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": "refs/tags/../../heads/main",
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
+         }
+        ],
+        "id": "rapp-1",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/rev-17",
+        "kind": "protocol",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/protocol"
+       }
+      ],
+      "release": "vector-1.0.0-compact",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "label": "an immutable_ref that is a bare refs/tags/",
+     "manifest": {
+      "components": [
+       {
+        "commit": "5555555555555555555555555555555555555555",
+        "files": [
+         {
+          "path": "rappid.json",
+          "sha256": "8194ae0a60968e2900448e472727354022e38ada89650d74fd24dc660fc65e1c",
+          "size_bytes": 125
+         },
+         {
+          "path": "soul.md",
+          "sha256": "f12aaf16804d86ec50f07fadbadc640e708e8ba322e616502cabcd08724b9583",
+          "size_bytes": 17
+         }
+        ],
+        "id": "organism-alpha",
+        "identity_path": "rappid.json",
+        "immutable_ref": "refs/tags/",
+        "kind": "organism",
+        "object_format": "sha1",
+        "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d",
+        "repository": "https://git.example.test/vector/alpha"
+       },
+       {
+        "commit": "4444444444444444444444444444444444444444",
+        "files": [
+         {
+          "path": "SPEC.md",
+          "sha256": "c3306aafe2ea1a25956742883b2ba845734f4332c448bfda6fd3bedbb383e406",
+          "size_bytes": 26
          }
         ],
         "id": "rapp-1",

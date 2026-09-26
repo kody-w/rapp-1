@@ -641,8 +641,11 @@ class LifecycleRetentionTests(LifecycleCase):
         self.assertEqual(registry.lifecycle_chain(ALPHA), [self.a1, self.a2, a3])
         self.assertEqual(registry.lifecycle_state_at(ALPHA, T1), "superseded")  # history stays on record
         self.assertEqual(registry.lifecycle_state_at(ALPHA, T3), "active")
-        reordered = [json.loads(json.dumps(e, indent=2, sort_keys=False)) for e in reversed(self.persisted)]
-        self.assertEqual(registry.check_retained(reordered), (True, "ok"))  # canonical bytes, any order
+        reformatted = [json.loads(json.dumps(e, indent=2, sort_keys=False)) for e in self.persisted]
+        self.assertEqual(registry.check_retained(reformatted), (True, "ok"))  # canonical bytes, same order
+        ok, why = registry.check_retained(list(reversed(self.persisted)))  # entries keep their append order
+        self.assertFalse(ok)
+        self.assertIn("append order", why)
 
     def test_a_later_registry_that_drops_or_rewrites_a_notice_is_refused(self):
         attacks = {

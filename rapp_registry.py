@@ -196,6 +196,19 @@ def _canonical_source_ok(value):
     return _https_uri(value) or (isinstance(value, str) and len(value) <= 2048 and bool(_URN.fullmatch(value)))
 
 
+def _tag_ref(value):
+    """A full tag name (§3): `refs/tags/` and a non-empty ASCII name that git's ref-name rules
+    (`git check-ref-format`) accept — no control character, space, `~^:?*[\\`, `..`, `@{`, or `//`; no
+    component starting with `.` or ending in `.lock`; no trailing `/` or `.`."""
+    prefix = "refs/tags/"
+    if not (isinstance(value, str) and value.startswith(prefix) and len(value) > len(prefix) and value.isascii()):
+        return False
+    if (value.endswith(("/", ".")) or any(bad in value for bad in ("..", "@{", "//"))
+            or any(c in " ~^:?*[\\" or ord(c) < 0x20 or ord(c) == 0x7f for c in value)):
+        return False
+    return all(part and not part.startswith(".") and not part.endswith(".lock") for part in value.split("/"))
+
+
 def _utc_form(value):
     """`rapp.utc_valid`, restricted to ASCII. Python's `\\d` also matches other scripts' digits, but the
     fixed §7.4 form is 24 ASCII octets, and only for those does bytewise order equal time order —
@@ -474,8 +487,8 @@ def validate_entry(entry, where="entry"):
         for m in ("release_scope", "repository"):
             if not _https_uri(_str(entry, m, where)):
                 raise RegistryError(f"{where}: `{m}` must be an absolute HTTPS URI")
-        if not _str(entry, "immutable_ref", where).startswith("refs/tags/"):
-            raise RegistryError(f"{where}: `immutable_ref` must be a full refs/tags/... name")
+        if not _tag_ref(_str(entry, "immutable_ref", where)):
+            raise RegistryError(f"{where}: `immutable_ref` must be a full tag name, refs/tags/<name> (§3)")
         fmt = entry.get("object_format")
         if fmt not in ("sha1", "sha256"):
             raise RegistryError(f"{where}: `object_format` must be sha1 or sha256")
@@ -835,15 +848,27 @@ class Registry:
         return True, "ok"
 
     def check_retained(self, persisted_entries):
-        """§13.4 retention: every previously accepted persisted entry is still here, canonical form unchanged;
-        then the §13.5 release history against those same entries."""
-        persisted_entries = list(persisted_entries)  # read twice: presence, then release history
-        present = {R.canonical(e) for e in self.entries if e["type"] in PERSISTED_TYPES}
+        """§13.4 retention: every previously accepted persisted entry is still here, canonical form
+        unchanged, and in the same relative order — `entries` is append-ordered (§13.1), and a family's
+        current release is its last pin in that order (§13.5), so reordering could regress it. Pass the
+        persisted entries in the order the accepted registry held them. Then the §13.5 release history
+        against those same entries."""
+        persisted_entries = list(persisted_entries)  # read twice: presence and order, then release history
+        position = {}
+        for index, e in enumerate(self.entries):
+            if e["type"] in PERSISTED_TYPES:
+                position.setdefault(R.canonical(e), index)
+        previous = -1
         for i, entry in enumerate(persisted_entries):
             if not isinstance(entry, dict) or entry.get("type") not in PERSISTED_TYPES:
                 return False, f"persisted_entries[{i}] is not a persisted entry type (§13.4)"
-            if R.canonical(entry) not in present:
+            at = position.get(R.canonical(entry))
+            if at is None:
                 return False, f"a persisted {entry['type']} entry was removed or mutated (§13.4)"
+            if at <= previous:
+                return False, (f"persisted_entries[{i}]: a persisted {entry['type']} entry now precedes one "
+                               "appended before it; entries keep their append order (§13.1, §13.4)")
+            previous = at
         return self._check_release_history(persisted_entries)
 
     # ---- §10 / §13.3 key-lifecycle entries (tombstones and re-anchors) ----
@@ -1345,8 +1370,9 @@ def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_uns
     declared entry is being seen for the first time now; a signed registry that carries a declared
     entry is refused when neither is supplied. `persisted_entries` are the canonical
     declared entries the caller accepted before — all of them; each must still be present byte
-    for byte, and a `grail-kernel` that is not among them is refused when its family has a
-    persisted `release-pin` (§13.5: no kernel joins a family after a release of it was accepted).
+    for byte and in their relative order (pass them in the order the accepted registry held them), and a
+    `grail-kernel` that is not among them is refused when its family has a persisted `release-pin`
+    (§13.5: no kernel joins a family after a release of it was accepted).
     Freshness, append provenance, and historical migration proofs remain caller
     responsibilities; a verified registry snapshot alone cannot establish them. A returned
     registry records its status in `registry.status` ("verified" or "draft"): `verify_snapshot`,
@@ -1420,7 +1446,6 @@ COMPONENT_MEMBERS = ("id", "kind", "rappid", "identity_path", "repository", "obj
                      "commit", "immutable_ref", "files")
 FILE_MEMBERS = ("path", "sha256", "size_bytes")
 _RELEASE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")  # 1-64 characters, ASCII only
-_TAG_PREFIX = "refs/tags/"
 _GITHUB_REPOSITORY = re.compile(
     r"https://github\.com/([A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?)/([A-Za-z0-9._-]{1,100})"
 )
@@ -1441,8 +1466,8 @@ def _validate_component(component, where):
     if not _object_id(component["object_format"], component["commit"]):
         raise RegistryError(f"{where}: `commit` must be lowercase hex of the object_format's length")
     ref = component["immutable_ref"]
-    if ref is not None and not (isinstance(ref, str) and ref.startswith(_TAG_PREFIX) and ref != _TAG_PREFIX):
-        raise RegistryError(f"{where}: `immutable_ref` must be null or a full refs/tags/<name>")
+    if ref is not None and not _tag_ref(ref):
+        raise RegistryError(f"{where}: `immutable_ref` must be null or a full tag name, refs/tags/<name> (§3)")
     files = component["files"]
     if not isinstance(files, list):
         raise RegistryError(f"{where}: `files` must be an array")

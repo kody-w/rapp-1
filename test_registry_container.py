@@ -180,6 +180,14 @@ class UriBoundaryTests(unittest.TestCase):
         self.assertTrue(self.source_ok("urn:" + "n" * 32 + ":registry"))
         self.assertFalse(self.source_ok("urn:" + "n" * 33 + ":registry"))
 
+    def test_a_grail_kernels_immutable_ref_is_a_full_tag_name(self):
+        kernel = self.estate.grail_kernel()
+        self.assertEqual(REG.validate_entry(kernel), "grail-kernel")
+        for ref in ("refs/tags/", "refs/tags/a..b", "refs/tags/\u00e9", "refs/tags/x.lock"):
+            with self.subTest(ref=ref):
+                with self.assertRaisesRegex(REG.RegistryError, "full tag name"):
+                    REG.validate_entry(dict(kernel, immutable_ref=ref))
+
     def test_every_https_member_meets_section_3(self):
         base = self.estate.base_entries()
         pin = {"type": "protocol", "name": "example/1", "spec_repo": "https://git.example.test/spec",

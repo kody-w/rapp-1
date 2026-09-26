@@ -91,7 +91,9 @@ that has no rappid, is active, deprecated, superseded, or archived, and since wh
 one stream (§13.7). **absolute HTTPS URI** — an absolute URI [RFC 3986] (so with no fragment) of at most
 2048 characters whose scheme is the lowercase `https` and whose authority carries no user information, a
 host that is a non-empty reg-name or an IP literal (an IPv6 address with no zone, or IPvFuture), and, when
-a `:` follows the host, a port of one to five digits no greater than 65535.
+a `:` follows the host, a port of one to five digits no greater than 65535. **full tag name** —
+`refs/tags/` followed by a non-empty ASCII name that git's ref-name rules (`git check-ref-format`) accept;
+every `immutable_ref` is one (§13.3, §13.5).
 
 ## 4. Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **[RFC 8785] JCS** for the value `v`, defined **only**
@@ -1057,8 +1059,10 @@ canonical form equals that of an entry of an accepted registry of the estate, an
 by the same checks; a copy whose canonical form differs in any byte, or that no accepted registry carries,
 is not a declaration however well it is signed. `H("rapp/1:particle", entry)` over the complete signed
 entry names it. Every declared entry is persisted: once a consumer has accepted one it **MUST** persist the
-canonical entry, and every later accepted registry **MUST** retain it byte-for-byte; removal or mutation is
-a permanent refusal even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-kernel`).
+canonical entry, and every later accepted registry **MUST** retain it byte-for-byte and keep the persisted
+entries in the order they were appended (`entries` is append-ordered, §13.1); removal, mutation, or
+reordering is a permanent refusal even when `registry_seq` increased (§11.1 item 9 states the rule for
+`grail-kernel`).
 
 ### 13.5 Release pins, release manifests, and verified snapshots
 A **release scope** (§11.1) names one release family — for example an LTS line whose corrections all keep
@@ -1088,8 +1092,8 @@ that pins every component of that release:
   is an lclabel of 1–100 characters. `kind` is an lclabel of 1–64 characters and an extension point
   (`protocol`, `organism`, `hive`, `repository`, `document`, …); only `kernel` is reserved (below).
   `object_format` fixes the lowercase hexadecimal length of `commit` exactly as for `grail-kernel`; a
-  non-null `immutable_ref` is a full `refs/tags/...` name that **MUST** resolve exactly to `commit` — a
-  claim a git-capable verifier checks (below), not the byte snapshot.
+  non-null `immutable_ref` is a full tag name (§3) that **MUST** resolve exactly to `commit` — a claim a
+  git-capable verifier checks (below), not the byte snapshot.
 - `files` is sorted ascending by the UTF-8 bytes of `path`; each `path` is ASCII and obeys the §9.1 path
   grammar — ASCII so that §9.1's NFC test and case folding give the same answer on every Unicode version —
   and no two paths of one component are equal case-insensitively or name a file and a directory above it
@@ -1100,10 +1104,10 @@ that pins every component of that release:
 - The stored manifest's octets **MUST** be exactly `canonical(manifest)` — UTF-8, no byte-order mark, no
   trailing line terminator — so its raw SHA-256 and `manifest_hash` are both reproducible from the bytes.
 - **Door of record.** `rappid` and `identity_path` are both `null` or both non-null. When set,
-  `identity_path` is one of the component's `files`, and those octets are UTF-8 without a byte-order mark
-  and parse as a §4 object whose numbers, if any, are written as integers (no fraction, no exponent) of
-  magnitude at most 2^53−1, whose `rappid`
-  member equals the component's `rappid`, and whose `schema`, when present, is `"rapp/1"`. Such a component
+  `identity_path` is one of the component's `files`, and those octets — at most 1 MiB as stored — are
+  UTF-8 without a byte-order mark and parse as a §4 object whose numbers, if any, are written as integers
+  (no fraction, no exponent) of magnitude at most 2^53−1, whose `rappid` member equals the component's
+  `rappid`, and whose `schema`, when present, is `"rapp/1"`. Such a component
   is the estate's signed statement that, within this pinned release, the organism's door of record is
   `repository` at `commit`. A manifest **MUST NOT** bind one rappid in two components. A consumer locating
   that organism for this pinned release **MUST** use this binding, not the rappid's `@owner/slug`, a
@@ -1131,7 +1135,8 @@ that pins every component of that release:
   LTS channel pins a release of it, and it keeps its one kernel (§11.1). The chain's **head** — the release
   pin no other names as its predecessor — pins the channel's current release, and a family's **current
   release** is its `release-pin` that appears last in `entries`, in whichever channel (each channel's chain
-  order agrees with `entries` order). A channel head **MAY** serve as the authenticated owner-controlled
+  order agrees with `entries` order, and §13.4 keeps that order, so a later registry cannot make an older
+  release current again). A channel head **MAY** serve as the authenticated owner-controlled
   release policy that selects a `release_scope` for §11.1 item 1. A pinned release is never rebound or
   retired by editing: its successor in the channel supersedes it, and every earlier release stays
   verifiable by its `manifest_hash`; because every declared entry is persisted (§13.4), a channel's head
@@ -1311,7 +1316,8 @@ registry.
   `release_scope` and `repository` included, and `protocol` `spec_repo`, which it now specifies — so a
   value outside §3 that rev-16's reference accepted (user information, an empty host or port, a port
   above 65535, a fragment, a non-ASCII character, a malformed percent-encoding, more than 2048
-  characters) is now refused (no published registry carries one); requires every number in a registry,
+  characters) is now refused (no published registry carries one), and every `immutable_ref`, the
+  `grail-kernel`'s included, to be a full tag name (§3); requires every number in a registry,
   and in an identity file, to be written as an integer within ±(2^53−1), where rev-16 allowed any §4
   number; says a consumer ignores an entry type it does not implement unless the entry is marked
   critical;

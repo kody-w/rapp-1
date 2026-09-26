@@ -78,8 +78,10 @@ so that a release of about 300 repositories costs one registry entry.
 Every declared entry carries `activated_utc`, `declared_by`, and `sig`. `sig` is a detached §10 JWS by the
 estate owner in effect at `activated_utc` (`kid` = `declared_by`) over `canonical(entry \ {sig})`, and the
 whole registry is refused if one entry fails (§13.4). An entry's bytes are its canonical form (§4): every
-accepted declaration is retained unchanged by every later registry, and a copy elsewhere counts only when
-its canonical form equals that of an entry of an accepted registry, however it is formatted.
+accepted declaration is retained unchanged, and in its append order, by every later registry (so a family's
+current release, its last pin in `entries`, can never move back), and a copy elsewhere counts only when its
+canonical form equals that of an entry of an accepted registry, however it is formatted. Every
+`immutable_ref` is a full tag name (§3): `refs/tags/` and a name git's ref-name rules accept.
 `H("rapp/1:particle", entry)` over the complete signed entry names it.
 
 ```text
@@ -267,18 +269,18 @@ reference's.
     "rappid": {
       "description": "§6.1 rappid: rappid:@<owner 1-39>/<slug 1-100>:<64 lowercase hex>, owner and slug lclabels",
       "type": "string",
-      "pattern": "^rappid:@(?=[a-z0-9-]{1,39}/)[a-z0-9]+(?:-[a-z0-9]+)*/(?=[a-z0-9-]{1,100}:)[a-z0-9]+(?:-[a-z0-9]+)*:[0-9a-f]{64}$"
+      "pattern": "^rappid:@(?=[a-z0-9-]{1,39}/)[a-z0-9]+(?:-[a-z0-9]+)*/(?=[a-z0-9-]{1,100}:)[a-z0-9]+(?:-[a-z0-9]+)*:[0-9a-f]{64}(?![\\s\\S])"
     },
     "utc": {
       "description": "§7.4 fixed UTC form; must also be a real calendar time (rapp.utc_valid)",
       "type": "string",
-      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z(?![\\s\\S])"
     },
     "https": {
       "description": "§3 absolute HTTPS URI (RFC 3986 grammar, no fragment): lowercase https, a host that is a non-empty reg-name or an IP literal, no user information, after a ':' a port of 1-5 digits no greater than 65535, at most 2048 characters; ALSO the IP literal a real IPv6 address (no zone) or IPvFuture, which this pattern does not check",
       "type": "string",
       "maxLength": 2048,
-      "pattern": "^https://(?:(?:[A-Za-z0-9\\-._~!$&'()*+,;=]|%[0-9A-Fa-f]{2})+|\\[(?:[0-9A-Fa-f:.]+|[vV][0-9A-Fa-f]+\\.[A-Za-z0-9\\-._~!$&'()*+,;=:]+)\\])(?::(?:[0-9]{1,4}|0[0-9]{4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]))?(?:/(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})*)*(?:\\?(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})*)?$"
+      "pattern": "^https://(?:(?:[A-Za-z0-9\\-._~!$&'()*+,;=]|%[0-9A-Fa-f]{2})+|\\[(?:[0-9A-Fa-f:.]+|[vV][0-9A-Fa-f]+\\.[A-Za-z0-9\\-._~!$&'()*+,;=:]+)\\])(?::(?:[0-9]{1,4}|0[0-9]{4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]))?(?:/(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})*)*(?:\\?(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})*)?(?![\\s\\S])"
     },
     "canonical_source": {
       "description": "§13.1: an absolute HTTPS URI (§3), or a URN (RFC 8141: lowercase urn:, a 2-32 character namespace, no r-, q-, or f-component) for a registry kept in a private store",
@@ -289,26 +291,26 @@ reference's.
         {
           "type": "string",
           "maxLength": 2048,
-          "pattern": "^urn:[A-Za-z0-9][A-Za-z0-9-]{0,30}[A-Za-z0-9]:(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@/]|%[0-9A-Fa-f]{2})*$"
+          "pattern": "^urn:[A-Za-z0-9][A-Za-z0-9-]{0,30}[A-Za-z0-9]:(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@/]|%[0-9A-Fa-f]{2})*(?![\\s\\S])"
         }
       ]
     },
     "hex64": {
       "type": "string",
-      "pattern": "^[0-9a-f]{64}$"
+      "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
     },
     "lclabel64": {
       "type": "string",
-      "pattern": "^(?=.{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*$"
+      "pattern": "^(?=.{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])"
     },
     "lclabel100": {
       "type": "string",
-      "pattern": "^(?=.{1,100}$)[a-z0-9]+(?:-[a-z0-9]+)*$"
+      "pattern": "^(?=.{1,100}$)[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])"
     },
     "kind": {
       "description": "§6.1.1 kind: lclabel '.' lclabel, each 1-64",
       "type": "string",
-      "pattern": "^(?=[a-z0-9-]{1,64}\\.)[a-z0-9]+(?:-[a-z0-9]+)*\\.(?=[a-z0-9-]{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*$"
+      "pattern": "^(?=[a-z0-9-]{1,64}\\.)[a-z0-9]+(?:-[a-z0-9]+)*\\.(?=[a-z0-9-]{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])"
     },
     "stream_id": {
       "description": "§6.1.1 stream forms: body-stream (a rappid), memory-stream (rappid ':' lclabel 1-64), swarm-stream ('net:' lclabel)",
@@ -318,11 +320,11 @@ reference's.
         },
         {
           "type": "string",
-          "pattern": "^rappid:@(?=[a-z0-9-]{1,39}/)[a-z0-9]+(?:-[a-z0-9]+)*/(?=[a-z0-9-]{1,100}:)[a-z0-9]+(?:-[a-z0-9]+)*:[0-9a-f]{64}:(?=[a-z0-9-]{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*$"
+          "pattern": "^rappid:@(?=[a-z0-9-]{1,39}/)[a-z0-9]+(?:-[a-z0-9]+)*/(?=[a-z0-9-]{1,100}:)[a-z0-9]+(?:-[a-z0-9]+)*:[0-9a-f]{64}:(?=[a-z0-9-]{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])"
         },
         {
           "type": "string",
-          "pattern": "^net:[a-z0-9]+(?:-[a-z0-9]+)*$"
+          "pattern": "^net:[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])"
         }
       ]
     },
@@ -340,7 +342,12 @@ reference's.
     "path": {
       "description": "ASCII §9.1 path grammar (rapp._path_valid; rev-17 manifests and locators are ASCII): relative POSIX path, no empty/'.'/'..' segment, no '\\\\' or ':' or control character, no segment ending in space or dot, no Windows reserved name, no drive prefix; ASCII only (so already NFC; DEL is allowed, as §9.1 forbids only C0 controls)",
       "type": "string",
-      "pattern": "^(?![A-Za-z]:)(?!\\.\\.?(?:/|$))(?!(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$))[\\x20-\\x2e\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7f]*[\\x21-\\x2d\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7f](?:/(?!\\.\\.?(?:/|$))(?!(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$))[\\x20-\\x2e\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7f]*[\\x21-\\x2d\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7f])*$"
+      "pattern": "^(?![A-Za-z]:)(?!\\.\\.?(?:/|$))(?!(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$))[\\x20-\\x2e\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7f]*[\\x21-\\x2d\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7f](?:/(?!\\.\\.?(?:/|$))(?!(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$))[\\x20-\\x2e\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7f]*[\\x21-\\x2d\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7f])*(?![\\s\\S])"
+    },
+    "full_tag_name": {
+      "description": "§3 full tag name: refs/tags/ and a non-empty ASCII name git's ref-name rules accept (no control character, space, ~^:?*[\\, '..', '@{', '//', component starting with '.' or ending '.lock', trailing '/' or '.')",
+      "type": "string",
+      "pattern": "^refs/tags/(?!\\.)(?!.*\\.\\.)(?!.*@\\{)(?!.*/\\.)(?!.*\\.lock(?:/|$))(?!.*\\.$)[\\x21-\\x29\\x2b-\\x2e\\x30-\\x39\\x3b-\\x3e\\x40-\\x5a\\x5d\\x5f-\\x7d]+(?:/[\\x21-\\x29\\x2b-\\x2e\\x30-\\x39\\x3b-\\x3e\\x40-\\x5a\\x5d\\x5f-\\x7d]+)*(?![\\s\\S])"
     },
     "uint53": {
       "description": "written without fraction or exponent (JSON Schema's integer also admits 1.0, which §13.1 refuses)",
@@ -364,14 +371,14 @@ reference's.
       "then": {
         "properties": {
           "commit": {
-            "pattern": "^[0-9a-f]{40}$"
+            "pattern": "^[0-9a-f]{40}(?![\\s\\S])"
           }
         }
       },
       "else": {
         "properties": {
           "commit": {
-            "pattern": "^[0-9a-f]{64}$"
+            "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
           }
         }
       }
@@ -637,7 +644,7 @@ reference's.
         },
         "release": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}(?![\\s\\S])"
         },
         "components": {
           "type": "array",
@@ -701,8 +708,7 @@ reference's.
                     "type": "null"
                   },
                   {
-                    "type": "string",
-                    "pattern": "^refs/tags/[\\s\\S]+$"
+                    "$ref": "#/$defs/full_tag_name"
                   }
                 ]
               },

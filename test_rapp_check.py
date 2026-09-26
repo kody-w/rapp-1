@@ -340,6 +340,27 @@ class RappCheckDiscoveryTests(unittest.TestCase):
                          [("big/registry.json", "§13 registry document")])
         self.assertIn("1 MiB canonical limit", findings[0]["detail"])
 
+    def test_padding_past_1_mib_hides_no_defect(self):
+        repository = self.fixture_repo("clean")
+        text = json.dumps(self.registry_document(), sort_keys=True)
+        padding = " " * (R.MAX_CANONICAL_BYTES + 1)
+        duplicate = text[:-1] + ', "registry_seq": 7' + padding + "}"          # §4(a): a repeated member
+        second_owner = self.registry_document()
+        second_owner["entries"].append(dict(second_owner["entries"][0]))       # two estate_owner entries
+        (repository / "a").mkdir()
+        (repository / "a" / "registry.json").write_text(duplicate, encoding="utf-8")
+        (repository / "b").mkdir()
+        (repository / "b" / "registry.json").write_text(
+            json.dumps(second_owner, sort_keys=True)[:-1] + padding + "}", encoding="utf-8")
+        verdict, findings, evidence = C.check_repo(repository)
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual(sorted((item["artifact"], item["rule"]) for item in findings),
+                         [("a/registry.json", "§13 registry document"), ("b/registry.json", "§13 registry document")])
+        details = {item["artifact"]: item["detail"] for item in findings}
+        self.assertIn("duplicate JSON member", details["a/registry.json"])
+        self.assertIn("estate_owner", details["b/registry.json"])
+        self.assertEqual(evidence, [])
+
     def test_a_registry_stored_with_whitespace_is_measured_canonically(self):
         repository = self.fixture_repo("clean")
         document = self.registry_document()

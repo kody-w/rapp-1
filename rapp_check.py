@@ -158,6 +158,16 @@ def _oversized_schema(path, size, budget):
         return None
 
 
+def _no_duplicate_members(pairs):
+    """An object hook that refuses a repeated member, as `rapp._strict_json` does (§4(a))."""
+    value = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError(f"duplicate JSON member: {key}")
+        value[key] = item
+    return value
+
+
 def _number_or_json(exc, section):
     """Why a registry or manifest failed strict parsing: a number the section forbids (a fraction, an
     exponent, or beyond 2^53-1), else not strict I-JSON (§4)."""
@@ -386,12 +396,13 @@ def check_repo(root, signature_verifier=None):
     records = {}
 
     def registry_document(rel, document):
+        """Lint one registry document; True when it raised no finding."""
         try:
             REG.validate_document(document)
             registry = REG.Registry(document[REG.ENTRIES_MEMBER])
         except (REG.RegistryError, ValueError) as exc:
             finding(rel, "§13 registry document", str(exc))
-            return
+            return False
         for index in registry.unknown_entries:
             # Every consumer at this revision ignores it (§13.3); in an estate's own registry that is
             # most often a misspelled type, which silently drops the entry (a tombstone, a notice).
@@ -413,6 +424,7 @@ def check_repo(root, signature_verifier=None):
                 "status": "unverified",
             }
         )
+        return not registry.unknown_entries
 
     def release_manifest(rel, blob, manifest):
         try:
@@ -519,7 +531,7 @@ def check_repo(root, signature_verifier=None):
                 what = "§13 registry document" if claimed == REG.DOCUMENT_SCHEMA else "§13.5 release manifest"
                 try:
                     blob = _read_blob(path, _SNIFF_LIMIT)
-                    value = json.loads(blob)
+                    value = json.loads(blob, object_pairs_hook=_no_duplicate_members)  # never collapse one
                     canonical_octets = R.canonical(value).encode("utf-8")
                     R._strict_json(canonical_octets)  # §4(d): at most 1 MiB canonical, nested at most 64
                 except Exception as exc:
@@ -528,7 +540,8 @@ def check_repo(root, signature_verifier=None):
                 if claimed == REG.MANIFEST_SCHEMA:
                     release_manifest(rel, blob, value)  # stored octets must be exactly canonical (§13.5)
                     continue
-                registry_document(rel, value)
+                if not registry_document(rel, value):
+                    continue
                 evidence.append({
                     "artifact": rel,
                     "ok": (f"stored as {size} bytes, {len(canonical_octets)} canonical: within §4's 1 MiB, "

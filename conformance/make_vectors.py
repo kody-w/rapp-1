@@ -298,6 +298,14 @@ def registry_sections():
              document(base + [{"type": "vector-future", "critical": True}])),
             ("an unknown entry type whose critical is not false refuses the registry",
              document(base + [{"type": "vector-future", "critical": "no"}])),
+            ("an unknown entry type whose critical is null refuses the registry",
+             document(base + [{"type": "vector-future", "critical": None}])),
+            ("an unknown entry type whose critical is 0 refuses the registry",
+             document(base + [{"type": "vector-future", "critical": 0}])),
+            ("an unknown entry type whose critical is the empty string refuses the registry",
+             document(base + [{"type": "vector-future", "critical": ""}])),
+            ("a URN canonical_source with an r-component", document(base, canonical_source="urn:rapp:registry?+r")),
+            ("a URN canonical_source with a q-component", document(base, canonical_source="urn:rapp:registry?=q")),
             ("a known entry type may not carry critical",
              document([base[0], dict(base[1], critical=False)])),
             ("an entry whose type is the empty string", document(base + [{"type": ""}])),
@@ -458,6 +466,10 @@ def registry_sections():
             manifest_case("one rappid bound by two components", component(1, rappid=alpha, identity_path="SPEC.md"),
                           "refuse"),
             manifest_case("a file path that is not ASCII", paths("docs/caf\u00e9.md"), "refuse"),
+            manifest_case("an immutable_ref that is not a full tag name (it climbs out of refs/tags/)",
+                          component(0, immutable_ref="refs/tags/../../heads/main"), "refuse"),
+            manifest_case("an immutable_ref that is a bare refs/tags/", component(0, immutable_ref="refs/tags/"),
+                          "refuse"),
         ]
 
         def octets_case(label, entries, manifest_hash, data, intended):
@@ -585,6 +597,18 @@ def registry_sections():
             history_case("an accepted kernel dropped", [grail, rp(1)], [rp(1)], "refuse"),
         ]
 
+        def file_cases():
+            """§13.5 step 3: a fetched file is pinned only when both its length and its SHA-256 match."""
+            octets = b"# a pinned file\n"
+            digest, size = hashlib.sha256(octets).hexdigest(), len(octets)
+            cases = [("length and digest both match", digest, size),
+                     ("the right digest with another length", digest, size + 1),
+                     ("the right length with another digest", "0" * 64, size)]
+            return [{"label": label, "sha256": pinned_digest, "size_bytes": pinned_size, "octets_hex": octets.hex(),
+                     "expect": "accept" if (hashlib.sha256(octets).hexdigest(), len(octets)) == (pinned_digest,
+                                                                                               pinned_size)
+                     else "refuse"} for label, pinned_digest, pinned_size in cases]
+
         def identity_cases():
             """§13.5 door of record: an identity file's octets against its component's rappid."""
             alpha = _keyless("organism-alpha", 1)
@@ -600,6 +624,9 @@ def registry_sections():
                 ("UTF-16", good.decode("utf-8").encode("utf-16")),
                 ("UTF-32 without a mark", good.decode("utf-8").encode("utf-32-le")),
                 ("a number written with a fraction", good[:-1] + b',"version":1.5}'),
+                ("a number written 1.0", good[:-1] + b',"version":1.0}'),
+                ("a number written with an exponent", good[:-1] + b',"version":1e0}'),
+                ("a number written -0, which is zero", good[:-1] + b',"version":-0}'),
                 ("an integer beyond 2^53-1", good[:-1] + b',"version":9007199254740992}'),
                 ("an integer within range", good[:-1] + b',"version":7}'),
             ]
@@ -694,6 +721,7 @@ def registry_sections():
             "history_cases": history_cases,
             "kernel_coherence_cases": coherence_cases,
             "identity_cases": identity_cases(),
+            "file_cases": file_cases(),
         }
 
     def lifecycle_cases():

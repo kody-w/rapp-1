@@ -313,6 +313,26 @@ class ReleaseChannelTests(unittest.TestCase):
                 with self.assertRaisesRegex(REG.RegistryError, "second release-pin for manifest_hash"):
                     self.registry(*entries)
 
+    def test_a_later_registry_may_not_reorder_accepted_releases(self):
+        # A family's current release is its last pin in entries, so a later registry that kept every
+        # pin but moved an older one after a newer one would make the older release current again.
+        world = World()
+        r4 = world.pin(world.manifest(NEW_2, kernel=None, release="n-4"), scope=NEW_2, channel="newest")
+        r5 = world.pin(world.manifest(NEW_2, kernel=None, release="n-5"), scope=NEW_2, channel="newest",
+                       predecessor=r4, activated=LATER)
+        r1 = world.pin(world.manifest(kernel=None, release="l-1"))
+        r7 = world.pin(world.manifest(NEW_2, kernel=None, release="l-7"), scope=NEW_2, predecessor=r1,
+                       activated=LATER)
+        status, accepted, why = world.load([r4, r5, r1, r7])
+        self.assertEqual((status, why), ("verified", "ok"))
+        self.assertEqual(accepted.scope_head(NEW_2)["manifest_hash"], r7["manifest_hash"])
+        persisted = [r4, r5, r1, r7]
+        status, _, why = world.load([r4, r1, r7, r5], seq=3, persisted_seq=2, persisted_entries=persisted)
+        self.assertEqual(status, "refused")
+        self.assertIn("append order", why)
+        status, later, why = world.load(persisted, seq=3, persisted_seq=2, persisted_entries=persisted)
+        self.assertEqual((status, later.scope_head(NEW_2)["manifest_hash"]), ("verified", r7["manifest_hash"]))
+
     def test_a_newest_family_graduates_to_an_lts_line(self):
         # The 2.0 family ships on newest, then the lts channel moves on from the 1.x family to a release
         # of it: one family, one kernel binding (§11.1), releases in two channels.
@@ -635,6 +655,14 @@ class ReleaseManifestTests(unittest.TestCase):
         value = mutated(self.manifest, with_paths("docs.md", "docs/a.md", "docs/b.md"))
         self.assertIs(REG.validate_release_manifest(value), value)
 
+    def test_an_immutable_ref_is_a_full_tag_name(self):
+        for ref in ("refs/tags/", "refs/tags/../../heads/main", "refs/tags/a..b", "refs/tags/x\n", "refs/tags/\u00e9",
+                    "refs/tags/.hidden", "refs/tags/x.lock", "refs/tags/a b", "refs/heads/main"):
+            with self.subTest(ref=ref):
+                self.refuses(lambda m, r=ref: m["components"][3].update(immutable_ref=r), "full tag name")
+        value = mutated(self.manifest, lambda m: m["components"][3].update(immutable_ref="refs/tags/rev-17/a"))
+        self.assertIs(REG.validate_release_manifest(value), value)
+
     def test_door_of_record_pairing_and_uniqueness(self):
         alpha = self.world.alpha
         cases = [
@@ -837,6 +865,15 @@ class VerifiedSnapshotTests(unittest.TestCase):
             kwargs["release_scope"] = LTS
         return REG.verify_snapshot(registry or self.reg, fetch or self.world.fetch, **kwargs)
 
+    def test_a_pinned_length_is_checked_as_well_as_the_digest(self):
+        world = World()
+        manifest = world.manifest()
+        manifest["components"][1]["files"][0]["size_bytes"] += 1  # the right digest, another length
+        status, reg, why = world.load([world.grail(), world.pin(manifest)])
+        self.assertEqual(status, "verified", why)
+        with self.assertRaisesRegex(REG.RegistryError, "pinned"):
+            REG.verify_snapshot(reg, world.fetch, release_scope=LTS)
+
     def test_the_snapshot_is_exactly_the_pinned_files(self):
         snapshot = self.snapshot()
         pin = self.reg.scope_head(LTS)
@@ -963,6 +1000,8 @@ class VerifiedSnapshotTests(unittest.TestCase):
             "a number written 1.0": (World.identity(alpha)[:-1] + b',"version":1.0}', "without fraction"),
             "an integer beyond 2^53-1": (World.identity(alpha)[:-1] + b',"version":9007199254740992}',
                                          "without fraction"),
+            "padded past 1 MiB as stored": (World.identity(alpha)[:-1] + b" " * R.MAX_CANONICAL_BYTES + b"}",
+                                            "1 MiB"),
         }
         for label, (octets, message) in cases.items():
             with self.subTest(label=label):
