@@ -28,7 +28,7 @@ reach. A section is named for the SPEC subsection it proves, or for its declared
 
 | section | must produce / decide |
 |---|---|
-| `13_1_document` | accept or refuse each `document` (or, for a value that is not I-JSON at all, each `json_text`) exactly as §4, §13.1 and §13.3 require |
+| `13_1_document` | accept or refuse each `document` (or, for a value that is not I-JSON or exceeds §4's size or depth limits, each `json_text`) exactly as §3's absolute HTTPS URI, §4, §13.1 and §13.3 require |
 | `13_4_declared` | the exact `signing_payload` and `entry_hash` for `example.entry`; the declared and persisted entry types |
 | `13_lifecycle` | `example.first_entry_hash` (= `example.second.previous`) and `example.second_signing_payload`; accept or refuse each `cases[].entries` registry exactly as §13.3 and §13.5 require, and for each accepted one its `current` notice's `state` and `superseded_by` per subject (a rappid or a repository URI); over `state_at.entries`, the `state` and `superseded_by` in effect for every `state_at.queries` item (a `null` state is no declared lifecycle, never deprecation; a `null` `superseded_by` names no successor at that time — a scheduled notice names none before its `since_utc`) and the `current` notices |
 
