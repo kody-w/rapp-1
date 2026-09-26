@@ -58,7 +58,7 @@ _REG_NAME = re.compile(rf"(?:[{_URI_SAFE}]|{_PCT})+")
 _PCHAR = rf"(?:[{_URI_SAFE}:@]|{_PCT})"
 _PATH_ABEMPTY = re.compile(rf"(?:/{_PCHAR}*)*")
 _QUERY = re.compile(rf"(?:{_PCHAR}|[/?])*")
-_IPV_FUTURE = re.compile(rf"v[0-9A-Fa-f]+\.[{_URI_SAFE}:]+")
+_IPV_FUTURE = re.compile(rf"[vV][0-9A-Fa-f]+\.[{_URI_SAFE}:]+")  # RFC 3986 literals are case-insensitive
 _PORT = re.compile(r"[0-9]{1,5}")
 # RFC 8141 assigned-name: "urn:" NID ":" NSS, with no r-, q-, or f-component.
 _URN = re.compile(rf"urn:[A-Za-z0-9][A-Za-z0-9-]{{0,30}}[A-Za-z0-9]:{_PCHAR}(?:{_PCHAR}|/)*")
@@ -108,7 +108,8 @@ def _https_uri(value):
     """An absolute HTTPS URI (§3), by RFC 3986's grammar: `https://` authority path-abempty [`?` query]
     with no fragment, at most 2048 characters; the authority is a host and an optional port, with no
     user information; the host is a non-empty reg-name or an IP literal (an IPv6 address with no zone,
-    or IPvFuture); a port is 1-5 digits at most 65535. Parsed here, not by urllib, whose port and
+    or IPvFuture); a `:` after the host is followed by a port of 1-5 digits at most 65535 (so an empty
+    port is refused). Parsed here, not by urllib, whose port and
     IP-literal rules differ between Python versions. (`rapp_profile.https_uri`, used by the
     operational profiles, is looser; registry members follow §3.)"""
     if not (isinstance(value, str) and len(value) <= 2048 and value.startswith("https://")):
@@ -132,9 +133,15 @@ def _https_uri(value):
     return port == "" or (port[0] == ":" and bool(_PORT.fullmatch(port[1:])) and int(port[1:]) <= 65535)
 
 
+_DEC_OCTET = r"(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])"
+_IPV4_TAIL = re.compile(rf"{_DEC_OCTET}(?:\.{_DEC_OCTET}){{3}}")
+
+
 def _ipv6_address(text):
-    """An RFC 3986 IPv6address: what `ipaddress` accepts, with no zone identifier."""
-    if "%" in text:
+    """An RFC 3986 IPv6address: what `ipaddress` accepts, with no zone identifier, and an embedded IPv4
+    part checked here against RFC 3986's dec-octet (no leading zero), which CPython before 3.9.5
+    did not refuse — so the verdict is the same on every Python 3.9 and later."""
+    if "%" in text or ("." in text and not _IPV4_TAIL.fullmatch(text.rsplit(":", 1)[-1])):
         return False
     try:
         ipaddress.IPv6Address(text)
