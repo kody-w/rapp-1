@@ -1059,7 +1059,10 @@ entry a consumer **MUST**:
    included;
 2. verify `sig` with that registry key — the enclosing §13.1 signature never substitutes for it;
 3. refuse an entry whose `activated_utc` is more than 300 seconds after the verifier's first-seen time
-   for that entry; and
+   for that entry — the time the verifier first accepted a registry carrying it, or, for an entry it has
+   not yet accepted, the time of this verification. A refused registry records no first-seen time, so an
+   entry published ahead of its `activated_utc` is refused until the verifier's clock is within 300
+   seconds of it, then accepted like any other; and
 4. refuse the whole registry when any declared entry fails (never skip the entry).
 
 For every comparison of entries in §13 — a copy, a retained entry, a persisted one — an entry's bytes are

@@ -850,9 +850,10 @@ class Registry:
         """Every declared entry's own signature; the document signature never substitutes.
 
         The 300-second rule compares each entry with the verifier's first-seen time for
-        THAT entry: pass `first_seen(entry_hash) -> utc` from persisted state (returning
-        the current time for an entry never seen before), or `verification_utc` when every
-        declared entry is being seen for the first time now. Never both."""
+        THAT entry, which is when the verifier first accepted a registry carrying it (§13.4
+        item 3; a refused registry records none). Pass `first_seen(entry_hash) -> utc` from
+        persisted state (returning the current time for an entry not yet accepted), or
+        `verification_utc` when no declared entry has been accepted before. Never both."""
         if verification_utc is not None and first_seen is not None:
             return False, "pass either verification_utc or first_seen, not both"
         for entry in self.entries:
@@ -1411,9 +1412,10 @@ def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_uns
     `registry_seq` is refused. Signed documents also verify each key-lifecycle entry's owner
     signature and any old-key continuity signature, and every declared entry's own owner
     signature at its `activated_utc` (§13.4). The 300-second rule is per entry:
-    `first_seen(entry_hash)` returns the caller's persisted first-seen time for an entry (and
-    the current time for one never seen before); `verification_utc` is the shortcut when every
-    declared entry is being seen for the first time now; a signed registry that carries a declared
+    `first_seen(entry_hash)` returns the caller's persisted first-seen time for an entry,
+    recorded when a registry carrying it was accepted and never on a refusal (§13.4 item 3),
+    and the current time for one not yet accepted; `verification_utc` is the shortcut when no
+    declared entry has been accepted before; a signed registry that carries a declared
     entry is refused when neither is supplied. `persisted_entries` are the canonical
     declared entries the caller accepted before — all of them, in the order the accepted registry
     held them; each must still be present byte for byte, in that order, and ahead of every declared

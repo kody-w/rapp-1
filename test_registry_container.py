@@ -413,6 +413,20 @@ class DeclaredEntryTests(unittest.TestCase):
         with self.assertRaises(REG.RegistryError):
             REG.activated_within_bound("2026-07-01T00:05:00Z", T0)
 
+    def test_an_entry_published_ahead_of_its_activation_is_accepted_when_its_time_comes(self):
+        # §13.4 item 3: first-seen is recorded when a registry carrying the entry is accepted, never on a
+        # refusal, so the registry refused an hour early is accepted on a fetch within 300 s of its time.
+        entry = self.estate.grail_kernel(activated="2026-07-01T01:00:00.000Z")
+        status, _, why = self.load([entry], verification_utc=T0)
+        self.assertEqual(status, "refused")
+        self.assertIn("300 s after first-seen", why)
+        recorded = {}  # a consumer that records first-seen times only on acceptance
+        later = "2026-07-01T00:55:00.000Z"
+        status, _, why = self.load([entry], first_seen=lambda h: recorded.get(h, later))
+        self.assertEqual((status, why), ("verified", "ok"))
+        recorded[REG.entry_hash(entry)] = later
+        self.assertEqual(self.load([entry], first_seen=recorded.__getitem__)[0], "verified")
+
     def test_first_seen_is_resolved_per_entry(self):
         early = self.estate.grail_kernel(activated=T0)
         later = self.estate.grail_kernel(scope="https://releases.example.test/scope/b",

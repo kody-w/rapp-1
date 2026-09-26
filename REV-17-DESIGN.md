@@ -210,7 +210,8 @@ unverified until the estate that pins this root is anchored". Rev-17 answers bot
   keeps the stream and its history; a new keyed stream would start another.
 - **Loading and persistence.** Publish the registry as UTF-8 without a byte-order mark (§13.1), and read
   it with `parse_document(octets)`. Load a signed registry that carries declared entries with
-  `verification_utc=` (first sighting) or `first_seen=` (from persisted first-seen times), persist every
+  `verification_utc=` (first sighting) or `first_seen=` (from persisted first-seen times, each recorded
+  when a registry carrying the entry was first accepted, never on a refusal: §13.4 item 3), persist every
   accepted declared entry in its registry order, and pass them back as `persisted_entries=` next time.
 - **Size.** The registry is capped at 1 MiB canonical (§4) and every entry is append-only, so it has a
   lifetime budget. With realistic URIs and an EdDSA signature a declared entry is 0.65–0.95 KB (a

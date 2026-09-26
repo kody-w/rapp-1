@@ -1198,8 +1198,9 @@ def registry_sections():
                         "superseded or tombstoned by then, and not retired, i.e. its spki flagged deprecated "
                         "with no re-anchor naming it as old_rappid); a grant's "
                         "activated_utc plays no part (a grant may start before it, §13.7); kid null means "
-                        "unsigned and is never authorized. Every frame is assumed to have passed §7.5, step 6 "
-                        "included (§13.7); signatures are out of scope for these vectors",
+                        "unsigned and is never authorized. Each frame's signature is taken as valid, since "
+                        "signatures are out of scope for these vectors; key acceptability at utc is part of each "
+                        "decision (a key it refuses would also fail §7.5 step 6)",
                 "entries": entries,
                 "cases": [
                     decision("the estate owner, with no grant", station, "body.twin-pulse", T0, owner, "authorized"),

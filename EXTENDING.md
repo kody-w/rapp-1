@@ -69,7 +69,9 @@ same holds for every declared entry (§13.4: `grail-kernel`, `release-pin`,
 `lifecycle`, and `stream-signer`): its own owner signature is checked at its
 `activated_utc`, `first_seen=` (or `verification_utc=` for a first sighting) applies
 the per-entry 300-second first-seen bound — a signed registry carrying a declared
-entry is refused without one — and `persisted_entries=` (every declared entry you accepted, in the order
+entry is refused without one; record an entry's first-seen time when you accept a
+registry carrying it, never on a refusal, so an entry published ahead of its
+`activated_utc` is accepted once your clock is within 300 seconds of it — and `persisted_entries=` (every declared entry you accepted, in the order
 your accepted registry held them) refuses a later registry that dropped, changed, or reordered a
 declaration, or placed a new declared entry before one you accepted: a registry grows only by appending,
 and carries each declared entry once. A copy of a declared entry found outside the registry
