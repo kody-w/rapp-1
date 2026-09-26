@@ -746,6 +746,31 @@
     },
     "expect": "accept",
     "label": "a deprecated pin followed by the current one"
+   },
+   {
+    "expect": "refuse",
+    "json_text": "{\"canonical_source\":\"https://registry.example.test/rapp-registry.json\",\"entries\":[{\"rappid\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"type\":\"estate_owner\"},{\"deprecated\":false,\"rappid\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"spki_der_b64\":\"dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5\",\"type\":\"spki\"}],\"registry_seq\":1.0,\"schema\":\"rapp/1-registry\",\"sig\":\"<detached-jws>\"}",
+    "label": "registry_seq written as 1.0"
+   },
+   {
+    "expect": "refuse",
+    "json_text": "{\"canonical_source\":\"https://registry.example.test/rapp-registry.json\",\"entries\":[{\"rappid\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"type\":\"estate_owner\"},{\"deprecated\":false,\"rappid\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"spki_der_b64\":\"dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5\",\"type\":\"spki\"}],\"registry_seq\":1e0,\"schema\":\"rapp/1-registry\",\"sig\":\"<detached-jws>\"}",
+    "label": "registry_seq written as 1e0"
+   },
+   {
+    "expect": "refuse",
+    "json_text": "{\"canonical_source\":\"https://registry.example.test/rapp-registry.json\",\"entries\":[{\"rappid\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"type\":\"estate_owner\"},{\"deprecated\":false,\"rappid\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"spki_der_b64\":\"dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5\",\"type\":\"spki\"}],\"registry_seq\":10E-1,\"schema\":\"rapp/1-registry\",\"sig\":\"<detached-jws>\"}",
+    "label": "registry_seq written as 10E-1"
+   },
+   {
+    "expect": "refuse",
+    "json_text": "{\"canonical_source\":\"https://registry.example.test/rapp-registry.json\",\"entries\":[{\"type\":\"vector-future\",\"n\":-0.0},{\"rappid\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"type\":\"estate_owner\"},{\"deprecated\":false,\"rappid\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"spki_der_b64\":\"dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5\",\"type\":\"spki\"}],\"registry_seq\":1,\"schema\":\"rapp/1-registry\",\"sig\":\"<detached-jws>\"}",
+    "label": "an unknown entry's number written as -0.0"
+   },
+   {
+    "expect": "accept",
+    "json_text": "{\"canonical_source\":\"https://registry.example.test/rapp-registry.json\",\"entries\":[{\"type\":\"vector-future\",\"n\":-0},{\"rappid\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"type\":\"estate_owner\"},{\"deprecated\":false,\"rappid\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"spki_der_b64\":\"dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5\",\"type\":\"spki\"}],\"registry_seq\":1,\"schema\":\"rapp/1-registry\",\"sig\":\"<detached-jws>\"}",
+    "label": "an unknown entry's number written as -0, which is zero"
    }
   ],
   "13_4_declared": {
@@ -5567,6 +5592,80 @@
      ]
     }
    ],
+   "identity_cases": [
+    {
+     "expect": "accept",
+     "label": "the canonical identity file",
+     "octets_hex": "7b22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c22736368656d61223a22726170702f31227d",
+     "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d"
+    },
+    {
+     "expect": "accept",
+     "label": "pretty-printed, without a schema",
+     "octets_hex": "7b0a202022726170706964223a20227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764220a7d",
+     "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d"
+    },
+    {
+     "expect": "refuse",
+     "label": "another rappid",
+     "octets_hex": "7b22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d626574613a36663335306436656261623765313232303434653337343932653861653239653032363464643863656433623633376261366230646630653832383063373434227d",
+     "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d"
+    },
+    {
+     "expect": "refuse",
+     "label": "a schema other than rapp/1",
+     "octets_hex": "7b22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c22736368656d61223a22726170702f30227d",
+     "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d"
+    },
+    {
+     "expect": "refuse",
+     "label": "not an object",
+     "octets_hex": "5b227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764225d",
+     "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d"
+    },
+    {
+     "expect": "refuse",
+     "label": "a duplicate member",
+     "octets_hex": "7b22726170706964223a2278222c22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764227d",
+     "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d"
+    },
+    {
+     "expect": "refuse",
+     "label": "a UTF-8 byte-order mark",
+     "octets_hex": "efbbbf7b22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c22736368656d61223a22726170702f31227d",
+     "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d"
+    },
+    {
+     "expect": "refuse",
+     "label": "UTF-16",
+     "octets_hex": "fffe7b00220072006100700070006900640022003a0022007200610070007000690064003a00400076006500630074006f0072002f006f007200670061006e00690073006d002d0061006c007000680061003a00630033003900350064003900390062003300320066006600310032003800390066006300660062003000610032003400660035003500370034003800340039006500610061003300330036006100630063003500380062003900650064003000350063003800330037006100650031006400330039003800340038003700640022002c00220073006300680065006d00610022003a00220072006100700070002f00310022007d00",
+     "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d"
+    },
+    {
+     "expect": "refuse",
+     "label": "UTF-32 without a mark",
+     "octets_hex": "7b00000022000000720000006100000070000000700000006900000064000000220000003a000000220000007200000061000000700000007000000069000000640000003a00000040000000760000006500000063000000740000006f000000720000002f0000006f0000007200000067000000610000006e00000069000000730000006d0000002d000000610000006c0000007000000068000000610000003a00000063000000330000003900000035000000640000003900000039000000620000003300000032000000660000006600000031000000320000003800000039000000660000006300000066000000620000003000000061000000320000003400000066000000350000003500000037000000340000003800000034000000390000006500000061000000610000003300000033000000360000006100000063000000630000003500000038000000620000003900000065000000640000003000000035000000630000003800000033000000370000006100000065000000310000006400000033000000390000003800000034000000380000003700000064000000220000002c00000022000000730000006300000068000000650000006d00000061000000220000003a00000022000000720000006100000070000000700000002f00000031000000220000007d000000",
+     "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d"
+    },
+    {
+     "expect": "refuse",
+     "label": "a number written with a fraction",
+     "octets_hex": "7b22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c22736368656d61223a22726170702f31222c2276657273696f6e223a312e357d",
+     "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d"
+    },
+    {
+     "expect": "refuse",
+     "label": "an integer beyond 2^53-1",
+     "octets_hex": "7b22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c22736368656d61223a22726170702f31222c2276657273696f6e223a393030373139393235343734303939327d",
+     "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d"
+    },
+    {
+     "expect": "accept",
+     "label": "an integer within range",
+     "octets_hex": "7b22726170706964223a227261707069643a40766563746f722f6f7267616e69736d2d616c7068613a63333935643939623332666631323839666366623061323466353537343834396561613333366163633538623965643035633833376165316433393834383764222c22736368656d61223a22726170702f31222c2276657273696f6e223a377d",
+     "rappid": "rappid:@vector/organism-alpha:c395d99b32ff1289fcfb0a24f5574849eaa336acc58b9ed05c837ae1d398487d"
+    }
+   ],
    "kernel_coherence_cases": [
     {
      "expect": "accept",
@@ -5813,6 +5912,89 @@
          }
         ],
         "id": "brainstem-copy",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+        "kind": "kernel",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/brainstem"
+       }
+      ],
+      "release": "vector-1.0.0-kernel",
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "schema": "rapp/1-release-manifest"
+     }
+    },
+    {
+     "expect": "refuse",
+     "grail_kernel": {
+      "activated_utc": "2026-07-01T00:00:00.000Z",
+      "blob": "2222222222222222222222222222222222222222",
+      "commit": "1111111111111111111111111111111111111111",
+      "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+      "grail_id": "grail:8ab98c0ea5fa1783e82cb33912d3998ec69aeeb04e4faaee2aed91ce282dfd4e",
+      "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+      "mode": "100644",
+      "object_format": "sha1",
+      "path": "kernel/brainstem.py",
+      "predecessor": null,
+      "release_scope": "https://releases.example.test/vector/1.0",
+      "repository": "https://git.example.test/vector/brainstem",
+      "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+      "sig": "<detached-jws>",
+      "size_bytes": 36,
+      "type": "grail-kernel"
+     },
+     "label": "a matching kernel component and a second that matches nothing",
+     "manifest": {
+      "components": [
+       {
+        "commit": "1111111111111111111111111111111111111111",
+        "files": [
+         {
+          "path": "kernel/VERSION",
+          "sha256": "6378a2f0f862dfbd894799c13030445a9464dd56046328ceeb093b5491665e35",
+          "size_bytes": 10
+         },
+         {
+          "path": "kernel/agents/basic_agent.py",
+          "sha256": "c148203b5f51d866ba50238d2083d8746513c176e0b782391c5848aadf3a7524",
+          "size_bytes": 56
+         },
+         {
+          "path": "kernel/brainstem.py",
+          "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+          "size_bytes": 36
+         }
+        ],
+        "id": "brainstem",
+        "identity_path": null,
+        "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
+        "kind": "kernel",
+        "object_format": "sha1",
+        "rappid": null,
+        "repository": "https://git.example.test/vector/brainstem"
+       },
+       {
+        "commit": "8888888888888888888888888888888888888888",
+        "files": [
+         {
+          "path": "kernel/VERSION",
+          "sha256": "6378a2f0f862dfbd894799c13030445a9464dd56046328ceeb093b5491665e35",
+          "size_bytes": 10
+         },
+         {
+          "path": "kernel/agents/basic_agent.py",
+          "sha256": "c148203b5f51d866ba50238d2083d8746513c176e0b782391c5848aadf3a7524",
+          "size_bytes": 56
+         },
+         {
+          "path": "kernel/brainstem.py",
+          "sha256": "6ab8b27f9c2eaf28408749e34878be43d6ef691ec4aa4359c4fe2e7d92809a07",
+          "size_bytes": 36
+         }
+        ],
+        "id": "brainstem-stray",
         "identity_path": null,
         "immutable_ref": "refs/tags/brainstem-v1.0.0-lts",
         "kind": "kernel",

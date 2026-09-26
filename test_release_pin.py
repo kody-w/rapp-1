@@ -216,11 +216,13 @@ class ReleasePinEntryTests(unittest.TestCase):
             {"object_format": "sha256", "commit": "3" * 64},
             {"predecessor": "e" * 64},
             {"channel": "a" * 64}, {"channel": "lts-2026"},
-            {"path": "releases/\u00fcnic\u00f6de.json"},
         ]
         for changes in good:
             with self.subTest(changes=changes):
                 self.assertEqual(REG.validate_entry(unsigned_pin(**changes)), "release-pin")
+        # The locator path is ASCII, so its §9.1 NFC test never depends on a Unicode version.
+        with self.assertRaisesRegex(REG.RegistryError, "ASCII"):
+            REG.validate_entry(unsigned_pin(path="releases/\u00fcnic\u00f6de.json"))
 
     def test_release_pin_is_a_declared_persisted_type(self):
         self.assertIn("release-pin", REG.DECLARED_TYPES)
@@ -622,10 +624,13 @@ class ReleaseManifestTests(unittest.TestCase):
         def with_paths(*paths):
             return lambda m: m["components"][3].update(files=[
                 {"path": p, "sha256": "e" * 64, "size_bytes": 1} for p in paths])
-        for paths in (("A.txt", "a.txt"), ("SS.md", "\u00df.md"), ("docs", "docs/index.md"),
-                      ("DOCS", "docs/index.md"), ("\u00c5.md", "\u00e5.md")):
+        for paths in (("A.txt", "a.txt"), ("docs", "docs/index.md"), ("DOCS", "docs/index.md")):
             with self.subTest(paths=paths):
                 self.refuses(with_paths(*paths), "case-insensitively")
+        # Manifest paths are ASCII, so §9.1's NFD and case folding never depend on a Unicode version.
+        for paths in (("SS.md", "\u00df.md"), ("\u00c5.md", "\u00e5.md"), ("docs/\u2c2f.md",)):
+            with self.subTest(paths=paths):
+                self.refuses(with_paths(*paths), "must be ASCII")
         self.refuses(with_paths("docs/a.md", "docs/b.md", "docs.md"), "ascend")  # "docs.md" sorts first
         value = mutated(self.manifest, with_paths("docs.md", "docs/a.md", "docs/b.md"))
         self.assertIs(REG.validate_release_manifest(value), value)
@@ -649,7 +654,7 @@ class ReleaseManifestTests(unittest.TestCase):
     def test_the_canonical_form_is_bounded_at_one_mebibyte(self):
         big = [{"path": "p" * (R.MAX_CANONICAL_BYTES + 1), "sha256": "e" * 64, "size_bytes": 1}]
         self.refuses(lambda m: m["components"][3].update(files=big), "1 MiB")
-        self.refuses(lambda m: m["components"][3]["files"][0].update(path="kernel/\ud800"), "UTF-8")
+        self.refuses(lambda m: m["components"][3]["files"][0].update(path="kernel/\ud800"), "ASCII")
 
 
 class ManifestOctetsTests(unittest.TestCase):
@@ -763,6 +768,12 @@ class KernelCoherenceTests(unittest.TestCase):
             1, dict(copy.deepcopy(m["components"][0]), id="brainstem-copy")))
         self.assertFalse(self.coherent(no_kernel)[0])
         ok, why = self.coherent(second)
+        self.assertFalse(ok)
+        self.assertIn("not 2", why)
+        # Exactly one kernel component, and it matches: a matching one beside a stray one is refused too.
+        stray = mutated(self.manifest, lambda m: m["components"].insert(
+            1, dict(copy.deepcopy(m["components"][0]), id="brainstem-stray", commit="8" * 40)))
+        ok, why = self.coherent(stray)
         self.assertFalse(ok)
         self.assertIn("not 2", why)
 
@@ -948,6 +959,10 @@ class VerifiedSnapshotTests(unittest.TestCase):
             "UTF-16": (World.identity(alpha).decode("utf-8").encode("utf-16"), "must be UTF-8"),
             "UTF-32": (World.identity(alpha).decode("utf-8").encode("utf-32-le"), "never holds a NUL byte"),
             "UTF-16 without a mark": (World.identity(alpha).decode("utf-8").encode("utf-16-le"), "NUL byte"),
+            "a number with a fraction": (World.identity(alpha)[:-1] + b',"version":1.5}', "without fraction"),
+            "a number written 1.0": (World.identity(alpha)[:-1] + b',"version":1.0}', "without fraction"),
+            "an integer beyond 2^53-1": (World.identity(alpha)[:-1] + b',"version":9007199254740992}',
+                                         "without fraction"),
         }
         for label, (octets, message) in cases.items():
             with self.subTest(label=label):

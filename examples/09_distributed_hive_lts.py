@@ -187,7 +187,7 @@ kept = [e for e in september if e["type"] in REG.DECLARED_TYPES]  # what a consu
 show("the October registry retains every September declaration byte for byte",
      reg.check_retained(kept) == (True, "ok"))
 
-# ── 4. Channels and families: a family's last release in chain order is its current release. ──
+# ── 4. Channels and families: a family's last release pin in `entries` is its current release. ──
 print("\nchannels (§13.5) — each one linear chain of release pins; its head pins the current release:")
 for channel in sorted(reg.release_channels):
     show(f"{channel}: " + " -> ".join(named(e) for e in reg.release_channels[channel]), True,

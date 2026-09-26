@@ -325,6 +325,15 @@ def registry_sections():
             ("a deprecated pin followed by the current one",
              document(base + [pin("b" * 64, True), pin("c" * 64, False)])),
         ]
+        # §13.1 constrains how each number is written, so these carry their exact text.
+        plain = json.dumps(document(base), sort_keys=True, separators=(",", ":"))
+        assert plain.count('"registry_seq":1,') == 1
+        texts = [(f"registry_seq written as {spelled}", plain.replace('"registry_seq":1,', f'"registry_seq":{spelled},'))
+                 for spelled in ("1.0", "1e0", "10E-1")]
+        texts.append(("an unknown entry's number written as -0.0",
+                      plain.replace('"entries":[', '"entries":[{"type":"vector-future","n":-0.0},')))
+        texts.append(("an unknown entry's number written as -0, which is zero",
+                      plain.replace('"entries":[', '"entries":[{"type":"vector-future","n":-0},')))
         out = []
         for label, doc in cases:
             case = {"label": label, "expect": _registry_accepts(doc)}
@@ -336,6 +345,8 @@ def registry_sections():
                 # stays strict I-JSON within §4's limits.
                 case["json_text"] = json.dumps(doc, sort_keys=True, separators=(",", ":"))
             out.append(case)
+        for label, text in texts:
+            out.append({"label": label, "expect": _registry_accepts(json.loads(text)), "json_text": text})
         return out
 
     def declared_cases():
@@ -566,6 +577,31 @@ def registry_sections():
             history_case("an accepted kernel dropped", [grail, rp(1)], [rp(1)], "refuse"),
         ]
 
+        def identity_cases():
+            """§13.5 door of record: an identity file's octets against its component's rappid."""
+            alpha = _keyless("organism-alpha", 1)
+            good = R.canonical({"rappid": alpha, "schema": "rapp/1"}).encode("utf-8")
+            texts = [
+                ("the canonical identity file", good),
+                ("pretty-printed, without a schema", json.dumps({"rappid": alpha}, indent=2).encode("utf-8")),
+                ("another rappid", R.canonical({"rappid": _keyless("organism-beta", 2)}).encode("utf-8")),
+                ("a schema other than rapp/1", R.canonical({"rappid": alpha, "schema": "rapp/0"}).encode("utf-8")),
+                ("not an object", R.canonical([alpha]).encode("utf-8")),
+                ("a duplicate member", b'{"rappid":"x","rappid":"' + alpha.encode("ascii") + b'"}'),
+                ("a UTF-8 byte-order mark", b"\xef\xbb\xbf" + good),
+                ("UTF-16", good.decode("utf-8").encode("utf-16")),
+                ("UTF-32 without a mark", good.decode("utf-8").encode("utf-32-le")),
+                ("a number written with a fraction", good[:-1] + b',"version":1.5}'),
+                ("an integer beyond 2^53-1", good[:-1] + b',"version":9007199254740992}'),
+                ("an integer within range", good[:-1] + b',"version":7}'),
+            ]
+            out = []
+            for label, octets in texts:
+                why = REG._door_of_record_mismatch({"rappid": alpha}, octets)
+                out.append({"label": label, "rappid": alpha, "octets_hex": octets.hex(),
+                            "expect": "accept" if why is None else "refuse"})
+            return out
+
         kernel_only = {"schema": REG.MANIFEST_SCHEMA, "release_scope": LTS, "release": "vector-1.0.0-kernel",
                        "components": [_kernel_component()]}
         assert kernel_only["components"][0]["files"][2]["path"] == grail["path"]
@@ -585,11 +621,15 @@ def registry_sections():
 
         second_kernel = _changed(kernel_only, lambda m: m["components"].append(
             dict(copy.deepcopy(m["components"][0]), id="brainstem-copy")))
+        stray_kernel = _changed(kernel_only, lambda m: m["components"].append(
+            dict(copy.deepcopy(m["components"][0]), id="brainstem-stray", commit="8" * 40)))
         coherence_cases = [
             coherence_case("the kernel component equals the family's grail-kernel", True, kernel_only, "accept"),
             coherence_case("neither a grail-kernel nor a kernel component", False, compact, "accept"),
             coherence_case("a grail-kernel but no kernel component", True, compact, "refuse"),
             coherence_case("two kernel components", True, second_kernel, "refuse"),
+            coherence_case("a matching kernel component and a second that matches nothing", True, stray_kernel,
+                           "refuse"),
             coherence_case("another repository", True, kernel(repository=GIT + "mirror"), "refuse"),
             coherence_case("the same repository spelled another way", True,
                            kernel(repository=GIT + "brainstem.git"), "refuse"),
@@ -645,6 +685,7 @@ def registry_sections():
             "entry_cases": entry_cases,
             "history_cases": history_cases,
             "kernel_coherence_cases": coherence_cases,
+            "identity_cases": identity_cases(),
         }
 
     def lifecycle_cases():

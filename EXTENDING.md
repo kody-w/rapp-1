@@ -14,14 +14,14 @@ signs. This page is the lane. Nothing on it needs a change to `rapp/1`.
 | your own egg variant or error code | `egg-variant` / `error-code` entries in your registry | §13.3 (see the open question below) |
 | your signers and their keys | `spki` entries; rotation by `re-anchor`; compromise by `tombstone` | §10, §13.2 |
 | your production runtime pinned | a `grail-kernel` entry | §11.1 |
-| every component of one release of a family pinned together (an LTS line and its corrections, a newest channel) | one `release-pin` entry per pinned release + its `rapp/1-release-manifest` (`schema`, `release_scope`, `release`, `components`); the `release_scope` names the release family, and `release` names the release for people | §13.5 |
+| every component of one release of a family pinned together (an LTS line and its corrections, a newest channel) | one `release-pin` entry per pinned release + its `rapp/1-release-manifest` (`schema`, `release_scope`, `release`, `components`); the `release_scope` names the release family, and `release` names the release for people; paths are ASCII; a newest family graduates to LTS by being pinned in the LTS channel | §13.5 |
 | to say an organism — or a repository that never minted a rappid — is deprecated, superseded, or archived, and since when | `lifecycle` notices (one signed chain per subject: a rappid, or a repository's HTTPS URI) | §13.6 |
 | to let a key speak for you on one stream (a pulse, a notice feed) | `stream-signer` grants — keyless organisms stay keyless | §13.7 |
 | your own signature on each of those four (a kernel, a release, a notice, a grant) | a declared entry: signed by the owner in effect at its `activated_utc`, retained unchanged once accepted; a copy elsewhere counts only when its canonical form equals a carried entry's | §13.4 |
 | a subordinate profile (`acme-factory/1`) with its own normative text | **your** repository; adopted by a `protocol` entry pinning repo, path, and SHA-256 | §11.2, `protocols/README.md` |
 | tooling that needs a library (Ed25519 signing, HSMs, a database) | **your** repository; it imports `rapp.py`'s canonicalizer, never re-types it | Art. 10 |
 | to say which RAPP/1 you implement | a `protocol` entry `name:"rapp/1"` whose `spec_hash` comes from **this** repository's anchor | §13.3 |
-| the registry document itself | exactly `schema`, `registry_seq`, `canonical_source` (an absolute HTTPS URI, or a URN for a private store), `entries`, `sig`; other members carry no meaning; an entry type a consumer does not implement is ignored unless marked `critical`; at most 1 MiB canonical, so spend entries on releases and changes | §13.1, §13.3, §4 |
+| the registry document itself | exactly `schema`, `registry_seq`, `canonical_source` (an absolute HTTPS URI, or a URN for a private store), `entries`, `sig`; other members carry no meaning; an entry type a consumer does not implement is ignored unless marked `critical`; every number written as an integer (no fraction or exponent); at most 1 MiB canonical, so spend entries on releases and changes | §13.1, §13.3, §4 |
 
 Every estate pins RAPP/1 the same way, so two estates interoperate on bytes while
 disagreeing on everything else. That is the point.

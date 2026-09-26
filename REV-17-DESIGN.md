@@ -43,8 +43,8 @@ Evidence is quoted from `main` at `591e014` (rev-16).
 Not blocking the lock, and left open in `rapp-backlog.md`: tombstone issuance time, kind ownership across
 estates, egg-variant closure, the registry's lifetime capacity (§6), a `rapp.utc_valid` fix for
 non-ASCII digits in frames (the registry already refuses them; `rapp.py` changes only through its parity
-process), and the Unicode version behind §9.1's path-set folding, which a release manifest reuses (frozen;
-an estate avoids paths that collide only under a newer Unicode version). One limit is recorded for estates rather than changed here: profile adoption
+process), and the Unicode version behind §9.1's NFC test and path-set folding (frozen; rev-17 keeps
+release-pin and manifest paths ASCII, so its own verdicts never depend on it). One limit is recorded for estates rather than changed here: profile adoption
 pins are estate-wide, and `rapp-work/1` requires exactly one active pin per profile name whose hash is the
 implementation's own, so the LTS line and the newest channel share each profile text. A changed profile
 text is therefore a new profile name (for example `rapp-work/2`) adopted beside the old one, never a moved
@@ -180,11 +180,15 @@ unverified until the estate that pins this root is anchored". Rev-17 answers bot
   When a newest kernel graduates to LTS, the LTS channel pins a new release (a new `release` name) of that
   same family — never a second scope for the same kernel, which §11.1 refuses. Channel names are lclabels;
   the portfolio's words `rapp1-lts` and `newest` fit. Keep every number in a registry, and in an identity
-  file, an integer within ±(2^53−1); a later entry type carries other quantities as strings.
+  file, written as an integer (no fraction, no exponent: `1.0` is refused) within ±(2^53−1); a later entry
+  type carries other quantities as strings.
 - **Manifests.** Publish each manifest as exactly its canonical bytes in a **public** repository at an
   immutable commit (the release pin's locator), for example under `releases/<manifest_hash>.json`. The
   kernel component carries the `grail-kernel` entry's repository, object format, commit, and tag, pins the
   kernel file with the entry's digest and size, and pins the kernel's other frozen files beside it.
+- **Manifest size.** A manifest is also capped at 1 MiB canonical (§4): a file entry costs about 130
+  bytes, so one release pins roughly 7,000 files across all its components — for about 300 stations,
+  pin each one's card and shared files, not whole trees. File paths are ASCII (§13.5).
 - **Components.** One per repository at its LTS commit. `id` is an lclabel (lowercase ASCII and hyphens),
   so map repository names to ids once and keep them; `repository` is `https://github.com/<owner>/<repo>`
   spelled as the estate always spells it. Suggested kinds: `kernel` (reserved), `protocol`, `organism`,
@@ -332,11 +336,12 @@ reference's.
       ]
     },
     "path": {
-      "description": "§9.1 path grammar (rapp._path_valid): relative POSIX path, no empty/'.'/'..' segment, no '\\\\' or ':' or control character, no segment ending in space or dot, no Windows reserved name, no drive prefix; ALSO Unicode NFC, which a pattern cannot express",
+      "description": "ASCII §9.1 path grammar (rapp._path_valid; rev-17 manifests and locators are ASCII): relative POSIX path, no empty/'.'/'..' segment, no '\\\\' or ':' or control character, no segment ending in space or dot, no Windows reserved name, no drive prefix; printable ASCII only (so already NFC)",
       "type": "string",
-      "pattern": "^(?![A-Za-z]:)(?!\\.\\.?(?:/|$))(?!(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$))[^/\\\\:\\x00-\\x1f]*[^/\\\\:\\x00-\\x1f .](?:/(?!\\.\\.?(?:/|$))(?!(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$))[^/\\\\:\\x00-\\x1f]*[^/\\\\:\\x00-\\x1f .])*$"
+      "pattern": "^(?![A-Za-z]:)(?!\\.\\.?(?:/|$))(?!(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$))[\\x20-\\x2e\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7e]*[\\x21-\\x2d\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7e](?:/(?!\\.\\.?(?:/|$))(?!(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$))[\\x20-\\x2e\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7e]*[\\x21-\\x2d\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7e])*$"
     },
     "uint53": {
+      "description": "written without fraction or exponent (JSON Schema's integer also admits 1.0, which §13.1 refuses)",
       "type": "integer",
       "minimum": 0,
       "maximum": 9007199254740991
@@ -370,7 +375,7 @@ reference's.
       }
     },
     "release-pin": {
-      "description": "§13.3/§13.5 release-pin (declared, persisted). Cross-entry rules not expressible here: manifest_hash unique; one channel per release_scope; predecessor names an EARLIER release-pin of the same channel; one root and no fork per channel; activated_utc never decreases along a channel; a scope's grail-kernel (if any) precedes its first release-pin.",
+      "description": "§13.3/§13.5 release-pin (declared, persisted). Cross-entry rules not expressible here: manifest_hash unique; predecessor names an EARLIER release-pin of the same channel; one root and no fork per channel; activated_utc never decreases along a channel; a family's releases may span channels (newest graduating to LTS) and its current release is its pin last in entries; a scope's grail-kernel (if any) precedes its first release-pin; path is ASCII (a pattern cannot state NFC).",
       "type": "object",
       "additionalProperties": false,
       "required": [

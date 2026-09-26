@@ -59,12 +59,12 @@ internals, customer content and anything a reader here has no business seeing.
       check, and lifecycle and authority query; `rapp.verify_frame` itself is parity-pinned, so its
       fix and a conformance vector belong to a reviewed reference change.
 
-- [ ] **§9.1 path-set folding names no Unicode version.** The §9.1 collision rule compares segments
-      after NFD and full case folding, and the reference uses its Python's `unicodedata`, so two paths
-      that collide only under a newer Unicode version (for example U+2C2F and U+2C5F) are accepted by
-      Python 3.9 (Unicode 13) and refused by 3.14 (Unicode 16). §9.1 is frozen; a rev-17 release
-      manifest reuses the rule, so an estate should avoid such paths. Pinning a Unicode version
-      belongs to a reviewed §9.1 note or `rapp/2`.
+- [ ] **§9.1 path rules name no Unicode version.** §9.1's NFC test and its collision rule (NFD and
+      full case folding) use the reference's Python `unicodedata`, so a non-ASCII path can be valid on
+      Python 3.9 (Unicode 13) and refused on 3.14 (Unicode 16), or collide on one and not the other.
+      rev-17 keeps a `release-pin` path and every release-manifest path ASCII, so its own verdicts never
+      depend on it; §9.1 itself (egg paths) is frozen, so pinning a Unicode version belongs to a reviewed
+      §9.1 note or `rapp/2`.
 
 ## Known limit
 

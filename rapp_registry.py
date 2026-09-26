@@ -333,8 +333,8 @@ def _validate_release_pin(entry, where):
     # R._path_valid is the §9.1 path grammar: the grail-kernel path rule (relative NFC POSIX,
     # no empty/"."/".." component) plus the segment rules every file path of the manifest
     # obeys, so the manifest's own locator is as safe to fetch and store as what it pins.
-    if not R._path_valid(entry.get("path")):
-        raise RegistryError(f"{where}: `path` must be a relative NFC path obeying the §9.1 path grammar")
+    if not (R._path_valid(entry.get("path")) and entry["path"].isascii()):
+        raise RegistryError(f"{where}: `path` must be an ASCII relative path obeying the §9.1 path grammar")
     _utc(entry, "activated_utc", where)
     _rappid(entry, "declared_by", where); _str(entry, "sig", where)
 
@@ -1310,8 +1310,13 @@ def validate_document(doc):
     sig = doc["sig"]
     if sig is not None and not (isinstance(sig, str) and sig):
         raise RegistryError("sig must be a detached JWS string or null (§13.1)")
+    try:  # §13.1: every number an integer written without fraction or exponent, within ±(2^53-1)
+        octets = R.canonical(doc).encode("utf-8")
+    except (ValueError, RecursionError) as why:
+        raise RegistryError(f"registry document: every number is an integer without fraction or exponent, "
+                            f"of magnitude at most 2^53-1, and every string valid (§13.1, §4): {why}")
     try:  # §4(d): a registry is one §4 value — at most 1 MiB canonical, nested at most 64 deep
-        R._strict_json(R.canonical(doc).encode("utf-8"))
+        R._strict_json(octets)
     except (ValueError, RecursionError) as why:
         raise RegistryError(f"registry document is not a §4 value: {why}")
     return doc
@@ -1447,8 +1452,9 @@ def _validate_component(component, where):
         if not isinstance(item, dict) or set(item) != set(FILE_MEMBERS):
             raise RegistryError(f"{at}: a file has exactly the members {list(FILE_MEMBERS)}")
         path = item["path"]
-        if not R._path_valid(path):
-            raise RegistryError(f"{at}: `path` violates the §9.1 path grammar")
+        if not (R._path_valid(path) and path.isascii()):
+            # ASCII keeps §9.1's NFC test and case folding the same on every Unicode version (§13.5).
+            raise RegistryError(f"{at}: `path` must be ASCII and obey the §9.1 path grammar")
         try:
             key = path.encode("utf-8")
         except UnicodeEncodeError:
@@ -1657,7 +1663,8 @@ def _door_of_record_mismatch(component, octets):
     try:
         identity = R._strict_json(octets)
     except (ValueError, RecursionError) as why:
-        return f"identity file is not a §4 value: {why}"
+        return (f"identity file is not a §4 value whose numbers are integers without fraction or exponent "
+                f"within ±(2^53-1) (§13.5): {why}")
     if not isinstance(identity, dict):
         return "identity file must be a JSON object"
     if identity.get("rappid") != component["rappid"]:

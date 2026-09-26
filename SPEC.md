@@ -929,9 +929,10 @@ forge that estate).
   trust anchor **MUST** refuse a document whose `canonical_source` differs from it in any byte. A document
   that carries its entries under any other member, or lacks one of these five members, is not a
   `rapp/1-registry`. Every number anywhere in the document — in an entry of any type, including one a
-  consumer does not implement, and in any other member — is an integer of magnitude at most 2^53−1, so
-  every consumer computes the same `canonical(registry \ {sig})`; a later entry type carries any other
-  quantity as a string.
+  consumer does not implement, and in any other member — is written as an integer, with no fraction and
+  no exponent (so `1.0` and `1e2` are refused, and `-0` is zero), of magnitude at most 2^53−1, so every
+  consumer computes the same `canonical(registry \ {sig})`; a later entry type carries any other quantity
+  as a string.
 - The registry document **MUST** carry a top-level `registry_seq` (uint53) and a detached §10 JWS `sig` over
   `canonical(registry \ {sig})` with `kid` = the `estate_owner` rappid. A consumer **MUST** verify this
   signature against an SPKI whose `Hb("rapp/1:rappid", SPKI_DER)` equals the anchor rappid's tail (the SPKI
@@ -999,9 +1000,9 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   `manifest_hash` of the `release-pin` this one follows in the same `channel`; `manifest_hash` is
   `H("rapp/1:particle", manifest)` of the release manifest (§13.5), and no two `release-pin` entries share
   it; `repository` (an absolute HTTPS URI), `object_format` (`"sha1"` or `"sha256"`, fixing the lowercase
-  hexadecimal length of `commit`), `commit`, and `path` (the §9.1 path grammar) locate the manifest's
-  octets, which `manifest_hash` — not a git object id — proves. It pins every component of one immutable
-  release of its family (§13.5).
+  hexadecimal length of `commit`), `commit`, and `path` (ASCII, under the §9.1 path grammar) locate the
+  manifest's octets, which `manifest_hash` — not a git object id — proves. It pins every component of one
+  immutable release of its family (§13.5).
 - **lifecycle** `{type:"lifecycle", subject, state, superseded_by, since_utc, previous, activated_utc,
   declared_by, sig}` — exactly these members; a declared entry (§13.4). `subject` is what the notice is
   about: a §6.1 rappid (an organism) or an absolute HTTPS URI naming a repository (§13.6); `state` is
@@ -1089,9 +1090,10 @@ that pins every component of that release:
   `object_format` fixes the lowercase hexadecimal length of `commit` exactly as for `grail-kernel`; a
   non-null `immutable_ref` is a full `refs/tags/...` name that **MUST** resolve exactly to `commit` — a
   claim a git-capable verifier checks (below), not the byte snapshot.
-- `files` is sorted ascending by the UTF-8 bytes of `path`; each `path` obeys the §9.1 path grammar, and no
-  two paths of one component are equal case-insensitively or name a file and a directory above it (each
-  segment compared after Unicode NFD normalization and full case folding). `sha256` is the raw SHA-256 of
+- `files` is sorted ascending by the UTF-8 bytes of `path`; each `path` is ASCII and obeys the §9.1 path
+  grammar — ASCII so that §9.1's NFC test and case folding give the same answer on every Unicode version —
+  and no two paths of one component are equal case-insensitively or name a file and a directory above it
+  (each segment compared after Unicode NFD normalization and full case folding). `sha256` is the raw SHA-256 of
   the file's octets at `commit` and `size_bytes` their `uint53` length. `files` **MAY** be empty; such a
   component pins only a commit, which a git-capable verifier may check, and it contributes nothing to a
   verified snapshot.
@@ -1099,7 +1101,8 @@ that pins every component of that release:
   trailing line terminator — so its raw SHA-256 and `manifest_hash` are both reproducible from the bytes.
 - **Door of record.** `rappid` and `identity_path` are both `null` or both non-null. When set,
   `identity_path` is one of the component's `files`, and those octets are UTF-8 without a byte-order mark
-  and parse as a §4 object whose numbers, if any, are integers of magnitude at most 2^53−1, whose `rappid`
+  and parse as a §4 object whose numbers, if any, are written as integers (no fraction, no exponent) of
+  magnitude at most 2^53−1, whose `rappid`
   member equals the component's `rappid`, and whose `schema`, when present, is `"rapp/1"`. Such a component
   is the estate's signed statement that, within this pinned release, the organism's door of record is
   `repository` at `commit`. A manifest **MUST NOT** bind one rappid in two components. A consumer locating
@@ -1107,16 +1110,18 @@ that pins every component of that release:
   repository or directory name, a copy found in a mirror or monorepo, or a moving branch. The binding
   transfers no key, signature authority, or ownership.
 - **Kernel coherence.** When the registry carries a `grail-kernel` entry for the manifest's
-  `release_scope`, the manifest **MUST** contain exactly one `kind:"kernel"` component whose `repository`,
-  `object_format`, `commit`, and `immutable_ref` equal that entry's and one of whose files has that entry's
-  `path`, `sha256`, and `size_bytes`; its other files pin the kernel's companions. Otherwise the manifest
-  **MUST NOT** contain a `kind:"kernel"` component. Kernel coherence compares members byte-for-byte; an
-  estate uses one exact spelling of each repository URI. A `grail-kernel` entry for a release scope
-  **MUST** appear in `entries` before that scope's first `release-pin`; a registry that places it later is
-  refused whole. A consumer that has accepted a release of a family **MUST** refuse a later registry that
-  adds a `grail-kernel` entry for that family; §13.4 retention makes the insertion visible. So a family's
-  kernel is settled before its first release pin: every release of a family with a kernel carries that
-  kernel's component, and no release of a family without one carries a `kind:"kernel"` component.
+  `release_scope`, the manifest **MUST** contain exactly one `kind:"kernel"` component, and that
+  component's `repository`, `object_format`, `commit`, and `immutable_ref` **MUST** equal that entry's and
+  one of its files **MUST** have that entry's `path`, `sha256`, and `size_bytes`; its other files pin the
+  kernel's companions. Otherwise the manifest **MUST NOT** contain a `kind:"kernel"` component. (A
+  `grail-kernel` whose `path` is not an ASCII §9.1 path binds a family that no release can carry.) Kernel
+  coherence compares members byte-for-byte; an estate uses one exact spelling of each repository URI. A
+  `grail-kernel` entry for a release scope **MUST** appear in `entries` before that scope's first
+  `release-pin`; a registry that places it later is refused whole. A consumer that has accepted a release
+  of a family **MUST** refuse a later registry that adds a `grail-kernel` entry for that family; §13.4
+  retention makes the insertion visible. So a family's kernel is settled before its first release pin:
+  every release of a family with a kernel carries that kernel's component, and no release of a family
+  without one carries a `kind:"kernel"` component.
 - **Channels.** The `release-pin` entries of one `channel` form one linear chain through `predecessor`:
   exactly one has `predecessor:null`, each other names a `release-pin` of the same `channel` that appears
   earlier in `entries`, no two name the same predecessor, and none has an `activated_utc` before its

@@ -196,6 +196,23 @@ class UriBoundaryTests(unittest.TestCase):
                     with self.assertRaisesRegex(REG.RegistryError, f"`{label}`"):
                         REG.Registry(base + [entry])
 
+    def test_a_number_is_judged_by_how_it_is_written(self):
+        plain = json.dumps(self.estate.document(self.estate.base_entries(), signed=False), sort_keys=True)
+        owner = self.estate.keys["owner"]
+        self.assertIn('"registry_seq": 2', plain)
+        for spelled in ("2.0", "2e0", "20E-1"):
+            with self.subTest(registry_seq=spelled):
+                document = json.loads(plain.replace('"registry_seq": 2', f'"registry_seq": {spelled}'))
+                status, _, why = REG.load_document(document, trust_anchor=owner, allow_unsigned=True)
+                self.assertEqual(status, "refused")
+        for spelled, expect in (("-0.0", "refused"), ("-0", "draft"), ("1e2", "refused"), ("100", "draft")):
+            with self.subTest(note=spelled):
+                document = json.loads(plain[:-1] + f', "note": {spelled}}}')
+                status, _, why = REG.load_document(document, trust_anchor=owner, allow_unsigned=True)
+                self.assertEqual(status, expect, why)
+                if expect == "refused":
+                    self.assertIn("§13.1", why)
+
     def test_every_number_in_a_registry_is_an_integer_within_2_to_the_53(self):
         base = self.estate.base_entries()
         for label, document in (
