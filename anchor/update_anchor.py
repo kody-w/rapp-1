@@ -731,6 +731,14 @@ def revision_payload(
                 "counts only when its canonical form (§4) equals an entry an accepted registry carries."
             ),
         },
+        {
+            "t": "fact",
+            "c": (
+                "A consumer ignores a registry entry of a type it does not implement, unless the entry "
+                "is marked critical, which refuses the whole registry; so one estate registry can keep "
+                "growing after an LTS consumer is pinned, and an ignored entry grants nothing."
+            ),
+        },
     ]
     for rule in rules:
         if rule not in payload["rules"]:

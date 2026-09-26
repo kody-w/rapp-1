@@ -81,8 +81,10 @@ the currently served release is immutable even while a separate candidate lineag
 **deployment cell** — an independently observable and isolatable runtime failure domain governed by
 `rapp-deploy/1`. **declared entry** — a §13.3 registry entry that carries its own owner signature made at
 its `activated_utc`; a copy with its canonical form (§4) verifies against the estate's registry (§13.4).
-**absolute HTTPS URI** — a URI [RFC 3986] of at most 2048 printable ASCII characters whose scheme is
-`https`, whose host is not empty, and which carries no user information.
+**absolute HTTPS URI** — an absolute URI [RFC 3986] (so with no fragment) of at most 2048 characters whose
+scheme is the lowercase `https` and whose authority carries no user information, a host that is a
+non-empty reg-name or an IP literal (an IPv6 address with no zone, or IPvFuture), and, if present, a port
+of one to five digits no greater than 65535.
 
 ## 4. Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **[RFC 8785] JCS** for the value `v`, defined **only**
@@ -910,8 +912,10 @@ forge that estate).
   `Hb("rapp/1:rappid", SPKI_DER)`, the rappid **is** a self-certifying key fingerprint, distributed
   out-of-band exactly once (QR, invite, docs) the way a root-CA certificate is.
 - **The document.** A registry is one §4 object whose meaningful members are exactly `schema`
-  (`"rapp/1-registry"`), `registry_seq`, `canonical_source`, `entries`, and `sig`. `canonical_source` is the
-  absolute HTTPS URI of the owner-selected location of record for this document; `entries` is the array of
+  (`"rapp/1-registry"`), `registry_seq`, `canonical_source`, `entries`, and `sig`. `canonical_source` names
+  the owner-selected location of record for this document: an absolute HTTPS URI (§3) for a registry
+  published on the web, or a URN [RFC 8141] — lowercase `urn:`, with no r-, q-, or f-component — for one
+  kept in a private store, such as a private Hive's registry history; `entries` is the array of
   §13.3 entries in append order; `sig` is `null` only on an unsigned draft. Any other top-level member is
   covered by `sig` but carries no RAPP/1 meaning: a consumer **MUST NOT** read an entry, key, trust,
   policy, or freshness claim from it. A consumer that obtained a canonical source out of band with the
@@ -980,6 +984,15 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
 - **estate_owner** `{type:"estate_owner", rappid}` (exactly one non-deprecated) · **master-plan**
   `{type:"master-plan", repo, path}` (Fed. Const. Art. VII).
 
+An entry whose `type` is a string naming no entry type a consumer implements is an entry that consumer
+does not understand. It stays covered by the registry's `sig` and counts toward the §4 limits, and the
+consumer **MUST** ignore it — it grants, revokes, binds, pins, and declares nothing for that consumer —
+unless it carries a member `critical` with any value other than `false`, in which case the consumer
+**MUST** refuse the whole registry. Whoever defines an entry type after this revision marks it critical
+exactly when an older consumer that ignored it would accept what the new type refuses; the types above
+never carry `critical`. A registry can therefore grow without cutting off a consumer pinned to an earlier
+revision, and no consumer takes an entry it cannot read for one it can.
+
 §7.5 steps 1–5 are time-independent (append-only lookups); **only** step 6 (tombstones) and §13.2 owner
 tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule. A declared entry (§13.4) is
 authenticated at its own `activated_utc`, never at the time it is read.
@@ -1030,6 +1043,9 @@ a permanent refusal even when `registry_seq` increased (§11.1 item 9 states the
   owner signature is checked at its `activated_utc`, so a valid document signature never blesses a forged
   or mutated declaration, a signed declaration that no accepted registry carries is not one, and no
   declaration can be dropped by a later registry (§13.4).
+- **Entry types a consumer does not implement:** ignoring one never widens what an older consumer trusts —
+  an ignored entry grants nothing — and a type whose omission would weaken a refusal is marked critical, so
+  an older consumer refuses the registry rather than trusting less than the estate states (§13.3).
 - **Producer-controlled `utc` (DoS/merge bias):** a future-dated head can brick a stream (successors refused
   as earlier) and bias UTC-first merges. A consumer **SHOULD** refuse a frame whose `utc` exceeds receipt
   time by >300 s, and adversarial-scope merges **SHOULD** rank by `min(utc, first-seen)`; a bricked stream
@@ -1051,14 +1067,17 @@ a permanent refusal even when `registry_seq` increased (§11.1 item 9 states the
 [FIPS 180-4] SHA-256 · [RFC 3986] URI · [RFC 5234] ABNF · [RFC 7405] case-sensitive ABNF · [RFC 9562] UUID
 (obsoletes RFC 4122) · [RFC 5280] X.509 SPKI · [RFC 7515] JWS · [RFC 7797] unencoded JWS payload ·
 [RFC 7518] JWA/ES256 · [RFC 8037] EdDSA in JOSE · [RFC 6979] deterministic ECDSA · [RFC 3339] timestamps ·
-[NIST SP 800-38D] AES-GCM · [RFC 2104] HMAC · [RFC 5869] HKDF · [RFC 7516] JWE · [ECMA-262] ECMAScript.
+[NIST SP 800-38D] AES-GCM · [RFC 2104] HMAC · [RFC 5869] HKDF · [RFC 7516] JWE · [ECMA-262] ECMAScript ·
+[RFC 8141] URN.
 
 ---
 
 ### Revision log
 - **rev-17 (registry closure for the distributed Hive)** — names the §13.1 document container
-  (`schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; any other member carries no meaning)
-  and generalizes the `grail-kernel` entry-level owner signature into §13.4 declared entries, each verified
+  (`schema`, `registry_seq`, `canonical_source` — an absolute HTTPS URI or a URN — `entries`, `sig`; any
+  other member carries no meaning; a document lacking one of the five is not a `rapp/1-registry`), and
+  says a consumer ignores an entry type it does not implement unless the entry is marked critical; and
+  generalizes the `grail-kernel` entry-level owner signature into §13.4 declared entries, each verified
   at its own `activated_utc` and retained byte-for-byte once accepted. No frozen form (§12)
   changes: every rev-16 `rapp/1` frame, egg, rappid, and conformance vector verifies unchanged.
 - **rev-16 (RAPP Work profile)** — added the subordinate `rapp-work/1` operational profile
