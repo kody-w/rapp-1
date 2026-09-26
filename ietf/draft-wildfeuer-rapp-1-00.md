@@ -50,8 +50,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame 28b0166934bab62cfc8a9f04cad01c3d8dd6de060c9289f1f624b04fee7fcf47, normative
-SHA-256 464dbb9289c919024395d550fa97a6a0fb460bf850c9f5b53f2b6412f69f6f65. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame f496b99776cb0959a4825eb901d2194eb8db64f5ed2210985d434e066f53b4f1, normative
+SHA-256 6e7a04372d5d646b31d8a45049a2f32961f794cdf01670cb10ef78d58c86add3. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -952,7 +952,9 @@ forge that estate).
   `Hb("rapp/1:rappid", SPKI_DER)`, the rappid **is** a self-certifying key fingerprint, distributed
   out-of-band exactly once (QR, invite, docs) the way a root-CA certificate is.
 - **The document.** A registry is one §4 object whose meaningful members are exactly `schema`
-  (`"rapp/1-registry"`), `registry_seq`, `canonical_source`, `entries`, and `sig`. `canonical_source` names
+  (`"rapp/1-registry"`), `registry_seq`, `canonical_source`, `entries`, and `sig`, stored and served as
+  UTF-8 octets without a byte-order mark (I-JSON, §4): a consumer refuses any other encoding rather than
+  guess one. `canonical_source` names
   the owner-selected location of record for this document: an absolute HTTPS URI (§3) for a registry
   published on the web, or a URN {{RFC8141}} of at most 2048 characters — lowercase `urn:`, with no r-, q-,
   or f-component — for one kept in a private store, such as a private Hive's registry history; `entries` is the array of
