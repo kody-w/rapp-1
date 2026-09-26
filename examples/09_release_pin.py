@@ -184,7 +184,8 @@ print("\ndoor of record (§13.5):")
 MONOREPO = GIT + "monorepo"
 STORE[(MONOREPO, "8a" * 20, "organisms/widget-factory/rappid.json")] = identity(widget)  # a byte-identical copy
 pin = reg.channel_head("lts")
-bound = REG.verify_release_manifest(reg, pin, fetch(pin["repository"], pin["object_format"], pin["commit"], pin["path"]))
+bound = REG.verify_release_manifest(reg, pin, fetch(pin["repository"], pin["object_format"], pin["commit"], pin["path"]),
+                                    allow_draft=True)  # the estate's statement, rehearsed on a draft
 door = next(c for c in bound["components"] if c["rappid"] == widget)
 show("widget-factory's door of record in the lts head is the repository the manifest binds",
      door["repository"] == GIT + "widget-factory", f"{door['repository']} @ {door['commit'][:12]}")

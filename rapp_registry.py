@@ -1197,8 +1197,12 @@ def _registry_release_pin(registry, pin):
     return own
 
 
-def verify_release_manifest(registry, pin, manifest_octets):
+def verify_release_manifest(registry, pin, manifest_octets, *, allow_draft=False):
     """§13.5 snapshot step 2 for one pinned release: the exact manifest `pin` pins, or RegistryError.
+
+    Its door-of-record bindings are the estate's statement, so like verify_snapshot it answers only for
+    a registry load_document returned as "verified" (a "draft" only with `allow_draft=True`, as a
+    rehearsal; a Registry built directly never).
 
     `pin` is one of `registry`'s release-pin entries (an exact copy from elsewhere is the same
     entry; any other value is refused). `manifest_octets` are whatever bytes a transport
@@ -1206,6 +1210,10 @@ def verify_release_manifest(registry, pin, manifest_octets):
     canonical(manifest), hash to the pin's `manifest_hash`, name the pin's `release_scope`,
     pass `validate_release_manifest`, and be coherent with that family's grail-kernel entry.
     The registry's own verification is `verify_snapshot`'s step 1, not this function's."""
+    refusal = registry._status_refusal(allow_draft, "which release a release-pin pins (§13.5)") \
+        if isinstance(registry, Registry) else "not a Registry"
+    if refusal:
+        raise RegistryError(refusal)
     entry = _registry_release_pin(registry, pin)
     if not isinstance(manifest_octets, bytes):
         raise RegistryError("release manifest octets must be bytes")
@@ -1321,7 +1329,10 @@ def verify_snapshot(registry, fetch, *, release_scope=None, channel=None, manife
     Registry built directly (status None) never.
     `fetch(repository, object_format, commit, path) -> bytes` is any transport (git, a mirror,
     `github_raw_url`) and is never trusted: it is called once for the release-pin's manifest
-    locator and once per pinned file, and every returned byte is checked against the manifest.
+    locator and once per pinned file, and every returned byte is checked against the manifest. The
+    lengths are known before each call (at most 1 MiB for the manifest, §4; `size_bytes` for a
+    file), so a transport should stop reading one byte past them rather than buffer a hostile
+    stream; this function refuses any other length.
     Refusal is whole: any failure raises RegistryError and returns nothing. What only git can
     prove — that an `immutable_ref` resolves to its `commit`, or the commit of a component
     whose `files` is empty — is left to a git-capable verifier."""
@@ -1334,7 +1345,7 @@ def verify_snapshot(registry, fetch, *, release_scope=None, channel=None, manife
         )
     entry = _select_release(registry, release_scope, channel, manifest_hash)
     manifest = verify_release_manifest(
-        registry, entry, _fetch_pinned(fetch, entry, entry["path"], "release manifest")
+        registry, entry, _fetch_pinned(fetch, entry, entry["path"], "release manifest"), allow_draft=allow_draft
     )
     snapshot = {}
     for component in manifest["components"]:

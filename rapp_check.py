@@ -123,7 +123,8 @@ _SNIFF_LIMIT = 8 * R.MAX_CANONICAL_BYTES
 
 def _oversized_schema(path):
     """The top-level `schema` a JSON file too large for §4 claims, when it is small enough to sniff
-    (at most 8 MiB), else None — so a registry over the 1 MiB limit is reported, not skipped."""
+    (at most 8 MiB), else None — so a registry or release manifest over the 1 MiB limit is reported,
+    not skipped."""
     try:
         return _lenient_schema(_read_blob(path, _SNIFF_LIMIT))
     except Exception:
@@ -464,14 +465,15 @@ def check_repo(root, signature_verifier=None):
             unknown(os.path.relpath(path, root), f"cannot stat JSON: {exc}")
             continue
         if size > R.MAX_CANONICAL_BYTES:
-            # Too large for §4, so never a valid artifact; but a registry that grew past the limit is
-            # reported, not skipped, when it is small enough to sniff.
+            # Too large for §4, so never a valid artifact; but a registry or release manifest that
+            # grew past the limit is reported, not skipped, when it is small enough to sniff.
             if size <= _SNIFF_LIMIT and count < _MAX_JSON_FILES and total + size <= _MAX_JSON_BYTES:
                 count, total = count + 1, total + size
                 claimed = _oversized_schema(path)
-                if claimed == REG.DOCUMENT_SCHEMA:
+                if claimed in (REG.DOCUMENT_SCHEMA, REG.MANIFEST_SCHEMA):
                     has_artifact = True
-                    finding(os.path.relpath(path, root), "§13 registry document",
+                    what = "§13 registry document" if claimed == REG.DOCUMENT_SCHEMA else "§13.5 release manifest"
+                    finding(os.path.relpath(path, root), what,
                             f"exceeds §4's 1 MiB limit ({size} bytes); refuse, never repair")
             continue
         if count >= _MAX_JSON_FILES or total + size > _MAX_JSON_BYTES:

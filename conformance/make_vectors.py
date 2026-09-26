@@ -244,6 +244,16 @@ def registry_sections():
     """Ordered (name, builder) pairs; each change to §13 appends its own section."""
     owner, base = _estate()
 
+    def rehearsal(entries):
+        """A registry of these entries as load_document returns an unsigned draft (vectors carry
+        placeholder signatures); answers that need a verified registry are asked with allow_draft."""
+        status, registry, why = REG.load_document(
+            {"schema": "rapp/1-registry", "registry_seq": 1, "canonical_source": SOURCE, "entries": entries,
+             "sig": None}, trust_anchor=owner, allow_unsigned=True)
+        if status != "draft":
+            raise REG.RegistryError(why)
+        return registry
+
     def document(members, **changes):
         value = {"schema": "rapp/1-registry", "registry_seq": 1, "canonical_source": SOURCE,
                  "entries": members, "sig": SIG}
@@ -341,10 +351,10 @@ def registry_sections():
         correction_pin = _release_pin(owner, LTS, R.H("rapp/1:particle", correction),
                                       predecessor=pin["manifest_hash"], activated_utc=LATER)
         assert correction["components"][0] == manifest["components"][0]  # a correction keeps the kernel
-        pinned_registry = REG.Registry(base + [grail, pin, correction_pin])
-        assert REG.verify_release_manifest(pinned_registry, pin, octets) == manifest
+        pinned_registry = rehearsal(base + [grail, pin, correction_pin])
+        assert REG.verify_release_manifest(pinned_registry, pin, octets, allow_draft=True) == manifest
         assert REG.verify_release_manifest(
-            pinned_registry, correction_pin, R.canonical(correction).encode("utf-8")) == correction
+            pinned_registry, correction_pin, R.canonical(correction).encode("utf-8"), allow_draft=True) == correction
 
         def order(registry):
             """Each channel's and each family's releases in chain order; the last is current."""
@@ -422,8 +432,9 @@ def registry_sections():
 
         def octets_case(label, entries, manifest_hash, data, intended):
             def decide():
-                registry = REG.Registry(entries)
-                return REG.verify_release_manifest(registry, registry.release_pin(manifest_hash), data)
+                registry = rehearsal(entries)
+                return REG.verify_release_manifest(registry, registry.release_pin(manifest_hash), data,
+                                                   allow_draft=True)
             expect = _verdict(decide)
             assert expect == intended, label
             return {"label": label, "entries": entries, "manifest_hash": manifest_hash, "octets_hex": data.hex(),

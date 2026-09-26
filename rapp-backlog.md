@@ -62,8 +62,9 @@ internals, customer content and anything a reader here has no business seeing.
 - [ ] **§9.1 path-set folding names no Unicode version.** The §9.1 collision rule compares segments
       after NFD and full case folding, and the reference uses its Python's `unicodedata`, so two paths
       that collide only under a newer Unicode version (for example U+2C2F and U+2C5F) are accepted by
-      Python 3.9 (Unicode 13) and refused by 3.14 (Unicode 16). §9.1 is frozen, so an estate should
-      avoid such paths. Pinning a Unicode version belongs to a reviewed §9.1 note or `rapp/2`.
+      Python 3.9 (Unicode 13) and refused by 3.14 (Unicode 16). §9.1 is frozen; a rev-17 release
+      manifest reuses the rule, so an estate should avoid such paths. Pinning a Unicode version
+      belongs to a reviewed §9.1 note or `rapp/2`.
 
 ## Known limit
 

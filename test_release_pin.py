@@ -659,6 +659,18 @@ class ManifestOctetsTests(unittest.TestCase):
         self.assertEqual(result, self.manifest)
         self.assertEqual(R.H("rapp/1:particle", result), self.pin["manifest_hash"])
 
+    def test_only_a_verified_registry_says_what_a_release_pins(self):
+        built = REG.Registry(self.reg.entries)  # the same entries, but nothing verified them
+        with self.assertRaisesRegex(REG.RegistryError, "registry status is None"):
+            REG.verify_release_manifest(built, self.pin, self.octets)
+        with self.assertRaisesRegex(REG.RegistryError, "registry status is None"):
+            REG.verify_release_manifest(built, self.pin, self.octets, allow_draft=True)
+        status, draft, _ = self.world.load([self.world.grail(), self.pin], signed=False, allow_unsigned=True)
+        self.assertEqual(status, "draft")
+        with self.assertRaisesRegex(REG.RegistryError, "registry status is 'draft'"):
+            REG.verify_release_manifest(draft, self.pin, self.octets)
+        self.assertEqual(REG.verify_release_manifest(draft, self.pin, self.octets, allow_draft=True), self.manifest)
+
     def test_any_other_octets_are_refused(self):
         pretty = json.dumps(self.manifest, indent=2, sort_keys=True).encode("utf-8")
         compact_unsorted = json.dumps(self.manifest, separators=(",", ":")).encode("utf-8")
