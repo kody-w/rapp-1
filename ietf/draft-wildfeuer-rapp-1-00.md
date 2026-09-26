@@ -50,8 +50,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame 9651dcc2e47a80b1a1cdd1a85dae7df5c8236ac9a36948cf7db844e9b81dd9c5, normative
-SHA-256 b66d6ebb1d2990d806a95cd2c8570e5a04c38d1059e26137454f53a058bb811d. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame dbaedb74fe1bc37fdc25ec52e6695675b26f8356d08c61d331bafe9c3a1e5a1a, normative
+SHA-256 d866f57ca265abc451d7dcf938752bc8b85a37f625f1401a1f75d22e1e9102a7. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -955,8 +955,9 @@ forge that estate).
   out-of-band exactly once (QR, invite, docs) the way a root-CA certificate is.
 - **The document.** A registry is one §4 object whose meaningful members are exactly `schema`
   (`"rapp/1-registry"`), `registry_seq`, `canonical_source`, `entries`, and `sig`, stored and served as
-  UTF-8 octets without a byte-order mark (I-JSON, §4): a consumer refuses any other encoding rather than
-  guess one. `canonical_source` names
+  UTF-8 octets without a byte-order mark (I-JSON, §4), at most 1 MiB as stored as well as canonically
+  (§4(d)), so a reader can stop one octet past 1 MiB: a consumer refuses any other encoding rather than
+  guess one, and refuses larger octets. `canonical_source` names
   the owner-selected location of record for this document: an absolute HTTPS URI (§3) for a registry
   published on the web, or a URN {{RFC8141}} of at most 2048 characters — lowercase `urn:`, with no r-, q-,
   or f-component — for one kept in a private store, such as a private Hive's registry history; `entries` is the array of
