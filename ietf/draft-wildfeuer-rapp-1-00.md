@@ -50,8 +50,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame bdeeb5a5b756772e1988e11df253b64c32bc3b8df99274a2628af6ac19e5c10e, normative
-SHA-256 b3c83b01cfda3f7418087a82332dfce03aa7482f598a36f903e85cdb2fca9472. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame 9651dcc2e47a80b1a1cdd1a85dae7df5c8236ac9a36948cf7db844e9b81dd9c5, normative
+SHA-256 b66d6ebb1d2990d806a95cd2c8570e5a04c38d1059e26137454f53a058bb811d. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -1090,7 +1090,10 @@ entry a consumer **MUST**:
    included;
 2. verify `sig` with that registry key — the enclosing §13.1 signature never substitutes for it;
 3. refuse an entry whose `activated_utc` is more than 300 seconds after the verifier's first-seen time
-   for that entry; and
+   for that entry — the time the verifier first accepted a registry carrying it, or, for an entry it has
+   not yet accepted, the time of this verification. A refused registry records no first-seen time, so an
+   entry published ahead of its `activated_utc` is refused until the verifier's clock is within 300
+   seconds of it, then accepted like any other; and
 4. refuse the whole registry when any declared entry fails (never skip the entry).
 
 For every comparison of entries in §13 — a copy, a retained entry, a persisted one — an entry's bytes are
