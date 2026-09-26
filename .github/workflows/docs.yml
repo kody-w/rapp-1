@@ -77,7 +77,8 @@ jobs:
         with:
           python-version: '3.13'
       - name: Install the optional signature library (pinned wheel)
-        run: python3 -m pip install --only-binary=:all: "cryptography==49.0.0"
+        run: |
+          python3 -m pip install --only-binary=:all: "cryptography==49.0.0"
       - name: Registry conformance with real Ed25519 signatures (no skips allowed)
         env:
           RAPP_REQUIRE_CRYPTOGRAPHY: "1"
