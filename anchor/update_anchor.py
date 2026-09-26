@@ -746,6 +746,14 @@ def revision_payload(
         {
             "t": "fact",
             "c": (
+                "A consumer ignores a registry entry of a type it does not implement, unless the entry "
+                "is marked critical, which refuses the whole registry; so one estate registry can keep "
+                "growing after an LTS consumer is pinned, and an ignored entry grants nothing."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
                 "A release scope names a release family bound to at most one Grail kernel; each "
                 "release-pin entry pins one immutable release of it by the particle hash of its "
                 "rapp/1-release-manifest, which names the release for people, pins every component file "
