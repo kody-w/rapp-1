@@ -68,6 +68,7 @@ def kernel_files(version):
 
 widget, ledger, ledger_next, network = (R.mint_rappid("acme", slug)  # keyless (§6.2): tails, not keys
                                         for slug in ("widget-factory", "ledger", "ledger-next", "network"))
+HIVE_ID = "0123456789abcdef0123456789abcdef"
 def identity(rappid):
     return R.canonical({"schema": "rapp/1", "rappid": rappid}).encode("utf-8")
 
@@ -81,13 +82,22 @@ def component(cid, kind, commit, files, rappid=None, tag=None):
 
 def unminted(slug, commit):
     """A member that never minted a rappid: its card is pinned, and its repository names it (§13.6)."""
-    return component(slug, "station", commit, {".rapp/member.md": f"---\nmember: {slug}\n---\n".encode()})
+    card = (f"---\n"
+            f"member: {slug}\n"
+            f"repo: acme/{slug}\n"
+            f"hive: {HIVE_ID}\n"
+            f"hive_root: {GIT}hive-root/\n"
+            f"what: Acme {slug} station\n"
+            f"line: field-guides\n"
+            f"---\n"
+            f"\n# {slug} on the Acme Hive\n").encode()
+    return component(slug, "station", commit, {".rapp/member.md": card})
 
 def hive_root(commit, member):
     """The Hive root's public copy — its index and one pointer. An estate catalog's `hives[]` entry
     only says where it is; the release manifest pinning it is what makes it authentic (§13.5)."""
     pointer = f"---\nstation: {member}\nrepo: acme/{member}\n---\n".encode()
-    index = f"---\nhive: acme\n---\n{hashlib.sha256(pointer).hexdigest()}  members/{member}.md\n".encode()
+    index = f"---\nhive: {HIVE_ID}\n---\n{hashlib.sha256(pointer).hexdigest()}  members/{member}.md\n".encode()
     return component("hive-root", "hive", commit, {"PUBLISHED.md": index, f"members/{member}.md": pointer})
 
 def manifest(scope, name, version, kernel_commit, widget_commit, books=("ledger", ledger, "4a" * 20),
@@ -229,15 +239,16 @@ show("the superseded first LTS release still verifies by its manifest_hash, on t
      and first[WIDGET_AGENT] != snapshot[WIDGET_AGENT])
 newest = REG.verify_snapshot(reg, fetch, channel="newest", allow_draft=True)
 show("the newest head runs the 2.1 kernel", newest[("brainstem", KERNEL)] == kernel_files("2.1.0")[KERNEL])
-def tampered(replace):
+def tampered(path, replace):
     def transport(repository, object_format, commit, path):
         octets = fetch(repository, object_format, commit, path)
-        return replace(octets) if path == "agents/widget_agent.py" else octets
+        return replace(octets) if path == path_to_tamper else octets
+    path_to_tamper = path
     return transport
 refused("one member file with one injected line refuses the whole snapshot", lambda: REG.verify_snapshot(
-    reg, tampered(lambda o: o + b"import os\n"), channel="lts", allow_draft=True))
+    reg, tampered(".rapp/member.md", lambda o: o + b"import os\n"), channel="lts", allow_draft=True))
 refused("so does a file of the same length with other bytes", lambda: REG.verify_snapshot(
-    reg, tampered(lambda o: o.upper()), channel="lts", allow_draft=True))
+    reg, tampered("agents/widget_agent.py", lambda o: o.upper()), channel="lts", allow_draft=True))
 
 # ── 6. A door of record is the manifest's binding, never a copy found elsewhere. ──
 print("\ndoors of record (§13.5):")
