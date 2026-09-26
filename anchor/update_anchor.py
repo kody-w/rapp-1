@@ -742,6 +742,14 @@ def revision_payload(
         {
             "t": "fact",
             "c": (
+                "A consumer ignores a registry entry of a type it does not implement, unless the entry "
+                "is marked critical, which refuses the whole registry; so one estate registry can keep "
+                "growing after an LTS consumer is pinned, and an ignored entry grants nothing."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
                 "A lifecycle comes from the estate-signed chain of its subject, an organism's rappid or "
                 "the URI of a repository that has none; the state and successor in effect at t are those "
                 "of the last notice whose since_utc <= t; no notice is no declared lifecycle, a claim no "

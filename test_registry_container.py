@@ -133,13 +133,59 @@ class DocumentLimitTests(unittest.TestCase):
         base = self.estate.base_entries()
         for source in ("https:///rapp-registry.json", "https://?x", "https://user@registry.example.test/r.json",
                        "https://registry.example.test/r json", "https://registry.exämple.test/r.json",
-                       "https://[::1/r.json", "http://registry.example.test/r.json", "https://"):
+                       "https://[::1/r.json", "http://registry.example.test/r.json", "https://",
+                       "https://registry.example.test/<r>.json", "https://registry.example.test/%zz.json",
+                       "https://registry.example.test:port/r.json", "https://@registry.example.test/r.json",
+                       "https://:8443/r.json", "HTTPS://registry.example.test/r.json",
+                       # Refused on every Python version: parsed by RFC 3986's grammar, never by urllib.
+                       "https://registry.example.test:+443/r.json", "https://registry.example.test:4_43/r.json",
+                       "https://registry.example.test:-0/r.json", "https://[zz]/r.json", "https://[::1]x/r.json",
+                       "https://registry.example.test/a[b].json", "https://[::1%25eth0]/r.json",
+                       "https://registry.example.test/r.json#top", "urn:x:registry", "URN:rapp:registry",
+                       "urn:rapp:registry#top"):
             with self.subTest(source=source):
                 with self.assertRaisesRegex(REG.RegistryError, "canonical_source"):
                     REG.validate_document(self.estate.document(base, signed=False, source=source))
-        for source in ("https://registry.example.test:8443/r.json?v=1#top", "https://[::1]/r.json"):
+        for source in ("https://registry.example.test:8443/r.json?v=1", "https://[::1]/r.json",
+                       "https://registry.example.test/a%20b/r.json",
+                       "urn:rapp:private-hive:" + "ab" * 32 + ":registry-history"):  # a private Hive's
             with self.subTest(source=source):
                 self.assertEqual(self.draft(self.estate.document(base, signed=False, source=source))[0], "draft")
+
+
+class UnknownEntryTypeTests(unittest.TestCase):
+    """§13.3: an entry type this consumer does not implement is ignored unless it is marked critical."""
+
+    def setUp(self):
+        self.estate = MockEstate()
+
+    def test_an_unknown_type_is_ignored_and_grants_nothing(self):
+        base = self.estate.base_entries()
+        future = {"type": "future-grant", "rappid": self.estate.keys["worker"], "power": "everything"}
+        for entry in (future, dict(future, critical=False)):
+            with self.subTest(critical=entry.get("critical", "absent")):
+                registry = REG.Registry(base + [entry])
+                self.assertEqual(registry.unknown_entries, [len(base)])
+                self.assertEqual(REG.Registry(base).spki, registry.spki)  # it binds no key
+                status, loaded, why = self.estate.load(self.estate.document(base + [entry]))
+                self.assertEqual((status, why), ("verified", "ok"))  # still covered by the signature
+                self.assertEqual(loaded.unknown_entries, [len(base)])
+
+    def test_an_unknown_type_marked_critical_refuses_the_registry(self):
+        base = self.estate.base_entries()
+        for value in (True, "yes", 1, None, []):
+            with self.subTest(critical=value):
+                with self.assertRaisesRegex(REG.RegistryError, "marked critical"):
+                    REG.Registry(base + [{"type": "future-revocation", "critical": value}])
+
+    def test_known_types_and_malformed_types_are_still_exact(self):
+        base = self.estate.base_entries()
+        with self.assertRaisesRegex(REG.RegistryError, "member set"):
+            REG.Registry(base + [dict(self.estate.spki("worker"), critical=False)])
+        for entry in ({"type": 7}, {"type": ""}, {"type": None}, {"kind": "no type"}, ["type"]):
+            with self.subTest(entry=entry):
+                with self.assertRaisesRegex(REG.RegistryError, "unknown entry type|not an object"):
+                    REG.Registry(base + [entry])
 
 
 class ProtocolPinTests(unittest.TestCase):
