@@ -306,6 +306,41 @@ All interaction rides one of exactly two forms:
    Any *history* is safe to read given a trusted head (§14); the hash chain (§5) makes tampering
    detectable.
 
+### 8.1 The agent side-channel — slosh and slush
+§8 form 1 is the wire between an organism and the world; **slosh** and **slush** are the wire between an
+organism and the agents it runs. They are specified here because they are load-bearing for
+interoperability — two implementations that pass agent state differently cannot compose the same agent —
+and because leaving them unspecified is what let the terms drift into implementation folklore.
+
+- **slosh** (input enrichment) — the §4 object an organism passes **into** an agent alongside the arguments
+  the model selected. It carries contextual signals the agent did not ask for by name (session, locale,
+  prior results, operator-supplied context).
+- **slush** (output context forwarding) — the §4 object an agent **returns** for the organism to carry
+  onward. When the organism invokes a subsequent agent in the same turn, it **MUST** present the previous
+  agent's `slush` to that agent as **`upstream_slush`** inside its slosh.
+
+Normative rules:
+1. `slosh` and `slush` are each a §4 value and **MUST** be a JSON **object** (possibly `{}`), never `null`,
+   array, or scalar — so both are canonicalizable [RFC 8785] and therefore content-addressable by §5. An
+   implementation **MUST** refuse a non-object exactly as §7.5 refuses a bad `payload`.
+2. **The model is never the carrier.** An implementation **MUST NOT** require slosh or slush to pass through
+   the prompt or the model's output to reach the next agent; the side-channel is deterministic JSON held by
+   the organism. (This is the point: it removes the token cost and the nondeterminism of asking a model to
+   restate state it was already given.)
+3. An agent **MUST** ignore members of its slosh it does not recognize, and **MUST NOT** fail because an
+   unexpected member is present — the same tolerance §8 form 1 requires of a `/chat` request, applied one
+   layer down. This is what lets an organism enrich slosh over time without breaking older agents.
+4. Slosh and slush are **organism-internal**. They **MUST NOT** be added to the §8 form 1 `/chat` response,
+   whose member set stays exactly `{response, agent_logs, session_id}`. An implementation that wishes to
+   publish them **MUST** do so as frame `payload` content (§7), where they are addressed and chained like
+   any other state.
+5. Neither is identity. A slosh or slush object **MUST NOT** be used to derive a rappid (§6.2) or to stand
+   in for a `payload_hash`; it is state in transit, addressed only if and when a frame carries it.
+
+**Advisory (composition).** When one agent's slush key set is largely consumed as another agent's declared
+parameters, the two are tightly coupled and **SHOULD** be reviewed as a single agent: a schema shared that
+completely is usually one capability that was split for reasons that no longer apply.
+
 ## 9. The Egg (L5) — the single egg spec of record
 An **egg** is a cartridge packing a unit of the estate. **RAPP §9 is the one egg spec of record** (it
 subsumes and retires `EGG_FAMILY.md`, `NEIGHBORHOOD_EGG_SPEC.md`, `ESTATE_SPEC.md`, `rappterbook/EGG_SPEC.md`,
