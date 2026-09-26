@@ -72,7 +72,8 @@ _KIND = re.compile(rf"({_LCLABEL})\.({_LCLABEL})")
 _LABEL = re.compile(_LCLABEL)
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 _HEX40 = re.compile(r"[0-9a-f]{40}")
-_HTTPS = re.compile(r"https://[\x21-\x7e]+")  # printable ASCII after the scheme: no space, no control
+# RFC 3986 characters after the scheme: unreserved, reserved, and well-formed percent-encodings only.
+_HTTPS = re.compile(r"https://(?:[A-Za-z0-9\-._~:/?#\[\]@!$&'()*+,;=]|%[0-9A-Fa-f]{2})+")
 _OBJECT_ID = {"sha1": _HEX40, "sha256": _HEX64}  # object_format -> commit/blob grammar
 
 # §13.1 — the registry document container (rev-17 closure).
@@ -123,14 +124,17 @@ def entry_hash(entry):
 
 
 def _https_uri(value):
-    """An absolute HTTPS URI (§3): scheme `https`, a non-empty host, no user information, printable
-    ASCII only, at most 2048 characters — the rule `rapp_profile.https_uri` also applies."""
+    """An absolute HTTPS URI (§3): RFC 3986 characters only (so printable ASCII, with well-formed
+    percent-encodings), the lowercase scheme `https`, a non-empty host, a numeric port if any, no user
+    information, at most 2048 characters. (The operational profiles' `rapp_profile.https_uri` is
+    looser; registry members follow §3.)"""
     if not (isinstance(value, str) and len(value) <= 2048 and _HTTPS.fullmatch(value)):
         return False
     try:
         parts = urllib.parse.urlsplit(value)
+        parts.port  # raises ValueError for a port that is not a number in range
         return bool(parts.hostname) and "@" not in parts.netloc
-    except ValueError:  # e.g. an unterminated IPv6 literal
+    except ValueError:  # an unterminated IPv6 literal, or a bad port
         return False
 
 

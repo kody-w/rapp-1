@@ -135,11 +135,15 @@ class DocumentLimitTests(unittest.TestCase):
         base = self.estate.base_entries()
         for source in ("https:///rapp-registry.json", "https://?x", "https://user@registry.example.test/r.json",
                        "https://registry.example.test/r json", "https://registry.exämple.test/r.json",
-                       "https://[::1/r.json", "http://registry.example.test/r.json", "https://"):
+                       "https://[::1/r.json", "http://registry.example.test/r.json", "https://",
+                       "https://registry.example.test/<r>.json", "https://registry.example.test/%zz.json",
+                       "https://registry.example.test:port/r.json", "https://@registry.example.test/r.json",
+                       "https://:8443/r.json", "HTTPS://registry.example.test/r.json"):
             with self.subTest(source=source):
                 with self.assertRaisesRegex(REG.RegistryError, "canonical_source"):
                     REG.validate_document(self.estate.document(base, signed=False, source=source))
-        for source in ("https://registry.example.test:8443/r.json?v=1#top", "https://[::1]/r.json"):
+        for source in ("https://registry.example.test:8443/r.json?v=1#top", "https://[::1]/r.json",
+                       "https://registry.example.test/a%20b/r.json"):
             with self.subTest(source=source):
                 self.assertEqual(self.draft(self.estate.document(base, signed=False, source=source))[0], "draft")
 

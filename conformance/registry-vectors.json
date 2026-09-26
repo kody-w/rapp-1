@@ -181,6 +181,50 @@
     "label": "canonical_source with a port, a query, and a fragment"
    },
    {
+    "document": {
+     "canonical_source": "https://registry.example.test/<r>.json",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "refuse",
+    "label": "canonical_source with a character RFC 3986 does not allow"
+   },
+   {
+    "document": {
+     "canonical_source": "https://registry.example.test:port/r.json",
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      }
+     ],
+     "registry_seq": 1,
+     "schema": "rapp/1-registry",
+     "sig": "<detached-jws>"
+    },
+    "expect": "refuse",
+    "label": "canonical_source with a port that is not a number"
+   },
+   {
     "expect": "refuse",
     "json_text": "{\"canonical_source\":\"https://registry.example.test/rapp-registry.json\",\"entries\":[{\"rappid\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"type\":\"estate_owner\"},{\"deprecated\":false,\"rappid\":\"rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5\",\"spki_der_b64\":\"dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5\",\"type\":\"spki\"}],\"note\":[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\"x\"]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]],\"registry_seq\":1,\"schema\":\"rapp/1-registry\",\"sig\":\"<detached-jws>\"}",
     "label": "an extra member nested deeper than §4 allows"
