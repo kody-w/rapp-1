@@ -1280,7 +1280,9 @@ class RappCheckReleaseManifestTests(unittest.TestCase):
             ("e/duplicate.json", "§13.5 release manifest"),
             ("f/float.json", "§13.5 release manifest"),
         })
-        self.assertEqual(sum("not strict I-JSON" in f["detail"] for f in findings), 2)
+        details = {f["artifact"]: f["detail"] for f in findings}
+        self.assertIn("not strict I-JSON", details["e/duplicate.json"])
+        self.assertIn("integer written without fraction or exponent", details["f/float.json"])  # §13.5, not §4
 
     def test_a_manifest_nested_inside_another_document_is_not_linted(self):
         nested = {"schema": "example-vectors/1",
