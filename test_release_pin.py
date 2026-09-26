@@ -921,6 +921,11 @@ class VerifiedSnapshotTests(unittest.TestCase):
             "not an object": (R.canonical([alpha]).encode(), "JSON object"),
             "not JSON": (b"rappid = " + alpha.encode(), "§4 value"),
             "duplicate member": (b'{"rappid":"x","rappid":"' + alpha.encode() + b'"}', "§4 value"),
+            # json.loads would detect these encodings; the identity file is UTF-8 without a BOM.
+            "UTF-8 with a byte-order mark": (b"\xef\xbb\xbf" + World.identity(alpha), "byte-order mark"),
+            "UTF-16": (World.identity(alpha).decode("utf-8").encode("utf-16"), "must be UTF-8"),
+            "UTF-32": (World.identity(alpha).decode("utf-8").encode("utf-32-le"), "never holds a NUL byte"),
+            "UTF-16 without a mark": (World.identity(alpha).decode("utf-8").encode("utf-16-le"), "NUL byte"),
         }
         for label, (octets, message) in cases.items():
             with self.subTest(label=label):

@@ -238,7 +238,7 @@ def _validate_release_pin(entry, where):
     """The §13.3 release-pin members. Uniqueness, channels, families, and kernel order span
     entries, so `Registry` checks those."""
     for member in ("release_scope", "repository"):
-        if not _HTTPS.fullmatch(_str(entry, member, where)):
+        if not _https_uri(_str(entry, member, where)):
             raise RegistryError(f"{where}: `{member}` must be an absolute HTTPS URI")
     if not _lclabel(entry.get("channel"), 64):
         raise RegistryError(f"{where}: `channel` must be an lclabel of 1-64 characters")
@@ -1001,7 +1001,7 @@ def _validate_component(component, where):
     if not _lclabel(component["kind"], 64):
         raise RegistryError(f"{where}: `kind` must be an lclabel of 1-64 characters")
     repository = component["repository"]
-    if not (isinstance(repository, str) and _HTTPS.fullmatch(repository)):
+    if not _https_uri(repository):
         raise RegistryError(f"{where}: `repository` must be an absolute HTTPS URI")
     if component["object_format"] not in ("sha1", "sha256"):
         raise RegistryError(f"{where}: `object_format` must be sha1 or sha256")
@@ -1062,7 +1062,7 @@ def validate_release_manifest(manifest):
     if manifest["schema"] != MANIFEST_SCHEMA:
         raise RegistryError(f'release manifest schema must be "{MANIFEST_SCHEMA}"')
     scope = manifest["release_scope"]
-    if not (isinstance(scope, str) and _HTTPS.fullmatch(scope)):
+    if not _https_uri(scope):
         raise RegistryError("release manifest `release_scope` must be an absolute HTTPS URI")
     name = manifest["release"]
     if not (isinstance(name, str) and _RELEASE_NAME.fullmatch(name)):
@@ -1208,6 +1208,16 @@ def _fetch_pinned(fetch, locator, path, where):
 
 
 def _door_of_record_mismatch(component, octets):
+    # json.loads would guess UTF-16 or UTF-32 from a byte-order mark or from NUL bytes; the identity
+    # file is UTF-8 without one, and NUL is never part of a UTF-8 JSON text.
+    if octets.startswith(b"\xef\xbb\xbf"):
+        return "identity file must be UTF-8 without a byte-order mark"
+    try:
+        octets.decode("utf-8")
+    except UnicodeDecodeError:
+        return "identity file must be UTF-8"
+    if b"\x00" in octets:
+        return "identity file must be UTF-8 JSON text, which never holds a NUL byte"
     try:
         identity = R._strict_json(octets)
     except (ValueError, RecursionError) as why:

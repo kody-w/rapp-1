@@ -1058,8 +1058,9 @@ that pins every component of that release:
 - The stored manifest's octets **MUST** be exactly `canonical(manifest)` — UTF-8, no byte-order mark, no
   trailing line terminator — so its raw SHA-256 and `manifest_hash` are both reproducible from the bytes.
 - **Door of record.** `rappid` and `identity_path` are both `null` or both non-null. When set,
-  `identity_path` is one of the component's `files`, and those octets parse as a §4 object whose `rappid`
-  member equals the component's `rappid` and whose `schema`, when present, is `"rapp/1"`. Such a component
+  `identity_path` is one of the component's `files`, and those octets are UTF-8 without a byte-order mark
+  and parse as a §4 object whose `rappid` member equals the component's `rappid` and whose `schema`, when
+  present, is `"rapp/1"`. Such a component
   is the estate's signed statement that, within this pinned release, the organism's door of record is
   `repository` at `commit`. A manifest **MUST NOT** bind one rappid in two components. A consumer locating
   that organism for this pinned release **MUST** use this binding, not the rappid's `@owner/slug`, a

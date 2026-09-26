@@ -331,7 +331,13 @@ def registry_sections():
             value = _changed(compact, change)
             expect = _verdict(lambda: REG.validate_release_manifest(value))
             assert expect == intended, label
-            return {"label": label, "manifest": value, "expect": expect}
+            try:
+                R.canonical(value)
+                return {"label": label, "manifest": value, "expect": expect}
+            except ValueError:
+                # Not a §4 value (an integer beyond 2^53-1): carried as text so this file stays I-JSON.
+                return {"label": label, "json_text": json.dumps(value, sort_keys=True, separators=(",", ":")),
+                        "expect": expect}
 
         def component(index, **changes):
             return lambda m: m["components"][index].update(changes)
