@@ -50,8 +50,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame fae63dabbf18244c84f9a5cc552866e470aee6c00fbfe6a12e93185a0cd0ad9c, normative
-SHA-256 3acb4272f2a86e44fdde94fd45215e87241c508cd42a9185cab90f0201893f24. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame e472a497bf8d0b7abc106a875f43a4f4ed76e39fd3e93b0aca753dd18c5358fb, normative
+SHA-256 a831a0147a4932df9026cd13dd02ddc93020b76634a7975df5abaf2880e6c6fa. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -116,8 +116,8 @@ its `activated_utc`; a copy with its canonical form (§4) verifies against the e
 one stream (§13.5).
 **absolute HTTPS URI** — an absolute URI {{RFC3986}} (so with no fragment) of at most 2048 characters whose
 scheme is the lowercase `https` and whose authority carries no user information, a host that is a
-non-empty reg-name or an IP literal (an IPv6 address with no zone, or IPvFuture), and, if present, a port
-of one to five digits no greater than 65535.
+non-empty reg-name or an IP literal (an IPv6 address with no zone, or IPvFuture), and, when a `:` follows
+the host, a port of one to five digits no greater than 65535.
 
 # Canonicalization (L1)
 `canonical(v)` is the UTF-8 byte string produced by **{{RFC8785}} JCS** for the value `v`, defined **only**
@@ -947,8 +947,8 @@ forge that estate).
 - **The document.** A registry is one §4 object whose meaningful members are exactly `schema`
   (`"rapp/1-registry"`), `registry_seq`, `canonical_source`, `entries`, and `sig`. `canonical_source` names
   the owner-selected location of record for this document: an absolute HTTPS URI (§3) for a registry
-  published on the web, or a URN {{RFC8141}} — lowercase `urn:`, with no r-, q-, or f-component — for one
-  kept in a private store, such as a private Hive's registry history; `entries` is the array of
+  published on the web, or a URN {{RFC8141}} of at most 2048 characters — lowercase `urn:`, with no r-, q-,
+  or f-component — for one kept in a private store, such as a private Hive's registry history; `entries` is the array of
   §13.3 entries in append order; `sig` is `null` only on an unsigned draft. Any other top-level member is
   covered by `sig` but carries no RAPP/1 meaning: a consumer **MUST NOT** read an entry, key, trust,
   policy, or freshness claim from it. A consumer that obtained a canonical source out of band with the
@@ -978,12 +978,12 @@ expressed inside the registry it signs.
 The registry is an I-JSON document; every entry is append-only (never removed/renamed; retirement is a
 `deprecated:true` flag). Entry types and their exact members:
 - **protocol** `{type:"protocol", name, spec_repo, spec_path, spec_hash, deprecated}` — an estate
-  adoption pin, never a power to redefine a protocol. An entry with `name:"rapp/1"` that is used for a
-  current-conformance claim **MUST** set `spec_repo:"https://github.com/kody-w/rapp-1"`,
-  `spec_path:"SPEC.md"`, and `spec_hash` to a normative SHA-256 published by a verified frame in this
-  repository's anchor chain. A historical RAPP/1 pin may be retained only as `deprecated:true`; it does
-  not override the current anchor. Other protocol entries are subordinate to their own canonical
-  authorities and **MUST NOT** claim the `rapp/1` name or namespace.
+  adoption pin, never a power to redefine a protocol; `spec_repo` is an absolute HTTPS URI (§3). An entry
+  with `name:"rapp/1"` that is used for a current-conformance claim **MUST** set
+  `spec_repo:"https://github.com/kody-w/rapp-1"`, `spec_path:"SPEC.md"`, and `spec_hash` to a normative
+  SHA-256 published by a verified frame in this repository's anchor chain. A historical RAPP/1 pin may be
+  retained only as `deprecated:true`; it does not override the current anchor. Other protocol entries are
+  subordinate to their own canonical authorities and **MUST NOT** claim the `rapp/1` name or namespace.
 - **kind** `{type:"kind", kind, family, deprecated}` (incl. the three `*.re-genesis` kinds)
 - **egg-variant** `{type:"egg-variant", variant, deprecated}` · **error-code** `{type:"error-code", code}`
   (both closed namespaces; unregistered value = not conformant)
@@ -1024,14 +1024,16 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
 - **estate_owner** `{type:"estate_owner", rappid}` (exactly one non-deprecated) · **master-plan**
   `{type:"master-plan", repo, path}` (Fed. Const. Art. VII).
 
-An entry whose `type` is a string naming no entry type a consumer implements is an entry that consumer
-does not understand. It stays covered by the registry's `sig` and counts toward the §4 limits, and the
-consumer **MUST** ignore it — it grants, revokes, binds, pins, and declares nothing for that consumer —
-unless it carries a member `critical` with any value other than `false`, in which case the consumer
-**MUST** refuse the whole registry. Whoever defines an entry type after this revision marks it critical
-exactly when an older consumer that ignored it would accept what the new type refuses; the types above
-never carry `critical`. A registry can therefore grow without cutting off a consumer pinned to an earlier
-revision, and no consumer takes an entry it cannot read for one it can.
+An entry whose `type` is a non-empty string naming no entry type a consumer implements is an entry that
+consumer does not understand. It stays covered by the registry's `sig` and counts toward the §4 limits,
+and the consumer **MUST** ignore it — it grants, revokes, binds, pins, and declares nothing for that
+consumer — unless it carries a member `critical` with any value other than `false`, in which case the
+consumer **MUST** refuse the whole registry. Whoever defines an entry type after this revision marks it
+critical when ignoring its entries could let an older consumer accept a key, signature, frame, release,
+or claim that those entries refuse or withdraw; that a malformed entry of the type refuses the registry
+for a consumer that implements it does not by itself make the type critical. The types above never carry
+`critical`. A registry can therefore grow without cutting off a consumer pinned to an earlier revision,
+and no consumer takes an entry it cannot read for one it can.
 
 §7.5 steps 1–5 are time-independent (append-only lookups); step 6 (tombstones) and §13.2 owner tenure are
 time-scoped, and both are monotone given the §13.1 no-rollback rule. A declared entry (§13.4) is
@@ -1118,7 +1120,8 @@ registry.
   declaration can be dropped by a later registry (§13.4).
 - **Entry types a consumer does not implement:** ignoring one never widens what an older consumer trusts —
   an ignored entry grants nothing — and a type whose omission would weaken a refusal is marked critical, so
-  an older consumer refuses the registry rather than trusting less than the estate states (§13.3).
+  an older consumer refuses the registry rather than accept what the estate has refused or withdrawn
+  (§13.3).
 - **Signer scope:** any registered key can yield a §7.5-valid signature on any stream. Where no
   subordinate profile defines who signs a payload, only the owner in effect or a `stream-signer` grant
   makes a frame the estate's statement, so a station, crawler, or careless key cannot speak for another
