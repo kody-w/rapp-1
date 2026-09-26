@@ -50,8 +50,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame db70651e1eecd9a5497cd262b8f772822cb2e37c352a2301c9e4dc4e760c1622, normative
-SHA-256 666be3fa10341e6615a766c91bc9b986e47c39d1e4d3b04182fa28a1c985e419. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame 494dc28053a914f6f11b776b2e646c825bc4a43d93a7728f606d0782801b6735, normative
+SHA-256 84ad61dc32642d0e7a015e920f5010a8be4d5e4c12eb57196c4468e19a7d881d. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -1089,11 +1089,12 @@ carried elsewhere — a Hive notice, a member file, a release receipt — is a d
 canonical form equals that of an entry of an accepted registry of the estate, and it is then authenticated
 by the same checks; a copy whose canonical form differs in any byte, or that no accepted registry carries,
 is not a declaration however well it is signed. `H("rapp/1:particle", entry)` over the complete signed
-entry names it. Every declared entry is persisted: once a consumer has accepted one it **MUST** persist the
-canonical entry, and every later accepted registry **MUST** retain it byte-for-byte and keep the persisted
-entries in the order they were appended (`entries` is append-ordered, §13.1); removal, mutation, or
-reordering is a permanent refusal even when `registry_seq` increased (§11.1 item 9 states the rule for
-`grail-kernel`).
+entry names it, so a registry carries each declared entry once: a registry in which two declared entries
+have the same canonical form is refused whole. Every declared entry is persisted: once a consumer has
+accepted one it **MUST** persist the canonical entry, and every later accepted registry **MUST** retain it
+byte-for-byte and keep the persisted entries in the order they were appended (`entries` is append-ordered,
+§13.1); removal, mutation, or reordering is a permanent refusal even when `registry_seq` increased (§11.1
+item 9 states the rule for `grail-kernel`).
 
 ## Release pins, release manifests, and verified snapshots
 A **release scope** (§11.1) names one release family — for example an LTS line whose corrections all keep
