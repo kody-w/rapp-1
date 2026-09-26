@@ -27,12 +27,12 @@ internals, customer content and anything a reader here has no business seeing.
       The refusal behaviour (never silently fall back from a private theme to this default)
       is implemented and tested locally, not against a real private repo.
 
-- [ ] **§13 registry document: name the container (rev-N+1 candidate, blocks every extender).**
-      §13.1 names `schema`, `registry_seq`, `sig`; §13.3 names every entry's exact members;
-      nothing names the member that holds the entries, nor how `canonical_source` travels in
-      the document. No estate — this one included — has ever published a `rapp/1-registry`,
-      and a stranger who tries (PR #15 did) has to invent the shape. Until closed,
-      `rapp_registry.load_document` requires the caller to name the entries member.
+- [x] **§13 registry document: name the container — drafted as rev-17, normative on owner
+      acceptance.** §13.1 now names `schema`, `registry_seq`, `canonical_source`, `entries`, and
+      `sig`, exactly the shape of the one published signed registry; any other top-level member
+      carries no meaning. `rapp_registry.load_document` defaults the entries member to `entries` and
+      refuses any other name. (Was: nothing named the member holding the entries or how
+      `canonical_source` travels, so a stranger — PR #15 — had to invent the shape.)
 
 - [ ] **Kind ownership across estates (rev-N+1 candidate).** Each estate binds kinds in its own
       registry, so on a `net:` swarm stream two estates can bind the same kind string to
@@ -43,6 +43,33 @@ internals, customer content and anything a reader here has no business seeing.
       variants "the ratified set" and `rapp.py` hard-codes `EGG_VARIANTS`; §13.3 defines an
       `egg-variant` registry entry. Both cannot be the rule. A vendor variant is registrable but
       not packable by the reference until one is chosen.
+
+- [ ] **Registry capacity (rev-N+1 candidate; not blocking the rev-17 LTS lock).** §4 caps a
+      registry at 1 MiB canonical and §13.3 makes every entry append-only, so an estate's registry
+      has a lifetime budget. With realistic URIs and an EdDSA signature a rev-17 declared entry is
+      about 0.65–0.95 KB, so a registry holds roughly 1,100–1,500 declared entries beside its other
+      entries. At one entry per release, notices only for changes, and newest pinned at milestones
+      that lasts years; a continuation — a successor document that carries retained entries forward
+      by hash — needs its own design before an estate approaches the cap. The reference reader
+      (`rapp._strict_json`) refuses input over 1 MiB as stored, and §13.1 caps a registry's stored octets at
+      1 MiB as well, so a registry is published compact.
+
+- [ ] **`rapp.utc_valid` accepts non-ASCII digits in the year.** Python's `\d` matches other
+      scripts' digits, so `٢٠٢٦-08-01T00:00:00.000Z` passes it, though §7.4's form is 24 ASCII
+      octets and bytewise order equals time order only for those. `rapp_registry` refuses such values
+      in every registry time member, first-seen and issuance time, owner-tenure and key-acceptability
+      check, and lifecycle and authority query; `rapp.verify_frame` itself is parity-pinned, so its
+      fix and a conformance vector belong to a reviewed reference change.
+
+- [ ] **§9.1 path rules name no Unicode version.** §9.1's NFC test and its collision rule (NFD and
+      full case folding) use the reference's Python `unicodedata`, so a non-ASCII path can be valid on
+      Python 3.9 (Unicode 13) and refused on 3.14 (Unicode 16), or collide on one and not the other.
+      rev-17 keeps a `release-pin` path and every release-manifest path ASCII, so its own verdicts never
+      depend on it; §9.1 itself (egg paths) is frozen, so pinning a Unicode version belongs to a reviewed
+      §9.1 note or `rapp/2`. Related, and older than rev-17: §13.3 calls a `grail-kernel` `path` "a
+      relative NFC POSIX path", but `rapp_registry` checks only its components, never NFC — the same
+      Unicode-version question; a `grail-kernel` whose `path` is not ASCII binds a family no release
+      can carry (§13.5), so no rev-17 verdict depends on it.
 
 ## Known limit
 

@@ -54,7 +54,9 @@ class RegistryLifecycleTests(unittest.TestCase):
         return value
 
     def document(self, entries, owner="owner"):
-        value = {"schema": "rapp/1-registry", "registry_seq": 2, "entries": entries}
+        value = {"schema": "rapp/1-registry", "registry_seq": 2,
+                 "canonical_source": "https://registry.example.test/rapp-registry.json",
+                 "entries": entries}
         value["sig"] = self.sign(value, self.keys[owner])
         return value
 
@@ -125,6 +127,7 @@ class RegistryLifecycleTests(unittest.TestCase):
 
     def test_unsigned_draft_stays_draft_not_verified_authority(self):
         doc = {"schema": "rapp/1-registry", "registry_seq": 1,
+               "canonical_source": "https://registry.example.test/rapp-registry.json",
                "entries": self.entries() + [self.reanchor()], "sig": None}
         self.assertEqual(self.load(doc, allow_unsigned=True)[0], "draft")
 

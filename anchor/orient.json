@@ -1,24 +1,24 @@
 {
  "schema": "rapp/1-anchor",
- "generated_utc": "2026-09-02T01:31:21.000Z",
+ "generated_utc": "2026-09-26T15:20:57.000Z",
  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
  "head": {
-  "seq": 16,
-  "frame_hash": "6fddd2370220ca195fdbee3a7ae46a2686fc745d8e88debda26c5a6497e5756a",
-  "payload_hash": "61a01808240e16066bdf0437933ac16b6530c939e9f31f67fac44d517f1e580c"
+  "seq": 17,
+  "frame_hash": "dbaedb74fe1bc37fdc25ec52e6695675b26f8356d08c61d331bafe9c3a1e5a1a",
+  "payload_hash": "f88ed5bd65a39166387499c60237cfac7c52ed8aa0dea534e47961a2b660a9b0"
  },
  "spec": {
-  "revision": "rev-16",
-  "revision_frame_hash": "6fddd2370220ca195fdbee3a7ae46a2686fc745d8e88debda26c5a6497e5756a",
-  "revision_payload_hash": "61a01808240e16066bdf0437933ac16b6530c939e9f31f67fac44d517f1e580c",
+  "revision": "rev-17",
+  "revision_frame_hash": "dbaedb74fe1bc37fdc25ec52e6695675b26f8356d08c61d331bafe9c3a1e5a1a",
+  "revision_payload_hash": "f88ed5bd65a39166387499c60237cfac7c52ed8aa0dea534e47961a2b660a9b0",
   "schema": "rapp-spec-revision/1",
   "materialized_path": "SPEC.md",
   "normative_path": "SPEC.md",
   "media_type": "text/markdown; charset=utf-8",
-  "normative_sha256": "348e7d5baa94aaf2ce4c5354f3cb261f389298a04af65e271a686d3b62f7c384",
-  "normative_bytes": 79692,
+  "normative_sha256": "d866f57ca265abc451d7dcf938752bc8b85a37f625f1401a1f75d22e1e9102a7",
+  "normative_bytes": 110021,
   "canonical_repo": "https://github.com/kody-w/rapp-1",
-  "commit": "58058d08c9f0e340fae07c9865647f599c32634d"
+  "commit": "569010c519ca44197c70ce4ec5236f0d4295d1a0"
  },
  "registered_kinds": [
   "body.pulse",
@@ -136,6 +136,34 @@
   "rapp-work": {
    "status": "live",
    "where": "protocols/rapp-work/1/SPEC.md — additive organization, Hive high-water, migration, custody, and rollback"
+  },
+  "declared-entry": {
+   "status": "live",
+   "where": "§13.4 — a registry entry carrying its own owner signature at its activated_utc"
+  },
+  "release-pin": {
+   "status": "live",
+   "where": "§13.5 — the declared entry pinning one immutable release of a release family"
+  },
+  "release-manifest": {
+   "status": "live",
+   "where": "§13.5 — rapp/1-release-manifest: a named release, every component by digest at an immutable commit"
+  },
+  "release-channel": {
+   "status": "live",
+   "where": "§13.5 — an owner-named linear chain of release pins; its head pins the current release"
+  },
+  "lifecycle": {
+   "status": "live",
+   "where": "§13.6 — estate-signed notice about a rappid or a rappid-less repository: active, deprecated, superseded, or archived since a time"
+  },
+  "superseded-by": {
+   "status": "live",
+   "where": "§13.6 — names a successor, a rappid or a repository URI; transfers nothing"
+  },
+  "stream-signer": {
+   "status": "live",
+   "where": "§13.7 — an estate grant letting a keyed signer speak for it on one stream, above §7.5"
   }
  },
  "operational_profiles": {
@@ -204,7 +232,7 @@
  },
  "index": {
   "path": "anchor/index.json",
-  "sha256": "b265a53bb2381ba86d8e561d4f150fd3371bcae13f8be00f590389c1912522ca",
-  "bytes": 8118
+  "sha256": "0f1593248e1951062d0839925af1ea20c84e50bdaa204fc5c2c5ad735c574abe",
+  "bytes": 8489
  }
 }

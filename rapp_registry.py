@@ -8,19 +8,46 @@ tombstone. Extending RAPP therefore means writing registry entries, not patching
 this repository. This module makes those entries checkable with the reference.
 
 What is fully specified by §13 and enforced here:
-  - every entry type and its exact member set (§13.3);
+  - the document container (§13.1): exactly `schema`, `registry_seq`,
+    `canonical_source`, `entries`, and `sig` carry meaning; any other top-level
+    member is covered by `sig` and carries none;
+  - every entry type and its exact member set (§13.3), and an entry of a type this reference does not
+    implement ignored unless it is marked critical, which refuses the registry (`unknown_entries`);
   - kind grammar and family binding; family ↔ stream_id-form compatibility (§6.1.1, §7.2);
   - owner succession by re-anchor records, owner-in-effect at a time (§13.2);
   - key discovery, superseded-key and tombstone refusal at a time (§10);
   - one non-deprecated genesis per stream (§7.6); one grail-kernel per grail_id (§11.1);
-  - the document envelope members §13.1 names: `schema`, `registry_seq`, `sig`, and
-    owner-signature verification over canonical(document \\ {sig}).
+  - declared entries (§13.4): each entry-level owner signature at its own
+    `activated_utc`, never blessed by the enclosing document signature, and
+    retention of persisted entries, unchanged in canonical form (§4), once a caller has accepted them;
+  - release pins (§13.5): a release scope names a release family; each pinned release of it
+    is one `release-pin` entry naming its manifest by a `manifest_hash` no other
+    release-pin shares; a family's releases may span channels (newest graduating to LTS), each
+    channel is one linear chain of release pins whose head is current, and a family's `grail-kernel` precedes its first
+    release-pin and, given the caller's persisted entries, is never added once a release of
+    the family was accepted; the `rapp/1-release-manifest` structure and its `release`
+    name, kernel coherence with the family's `grail-kernel`, and an all-or-nothing
+    verified snapshot of one selected pinned release through a caller's fetch;
+  - lifecycle notices (§13.6): one linear, owner-signed chain of `lifecycle` entries per
+    subject — an organism's rappid, or the URI of a repository that has none — the state and
+    successor in effect at a time, and no cycle among the successors in effect at any one time;
+  - stream signers (§13.7): each `stream-signer` grant's structure and cross-entry rules,
+    and the authority check above §7.5 for a consumer that follows no profile-defined signer
+    rule — a verified frame speaks for the estate only when its `kid` is the owner in effect
+    or a signer granted its stream, kind, and time;
+  - owner-signature verification over canonical(document \\ {sig}).
 
-What §13 does NOT yet specify, and this module therefore refuses to guess:
-  - the member of the document that holds the entries. `load_document` requires the
-    caller to name it explicitly; nothing here defaults it. Until a revision closes
-    that gap (see rapp-backlog.md), a registry document is interoperable only by
-    out-of-band agreement on that one name. Entries themselves are fully portable.
+Structural accessors — chains, heads, pins, grants, `authority_decision` — read whatever registry you
+hold. Answers — a verified snapshot, whether a frame speaks for the estate, the lifecycle in effect,
+whether a copy is a declaration — come only from a registry `load_document` returned as "verified"; a
+"draft" gives them only with `allow_draft=True`, as a rehearsal, and a Registry built directly never.
+
+What stays the caller's responsibility, because a snapshot cannot prove it:
+  - freshness, trusted heads, registry high-water marks, first-seen times, and the
+    append provenance of each entry (see `load_document`);
+  - re-evaluating a cached authority answer against a newer registry, which can add a
+    grant that adopts earlier frames but never withdraw one, and can still supersede,
+    tombstone, or retire the signer's key (§13.7).
 
 Nothing here can make an unsigned registry authoritative. `load_document` reports
 "verified" only after a §10 signature by the estate owner verifies AND that owner is the
@@ -28,20 +55,49 @@ rappid the caller obtained out of band (the trust anchor); an unsigned document 
 a "draft", and a registry that names any other owner is refused outright.
 """
 import base64
+import hashlib
+import ipaddress
 import re
+import urllib.parse
+from datetime import datetime, timedelta, timezone
 
 import rapp as R
 
 FAMILIES = ("memory", "swarm", "body")
 STREAM_FORMS = {"memory": "memory-stream", "swarm": "swarm-stream", "body": "body-stream"}
 REANCHOR_CASES = ("upgrade", "rotation", "compromise", "tag-migrate")
+LIFECYCLE_STATES = ("active", "deprecated", "superseded", "archived")  # §13.6
+# §7.2 / §12.1 — the three re-genesis kinds; only the owner signs them, so no grant may list one.
+REGENESIS_KINDS = ("memory.re-genesis", "swarm.re-genesis", "body.re-genesis")
 
 _LCLABEL = r"[a-z0-9]+(?:-[a-z0-9]+)*"
 _KIND = re.compile(rf"({_LCLABEL})\.({_LCLABEL})")
 _LABEL = re.compile(_LCLABEL)
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 _HEX40 = re.compile(r"[0-9a-f]{40}")
-_HTTPS = re.compile(r"https://[^\s]+")
+# RFC 3986 pieces, applied by hand so the verdict never depends on the Python version's urllib.
+_URI_SAFE = r"A-Za-z0-9\-._~!$&'()*+,;="  # unreserved and sub-delims
+_PCT = r"%[0-9A-Fa-f]{2}"
+_REG_NAME = re.compile(rf"(?:[{_URI_SAFE}]|{_PCT})+")
+_PCHAR = rf"(?:[{_URI_SAFE}:@]|{_PCT})"
+_PATH_ABEMPTY = re.compile(rf"(?:/{_PCHAR}*)*")
+_QUERY = re.compile(rf"(?:{_PCHAR}|[/?])*")
+_IPV_FUTURE = re.compile(rf"[vV][0-9A-Fa-f]+\.[{_URI_SAFE}:]+")  # RFC 3986 literals are case-insensitive
+_PORT = re.compile(r"[0-9]{1,5}")
+# RFC 8141 assigned-name: "urn:" NID ":" NSS, with no r-, q-, or f-component.
+_URN = re.compile(rf"urn:[A-Za-z0-9][A-Za-z0-9-]{{0,30}}[A-Za-z0-9]:{_PCHAR}(?:{_PCHAR}|/)*")
+_OBJECT_ID = {"sha1": _HEX40, "sha256": _HEX64}  # object_format -> commit/blob grammar
+
+# §13.1 — the registry document container (rev-17 closure).
+DOCUMENT_SCHEMA = "rapp/1-registry"
+ENTRIES_MEMBER = "entries"
+DOCUMENT_MEMBERS = ("schema", "registry_seq", "canonical_source", ENTRIES_MEMBER, "sig")
+
+# §13.4 — entry types that carry their own owner signature at `activated_utc`.
+# Every declared entry is persisted: once accepted, it is retained with its canonical form unchanged.
+DECLARED_TYPES = ("grail-kernel", "release-pin", "lifecycle", "stream-signer")
+PERSISTED_TYPES = DECLARED_TYPES
+FIRST_SEEN_SKEW_SECONDS = 300
 
 # §13.3 — exact members per entry type: (required, optional)
 ENTRY_MEMBERS = {
@@ -56,6 +112,12 @@ ENTRY_MEMBERS = {
     "grail-kernel": ({"type", "release_scope", "grail_id", "repository", "immutable_ref",
                       "object_format", "commit", "path", "mode", "blob", "sha256", "size_bytes",
                       "activated_utc", "predecessor", "declared_by", "sig"}, set()),
+    "release-pin": ({"type", "release_scope", "channel", "predecessor", "manifest_hash", "repository",
+                     "object_format", "commit", "path", "activated_utc", "declared_by", "sig"}, set()),
+    "lifecycle": ({"type", "subject", "state", "superseded_by", "since_utc", "previous",
+                   "activated_utc", "declared_by", "sig"}, set()),
+    "stream-signer": ({"type", "stream_id", "signer", "kinds", "since_utc", "until_utc",
+                       "activated_utc", "declared_by", "sig"}, set()),
     "estate_owner": ({"type", "rappid"}, set()),
     "master-plan": ({"type", "repo", "path"}, set()),
 }
@@ -63,6 +125,156 @@ ENTRY_MEMBERS = {
 
 class RegistryError(ValueError):
     """A registry that must be refused, whole (§7.5-style: never partial, never repaired)."""
+
+
+def _verify_jws(value, sig, der, kid):
+    """`rapp.verify_detached_jws`, refusing rather than raising when a hostile protected header nests
+    past the interpreter's recursion limit (`rapp.parse_detached_jws` is frozen; this module is not)."""
+    try:
+        return R.verify_detached_jws(value, sig, der, expected_kid=kid)
+    except RecursionError:
+        return False, "detached JWS protected header nests too deeply to parse"
+
+
+def entry_hash(entry):
+    """`H("rapp/1:particle", entry)` of one exact entry, signatures included.
+
+    This is how a later entry names an earlier one, and how a caller keys
+    persisted or first-seen state: any byte of difference is a different entry."""
+    return R.H("rapp/1:particle", entry)
+
+
+def _https_uri(value):
+    """An absolute HTTPS URI (§3), by RFC 3986's grammar: `https://` authority path-abempty [`?` query]
+    with no fragment, at most 2048 characters; the authority is a host and an optional port, with no
+    user information; the host is a non-empty reg-name or an IP literal (an IPv6 address with no zone,
+    or IPvFuture); a `:` after the host is followed by a port of 1-5 digits at most 65535 (so an empty
+    port is refused). Parsed here, not by urllib, whose port and
+    IP-literal rules differ between Python versions. (`rapp_profile.https_uri`, used by the
+    operational profiles, is looser; registry members follow §3.)"""
+    if not (isinstance(value, str) and len(value) <= 2048 and value.startswith("https://")):
+        return False
+    rest = value[len("https://"):]
+    cut = min([i for i in (rest.find("/"), rest.find("?"), rest.find("#")) if i != -1], default=len(rest))
+    authority, tail = rest[:cut], rest[cut:]
+    path, question, query = tail.partition("?")
+    if "#" in tail or not _PATH_ABEMPTY.fullmatch(path) or (question and not _QUERY.fullmatch(query)):
+        return False
+    if authority.startswith("["):
+        close = authority.find("]")
+        literal, port = authority[1:close], authority[close + 1:]
+        if close == -1 or not (_IPV_FUTURE.fullmatch(literal) or _ipv6_address(literal)):
+            return False
+    else:
+        host, colon, digits = authority.partition(":")
+        if not _REG_NAME.fullmatch(host):
+            return False
+        port = colon + digits
+    return port == "" or (port[0] == ":" and bool(_PORT.fullmatch(port[1:])) and int(port[1:]) <= 65535)
+
+
+_DEC_OCTET = r"(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])"
+_IPV4_TAIL = re.compile(rf"{_DEC_OCTET}(?:\.{_DEC_OCTET}){{3}}")
+
+
+def _ipv6_address(text):
+    """An RFC 3986 IPv6address: what `ipaddress` accepts, with no zone identifier, and an embedded IPv4
+    part checked here against RFC 3986's dec-octet (no leading zero), which CPython before 3.9.5
+    did not refuse — so the verdict is the same on every Python 3.9 and later."""
+    if "%" in text or ("." in text and not _IPV4_TAIL.fullmatch(text.rsplit(":", 1)[-1])):
+        return False
+    try:
+        ipaddress.IPv6Address(text)
+    except ValueError:
+        return False
+    return True
+
+
+def _canonical_source_ok(value):
+    """§13.1: an absolute HTTPS URI (§3) for a registry published on the web, or a URN (RFC 8141,
+    lowercase `urn:`, no r-, q-, or f-component, at most 2048 characters) for one kept in a private
+    store, such as a private Hive's registry history."""
+    return _https_uri(value) or (isinstance(value, str) and len(value) <= 2048 and bool(_URN.fullmatch(value)))
+
+
+def _tag_ref(value):
+    """A full tag name (§3): `refs/tags/` and a non-empty ASCII name that git's ref-name rules
+    (`git check-ref-format`) accept — no control character, space, `~^:?*[\\`, `..`, `@{`, or `//`; no
+    component starting with `.` or ending in `.lock`; no trailing `/` or `.`."""
+    prefix = "refs/tags/"
+    if not (isinstance(value, str) and value.startswith(prefix) and len(value) > len(prefix) and value.isascii()):
+        return False
+    if (value.endswith(("/", ".")) or any(bad in value for bad in ("..", "@{", "//"))
+            or any(c in " ~^:?*[\\" or ord(c) < 0x20 or ord(c) == 0x7f for c in value)):
+        return False
+    return all(part and not part.startswith(".") and not part.endswith(".lock") for part in value.split("/"))
+
+
+def _utc_form(value):
+    """`rapp.utc_valid`, restricted to ASCII. Python's `\\d` also matches other scripts' digits, but the
+    fixed §7.4 form is 24 ASCII octets, and only for those does bytewise order equal time order —
+    which every time comparison in this module relies on."""
+    return R.utc_valid(value) and value.isascii()
+
+
+_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+
+
+def _utc_millis(value, where):
+    """A §7.4 time as exact integer milliseconds since the POSIX epoch. Float seconds cannot hold
+    every millisecond instant exactly, and §13.4 item 3's 300-second bound is exact."""
+    if not _utc_form(value):
+        raise RegistryError(f"{where}: not a §7.4 time")
+    parsed = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+    return (parsed - _EPOCH) // timedelta(milliseconds=1)
+
+
+def activated_within_bound(activated_utc, first_seen_utc):
+    """§13.4 item 3: False when `activated_utc` is more than 300 seconds after the verifier's
+    first-seen time for the entry, computed exactly; RegistryError unless both are §7.4 times (§3)."""
+    later = _utc_millis(activated_utc, "activated_utc") - _utc_millis(first_seen_utc, "first-seen time")
+    return later <= FIRST_SEEN_SKEW_SECONDS * 1000
+
+
+def linear_chains(items, *, key, ident, link, where):
+    """Group `items` (entries in append order) into linear chains.
+
+    `key(entry)` names the chain, `ident(entry)` identifies an entry within it, and
+    `link(entry)` is None for the chain's first entry or the ident of the entry it
+    follows. A link must name an entry that appears EARLIER in the same chain (so no
+    cycle can form), no two entries may follow the same entry (no fork), and every
+    chain has exactly one first entry. Returns {chain_key: [entries in chain order]}.
+    """
+    chains = {}
+    for entry in items:
+        chains.setdefault(key(entry), []).append(entry)
+    ordered = {}
+    for chain_key, members in chains.items():
+        seen, successor, roots = {}, {}, []
+        for entry in members:
+            own = ident(entry)
+            if own in seen:
+                raise RegistryError(f"{where} {chain_key!r}: duplicate entry {own!r}")
+            parent = link(entry)
+            if parent is None:
+                roots.append(entry)
+            elif parent not in seen:
+                raise RegistryError(
+                    f"{where} {chain_key!r}: {own!r} follows an entry that does not precede it"
+                )
+            elif parent in successor:
+                raise RegistryError(f"{where} {chain_key!r}: two entries follow {parent!r} (fork)")
+            else:
+                successor[parent] = entry
+            seen[own] = entry
+        if len(roots) != 1:
+            raise RegistryError(f"{where} {chain_key!r}: expected exactly one first entry, found {len(roots)}")
+        chain, current = [], roots[0]
+        while current is not None:
+            chain.append(current)
+            current = successor.get(ident(current))
+        ordered[chain_key] = chain
+    return ordered
 
 
 def kind_valid(kind):
@@ -104,8 +316,9 @@ def _rappid(entry, member, where):
 
 
 def _utc(entry, member, where):
-    if not R.utc_valid(entry.get(member)):
-        raise RegistryError(f"{where}: `{member}` is not the fixed §7.4 UTC form")
+    if not _utc_form(entry.get(member)):
+        raise RegistryError(f"{where}: `{member}` is not a §7.4 time (the fixed form in ASCII, and a real "
+                            "calendar date-time)")
     return entry[member]
 
 
@@ -116,12 +329,116 @@ def _hex64(entry, member, where):
     return v
 
 
+def _lclabel(value, maximum):
+    return isinstance(value, str) and bool(_LABEL.fullmatch(value)) and len(value) <= maximum
+
+
+def _object_id(object_format, value):
+    """`object_format` fixes the lowercase-hex length of `value` (40 for sha1, 64 for sha256)."""
+    pattern = _OBJECT_ID.get(object_format) if isinstance(object_format, str) else None
+    return pattern is not None and isinstance(value, str) and bool(pattern.fullmatch(value))
+
+
+def _validate_release_pin(entry, where):
+    """The §13.3 release-pin members. Uniqueness, channels, families, and kernel order span
+    entries, so `Registry` checks those."""
+    for member in ("release_scope", "repository"):
+        if not _https_uri(_str(entry, member, where)):
+            raise RegistryError(f"{where}: `{member}` must be an absolute HTTPS URI")
+    if not _lclabel(entry.get("channel"), 64):
+        raise RegistryError(f"{where}: `channel` must be an lclabel of 1-64 characters")
+    named = entry.get("predecessor")
+    if named is not None and not (isinstance(named, str) and _HEX64.fullmatch(named)):
+        raise RegistryError(
+            f"{where}: `predecessor` must be null or the manifest_hash of the release-pin it follows"
+        )
+    _hex64(entry, "manifest_hash", where)
+    if entry.get("object_format") not in ("sha1", "sha256"):
+        raise RegistryError(f"{where}: `object_format` must be sha1 or sha256")
+    if not _object_id(entry["object_format"], entry.get("commit")):
+        raise RegistryError(f"{where}: `commit` must be lowercase hex of the {entry['object_format']} length")
+    # R._path_valid is the §9.1 path grammar: the grail-kernel path rule (relative NFC POSIX,
+    # no empty/"."/".." component) plus the segment rules every file path of the manifest
+    # obeys, so the manifest's own locator is as safe to fetch and store as what it pins.
+    if not (R._path_valid(entry.get("path")) and entry["path"].isascii()):
+        raise RegistryError(f"{where}: `path` must be an ASCII relative path obeying the §9.1 path grammar")
+    _utc(entry, "activated_utc", where)
+    _rappid(entry, "declared_by", where); _str(entry, "sig", where)
+
+
+def lifecycle_subject_valid(value):
+    """§13.6: a lifecycle subject is a §6.1 rappid (an organism) or an absolute HTTPS URI naming a
+    repository (one that carries no rappid of its own). The two forms never overlap."""
+    return R.rappid_valid(value) or _https_uri(value)
+
+
+def lifecycle_subject(component):
+    """The §13.6 subject whose notices speak for one component of a release manifest (§13.5): its
+    `rappid` when it binds one, otherwise its `repository`, byte for byte as the manifest spells it."""
+    return component["rappid"] if component["rappid"] is not None else component["repository"]
+
+
+def _validate_lifecycle(entry, where):
+    """The §13.3 `lifecycle` members and the §13.6 rules one entry shows by itself.
+    Its chain and the no-cycle rule span entries, so `Registry` checks those."""
+    subject = entry.get("subject")
+    if not lifecycle_subject_valid(subject):
+        raise RegistryError(f"{where}: `subject` must be a §6.1 rappid or an absolute HTTPS repository URI")
+    state = entry.get("state")
+    if state not in LIFECYCLE_STATES:
+        raise RegistryError(f"{where}: `state` must be one of {LIFECYCLE_STATES}")
+    successor = entry.get("superseded_by")
+    if successor is not None and not lifecycle_subject_valid(successor):
+        raise RegistryError(
+            f"{where}: `superseded_by` must be null, a §6.1 rappid, or an absolute HTTPS repository URI"
+        )
+    if successor == subject:
+        raise RegistryError(f"{where}: `superseded_by` never equals `subject` (§13.6)")
+    if state == "active" and successor is not None:
+        raise RegistryError(f"{where}: an active notice names no successor; `superseded_by` must be null (§13.6)")
+    if state == "superseded" and successor is None:
+        raise RegistryError(f"{where}: a superseded notice names its successor in `superseded_by` (§13.6)")
+    _utc(entry, "since_utc", where)
+    previous = entry.get("previous")
+    if previous is not None and not (isinstance(previous, str) and _HEX64.fullmatch(previous)):
+        raise RegistryError(f"{where}: `previous` must be null or the 64-hex entry_hash of an earlier entry")
+    _utc(entry, "activated_utc", where)
+    _rappid(entry, "declared_by", where); _str(entry, "sig", where)
+
+
+def _validate_stream_signer(entry, where):
+    """The §13.3 stream-signer members, one entry at a time. That the signer has an spki
+    entry and each kind a compatible registration spans entries (Registry)."""
+    if stream_form(entry.get("stream_id")) is None:
+        raise RegistryError(f"{where}: `stream_id` is not a §6.1.1 stream form")
+    _rappid(entry, "signer", where)
+    kinds = entry.get("kinds")
+    if not isinstance(kinds, list) or not kinds:
+        raise RegistryError(f"{where}: `kinds` must be a non-empty array")
+    for position, kind in enumerate(kinds):
+        if not kind_valid(kind):
+            raise RegistryError(f"{where}: `kinds[{position}]` fails the §6.1.1 kind grammar")
+        if kind in REGENESIS_KINDS:
+            raise RegistryError(f"{where}: `kinds` lists {kind}, which §12.1 reserves for the owner")
+    for prior, kind in zip(kinds, kinds[1:]):
+        # Kinds are ASCII, so Python's code-point order is the bytewise order §13.3 requires.
+        if kind == prior:
+            raise RegistryError(f"{where}: `kinds` lists {kind!r} twice")
+        if kind < prior:
+            raise RegistryError(f"{where}: `kinds` must ascend bytewise ({kind!r} follows {prior!r})")
+    since = _utc(entry, "since_utc", where)
+    if entry.get("until_utc") is not None and _utc(entry, "until_utc", where) <= since:
+        raise RegistryError(f"{where}: `until_utc` must be null or after `since_utc` (§13.7)")
+    _utc(entry, "activated_utc", where)
+    _rappid(entry, "declared_by", where); _str(entry, "sig", where)
+
+
 def validate_entry(entry, where="entry"):
     """Refuse an entry that is not exactly a §13.3 entry of its type. Returns the type."""
     if not isinstance(entry, dict):
         raise RegistryError(f"{where}: not an object")
     t = entry.get("type")
-    if t not in ENTRY_MEMBERS:
+    if not isinstance(t, str) or t not in ENTRY_MEMBERS:
         raise RegistryError(f"{where}: unknown entry type {t!r}")
     required, optional = ENTRY_MEMBERS[t]
     keys = set(entry.keys())
@@ -132,7 +449,7 @@ def validate_entry(entry, where="entry"):
         )
     if t == "protocol":
         _str(entry, "name", where); _str(entry, "spec_path", where); _bool(entry, "deprecated", where)
-        if not _HTTPS.fullmatch(_str(entry, "spec_repo", where)):
+        if not _https_uri(_str(entry, "spec_repo", where)):
             raise RegistryError(f"{where}: `spec_repo` must be an absolute HTTPS URI")
         _hex64(entry, "spec_hash", where)
         name = entry["name"]
@@ -182,10 +499,10 @@ def validate_entry(entry, where="entry"):
             _str(entry, "old_key_sig", where)
     elif t == "grail-kernel":
         for m in ("release_scope", "repository"):
-            if not _HTTPS.fullmatch(_str(entry, m, where)):
+            if not _https_uri(_str(entry, m, where)):
                 raise RegistryError(f"{where}: `{m}` must be an absolute HTTPS URI")
-        if not _str(entry, "immutable_ref", where).startswith("refs/tags/"):
-            raise RegistryError(f"{where}: `immutable_ref` must be a full refs/tags/... name")
+        if not _tag_ref(_str(entry, "immutable_ref", where)):
+            raise RegistryError(f"{where}: `immutable_ref` must be a full tag name, refs/tags/<name> (§3)")
         fmt = entry.get("object_format")
         if fmt not in ("sha1", "sha256"):
             raise RegistryError(f"{where}: `object_format` must be sha1 or sha256")
@@ -212,6 +529,12 @@ def validate_entry(entry, where="entry"):
             if not (isinstance(p, str) and p.startswith("grail:") and _HEX64.fullmatch(p[6:])):
                 raise RegistryError(f"{where}: `predecessor` must be null or a grail_id")
         _rappid(entry, "declared_by", where); _str(entry, "sig", where)
+    elif t == "release-pin":
+        _validate_release_pin(entry, where)
+    elif t == "lifecycle":
+        _validate_lifecycle(entry, where)
+    elif t == "stream-signer":
+        _validate_stream_signer(entry, where)
     elif t == "estate_owner":
         _rappid(entry, "rappid", where)
     elif t == "master-plan":
@@ -234,11 +557,28 @@ class Registry:
         self.reanchors = []      # entries, in order
         self.genesis = {}        # stream_id -> list of entries
         self.grail = {}          # grail_id -> entry
-        self.protocols = {}      # name -> entry
+        self.release_pins = {}   # manifest_hash -> release-pin entry, append order (§13.5)
+        self.lifecycle = {}      # subject -> [lifecycle entries, chain order] (§13.6)
+        self.stream_signers = {}  # stream_id -> [stream-signer grants], append order (§13.7)
+        self.protocol_history = {}  # name -> [entries], append order
         self.master_plan = None
-        owners = []
+        self.unknown_entries = []  # indices of entries of types this reference does not implement (§13.3)
+        self.canonical_source = None  # set by load_document from the §13.1 container
+        self.status = None  # "verified" or "draft" when load_document returns it; None when built directly
+        owners, reanchored = [], set()
         for i, e in enumerate(entries):
             where = f"entries[{i}]"
+            unknown = e.get("type") if isinstance(e, dict) else None
+            if isinstance(unknown, str) and unknown and unknown not in ENTRY_MEMBERS:
+                # §13.3: an entry type this consumer does not implement is ignored — it grants, revokes,
+                # binds, pins, and declares nothing here — unless it is marked critical.
+                if "critical" in e and e["critical"] is not False:
+                    raise RegistryError(
+                        f"{where}: entry type {unknown!r} is marked critical and this consumer does not "
+                        "implement it; the registry is refused whole (§13.3)"
+                    )
+                self.unknown_entries.append(i)
+                continue
             t = validate_entry(e, where)
             if t == "kind":
                 if e["kind"] in self.kinds:
@@ -260,8 +600,9 @@ class Registry:
             elif t == "re-anchor":
                 if R.rappid_parts(e["old_rappid"])["hash"] == R.rappid_parts(e["new_rappid"])["hash"]:
                     raise RegistryError(f"{where}: re-anchor requires a fresh identity tail")
-                if any(r["new_rappid"] == e["new_rappid"] for r in self.reanchors):
+                if e["new_rappid"] in reanchored:
                     raise RegistryError(f"{where}: more than one predecessor for a re-anchored identity")
+                reanchored.add(e["new_rappid"])
                 self.reanchors.append(e)
             elif t == "genesis":
                 self.genesis.setdefault(e["stream_id"], []).append(e)
@@ -271,8 +612,19 @@ class Registry:
                 if e["release_scope"] in {g["release_scope"] for g in self.grail.values()}:
                     raise RegistryError(f"{where}: release_scope {e['release_scope']!r} rebound")
                 self.grail[e["grail_id"]] = e
+            elif t == "release-pin":
+                if e["manifest_hash"] in self.release_pins:
+                    raise RegistryError(
+                        f"{where}: a second release-pin for manifest_hash {e['manifest_hash']}; a release "
+                        "manifest is pinned once and never rebound (§13.3)"
+                    )
+                self.release_pins[e["manifest_hash"]] = e
+            elif t == "lifecycle":
+                self.lifecycle.setdefault(e["subject"], []).append(e)
+            elif t == "stream-signer":
+                self.stream_signers.setdefault(e["stream_id"], []).append(e)
             elif t == "protocol":
-                self.protocols.setdefault(e["name"], e)
+                self.protocol_history.setdefault(e["name"], []).append(e)
             elif t == "estate_owner":
                 owners.append(e["rappid"])
             elif t == "master-plan":
@@ -280,6 +632,15 @@ class Registry:
         if len(owners) != 1:
             raise RegistryError(f"exactly one estate_owner entry is required, found {len(owners)}")
         self.estate_owner = owners[0]
+        # name -> the sole non-deprecated pin. A name whose pins are all deprecated, or
+        # that carries more than one non-deprecated pin, has no current pin here: the
+        # first entry is never assumed current, and ambiguity is left to the adopting
+        # profile to refuse (rapp-work/1 requires exactly one active pin per dependency).
+        self.protocols = {}
+        for name, history in self.protocol_history.items():
+            current = [p for p in history if not p["deprecated"]]
+            if len(current) == 1:
+                self.protocols[name] = current[0]
         for sid, gs in self.genesis.items():
             if sum(1 for g in gs if not g["deprecated"]) > 1:
                 raise RegistryError(f"stream {sid}: more than one non-deprecated genesis (§7.6)")
@@ -294,6 +655,17 @@ class Registry:
                     raise RegistryError(f"grail-kernel predecessor cycle through {gid}")
                 seen.add(cur)
                 cur = self.grail[cur]["predecessor"]
+        # §13.4: a declared entry is named by its particle hash, so a registry carries each one once.
+        self._declared = {}  # canonical form -> index in entries
+        for i, e in enumerate(entries):
+            if e["type"] in DECLARED_TYPES:
+                own = R.canonical(e)
+                if own in self._declared:
+                    raise RegistryError(
+                        f"entries[{i}]: duplicate {e['type']} entry, identical to entries[{self._declared[own]}]; "
+                        "a registry carries each declared entry once (§13.4)"
+                    )
+                self._declared[own] = i
         self._succession = {r["new_rappid"]: r for r in self.reanchors}
         succession_by_tail = {}
         for record in self.reanchors:
@@ -301,16 +673,23 @@ class Registry:
             if tail in succession_by_tail:
                 raise RegistryError("re-anchor must mint a fresh tail, not another name for one")
             succession_by_tail[tail] = record
+        walked = set()  # tails whose walk back to a first identity already finished
         for successor in succession_by_tail:
-            seen, current = set(), successor
-            while True:
-                if current in seen:
+            path, current = set(), successor
+            while current not in walked:
+                if current in path:
                     raise RegistryError("re-anchor succession reuses an ancestral identity tail")
-                seen.add(current)
+                path.add(current)
                 record = succession_by_tail.get(current)
                 if record is None:
                     break
                 current = R.rappid_parts(record["old_rappid"])["hash"]
+            walked |= path
+        # The §13.5–§13.7 rules span entries, so they run once every entry is indexed: release
+        # pins look up their predecessors and the kernels before them, grants their spki and kinds.
+        self._index_release_pins()
+        self._index_lifecycle()
+        self._index_stream_signers()
 
     # ---- §7.2 / §6.1.1 kind binding ----
     def family(self, kind):
@@ -333,7 +712,10 @@ class Registry:
 
     # ---- §13.2 owner succession ----
     def owner_at(self, utc):
-        """The estate-owner rappid in effect at `utc` (walks re-anchor records backwards)."""
+        """The estate-owner rappid in effect at `utc` (walks re-anchor records backwards). A `utc`
+        that is not the fixed, ASCII §7.4 form raises RegistryError: tenure compares bytewise."""
+        if not _utc_form(utc):
+            raise RegistryError("owner_at: the time is not a §7.4 time")
         owner, seen = self.estate_owner, set()
         while True:
             if owner in seen:
@@ -347,10 +729,14 @@ class Registry:
     # ---- §10 signer acceptability at a time ----
     def signer_acceptable(self, kid, utc):
         """Is a `sig` by `kid` on an artifact at `utc` acceptable: key discoverable, not
-        superseded by a re-anchor at or before utc, not tombstoned at or before utc."""
+        superseded by a re-anchor at or before utc, not tombstoned at or before utc, and not
+        retired — an `spki` entry flagged deprecated that no re-anchor names as its `old_rappid`
+        (a successor key included) refuses its key at every time (§13.4 item 1)."""
         return self._signer_acceptable(kid, utc)
 
     def _signer_acceptable(self, kid, utc, ignored_reanchor=None, match_key_aliases=False):
+        if not _utc_form(utc):
+            return False, "the artifact's time is not a §7.4 time"
         e = self.spki.get(kid)
         if e is None:
             return False, "no spki entry for kid (registry absence is refusal)"
@@ -380,7 +766,7 @@ class Registry:
         def verify(unsigned, sig, expected_signer=None):
             try:
                 header = R.parse_detached_jws(sig)[0]
-            except ValueError as why:
+            except (ValueError, RecursionError) as why:
                 return False, str(why)
             kid = header["kid"]
             if expected_signer is not None and kid != expected_signer:
@@ -391,7 +777,7 @@ class Registry:
             ok, why = self.signer_acceptable(kid, utc)
             if not ok:
                 return False, why
-            return R.verify_detached_jws(unsigned, sig, self.spki_der(kid), expected_kid=kid)
+            return _verify_jws(unsigned, sig, self.spki_der(kid), kid)
         return verify
 
     def registered_genesis(self, stream_id):
@@ -400,9 +786,144 @@ class Registry:
                 return g
         return None
 
-    def check_lifecycle_signatures(self, *, tombstone_issued_at=None):
-        """Check the signatures on lifecycle entries, not only their outer registry.
+    def current_protocol(self, name):
+        """The estate's sole non-deprecated pin for protocol `name`; None when absent or ambiguous."""
+        return self.protocols.get(name)
 
+    # ---- §13.4 declared entries ----
+    def declared_entry_ok(self, entry, *, verification_utc=None, allow_draft=False):
+        """Is `entry` a declaration of this estate? (ok, why) — §13.4 items 1–3 for one entry.
+
+        `entry` may be the registry's own entry or a copy found elsewhere (a Hive
+        notice, a member file); a copy counts only when its canonical form (§4) equals an
+        entry this registry carries — a declaration no accepted registry carries is not a
+        declaration, however well signed. It answers only for a registry load_document
+        returned as "verified" (a "draft" only with `allow_draft=True`, as a rehearsal; a
+        Registry built directly never), since only an accepted registry makes a copy count.
+        `verification_utc`, when given, is the verifier's first-seen time for the entry;
+        `activated_utc` may not exceed it by more than 300 seconds. Without it this method
+        does not apply that rule; the loader does (`check_declared_signatures` refuses when no
+        first-seen context is supplied)."""
+        refusal = self._status_refusal(allow_draft, "whether a copy is one of its declarations (§13.4)")
+        if refusal:
+            return False, refusal
+        return self._declared_entry_check(entry, verification_utc)
+
+    def _declared_entry_check(self, entry, verification_utc):
+        """§13.4 items 1–3 against these entries, whatever this registry's status (the loader's step)."""
+        try:
+            kind = validate_entry(entry, "declared entry")
+        except RegistryError as why:
+            return False, str(why)
+        if kind not in DECLARED_TYPES:
+            return False, f"{kind} is not a declared entry type (§13.4)"
+        try:
+            carried = R.canonical(entry) in self._declared
+        except ValueError as why:
+            return False, str(why)
+        if not carried:
+            return False, f"{kind}: not an entry of this registry (§13.4 — a copy must have a carried entry's canonical form)"
+        activated, signer = entry["activated_utc"], entry["declared_by"]
+        try:
+            owner = self.owner_at(activated)
+        except RegistryError as why:
+            return False, str(why)
+        if signer != owner:
+            return False, f"{kind}: declared_by is not the estate owner in effect at activated_utc (§13.2)"
+        ok, why = self.signer_acceptable(signer, activated)
+        if not ok:
+            return False, f"{kind}: declared_by key refused at activated_utc: {why}"
+        if verification_utc is not None:
+            try:
+                timely = activated_within_bound(activated, verification_utc)
+            except RegistryError as why:
+                return False, str(why)
+            if not timely:
+                return False, f"{kind}: activated_utc is more than 300 s after first-seen (§13.4)"
+        unsigned = {k: v for k, v in entry.items() if k != "sig"}
+        ok, why = _verify_jws(unsigned, entry["sig"], self.spki_der(signer), signer)
+        if not ok:
+            return False, f"{kind} entry signature refused: {why}"
+        return True, "ok"
+
+    def check_declared_signatures(self, *, verification_utc=None, first_seen=None):
+        """Every declared entry's own signature; the document signature never substitutes.
+
+        The 300-second rule compares each entry with the verifier's first-seen time for
+        THAT entry, which is when the verifier first accepted a registry carrying it (§13.4
+        item 3; a refused registry records none). Pass `first_seen(entry_hash) -> utc` from
+        persisted state (returning the current time for an entry not yet accepted), or
+        `verification_utc` when no declared entry has been accepted before. Never both."""
+        if verification_utc is not None and first_seen is not None:
+            return False, "pass either verification_utc or first_seen, not both"
+        for entry in self.entries:
+            if entry["type"] in DECLARED_TYPES:
+                if verification_utc is None and first_seen is None:
+                    return False, ("a declared entry needs first-seen context: pass first_seen= or "
+                                   "verification_utc= (§13.4 item 3)")
+                seen = verification_utc
+                if first_seen is not None:
+                    try:
+                        seen = first_seen(entry_hash(entry))
+                    except (KeyError, ValueError) as why:
+                        return False, f"first-seen context refused: {why}"
+                if not _utc_form(seen):
+                    return False, "first-seen context did not supply a valid UTC (§13.4 item 3)"
+                ok, why = self._declared_entry_check(entry, seen)
+                if not ok:
+                    return False, why
+        return True, "ok"
+
+    def check_retained(self, persisted_entries):
+        """§13.4 retention: every previously accepted persisted entry is still here, canonical form
+        unchanged, in the same order, and ahead of every declared entry the consumer has not accepted
+        — `entries` is append-ordered (§13.1), so a later registry appends, and a family's current
+        release is its last pin in that order (§13.5), so neither reordering nor insertion can move it.
+        Pass the persisted entries in the order the accepted registry held them. Then the §13.5 release
+        history against those same entries."""
+        persisted_entries = list(persisted_entries)  # read twice: presence and order, then release history
+        position = self._declared  # canonical form -> index; each declared entry appears once (§13.4)
+        previous, held, owns = -1, set(), []
+        for i, entry in enumerate(persisted_entries):
+            if not isinstance(entry, dict) or entry.get("type") not in PERSISTED_TYPES:
+                return False, f"persisted_entries[{i}] is not a persisted entry type (§13.4)"
+            try:
+                own = R.canonical(entry)
+            except (ValueError, RecursionError) as why:
+                return False, f"persisted_entries[{i}] is not a §4 value: {why}"
+            if own in held:
+                return False, (f"persisted_entries[{i}] repeats an earlier persisted entry; an accepted "
+                               "registry carries each declared entry once (§13.4)")
+            held.add(own)
+            owns.append(own)
+            at = position.get(own)
+            if at is None:
+                return False, f"a persisted {entry['type']} entry was removed or mutated (§13.4)"
+            if at <= previous:
+                return False, (f"persisted_entries[{i}]: a persisted {entry['type']} entry now precedes one "
+                               "appended before it; entries keep their append order (§13.1, §13.4)")
+            previous = at
+        ok, why = self._check_release_history(persisted_entries)  # names a kernel insertion (§13.5) first
+        if not ok:
+            return ok, why
+        # The accepted declared entries come first among this registry's declared entries: in order,
+        # the rank of the i-th is i, and a larger rank means a new declared entry was placed ahead of it.
+        order = sorted(position, key=position.get)  # this registry's declared entries, in entries order
+        rank = {own: r for r, own in enumerate(order)}
+        for i, own in enumerate(owns):
+            if rank[own] != i:
+                placed = self.entries[position[order[i]]]
+                return False, (f"persisted_entries[{i}]: a {placed['type']} entry the consumer has not accepted "
+                               f"is placed before this accepted {persisted_entries[i]['type']} entry; a later "
+                               "registry appends its declared entries after every accepted one (§13.1, §13.4)")
+        return True, "ok"
+
+    # ---- §10 / §13.3 key-lifecycle entries (tombstones and re-anchors) ----
+    def check_lifecycle_signatures(self, *, tombstone_issued_at=None):
+        """Check the signatures on key-lifecycle entries, not only their outer registry.
+
+        Key-lifecycle entries are tombstones and re-anchors (§10); `lifecycle` notices
+        (§13.6) are declared entries, checked by `check_declared_signatures`.
         This checks owner tenure and old-key continuity. A snapshot cannot prove
         which entries arrived in the same append; callers must retain append
         provenance for the additional §6.3 compromise requirement. Tombstones
@@ -425,7 +946,7 @@ class Registry:
             der = self.spki_der(expected_kid)
             if der is None:
                 return False, "lifecycle signer has no registered spki"
-            return R.verify_detached_jws(value, sig, der, expected_kid=expected_kid)
+            return _verify_jws(value, sig, der, expected_kid)
 
         for entry in self.entries:
             kind = entry["type"]
@@ -438,7 +959,7 @@ class Registry:
                     utc = tombstone_issued_at(R.H("rapp/1:particle", entry))
                 except (KeyError, ValueError) as why:
                     return False, f"tombstone issuance context refused: {why}"
-                if not R.utc_valid(utc):
+                if not _utc_form(utc):
                     return False, "tombstone issuance context did not supply a valid UTC"
             else:
                 utc = entry["utc"]
@@ -469,9 +990,413 @@ class Registry:
                     return False, "compromise re-anchor requires a registered tombstone"
         return True, "ok"
 
+    # ---- §13.5 release pins ----
+    def _index_release_pins(self):
+        """Index the release-pin entries and refuse the registry when they break §13.5.
 
-def load_document(doc, *, entries_member, trust_anchor, allow_unsigned=False,
-                  persisted_seq=None, tombstone_issued_at=None):
+        A release scope names a release family, whose releases may be pinned in more than one channel
+        (a family first released on newest graduates to an LTS line by being pinned there too). Each
+        channel's release pins form one linear chain through `predecessor` — the `manifest_hash` of
+        the pinned release each one follows in that channel — whose activation never regresses; a
+        family's releases are its pins in `entries` order, the last being its current release. A family's grail-kernel entry, if it has one, precedes the family's
+        first release-pin in `entries`, so no kernel appended later can make a pinned release
+        incoherent; `_check_release_history` refuses one inserted earlier, given the caller's
+        persisted entries."""
+        pins = [e for e in self.entries if e["type"] == "release-pin"]
+        for e in pins:
+            named = e["predecessor"]
+            if named is None:
+                continue
+            prior = self.release_pins.get(named)
+            if prior is None:
+                raise RegistryError(
+                    f"release-pin {e['manifest_hash']}: predecessor {named} is not the manifest_hash of "
+                    "any release-pin entry (§13.5)"
+                )
+            if prior["channel"] != e["channel"]:
+                raise RegistryError(
+                    f"release-pin {e['manifest_hash']} of channel {e['channel']!r}: predecessor {named} is a "
+                    f"release-pin of channel {prior['channel']!r}; a release-pin follows a release-pin of "
+                    "its own channel (§13.5)"
+                )
+        self.release_channels = linear_chains(
+            pins, key=lambda e: e["channel"], ident=lambda e: e["manifest_hash"],
+            link=lambda e: e["predecessor"], where="release-pin channel",
+        )
+        # entries order extends every channel's chain order (a predecessor always appears earlier)
+        self.release_families = {}
+        for e in pins:
+            self.release_families.setdefault(e["release_scope"], []).append(e)
+        for channel, chain in self.release_channels.items():
+            for prior, successor in zip(chain, chain[1:]):
+                # The fixed §7.4 form orders bytewise, identically to chronological order.
+                if successor["activated_utc"] < prior["activated_utc"]:
+                    raise RegistryError(
+                        f"release-pin channel {channel!r}: release-pin {successor['manifest_hash']} is "
+                        f"activated before its predecessor {prior['manifest_hash']} (§13.5)"
+                    )
+        first_release = {}
+        for index, e in enumerate(self.entries):
+            if e["type"] == "release-pin":
+                first_release.setdefault(e["release_scope"], index)
+            elif e["type"] == "grail-kernel" and e["release_scope"] in first_release:
+                raise RegistryError(
+                    f"entries[{index}]: the grail-kernel for release_scope {e['release_scope']!r} follows "
+                    f"that family's first release-pin, entries[{first_release[e['release_scope']]}]; a "
+                    "family's kernel is declared before its first release-pin (§13.5)"
+                )
+
+    def _check_release_history(self, persisted_entries):
+        """§13.5 against what the caller accepted before: no grail-kernel joins a family after a
+        release of that family was accepted.
+
+        `check_retained` calls this once every persisted entry is known to be here byte for byte,
+        so each is an entry of this registry. A grail-kernel that is not among them is new to the
+        caller; when its family has a persisted release-pin, the kernel arrived after a release of
+        the family was accepted — wherever it now sits in `entries`, which the in-document
+        ordering rule alone cannot see. Pass every declared entry you accepted (§13.4): a kernel
+        you accepted but did not pass back reads as new, and is refused."""
+        known = {R.canonical(e) for e in persisted_entries}
+        accepted = {}
+        for e in persisted_entries:
+            if e["type"] == "release-pin":
+                accepted.setdefault(e["release_scope"], e["manifest_hash"])
+        for index, e in enumerate(self.entries):
+            if e["type"] != "grail-kernel" or e["release_scope"] not in accepted:
+                continue
+            if R.canonical(e) not in known:
+                return False, (
+                    f"entries[{index}]: a grail-kernel for release_scope {e['release_scope']!r} was added "
+                    "after a release of that family was accepted (release-pin "
+                    f"{accepted[e['release_scope']]}); a family's kernel is declared before its first "
+                    "release-pin (§13.5)"
+                )
+        return True, "ok"
+
+    def release_pin(self, manifest_hash):
+        """The release-pin entry pinning `manifest_hash` — one exact pinned release — or None."""
+        return self.release_pins.get(manifest_hash) if isinstance(manifest_hash, str) else None
+
+    def scope_releases(self, release_scope):
+        """The release pins of every release of the family `release_scope`, oldest first (`entries`
+        order, which every channel's chain order agrees with), in whichever channels; [] when none."""
+        releases = self.release_families.get(release_scope) if isinstance(release_scope, str) else None
+        return list(releases or ())
+
+    def scope_head(self, release_scope):
+        """The release pin of the family's current release — its last in `entries` order, in whichever
+        channel — or None."""
+        releases = self.scope_releases(release_scope)
+        return releases[-1] if releases else None
+
+    def channel_head(self, channel):
+        """The release pin at the head of `channel` — the channel's current pinned release — or None."""
+        chain = self.release_channels.get(channel) if isinstance(channel, str) else None
+        return chain[-1] if chain else None
+
+    # ---- §13.6 lifecycle notices ----
+    def _index_lifecycle(self):
+        """Chain each subject's `lifecycle` entries and refuse what §13.6 forbids.
+
+        One linear chain per `subject` (a rappid or a repository URI, compared byte for byte),
+        every entry after the first naming the one it follows by `previous` = entry_hash (so a
+        chain is its subject's entries in append order); neither `since_utc` nor
+        `activated_utc` decreasing along it; and, at no time, a cycle among the successors named
+        by the notices in effect then."""
+        collected = [e for notices in self.lifecycle.values() for e in notices]
+        self.lifecycle = linear_chains(
+            collected, key=lambda e: e["subject"], ident=entry_hash,
+            link=lambda e: e["previous"], where="lifecycle chain",
+        )
+        for subject, chain in self.lifecycle.items():
+            for prior, notice in zip(chain, chain[1:]):
+                for member in ("since_utc", "activated_utc"):
+                    # The fixed §7.4 form orders bytewise exactly as it orders in time.
+                    if notice[member] < prior[member]:
+                        raise RegistryError(
+                            f"lifecycle chain {subject!r}: `{member}` decreases along the chain (§13.6)"
+                        )
+        # The notices in effect change only at a since_utc, so the successor graph is checked at
+        # each distinct since_utc in time order. A cycle there must pass through a subject whose
+        # notice changed then (the graph before that instant had none), so only walks from those
+        # subjects are needed.
+        changes = {}  # since_utc -> [(subject, notice)], each chain's entries in chain order
+        for subject, chain in self.lifecycle.items():
+            for notice in chain:
+                changes.setdefault(notice["since_utc"], []).append((subject, notice))
+        successors = {}  # subject -> the successor named by its notice in effect
+        for instant in sorted(changes):
+            for subject, notice in changes[instant]:  # a later entry at the same instant wins
+                if notice["superseded_by"] is None:
+                    successors.pop(subject, None)
+                else:
+                    successors[subject] = notice["superseded_by"]
+            settled = set()  # subjects whose walk along the successors in effect is known to end
+            for start, _ in changes[instant]:
+                walk, current = set(), start
+                while current in successors and current not in settled:
+                    if current in walk:
+                        raise RegistryError(
+                            f"lifecycle: the `superseded_by` of the notices in effect at {instant} form a "
+                            f"cycle through {current!r} (§13.6)"
+                        )
+                    walk.add(current)
+                    current = successors[current]
+                settled |= walk
+
+    def lifecycle_chain(self, subject):
+        """The subject's `lifecycle` entries in chain order (first notice first); [] when none.
+        `subject` is a rappid or a repository URI, spelled exactly as the notices spell it."""
+        return list(self.lifecycle.get(subject, ())) if isinstance(subject, str) else []
+
+    def lifecycle_head(self, subject):
+        """The current notice — the last entry of the subject's chain — or None. A scheduled
+        notice is current before its `since_utc` arrives; `lifecycle_at` and `successor_at`
+        say what is in effect."""
+        chain = self.lifecycle_chain(subject)
+        return chain[-1] if chain else None
+
+    def lifecycle_at(self, subject, utc, *, allow_draft=False):
+        """The notice in effect at `utc`: the last chain entry whose `since_utc` <= `utc`
+        (bytewise, §7.4). None means no declared lifecycle at `utc` — never deprecation.
+        It is the estate's answer, so it is given only by a registry load_document returned as
+        "verified" (a "draft" only with `allow_draft=True`, as a rehearsal; a Registry built
+        directly never): otherwise, and for a `utc` that is not a §7.4 time, it raises
+        RegistryError (a ValueError) rather than return a None that could read as "no notice".
+        For a component of a release manifest, ask about `lifecycle_subject(component)`."""
+        refusal = self._status_refusal(allow_draft, "the lifecycle in effect (§13.6)")
+        if refusal:
+            raise RegistryError(refusal)
+        if not _utc_form(utc):
+            raise RegistryError("lifecycle query time is not a §7.4 time")
+        in_effect = None
+        for notice in self.lifecycle_chain(subject):
+            if notice["since_utc"] > utc:
+                break  # since_utc never decreases along a chain
+            in_effect = notice
+        return in_effect
+
+    def lifecycle_state_at(self, subject, utc, *, allow_draft=False):
+        """The subject's state in effect at `utc`; None when it has no declared lifecycle then.
+        Gated like lifecycle_at."""
+        notice = self.lifecycle_at(subject, utc, allow_draft=allow_draft)
+        return None if notice is None else notice["state"]
+
+    def successor_at(self, subject, utc, *, allow_draft=False):
+        """The `superseded_by` of the notice in effect at `utc` — a rappid or a repository URI —
+        or None when no notice is in effect then or it names no successor, so a scheduled notice
+        names none before its `since_utc`. It names; it grants nothing. The successors in effect
+        at any one time never form a cycle (§13.6), so a walk along them at one time always ends.
+        Gated like lifecycle_at."""
+        notice = self.lifecycle_at(subject, utc, allow_draft=allow_draft)
+        return None if notice is None else notice["superseded_by"]
+
+    # ---- §13.7 stream signers ----
+    def _index_stream_signers(self):
+        """Check every grant the constructor collected against the rules that span entries
+        (§13.3): its signer has a §13 `spki` entry here — so it is keyed; a keyless rappid never
+        signs — and each listed kind a `kind` entry here whose family's stream form is the
+        grant's stream form (§7.2). Deprecated `spki` and `kind` entries still count: a grant is
+        permanent, and retiring a key or a kind later never invalidates the registry."""
+        for stream_id, grants in self.stream_signers.items():
+            form = stream_form(stream_id)
+            for grant in grants:
+                where = f"stream-signer for {grant['signer']} on {stream_id}"
+                if grant["signer"] not in self.spki:
+                    raise RegistryError(f"{where}: the signer has no spki entry in this registry (§13.3)")
+                for kind in grant["kinds"]:
+                    registered = self.kinds.get(kind)
+                    if registered is None:
+                        raise RegistryError(f"{where}: kind {kind!r} is not registered in this registry")
+                    if STREAM_FORMS[registered["family"]] != form:
+                        raise RegistryError(
+                            f"{where}: kind {kind!r} is family {registered['family']!r}, "
+                            f"incompatible with a {form} (§7.2)"
+                        )
+
+    @staticmethod
+    def _window_covers(grant, utc):
+        """since_utc ≤ utc < until_utc, bytewise over the fixed §7.4 form; a null until never ends."""
+        return grant["since_utc"] <= utc and (grant["until_utc"] is None or utc < grant["until_utc"])
+
+    def stream_grants(self, stream_id):
+        """The `stream-signer` grants for `stream_id` in append order (a new list; [] if none)."""
+        return list(self.stream_signers.get(stream_id, ())) if isinstance(stream_id, str) else []
+
+    def grant_covers(self, stream_id, kid, kind, utc):
+        """Does a grant for `stream_id` name `kid` as signer, list `kind`, and cover `utc`?
+
+        The grant window only; §10 key refusal and owner authority are authority_decision's."""
+        if not _utc_form(utc):
+            return False
+        return any(grant["signer"] == kid and kind in grant["kinds"] and self._window_covers(grant, utc)
+                   for grant in self.stream_grants(stream_id))
+
+    def authority_decision(self, stream_id, kid, kind, utc):
+        """The §13.7 rule over a frame summary: may `kid` speak for this estate on `stream_id`
+        with `kind` at `utc`? Returns (ok, reason); `kid` None means the frame is unsigned.
+
+        Authorized iff `kid` is the estate owner in effect at `utc` (§13.2), or a grant covers
+        `stream_id`, `kid`, `kind`, and `utc` — and in both cases the key is acceptable at `utc`
+        (§13.4 item 1: not superseded or tombstoned by then, and not retired). A grant's `activated_utc` plays no part: a grant may start before it, and then
+        adopts frames the signer already published inside its window. It decides authority,
+        never validity: the frame must already have passed §7.5 (see frame_authorized). Pure:
+        it reads only this registry's entries and does not check `status` — it is the rule, not
+        the estate's answer; frame_authorized and verify_authorized_frame give the answer only
+        for a verified registry. A refusal holds only against this registry — a newer registry
+        can add a grant that adopts the frame, and a cached refusal is re-evaluated against it
+        (§13.7)."""
+        if kid is None:
+            return False, "an unsigned frame never speaks for the estate (§10, §13.7)"
+        if not R.rappid_valid(kid):
+            return False, "kid is not a §6.1 rappid"
+        if not _utc_form(utc):
+            return False, "utc is not a §7.4 time"
+        try:
+            owner = self.owner_at(utc)
+        except RegistryError as why:
+            return False, str(why)
+        if kid == owner:
+            ok, why = self.signer_acceptable(kid, utc)
+            if not ok:
+                return False, f"the estate owner's key is refused at utc (§10): {why}"
+            return True, "estate owner"
+        named = [grant for grant in self.stream_grants(stream_id) if grant["signer"] == kid]
+        if not named:
+            return False, ("kid is neither the estate owner in effect at utc (§13.2) nor granted "
+                           "this stream by a stream-signer entry (§13.7)")
+        listing = [grant for grant in named if kind in grant["kinds"]]
+        if not listing:
+            return False, f"no stream-signer grant to kid on this stream lists kind {kind!r} (§13.7)"
+        if not any(self._window_covers(grant, utc) for grant in listing):
+            return False, "utc is outside every stream-signer window for kid, stream, and kind (§13.7)"
+        ok, why = self.signer_acceptable(kid, utc)
+        if not ok:
+            return False, f"the granted signer's key is refused at utc (§10): {why}"
+        return True, "stream-signer grant"
+
+    def _status_refusal(self, allow_draft, question):
+        """None when this registry may answer `question` for the estate; else the refusal reason.
+        Like verify_snapshot: "verified" always, "draft" only with allow_draft (a rehearsal),
+        and a Registry built directly (status None) never."""
+        accepted = ("verified", "draft") if allow_draft else ("verified",)
+        if self.status in accepted:
+            return None
+        return (f"registry status is {self.status!r}; only a registry that load_document returned as "
+                f"{' or '.join(accepted)} answers {question}")
+
+    def frame_authorized(self, frame, *, allow_draft=False):
+        """The §13.7 authority rule ONLY — does this frame speak for the estate? (ok, reason).
+
+        !! IT DOES NOT VERIFY THE FRAME. Call it only for a frame that has ALREADY passed §7.5
+        !! — rapp.verify_frame(signature_verifier=self.signature_verifier()) plus
+        !! check_frame_binding — or call verify_authorized_frame, which runs all three. It reads
+        !! the signer from the protected `kid` without checking the signature, so its answer
+        !! for an unverified frame means nothing.
+
+        Answers only for a registry that load_document returned as "verified" (its `status`); a
+        "draft" answers only with `allow_draft=True`, for rehearsal, and a Registry built
+        directly (status None) never — as for verify_snapshot. Refuses an unsigned frame (it
+        never speaks for the estate, §10) and a `sig` whose protected header does not parse;
+        otherwise applies authority_decision to the frame's `stream_id`, `kid`, `kind`, and
+        `utc`. A refusal leaves the frame a valid `rapp/1` frame."""
+        refusal = self._status_refusal(allow_draft, "who speaks for the estate (§13.7)")
+        if refusal:
+            return False, refusal
+        if not isinstance(frame, dict):
+            return False, "frame is not a JSON object"
+        sig = frame.get("sig")
+        if sig is None:
+            return False, "an unsigned frame never speaks for the estate (§10, §13.7)"
+        try:
+            kid = R.parse_detached_jws(sig)[0]["kid"]
+        except (ValueError, TypeError, RecursionError) as why:
+            return False, f"sig is not a §10 detached JWS: {why}"
+        return self.authority_decision(frame.get("stream_id"), kid, frame.get("kind"), frame.get("utc"))
+
+    def verify_authorized_frame(self, frame, *, head, stream_id_of_record, allow_draft=False):
+        """§7.5 against this registry, then the §13.7 authority check. Returns (ok, step, why).
+
+        An invalid frame fails at its §7.5 step, "1" through "6"; the registered-kind and
+        family binding (check_frame_binding) is part of step 1. A valid `rapp/1` frame that does
+        not speak for the estate fails at step "authority", which is deliberately not a §7.5
+        step, so a caller can tell "not the estate's statement" from "not a frame". On success
+        step is None and why names the authority: "estate owner" or "stream-signer grant".
+        `head` is the stream's verified head (None at genesis); `stream_id_of_record` is the
+        stream being read or extended (§7.5 step 1a) and is required. The authority step answers
+        only for a registry load_document returned as "verified" (§13.1; see `status`), or a
+        "draft" with `allow_draft=True` for rehearsal; any other registry is refused first, at step
+        "authority", because its kinds and keys cannot judge the frame either."""
+        refusal = self._status_refusal(allow_draft, "who speaks for the estate (§13.7)")
+        if refusal:
+            return False, "authority", refusal
+        if not isinstance(frame, dict):
+            return False, "1", "frame is not a JSON object"
+        if not isinstance(stream_id_of_record, str):
+            return False, "1a", "stream_id_of_record must name the stream being read or extended"
+        ok, step, why = R.verify_frame(frame, head=head, stream_id_of_record=stream_id_of_record,
+                                       signature_verifier=self.signature_verifier())
+        if not ok and step == "1":
+            return False, step, why
+        bound, bound_why = self.check_frame_binding(frame)
+        if not bound:
+            return False, "1", bound_why
+        if not ok:
+            return False, step, why
+        authorized, why = self.frame_authorized(frame, allow_draft=allow_draft)
+        if not authorized:
+            return False, "authority", why
+        return True, None, why
+
+    def authorization_verifier(self, *, allow_draft=False):
+        """A callable `(frame, purpose=None) -> bool` for the `authorization_verifier` parameter of
+        rapp_profile.authoritative_frame_payload: True only when frame_authorized(frame) holds,
+        so never for a registry that is not "verified" (or a "draft" with `allow_draft=True`).
+        That helper asks only after its own rapp.verify_frame — pass it
+        signature_verifier=self.signature_verifier() — so the signature is verified first, as
+        frame_authorized requires. `purpose` is accepted and never widens authority.
+
+        §13.7 binds only a consumer that follows no profile-defined signer rule. A subordinate
+        profile that defines its own signer authorization (rapp-work/1 §1, a rapp-cicd/1 stage
+        approver) keeps it and MAY meet it with this verifier; nothing here replaces that rule."""
+        def authorized(frame, purpose=None):
+            return self.frame_authorized(frame, allow_draft=allow_draft)[0]
+        return authorized
+
+
+def validate_document(doc):
+    """The §13.1 container, structurally: refuse, never repair. Entries are not checked here."""
+    if not isinstance(doc, dict) or doc.get("schema") != DOCUMENT_SCHEMA:
+        raise RegistryError('document schema must be "rapp/1-registry"')
+    missing = [m for m in DOCUMENT_MEMBERS if m not in doc]
+    if missing:
+        raise RegistryError(f"registry document lacks {missing} (§13.1)")
+    seq = doc["registry_seq"]
+    if not (isinstance(seq, int) and not isinstance(seq, bool) and 0 <= seq <= 2**53 - 1):
+        raise RegistryError("registry_seq must be uint53")
+    source = doc["canonical_source"]
+    if not _canonical_source_ok(source):
+        raise RegistryError("canonical_source must be an absolute HTTPS URI or a URN (§13.1)")
+    if not isinstance(doc[ENTRIES_MEMBER], list):
+        raise RegistryError("entries must be a JSON array (§13.1)")
+    sig = doc["sig"]
+    if sig is not None and not (isinstance(sig, str) and sig):
+        raise RegistryError("sig must be a detached JWS string or null (§13.1)")
+    try:  # §13.1: every number an integer written without fraction or exponent, within ±(2^53-1)
+        octets = R.canonical(doc).encode("utf-8")
+    except (ValueError, RecursionError) as why:
+        raise RegistryError(f"registry document: every number is an integer without fraction or exponent, "
+                            f"of magnitude at most 2^53-1, and every string valid (§13.1, §4): {why}")
+    try:  # §4(d): a registry is one §4 value — at most 1 MiB canonical, nested at most 64 deep
+        R._strict_json(octets)
+    except (ValueError, RecursionError) as why:
+        raise RegistryError(f"registry document is not a §4 value: {why}")
+    return doc
+
+
+def load_document(doc, *, trust_anchor, entries_member=ENTRIES_MEMBER, allow_unsigned=False,
+                  persisted_seq=None, tombstone_issued_at=None, verification_utc=None,
+                  first_seen=None, canonical_source=None, persisted_entries=None):
     """Load a `rapp/1-registry` document. Returns (status, registry, reason) where status is
     "verified" (owner signature verified AGAINST THE TRUST ANCHOR), "draft" (unsigned and
     allow_unsigned), or "refused".
@@ -479,50 +1404,455 @@ def load_document(doc, *, entries_member, trust_anchor, allow_unsigned=False,
     `trust_anchor` is REQUIRED: the estate-owner rappid you obtained out of band (§13.1 — the
     one bootstrap axiom). A document whose `estate_owner` entry names any other rappid is
     refused before its signature is even checked; without this, a registry signed by a
-    self-minted key would verify against itself. `entries_member` is REQUIRED because §13
-    does not yet name the member that holds the entries. `persisted_seq` implements §13.1
-    no-rollback: a lower `registry_seq` is refused. Signed documents also verify
-    each lifecycle entry's owner signature and any old-key continuity signature.
+    self-minted key would verify against itself. §13.1 names the container: the entries are
+    always the `entries` member (`entries_member` is kept for compatibility and refuses any
+    other name), and `canonical_source` is the document's own owner-selected location of
+    record; pass `canonical_source=` when you obtained one out of band with the anchor and a
+    document naming another is refused. `persisted_seq` implements §13.1 no-rollback: a lower
+    `registry_seq` is refused. Signed documents also verify each key-lifecycle entry's owner
+    signature and any old-key continuity signature, and every declared entry's own owner
+    signature at its `activated_utc` (§13.4). The 300-second rule is per entry:
+    `first_seen(entry_hash)` returns the caller's persisted first-seen time for an entry,
+    recorded when a registry carrying it was accepted and never on a refusal (§13.4 item 3),
+    and the current time for one not yet accepted; `verification_utc` is the shortcut when no
+    declared entry has been accepted before; a signed registry that carries a declared
+    entry is refused when neither is supplied. `persisted_entries` are the canonical
+    declared entries the caller accepted before — all of them, in the order the accepted registry
+    held them; each must still be present byte for byte, in that order, and ahead of every declared
+    entry not among them (a later registry appends, §13.4), and a `grail-kernel` that is not among
+    them is refused when its family has a persisted `release-pin` (§13.5: no kernel joins a family
+    after a release of it was accepted). These history checks are structural, so an unsigned draft
+    is held to them too: a rehearsal shows what a consumer with that history would refuse.
     Freshness, append provenance, and historical migration proofs remain caller
-    responsibilities; a verified snapshot alone cannot establish them.
+    responsibilities; a verified registry snapshot alone cannot establish them. A returned
+    registry records its status in `registry.status` ("verified" or "draft"): `verify_snapshot`,
+    `frame_authorized`, `verify_authorized_frame`, `authorization_verifier`, `declared_entry_ok`,
+    `lifecycle_at`, `lifecycle_state_at`, and `successor_at` check it, so only a "verified"
+    registry's snapshots, authority answers, copy checks, and lifecycle answers (§13.4–§13.7) are
+    the estate's (a draft only with `allow_draft=True`, as a rehearsal); a Registry constructed
+    directly has status None.
     `tombstone_issued_at(entry_hash)` must resolve authenticated issuance/append
     context to a fixed UTC string. It is trusted caller configuration, never a
     field read from the untrusted document. No resolver means tombstones are
     refused: revoked_utc cannot be silently reinterpreted as issuance time."""
+    if entries_member != ENTRIES_MEMBER:
+        return "refused", None, 'the §13.1 entries member is "entries"; no other name is a rapp/1-registry'
     if not R.rappid_valid(trust_anchor):
         return "refused", None, "trust_anchor must be the out-of-band estate-owner rappid"
-    if not isinstance(doc, dict) or doc.get("schema") != "rapp/1-registry":
-        return "refused", None, 'document schema must be "rapp/1-registry"'
-    seq = doc.get("registry_seq")
-    if not (isinstance(seq, int) and not isinstance(seq, bool) and 0 <= seq <= 2**53 - 1):
-        return "refused", None, "registry_seq must be uint53"
+    try:
+        validate_document(doc)
+    except RegistryError as why:
+        return "refused", None, str(why)
+    seq = doc["registry_seq"]
     if persisted_seq is not None and seq < persisted_seq:
         return "refused", None, f"registry_seq {seq} < persisted {persisted_seq} (rollback)"
-    if entries_member not in doc:
-        return "refused", None, f"document has no {entries_member!r} member"
+    if canonical_source is not None and doc["canonical_source"] != canonical_source:
+        return "refused", None, "canonical_source differs from the one obtained with the trust anchor (§13.1)"
     try:
         R.canonical(doc)  # §4 input-domain profile: refuse, never repair
-        reg = Registry(doc[entries_member])
+        reg = Registry(doc[ENTRIES_MEMBER])
     except (RegistryError, ValueError) as why:
         return "refused", None, str(why)
+    reg.canonical_source = doc["canonical_source"]
     if reg.estate_owner != trust_anchor:
         return "refused", None, "estate_owner does not match the out-of-band trust anchor (§13.1)"
-    sig = doc.get("sig")
+    sig = doc["sig"]
     if sig is None:
-        if allow_unsigned:
-            return "draft", reg, "unsigned: a draft, never authority (§13.1)"
-        return "refused", None, "unsigned registry (§13.1 MUST refuse)"
+        if not allow_unsigned:
+            return "refused", None, "unsigned registry (§13.1 MUST refuse)"
+        if persisted_entries is not None:
+            try:
+                ok, why = reg.check_retained(persisted_entries)
+            except RegistryError as refusal:
+                ok, why = False, str(refusal)
+            if not ok:
+                return "refused", None, why
+        reg.status = "draft"
+        return "draft", reg, "unsigned: a draft, never authority (§13.1)"
     unsigned = {k: v for k, v in doc.items() if k != "sig"}
     der = reg.spki_der(reg.estate_owner)
     if der is None:
         return "refused", None, "no spki entry for the estate_owner; the tail check cannot run"
-    ok, why = R.verify_detached_jws(unsigned, sig, der, expected_kid=reg.estate_owner)
+    ok, why = _verify_jws(unsigned, sig, der, reg.estate_owner)
     if not ok:
         return "refused", None, why
     try:
         ok, why = reg.check_lifecycle_signatures(tombstone_issued_at=tombstone_issued_at)
+        if ok:
+            ok, why = reg.check_declared_signatures(verification_utc=verification_utc,
+                                                    first_seen=first_seen)
+        if ok and persisted_entries is not None:
+            ok, why = reg.check_retained(persisted_entries)
     except RegistryError as why:
         return "refused", None, str(why)
     if not ok:
         return "refused", None, why
+    reg.status = "verified"
     return "verified", reg, "ok"
+
+
+# ---------------------------------------------------------------------------------------
+# §13.5 release pins, release manifests, and verified snapshots. A release scope names a release
+# family; a `release-pin` entry pins one immutable release of the family — one manifest by particle
+# hash, which names the release for people in `release`; the manifest pins every component file by
+# raw SHA-256 and length at an immutable commit; a verified snapshot of one pinned release is
+# exactly those files.
+MANIFEST_SCHEMA = "rapp/1-release-manifest"
+MANIFEST_MEMBERS = ("schema", "release_scope", "release", "components")
+COMPONENT_MEMBERS = ("id", "kind", "rappid", "identity_path", "repository", "object_format",
+                     "commit", "immutable_ref", "files")
+FILE_MEMBERS = ("path", "sha256", "size_bytes")
+_RELEASE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")  # 1-64 characters, ASCII only
+_GITHUB_REPOSITORY = re.compile(
+    r"https://github\.com/([A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?)/([A-Za-z0-9._-]{1,100})"
+)
+
+
+def _validate_component(component, where):
+    if not isinstance(component, dict) or set(component) != set(COMPONENT_MEMBERS):
+        raise RegistryError(f"{where}: a component has exactly the members {list(COMPONENT_MEMBERS)}")
+    if not _lclabel(component["id"], 100):
+        raise RegistryError(f"{where}: `id` must be an lclabel of 1-100 characters")
+    if not _lclabel(component["kind"], 64):
+        raise RegistryError(f"{where}: `kind` must be an lclabel of 1-64 characters")
+    repository = component["repository"]
+    if not _https_uri(repository):
+        raise RegistryError(f"{where}: `repository` must be an absolute HTTPS URI")
+    if component["object_format"] not in ("sha1", "sha256"):
+        raise RegistryError(f"{where}: `object_format` must be sha1 or sha256")
+    if not _object_id(component["object_format"], component["commit"]):
+        raise RegistryError(f"{where}: `commit` must be lowercase hex of the object_format's length")
+    ref = component["immutable_ref"]
+    if ref is not None and not _tag_ref(ref):
+        raise RegistryError(f"{where}: `immutable_ref` must be null or a full tag name, refs/tags/<name> (§3)")
+    files = component["files"]
+    if not isinstance(files, list):
+        raise RegistryError(f"{where}: `files` must be an array")
+    paths, previous = [], None
+    for position, item in enumerate(files):
+        at = f"{where}.files[{position}]"
+        if not isinstance(item, dict) or set(item) != set(FILE_MEMBERS):
+            raise RegistryError(f"{at}: a file has exactly the members {list(FILE_MEMBERS)}")
+        path = item["path"]
+        if not (R._path_valid(path) and path.isascii()):
+            # ASCII keeps §9.1's NFC test and case folding the same on every Unicode version (§13.5).
+            raise RegistryError(f"{at}: `path` must be ASCII and obey the §9.1 path grammar")
+        try:
+            key = path.encode("utf-8")
+        except UnicodeEncodeError:
+            raise RegistryError(f"{at}: `path` is not encodable as UTF-8")
+        if previous is not None and not previous < key:
+            raise RegistryError(f"{at}: `files` must ascend by the UTF-8 bytes of path, without duplicates")
+        previous = key
+        if not (isinstance(item["sha256"], str) and _HEX64.fullmatch(item["sha256"])):
+            raise RegistryError(f"{at}: `sha256` must be 64 lowercase hex")
+        size = item["size_bytes"]
+        if not (isinstance(size, int) and not isinstance(size, bool) and 0 <= size <= 2**53 - 1):
+            raise RegistryError(f"{at}: `size_bytes` must be a uint53")
+        paths.append(path)
+    if not R._path_set_valid(paths):
+        raise RegistryError(
+            f"{where}: two file paths are equal case-insensitively, or one names a directory above another"
+        )
+    rappid, identity_path = component["rappid"], component["identity_path"]
+    if (rappid is None) != (identity_path is None):
+        raise RegistryError(f"{where}: `rappid` and `identity_path` must both be null or both be set")
+    if rappid is not None:
+        if not R.rappid_valid(rappid):
+            raise RegistryError(f"{where}: `rappid` is not a §6.1 rappid")
+        if identity_path not in paths:
+            raise RegistryError(f"{where}: `identity_path` must be one of the component's files")
+
+
+def validate_release_manifest(manifest):
+    """The §13.5 release manifest, structurally: refuse (RegistryError), never repair.
+
+    Checks exact members, the `release` name grammar, `id`/`kind` grammar and order, object
+    ids, tag refs, the §9.1 path grammar and collision rules, digests and sizes,
+    door-of-record pairing, one binding per rappid, and the §4 size limit (the exact structure
+    bounds depth far below 64). Returns the manifest. The `release` name is for people: no rule
+    here or elsewhere selects or trusts a release by it. Rules that need the registry are
+    `verify_release_manifest`'s; rules that need the pinned bytes are `verify_snapshot`'s."""
+    if not isinstance(manifest, dict) or set(manifest) != set(MANIFEST_MEMBERS):
+        raise RegistryError(f"a release manifest has exactly the members {list(MANIFEST_MEMBERS)} (§13.5)")
+    if manifest["schema"] != MANIFEST_SCHEMA:
+        raise RegistryError(f'release manifest schema must be "{MANIFEST_SCHEMA}"')
+    scope = manifest["release_scope"]
+    if not _https_uri(scope):
+        raise RegistryError("release manifest `release_scope` must be an absolute HTTPS URI")
+    name = manifest["release"]
+    if not (isinstance(name, str) and _RELEASE_NAME.fullmatch(name)):
+        raise RegistryError(
+            "release manifest `release` must be 1-64 characters of [A-Za-z0-9._-] beginning with a "
+            "letter or digit (§13.5)"
+        )
+    components = manifest["components"]
+    if not isinstance(components, list) or not components:
+        raise RegistryError("release manifest `components` must be a non-empty array")
+    previous, bound = None, {}
+    for index, component in enumerate(components):
+        where = f"components[{index}]"
+        _validate_component(component, where)
+        if previous is not None and not previous < component["id"]:
+            raise RegistryError(f"{where}: components must be sorted ascending by `id`, without duplicates")
+        previous = component["id"]
+        rappid = component["rappid"]
+        if rappid is not None:
+            if rappid in bound:
+                raise RegistryError(f"{where}: rappid already bound by component {bound[rappid]!r} (§13.5)")
+            bound[rappid] = component["id"]
+    try:
+        size = len(R.canonical(manifest).encode("utf-8"))
+    except ValueError as why:
+        raise RegistryError(f"release manifest is not a §4 value: {why}")
+    if size > R.MAX_CANONICAL_BYTES:
+        raise RegistryError("release manifest canonical form exceeds 1 MiB (§4)")
+    return manifest
+
+
+def check_kernel_coherence(registry, manifest):
+    """§13.5 kernel coherence of `manifest` against `registry`. Returns (ok, why).
+
+    With a `grail-kernel` entry for the manifest's release_scope — its family's one kernel —
+    exactly one `kernel` component must carry that entry's repository, object_format, commit,
+    and immutable_ref and pin its path with its sha256 and size_bytes; without one, no
+    component may be a `kernel`. Members compare byte for byte. A manifest that fails
+    `validate_release_manifest` is not coherent."""
+    try:
+        validate_release_manifest(manifest)
+    except RegistryError as why:
+        return False, str(why)
+    grails = [g for g in registry.grail.values() if g["release_scope"] == manifest["release_scope"]]
+    kernels = [c for c in manifest["components"] if c["kind"] == "kernel"]
+    if not grails:
+        if kernels:
+            return False, "a kernel component needs a grail-kernel entry for this release_scope (§13.5)"
+        return True, "ok"
+    grail = grails[0]
+    if len(kernels) != 1:
+        return False, f"a declared grail-kernel needs exactly one kernel component, not {len(kernels)} (§13.5)"
+    kernel = kernels[0]
+    for member in ("repository", "object_format", "commit", "immutable_ref"):
+        if kernel[member] != grail[member]:
+            return False, f"kernel component `{member}` differs from the family's grail-kernel entry (§13.5)"
+    pinned = [f for f in kernel["files"] if f["path"] == grail["path"]]
+    if not pinned:
+        return False, "kernel component does not pin the grail-kernel path (§13.5)"
+    if pinned[0]["sha256"] != grail["sha256"] or pinned[0]["size_bytes"] != grail["size_bytes"]:
+        return False, "kernel component pins the grail-kernel path with other bytes (kernel-drift, §13.5)"
+    return True, "ok"
+
+
+def _registry_release_pin(registry, pin):
+    """`pin` as one of `registry`'s own release-pin entries, byte for byte, or RegistryError."""
+    try:
+        own = registry.release_pin(pin.get("manifest_hash")) if isinstance(pin, dict) else None
+        same = own is not None and R.canonical(own) == R.canonical(pin)
+    except (ValueError, RecursionError):
+        same = False
+    if not same:
+        raise RegistryError("the release-pin is not an entry of this registry, byte for byte (§13.5)")
+    return own
+
+
+def verify_release_manifest(registry, pin, manifest_octets, *, allow_draft=False):
+    """§13.5 snapshot step 2 for one pinned release: the exact manifest `pin` pins, or RegistryError.
+
+    Its door-of-record bindings are the estate's statement, so like verify_snapshot it answers only for
+    a registry load_document returned as "verified" (a "draft" only with `allow_draft=True`, as a
+    rehearsal; a Registry built directly never).
+
+    `pin` is one of `registry`'s release-pin entries (an exact copy from elsewhere is the same
+    entry; any other value is refused). `manifest_octets` are whatever bytes a transport
+    returned for the pin's locator; the transport is never trusted. They must be exactly
+    canonical(manifest), hash to the pin's `manifest_hash`, name the pin's `release_scope`,
+    pass `validate_release_manifest`, and be coherent with that family's grail-kernel entry.
+    The registry's own verification is `verify_snapshot`'s step 1, not this function's."""
+    refusal = registry._status_refusal(allow_draft, "which release a release-pin pins (§13.5)") \
+        if isinstance(registry, Registry) else "not a Registry"
+    if refusal:
+        raise RegistryError(refusal)
+    entry = _registry_release_pin(registry, pin)
+    if not isinstance(manifest_octets, bytes):
+        raise RegistryError("release manifest octets must be bytes")
+    try:
+        manifest = R._strict_json(manifest_octets)
+        exact = manifest_octets == R.canonical(manifest).encode("utf-8")
+    except (ValueError, RecursionError) as why:
+        raise RegistryError(f"release manifest is not a §4 value: {why}")
+    if not exact:
+        raise RegistryError(
+            "release manifest octets must be exactly canonical(manifest): UTF-8, no byte-order mark, "
+            "no insignificant whitespace, no trailing line terminator (§13.5)"
+        )
+    if R.H("rapp/1:particle", manifest) != entry["manifest_hash"]:
+        raise RegistryError("release manifest does not hash to the release-pin's manifest_hash (§13.5)")
+    if not isinstance(manifest, dict) or manifest.get("release_scope") != entry["release_scope"]:
+        raise RegistryError("release manifest names a release_scope other than its release-pin's (§13.5)")
+    validate_release_manifest(manifest)
+    ok, why = check_kernel_coherence(registry, manifest)
+    if not ok:
+        raise RegistryError(why)
+    return manifest
+
+
+def github_raw_url(repository, commit, path):
+    """The commit-pinned raw URL of one file of a GitHub repository (§13.5 step 3), or None.
+
+    Only `https://github.com/<owner>/<repository>` with plain name segments, a full
+    lowercase-hex commit, and a §9.1 path qualify; another host, a branch or tag name, a `.git`
+    suffix, extra path, a query, or a fragment returns None rather than a guess. Each path
+    segment is percent-encoded. The URL is transport only: what it returns is verified by
+    the pinned length and SHA-256, never by where it came from."""
+    match = _GITHUB_REPOSITORY.fullmatch(repository) if isinstance(repository, str) else None
+    if match is None:
+        return None
+    owner, name = match.groups()
+    if name in (".", "..") or name.lower().endswith(".git"):
+        return None
+    if not (isinstance(commit, str) and (_HEX40.fullmatch(commit) or _HEX64.fullmatch(commit))):
+        return None
+    if not R._path_valid(path):
+        return None
+    try:
+        encoded = "/".join(urllib.parse.quote(segment, safe="") for segment in path.split("/"))
+    except UnicodeEncodeError:
+        return None
+    return f"https://raw.githubusercontent.com/{owner}/{name}/{commit}/{encoded}"
+
+
+def _fetch_pinned(fetch, locator, path, where):
+    try:
+        octets = fetch(locator["repository"], locator["object_format"], locator["commit"], path)
+    except Exception as why:  # any transport failure refuses the whole snapshot, never a part
+        raise RegistryError(f"{where}: fetch failed: {why}") from why
+    if not isinstance(octets, bytes):
+        raise RegistryError(f"{where}: fetch must return bytes")
+    return octets
+
+
+def _pinned_file_mismatch(item, octets):
+    """§13.5 step 3 for one fetched file: why its octets are not the pinned ones, or None. Both the
+    length and the raw SHA-256 must be the manifest's."""
+    if len(octets) != item["size_bytes"]:
+        return f"{len(octets)} bytes, {item['size_bytes']} pinned"
+    if hashlib.sha256(octets).hexdigest() != item["sha256"]:
+        return "SHA-256 differs from the pinned digest"
+    return None
+
+
+def _utf8_text_problem(octets, what):
+    """Why `octets` are not UTF-8 JSON text without a byte-order mark, or None. json.loads would guess
+    UTF-16 or UTF-32 from a byte-order mark or from NUL bytes; I-JSON is UTF-8 (§4), and NUL is never
+    part of a UTF-8 JSON text."""
+    if octets.startswith(b"\xef\xbb\xbf"):
+        return f"{what} must be UTF-8 without a byte-order mark"
+    try:
+        octets.decode("utf-8")
+    except UnicodeDecodeError:
+        return f"{what} must be UTF-8"
+    if b"\x00" in octets:
+        return f"{what} must be UTF-8 JSON text, which never holds a NUL byte"
+    return None
+
+
+def parse_document(octets):
+    """A registry document from the octets a transport returned (§13.1): at most 1 MiB as stored,
+    UTF-8 without a byte-order mark, then a strict §4 value — never a guessed UTF-16 or UTF-32 text.
+    Pass the result to load_document. RegistryError otherwise."""
+    if not isinstance(octets, bytes):
+        raise RegistryError("registry document octets must be bytes")
+    if len(octets) > R.MAX_CANONICAL_BYTES:
+        raise RegistryError(f"a registry document is at most 1 MiB as stored, not {len(octets)} octets (§13.1)")
+    why = _utf8_text_problem(octets, "a registry document")
+    if why:
+        raise RegistryError(f"{why} (§13.1)")
+    try:
+        return R._strict_json(octets)
+    except (ValueError, RecursionError) as why:
+        raise RegistryError(f"a registry document must be a §4 value (§13.1): {why}")
+
+
+def _door_of_record_mismatch(component, octets):
+    why = _utf8_text_problem(octets, "identity file")
+    if why:
+        return why
+    try:
+        identity = R._strict_json(octets)
+    except (ValueError, RecursionError) as why:
+        return (f"identity file is not a §4 value whose numbers are integers without fraction or exponent "
+                f"within ±(2^53-1) (§13.5): {why}")
+    if not isinstance(identity, dict):
+        return "identity file must be a JSON object"
+    if identity.get("rappid") != component["rappid"]:
+        return "identity file rappid differs from the component's rappid"
+    if "schema" in identity and identity["schema"] != "rapp/1":
+        return 'identity file schema, when present, must be "rapp/1"'
+    return None
+
+
+def _select_release(registry, release_scope, channel, manifest_hash):
+    """§13.5 step 1's selection: the one release-pin named by exactly one selector."""
+    given = [value for value in (release_scope, channel, manifest_hash) if value is not None]
+    if len(given) != 1:
+        raise RegistryError(
+            "select exactly one pinned release: release_scope= (a family's current release), channel= "
+            "(a channel's head), or manifest_hash= (one exact pinned release) (§13.5 step 1)"
+        )
+    if release_scope is not None:
+        pin, named = registry.scope_head(release_scope), f"release_scope {release_scope!r}"
+    elif channel is not None:
+        pin, named = registry.channel_head(channel), f"channel {channel!r}"
+    else:
+        pin, named = registry.release_pin(manifest_hash), f"manifest_hash {manifest_hash!r}"
+    if pin is None:
+        raise RegistryError(f"no release-pin entry for {named} (§13.5)")
+    return pin
+
+
+def verify_snapshot(registry, fetch, *, release_scope=None, channel=None, manifest_hash=None,
+                    allow_draft=False):
+    """The §13.5 verified snapshot of one pinned release: {(component_id, path): octets}.
+
+    Select the pinned release with exactly one of `release_scope=` (that family's current
+    release), `channel=` (that channel's head), or `manifest_hash=` (that exact pinned release,
+    current or not: every declared entry is persisted, so a successor supersedes a pinned
+    release without retiring it, and every pinned release stays verifiable). A manifest's
+    `release` name never selects. `registry` must be one `load_document` returned as
+    "verified"; a "draft" is accepted only with `allow_draft=True`, for rehearsal, and a
+    Registry built directly (status None) never.
+    `fetch(repository, object_format, commit, path) -> bytes` is any transport (git, a mirror,
+    `github_raw_url`) and is never trusted: it is called once for the release-pin's manifest
+    locator and once per pinned file, and every returned byte is checked against the manifest. The
+    lengths are known before each call (at most 1 MiB for the manifest, §4; `size_bytes` for a
+    file), so a transport should stop reading one byte past them rather than buffer a hostile
+    stream; this function refuses any other length.
+    Refusal is whole: any failure raises RegistryError and returns nothing. What only git can
+    prove — that an `immutable_ref` resolves to its `commit`, or the commit of a component
+    whose `files` is empty — is left to a git-capable verifier."""
+    accepted = ("verified", "draft") if allow_draft else ("verified",)
+    status = getattr(registry, "status", None)
+    if status not in accepted:
+        raise RegistryError(
+            f"registry status is {status!r}; a verified snapshot needs a registry that "
+            f"load_document returned as {' or '.join(accepted)} (§13.5 step 1)"
+        )
+    entry = _select_release(registry, release_scope, channel, manifest_hash)
+    manifest = verify_release_manifest(
+        registry, entry, _fetch_pinned(fetch, entry, entry["path"], "release manifest"), allow_draft=allow_draft
+    )
+    snapshot = {}
+    for component in manifest["components"]:
+        for item in component["files"]:
+            where = f"component {component['id']!r} file {item['path']!r}"
+            octets = _fetch_pinned(fetch, component, item["path"], where)
+            why = _pinned_file_mismatch(item, octets)
+            if why:
+                raise RegistryError(f"{where}: {why} (§13.5)")
+            snapshot[(component["id"], item["path"])] = octets
+    for component in manifest["components"]:
+        if component["rappid"] is not None:
+            why = _door_of_record_mismatch(component, snapshot[(component["id"], component["identity_path"])])
+            if why:
+                raise RegistryError(f"component {component['id']!r} door of record: {why} (§13.5)")
+    return snapshot

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Append the deterministic rev-16 RAPP/1 specification-chain frame."""
+"""Append the deterministic rev-17 RAPP/1 specification-chain frame."""
 
 from __future__ import annotations
 
@@ -32,8 +32,8 @@ INDEX = ANCHOR / "index.json"
 FRAMES = ANCHOR / "frames"
 BOOTSTRAP = ANCHOR / "bootstrap"
 LOCK = ANCHOR / ".update_anchor.lock"
-REVISION = "rev-16"
-PREVIOUS_REVISION = "rev-15"
+REVISION = "rev-17"
+PREVIOUS_REVISION = "rev-16"
 INPUT_PATHS = [
     "SPEC.md",
     "CONSTITUTION.md",
@@ -651,6 +651,34 @@ def revision_payload(
         "status": "live",
         "where": "§12 and Constitution Article 18 — the rapp/1 verified forms never change; a change is rapp/2",
     }
+    payload["vocabulary"]["declared-entry"] = {
+        "status": "live",
+        "where": "§13.4 — a registry entry carrying its own owner signature at its activated_utc",
+    }
+    payload["vocabulary"]["release-pin"] = {
+        "status": "live",
+        "where": "§13.5 — the declared entry pinning one immutable release of a release family",
+    }
+    payload["vocabulary"]["release-manifest"] = {
+        "status": "live",
+        "where": "§13.5 — rapp/1-release-manifest: a named release, every component by digest at an immutable commit",
+    }
+    payload["vocabulary"]["release-channel"] = {
+        "status": "live",
+        "where": "§13.5 — an owner-named linear chain of release pins; its head pins the current release",
+    }
+    payload["vocabulary"]["lifecycle"] = {
+        "status": "live",
+        "where": "§13.6 — estate-signed notice about a rappid or a rappid-less repository: active, deprecated, superseded, or archived since a time",
+    }
+    payload["vocabulary"]["superseded-by"] = {
+        "status": "live",
+        "where": "§13.6 — names a successor, a rappid or a repository URI; transfers nothing",
+    }
+    payload["vocabulary"]["stream-signer"] = {
+        "status": "live",
+        "where": "§13.7 — an estate grant letting a keyed signer speak for it on one stream, above §7.5",
+    }
     rules = [
         {
             "t": "gotcha",
@@ -710,6 +738,107 @@ def revision_payload(
                 "The rapp/1 wire is frozen: §4, §5, §6.1-6.2, §7.1, §7.3, §7.5, §8 and §9.1 "
                 "never change under the rapp/1 token; a change is rapp/2 beside it, and rapp/1 "
                 "artifacts verify forever."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
+                "A rapp/1-registry keeps its entries under `entries` and its owner-selected location "
+                "of record under `canonical_source`; any other top-level member carries no RAPP/1 meaning."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "A valid registry signature never blesses a declared entry: each one carries its own "
+                "owner signature at its activated_utc and is retained unchanged once accepted; a copy "
+                "counts only when its canonical form (§4) equals an entry an accepted registry carries."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
+                "A consumer ignores a registry entry of a type it does not implement, unless the entry "
+                "is marked critical, which refuses the whole registry; so one estate registry can keep "
+                "growing after an LTS consumer is pinned, and an ignored entry grants nothing."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
+                "A release scope names a release family bound to at most one Grail kernel; each "
+                "release-pin entry pins one immutable release of it by the particle hash of its "
+                "rapp/1-release-manifest, which names the release for people, pins every component file "
+                "by SHA-256 and length at an immutable commit, and binds each organism's door of record "
+                "to one repository and commit."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "A pinned release is never rebound or retired by editing: its successor in the channel "
+                "supersedes it and every earlier release stays verifiable by its manifest_hash; returning "
+                "to earlier content is a new release with a new name, and no grail-kernel joins a family "
+                "after one of its releases was accepted."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "A verified snapshot is exactly the files a release manifest pins; seeds, beacons, Hive "
+                "indexes, member pointers and HEAD fetches are locators, never authority."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
+                "A lifecycle comes from the estate-signed chain of its subject: the component's rappid when "
+                "it binds one, else its repository URI; the state and successor in effect at t are those "
+                "of the last notice whose since_utc <= t; no notice is no declared lifecycle, a claim no "
+                "verified notice supports is unverified, and a README, member file, or Hive notice that "
+                "disagrees is drift."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "A lifecycle notice is not revocation: a superseded organism's frames still verify; "
+                "revoke keys with a §10 tombstone, and a repository that changes hands keeps its old "
+                "notices until the estate declares a new one."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "The successors named by the lifecycle notices in effect at any one time never form a "
+                "cycle: check at every distinct since_utc, not only the current notices, because a "
+                "scheduled or retroactive notice can close a loop."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
+                "A stream-signer entry is the estate owner's grant that one keyed signer speaks for the "
+                "estate on one stream, for the listed kinds, from since_utc (which may precede its "
+                "activated_utc) until an optional until_utc; a keyless organism's streams gain a signer "
+                "that way without re-anchoring the organism."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "A §7.5-valid signature is not the estate's word: unless a profile defines the payload's "
+                "signers, require the owner or a stream-signer grant for the stream, kind, and time; "
+                "unsigned frames never speak for the estate."
+            ),
+        },
+        {
+            "t": "pattern",
+            "c": (
+                "Authority is decided against the verified registry in hand: a newer registry can add a "
+                "stream-signer grant that adopts earlier frames but never withdraw one, and can still "
+                "supersede, tombstone, or retire the signer's key, so re-evaluate a cached refusal or "
+                "acceptance against a newer registry."
             ),
         },
     ]

@@ -1,0 +1,1049 @@
+# RAPP/1 rev-17: design of record
+
+**Status:** proposed. This document explains the rev-17 draft; it is not normative. The normative text is
+[`SPEC.md`](SPEC.md) as materialized from the rev-17 draft frame, and the executable checks are
+[`rapp_registry.py`](rapp_registry.py). Rev-17 becomes in force only when the owner accepts its chain
+snapshot onto protected `main` (§12.2). Until then every rule below is a draft, and no estate registry uses
+the new entry types.
+
+## 1. Why a revision, and what it may not touch
+
+RAPP/1 is the long-term-support release of the whole ecosystem: one estate-signed release pins every
+component, and a successor release family uses a new release scope. The distributed Hive is the goal: the
+network is one Hive of plain folders and files, found by raw URL, and "instant full RAPP/1" is one command
+that resolves the graph at pinned commits into a verified local snapshot. Rev-17 adds what that needs, and
+only by growth (Constitution Art. 4, §12): registry entry types and the registry container.
+
+Nothing frozen moves. §12 "freezes every form a `rapp/1` artifact is verified by (§4, §5, §6.1–6.2, §7.1,
+§7.3, §7.5, §8, §9.1)". Rev-17 adds no hash tag, no §7.5 step, no re-anchor case, no frame key, and no
+change to `rapp.py`. The proof runs on every branch: `rapp.py`, `conformance/vectors.json`, and
+`anchor/bootstrap*` are byte-identical to rev-16 `main`; rev-16's chain is a byte prefix of the rev-17
+chain; the rev-17 head frame has the eleven keys and token `rapp/1` and verifies as rev-16's successor;
+and every rev-16 conformance vector (canonical forms, frame and tamper cases, egg address) reproduces.
+
+## 2. Decisions
+
+Evidence is quoted from `main` at `591e014` (rev-16).
+
+| # | Hypothesis | Needed? | Evidence (§ and quote) | Change |
+|---|---|---|---|---|
+| 1 | Component pins per release scope, so the LTS scope pins every component | **Yes** | §11.1: "at most one `grail-kernel` entry for any release scope" and "an existing scope is never rebound"; §13.3 `grail-kernel`: `path` at `commit` "**MUST** resolve through the repository tree to exactly one regular blob"; §13.3 `protocol` is "an estate adoption pin" with no scope and no commit. One kernel file per scope cannot pin a release of many repositories, and §4 caps a registry at 1 MiB. | `release-pin` declared entry naming a `rapp/1-release-manifest` by particle hash; release families, channels, kernel coherence and order, and all-or-nothing verified snapshots (§13.5) |
+| 2 | Estate-signed lifecycle (deprecated, superseded, archived; `superseded_by`, since) | **Yes** | §13.3: "retirement is a `deprecated:true` flag" on registry entries only; §10: "Compromise is declared by an owner-signed **tombstone**" (keys, not organisms); §6.2: "Re-anchor is lawful in exactly three cases" (identity, not succession). Nothing carries a successor or a start time. | `lifecycle` declared entry: one signed chain per **subject**, a rappid or the HTTPS URI of a repository that has no rappid (§13.6) |
+| 3 | Stream signer authorization for the network's `body.pulse` stream | **Yes** | §7.5 step 6: "if `sig`≠null, verify per §10"; §10 resolves the signer's key "from the §13 registry" — any registered key, on any stream. Role binding exists only where a rule names it: invites "**MUST** verify with `kid` in the §13.2 estate-owner succession", sealed eggs need `kid` "exactly equal to `manifest.rappid`", and owner-signed registry records. | `stream-signer` declared grant; an authority check above §7.5 that adds no §7.5 step (§13.7) |
+| 4 | Estate-signed member inventory binding: rappid, then repo, then raw base, then LTS ref | **Yes, inside 1** | §6.1: `owner = lclabel ; the lowercase GitHub login` and `slug = lclabel` — a rappid names no repository (repository names such as `RAPP` or `RAPP_Store` are not lclabels); §10 names "the door-of-record `rappid.json`", but nothing binds one. | Each manifest component binds `rappid` (optional) → `repository` → `commit` (the LTS ref) → `files` (bytes), with `identity_path` proving the door of record (§13.5). The raw base is not signed: for GitHub it is derived (`https://raw.githubusercontent.com/<owner>/<repo>/<commit>/<path>`, each path segment percent-encoded), and any other transport (a LAN host, `file://`) is fine because every byte is checked against the pinned digest; only what git alone can prove — that a tag resolves to its commit — is left to a git-capable verifier, as a separate finding. Signing it would add no security and would tie releases to one substrate. |
+| 5 | Keyless identities for about 300 station repos; can estate-bound keys be added without a re-anchor (§§6.2, 6.3)? | **No new mechanism** | §6.2: keyless "`tail = Hb("rapp/1:rappid", uuid4_octets)`"; "Re-anchor is lawful in exactly three cases"; §10: keyless rappids "assert location, not authorship"; §12 freezes §6.1–6.2. | A keyless identity can never gain its own key: there is no lawful fourth re-anchor case, and adding one would change a frozen form (`rapp/2`). Estate-bound keys are added without any re-anchor as `stream-signer` grants — authority, not identity. Releases (component `rappid: null`) and lifecycle notices (repository subjects) need no rappid, so the lock needs no station minting. |
+| 6 | Should the discovery chain (seed, beacon, sniff schemas) become a RAPP/1 subordinate protocol? | **No** | Constitution Art. 17: this repository is "canonicalization, content addressing, identity, frames, wire, eggs, trust, registries, and protocol-level profiles", while RAPP keeps the "foundation, product home, reference implementation, organism model, and philosophy". The seed is an observation-only document, and the live beacon and `estate.json` paths serve placeholder status documents. | None here. §13.5 makes every discovery document a locator, so trust never depends on it; the LTS manifest pins the discovery convention and its resolver by digest as RAPP files. Revisit only if a second independent resolver needs a wire contract. |
+| 7 | `body.pulse` binding, payload, and stream id | **No core change** | §7.2 defines the `body` family; the published estate registry (`registry_seq` 2) binds `body.pulse` to it; §6.1.1: a body stream id is a rappid; §8: "memory/body-stream frames **MAY** be unsigned"; §13.3: "every stream registers its creation genesis". The network's live stream `rappid:@kody-w/rapp1-network:71216534…` is keyless; its first pulse is a valid `rapp/1` frame that binds to `body.pulse` (checked with this reference), and its genesis is not yet registered. | None. The stream id is the network organism's rappid; the payload belongs to the network convention (RAPP), and an estate may adopt a written payload contract with an ordinary `protocol` entry. The estate registers the stream's `genesis`, then grants a keyed pulse signer (§13.7). Until then pulses are integrity-only. |
+| 8a | Registry container | **Yes** | `EXTENDING.md`: "nothing names the member that holds the entries or how `canonical_source` is carried". | §13.1 names exactly `schema`, `registry_seq`, `canonical_source`, `entries`, `sig`; any other member carries no meaning. `canonical_source` is an absolute HTTPS URI, or a URN for a registry kept in a private store — RAPP's private Hives already sign `rapp/1-registry` documents whose `canonical_source` is a `urn:`. §3 defines an absolute HTTPS URI by RFC 3986's grammar (no fragment, a non-empty host, a port of at most 65535, no user information), which the reference parses itself so its verdict is the same on every Python 3.9 and later. The reference enforces §4's 1 MiB and depth-64 limits on the document. The published registry already has this shape and still verifies. |
+| 8b | Entry-level signatures | **Yes** | §13.3 `grail-kernel`: "A consumer verifies the entry signer as the estate owner in effect at `activated_utc`"; §11.1: `activated_utc` "**MUST NOT** be more than 300 seconds after the verifier's first-seen time". The reference checked only tombstone and re-anchor signatures. | §13.4 declared entries: owner-in-effect signature at `activated_utc`, a per-entry first-seen bound, copies that count only in canonical form, and retention of every accepted declaration. |
+| 8b2 | Entry types a consumer does not implement | **Yes** | §12: everything "still grows under `rapp/1`: … registry entry types"; §13.3 has no rule for an unknown type, and the reference refused the whole registry (rev-16 on a rev-17 entry: `unknown entry type 'release-pin'`). The estate keeps one registry for the LTS line and the newest channel, so every later entry type would cut off consumers pinned to rev-17. | §13.3: an unknown type is ignored — covered by `sig`, counted by §4, granting nothing — unless it carries `critical` other than `false`, which refuses the registry (as §11.2 item 7 refuses "unknown required policy semantics"). Rollout: consumers running rev-16 refuse any registry that carries a rev-17 entry, since they predate this rule, so the estate adds rev-17 entries only after its consumers run rev-17. |
+| 8c | LTS corrections | **Yes, inside 1** | §11.1: "at most one `grail-kernel` entry for each `grail_id`" and "an existing scope is never rebound": a correction that keeps kernel v0.6.9 cannot declare it again under a new scope. | A release scope names a release **family** with at most one kernel; its releases are successive `release-pin` entries. A new kernel is a new family (a new scope). A family's releases may be pinned in more than one channel, so a kernel family first shipped on `newest` graduates to an LTS line when the LTS channel pins a release of it — keeping its one kernel binding, which §11.1 would never let a second scope repeat; a family's current release is its pin that appears last in `entries`. |
+| 8d | Reference answers from unverified registries | tooling | `Registry.protocols` returned the first pin per name — for the published registry, a deprecated one; authority answers ignored whether the registry had been verified. | `current_protocol` returns the sole non-deprecated pin. Every answer — `verify_snapshot`, `frame_authorized`, `verify_authorized_frame`, the lifecycle in effect (`lifecycle_at`, `lifecycle_state_at`, `successor_at`), and `declared_entry_ok` for a copy — comes only from a registry `load_document` returned as verified (a draft only with `allow_draft=True`); structural accessors stay readable. Registry time values must be ASCII, because the frozen `rapp.utc_valid` also accepts other scripts' digits. |
+
+Not blocking the lock, and left open in `rapp-backlog.md`: tombstone issuance time, kind ownership across
+estates, egg-variant closure, the registry's lifetime capacity (§6), a `rapp.utc_valid` fix for
+non-ASCII digits in frames (the registry already refuses them; `rapp.py` changes only through its parity
+process), and the Unicode version behind §9.1's NFC test and path-set folding (frozen; rev-17 keeps
+release-pin and manifest paths ASCII, so its own verdicts never depend on it). One limit is recorded for estates rather than changed here: profile adoption
+pins are estate-wide, and `rapp-work/1` requires exactly one active pin per profile name whose hash is the
+implementation's own, so the LTS line and the newest channel share each profile text. A changed profile
+text is therefore a new profile name (for example `rapp-work/2`) adopted beside the old one, never a moved
+pin; a release manifest also pins the texts each release was built against.
+
+## 3. Reuse before adding
+
+The existing §13.3 entry types were each considered first: the nine that record an estate's facts, below,
+and `estate_owner` and `master-plan`, which name the owner and its plan.
+
+- **`grail-kernel`** pins one blob per scope, and one entry per `grail_id`: it cannot pin a release of many
+  repositories, nor the kernel's companion files, and a correction cannot repeat it. Rev-17 keeps it as the
+  family's kernel binding and requires every release manifest of the family to agree with it.
+- **`protocol`** is an estate-wide adoption pin (`spec_repo`, `spec_path`, `spec_hash`) with no commit and
+  no scope; profiles require one active pin per name. It stays the adoption record.
+- **`genesis`, `kind`, `spki`** register streams, kinds, and keys. The pulse stream needs them unchanged.
+- **`tombstone`, `re-anchor`** revoke keys and move identities in three lawful cases. Neither retires an
+  organism, names a successor, or binds a key to a stream.
+- **`egg-variant`, `error-code`** are unrelated.
+- The `deprecated` flag retires a registry entry, not an organism or a repository.
+- Outside §13.3, the `rapp-cicd/1` release capsule pins one product's single source commit and artifact,
+  with components identified only by digest: it has no per-component repository, commit, or path, so it
+  cannot fetch or verify many repositories, and it travels in a signed frame that itself needs signer
+  authority.
+
+So rev-17 adds three declared entry types, and one document outside the registry (the release manifest),
+so that a release of about 300 repositories costs one registry entry.
+
+## 4. The entries
+
+Every declared entry carries `activated_utc`, `declared_by`, and `sig`. `sig` is a detached §10 JWS by the
+estate owner in effect at `activated_utc` (`kid` = `declared_by`) over `canonical(entry \ {sig})`, and the
+whole registry is refused if one entry fails (§13.4). An entry's bytes are its canonical form (§4): every
+accepted declaration is retained unchanged, in its append order and ahead of every newer declared entry, by
+every later registry (so a family's current release, its last pin in `entries`, can never move back, and a
+release pinned later is always after it), and a copy elsewhere counts only when its
+canonical form equals that of an entry of an accepted registry, however it is formatted. Every
+`immutable_ref` is a full tag name (§3): `refs/tags/` and a name git's ref-name rules accept.
+`H("rapp/1:particle", entry)` over the complete signed entry names it, so a registry carries each declared
+entry once: two with the same canonical form refuse the registry (re-issuing a grant, which a deterministic
+Ed25519 signature reproduces byte for byte, adds nothing).
+
+```text
+release-pin   {type:"release-pin", release_scope, channel, predecessor, manifest_hash,
+               repository, object_format, commit, path, activated_utc, declared_by, sig}
+lifecycle     {type:"lifecycle", subject, state, superseded_by, since_utc, previous,
+               activated_utc, declared_by, sig}
+stream-signer {type:"stream-signer", stream_id, signer, kinds, since_utc, until_utc,
+               activated_utc, declared_by, sig}
+manifest      {schema:"rapp/1-release-manifest", release_scope, release, components:[component]}
+component     {id, kind, rappid, identity_path, repository, object_format, commit, immutable_ref,
+               files:[{path, sha256, size_bytes}]}
+registry      {schema:"rapp/1-registry", registry_seq, canonical_source, entries, sig}
+              canonical_source: an absolute HTTPS URI (§3), or a URN for a private store
+```
+
+- **Release pins (§13.5).** `release_scope` names a release family; a family's `grail-kernel`, if any,
+  appears before its first `release-pin`, and none joins a family after one of its releases was accepted.
+  `channel` is an lclabel; each channel is one linear chain through `predecessor` (the `manifest_hash` of
+  the pin it follows), and its head is the channel's current release. A family's releases may span
+  channels (newest graduating to LTS); its current release is its pin that appears last in `entries`. `manifest_hash` is unique. The
+  manifest is stored as exactly `canonical(manifest)` at an immutable commit. Components are sorted by
+  `id`; files by the UTF-8 bytes of `path`, under the §9.1 path grammar; `sha256` is over raw bytes. A
+  component with `rappid` names its door of record through `identity_path`. When the family has a kernel,
+  exactly one `kind:"kernel"` component matches the `grail-kernel` entry. An identity file is UTF-8 with
+  no byte-order mark. A verified snapshot is every pinned file, checked by length and SHA-256, or nothing;
+  it checks bytes only, so it runs over raw URLs, and whether a tag resolves to its commit is a separate
+  check for a git-capable verifier.
+- **Lifecycle notices (§13.6).** `state` is `active`, `deprecated`, `superseded`, or `archived`; `active`
+  names no successor and `superseded` must name one. `subject` and `superseded_by` are rappids or HTTPS
+  repository URIs, compared byte-for-byte. One chain per subject through `previous` =
+  `H("rapp/1:particle", earlier entry)`; `since_utc` and `activated_utc` never decrease; the notice in
+  effect at `t` is the last whose `since_utc` ≤ `t`. The successors in effect at any one time never form a
+  cycle. A component's lifecycle is read from its `rappid` when it binds one, otherwise from its
+  `repository`. A re-anchor moves no chain: the new rappid has notices only if the estate declares them.
+  A notice grants and revokes nothing.
+- **Stream signers (§13.7).** `signer` is a keyed rappid with an `spki` entry in the same registry; `kinds`
+  are registered kinds (deprecated or not) whose family fits `stream_id`'s form, strictly ascending, and
+  never one of the three §12.1 re-genesis kinds; the window is `since_utc` ≤ `utc` < `until_utc` (or open). A consumer that
+  follows no profile-defined signer rule treats a verified frame as the estate's statement only when its
+  `kid` is the owner in effect or a covering grant's signer. Unsigned frames never speak for the estate.
+  Grants are never inherited across a rotation. A registry whose grants break these rules is refused
+  whole.
+
+The exact JSON Schemas are in the appendix.
+
+## 5. The distributed Hive against these entries
+
+The distributed Hive's own documents set the requirements: RAPP proposal 0020 on
+`experimental/proposal-0020-distributed-hive` and HIVE-MD's "Remote member spaces" on `kody-w/rapp-model-hive`
+`experimental/hive-md-distributed`. Proposal 0020 says hashes prove integrity only and that "How that
+signature covers the `hives[]` pin is RAPP/1's to define (§10, §13)". HIVE-MD says authenticity "stays
+unverified until the estate that pins this root is anchored". Rev-17 answers both.
+
+- **The Hive root and every station, authenticated.** The LTS release manifest pins the Hive root's public
+  copy as a component (for example `kind:"hive"`) at its commit, with `PUBLISHED.md` and the member
+  pointers as files, and pins each station as a component at its LTS commit with the files the network
+  reads (its member card and shared files). `estate.json`'s `hives[]` entry, the beacon, the seed, and the
+  pointers stay locators: they must agree with the manifest, and a disagreement is a drift finding. A
+  resolver produces the verified snapshot with `verify_snapshot(registry, fetch, channel=…)` and matches
+  pointers to components by repository: a pointer's `repo: <owner>/<repo>` names the component whose
+  `repository` is `https://github.com/<owner>/<repo>`. The manifest's spelling is authoritative and rev-17
+  compares it byte-for-byte, so a pointer, card, or lifecycle copy whose `owner/repo` differs only in case
+  is a drift finding, not a second repository; a Hive `superseded_by: <owner>/<repo>` maps the same way.
+  (A Hive record could also carry the exact repository URI and skip the mapping.)
+- **Hashes.** The manifest pins raw bytes. HIVE-MD lists the SHA-256 of text normalized to LF and NFC.
+  For every file the Hive accepts (it refuses carriage returns) that is already NFC, the two are equal, so
+  a resolver checks both; the raw digest is the one with authority.
+- **LTS pins.** The release manifest is the signed LTS pin set. A separate `lts-pins.json` should be
+  generated from it, never maintained beside it.
+- **Lifecycle.** Pointers, cards, and portfolio entries carry lifecycle as copies. They should use exactly
+  the four §13.6 states so a copy can be checked against the signed notice; the current Hive draft's
+  `frozen` and `retired` have no §13.6 meaning (`archived` is the state for a repository kept readable
+  with no further releases).
+- **Stations without rappids.** A station is pinned with `rappid: null` and has lifecycle notices under its
+  repository URI. A move is a `superseded` notice naming the new repository.
+- **Doors of record.** A door-of-record binding needs a strict JSON identity file at the pinned commit. The
+  Hive's public copy publishes JSON as markdown-wrapped pages (for example `portfolio/rappid.json.md`),
+  which do not parse as JSON; until a plain `rappid.json` is published at a pinnable public path, the
+  network organism's component carries `rappid: null`.
+- **Pulses.** Walk and crawl pulses are `body.pulse` frames on the network organism's existing keyless
+  stream. They verify as frames today; they speak for the estate once the estate grants a keyed pulse
+  signer and the frames are signed.
+
+## 6. For the estate that signs
+
+- **Rollout.** A consumer that runs rev-16 refuses a registry carrying any rev-17 entry, so add the first
+  `release-pin`, `lifecycle`, or `stream-signer` entry only after rev-17 is accepted and the estate's
+  consumers run it. From rev-17 on, a later entry type that is not marked critical no longer cuts off an
+  LTS consumer. Check your own registry's `unknown_entries` is empty (`rapp_check.py` reports each one):
+  a misspelled type is ignored, not refused.
+- **Entry order.** In the first registry that carries them: `estate_owner` and `spki`; `kind`; the pulse
+  stream's `genesis`; each family's `grail-kernel` before that family's first `release-pin`; the
+  `release-pin` entries; `lifecycle` notices; `stream-signer` grants after their signer's `spki` and their
+  kinds. Every later registry appends its new entries after all of these and never regroups them by type:
+  a consumer refuses a registry that places a declared entry before one it accepted (§13.4).
+- **Families, channels, scopes.** One release scope per kernel family, for example an LTS family bound to
+  kernel `brainstem-v0.6.9` and a newest family per newest kernel. Corrections of the LTS release are new
+  `release-pin` entries of the same scope in the LTS channel; the newest channel moves to each new family.
+  When a newest kernel graduates to LTS, the LTS channel pins a new release (a new `release` name) of that
+  same family — never a second scope for the same kernel, which §11.1 refuses. Channel names are lclabels;
+  the portfolio's words `rapp1-lts` and `newest` fit. Keep every number in a registry, and in an identity
+  file, written as an integer (no fraction, no exponent: `1.0` is refused) within ±(2^53−1); a later entry
+  type carries other quantities as strings.
+- **Manifests.** Publish each manifest as exactly its canonical bytes in a **public** repository at an
+  immutable commit (the release pin's locator), for example under `releases/<manifest_hash>.json`. The
+  kernel component carries the `grail-kernel` entry's repository, object format, commit, and tag, pins the
+  kernel file with the entry's digest and size, and pins the kernel's other frozen files beside it.
+- **Manifest size.** A manifest is also capped at 1 MiB canonical (§4): a file entry costs about 130
+  bytes, so one release pins roughly 7,000 files across all its components — for about 300 stations,
+  pin each one's card and shared files, not whole trees. File paths are ASCII (§13.5).
+- **Components.** One per repository at its LTS commit. `id` is an lclabel (lowercase ASCII and hyphens),
+  so map repository names to ids once and keep them; `repository` is `https://github.com/<owner>/<repo>`
+  spelled as the estate always spells it. Suggested kinds: `kernel` (reserved), `protocol`, `organism`,
+  `hive`, `station`, `document`. Pin normative bytes and member cards; a front door such as a README may
+  be pinned too, since a release freezes only its own snapshot and the repository's head stays editable.
+- **Lifecycle.** Declare notices for changes: deprecations, supersessions, moves, archiving. No notice
+  means no declared lifecycle, never deprecation, so an active repository needs none. The subject is the
+  component's rappid when it has one, otherwise its repository URI.
+- **Pulse signer.** Register the existing stream's `genesis` (its first frame's `frame_hash`), then one
+  grant `{stream_id: <network rappid>, signer: <pulse key rappid>, kinds: ["body.pulse"], since_utc,
+  until_utc: null}` for a dedicated keyed pulse key whose private half never enters a repository. This
+  keeps the stream and its history; a new keyed stream would start another.
+- **Loading and persistence.** Publish the registry as UTF-8 without a byte-order mark (§13.1), and read
+  it with `parse_document(octets)`. Load a signed registry that carries declared entries with
+  `verification_utc=` (first sighting) or `first_seen=` (from persisted first-seen times, each recorded
+  when a registry carrying the entry was first accepted, never on a refusal: §13.4 item 3), persist every
+  accepted declared entry in its registry order, and pass them back as `persisted_entries=` next time.
+- **Size.** The registry is capped at 1 MiB canonical (§4) and every entry is append-only, so it has a
+  lifetime budget. With realistic URIs and an EdDSA signature a declared entry is 0.65–0.95 KB (a
+  `release-pin` about 0.95 KB, a notice 0.65–0.75 KB, a grant about 0.75 KB); the published registry's
+  other entries take about 4 KB. That leaves room for roughly 1,100–1,500 declared entries, ever. A
+  release costs one entry however many components it pins, so spend them on releases and changes: pin
+  every LTS correction, pin the newest channel at milestones rather than every build, and declare
+  notices only for changes. At that cadence the budget lasts years; a continuation mechanism is recorded
+  in `rapp-backlog.md` for design before an estate approaches the cap. Publish the registry compact,
+  ideally canonical: §13.1 bounds it at 1 MiB as stored as well as canonically, and a pretty-printed
+  registry is about an eighth larger than its canonical form.
+
+## 7. Owner-only choices
+
+1. **Accept rev-17.** Recommendation: accept the integrated draft (`experimental/rapp1-core-rev17`) as one
+   revision. The slices `experimental/rapp1-core-registry-container`, `-release-pin`, `-lifecycle`, and
+   `-stream-signer` carry the same rules one piece at a time (each numbered §13.5), for a partial choice.
+2. **Station identities.** Recommendation: mint none for the lock. When a station needs a stable identity,
+   mint it keyless if its streams can be signed by a granted key, and keyed only if it must seal eggs or
+   sign as itself. Minting is permanent (§6.2).
+3. **The pulse signer.** Recommendation: a dedicated keyed pulse key granted on the existing stream, rather
+   than the estate-owner key or a new stream.
+4. **Scope URIs and channel names.** Recommendation: one scope per kernel family; channels `rapp1-lts` and
+   `newest`.
+5. **"A successor release uses a new scope."** Recommendation: read it as a successor release family — a new
+   kernel — using a new scope, while corrections that keep the LTS kernel stay in the LTS scope. §11.1's
+   one `grail-kernel` per `grail_id` requires this.
+6. **Unknown entry types.** Recommendation: accept §13.3's rule (ignored unless marked critical). Without it,
+   the LTS line and the newest channel would need separate registries, each with its own trust root, as soon
+   as the newest channel needs an entry type the LTS consumers lack.
+7. **`canonical_source`.** Recommendation: an HTTPS URI for the public estate registry; a URN only for a
+   registry kept in a private store, as RAPP's private Hives already do.
+
+## 8. Verification
+
+Every branch runs the full CI-equivalent gate: `conformance.py` (22), `operations_conformance.py` (54),
+`work_conformance.py` (17), `registry_conformance.py` (every registry test module plus the language-neutral
+`conformance/registry-vectors.json`), `anchor.test_spec_chain`, materialization, anchor idempotence, the
+front doors, the Internet-Draft, `conformance/make_vectors.py --check`, parity, `rapp_check.py .`, every
+example, `test_rapp_work`, and the token and envelope proof in §1, on Python 3.9 and 3.14, plus a
+`signatures` CI job that runs the registry suite with real Ed25519 keys and refuses skips. Against real
+data: the published estate registry (`registry_seq` 2) still verifies — `PublishedRegistryTests` checks a
+byte copy pinned at `kody-w/rapp-map` `4c8ba6b` on every run, with real signatures in the `signatures`
+job; `rapp_check.py` gives byte-identical
+output with and without rev-17 on RAPP, the model Hive, the public Hive copy, and `rapp-estate`, and on
+`rapp-map`, which holds the estate registry, the same verdict with one added line reporting that
+registry's §13.1 structure; and the network's first pulse verifies as a frame and correctly does not yet
+speak for the estate. The schemas
+below agree with `rapp_registry.py` on every value in the registry vectors, except values refused only by
+rules a schema cannot state (listed with each schema).
+
+## Appendix: JSON Schemas (informative)
+
+`rapp_registry.validate_entry`, `validate_release_manifest`, and `validate_document` are the checks; these
+schemas express the same single-object rules for tools that want a schema, and each `description` lists
+the rules only the reference can check. `test_registry_container.py` keeps their member lists equal to the
+reference's.
+
+<!-- schemas:begin -->
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:rapp:1:rev-17:registry-additions",
+  "title": "RAPP/1 rev-17 registry additions (informative; rapp_registry.py is the executable check)",
+  "$defs": {
+    "rappid": {
+      "description": "§6.1 rappid: rappid:@<owner 1-39>/<slug 1-100>:<64 lowercase hex>, owner and slug lclabels",
+      "type": "string",
+      "pattern": "^rappid:@(?=[a-z0-9-]{1,39}/)[a-z0-9]+(?:-[a-z0-9]+)*/(?=[a-z0-9-]{1,100}:)[a-z0-9]+(?:-[a-z0-9]+)*:[0-9a-f]{64}(?![\\s\\S])"
+    },
+    "utc": {
+      "description": "a §7.4 time (§3): the §7.4 fixed form in ASCII and also a real calendar date-time (rapp.utc_valid), which a pattern cannot express",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z(?![\\s\\S])"
+    },
+    "https": {
+      "description": "§3 absolute HTTPS URI (RFC 3986 grammar, no fragment): lowercase https, a host that is a non-empty reg-name or an IP literal, no user information, after a ':' a port of 1-5 digits no greater than 65535, at most 2048 characters; ALSO the IP literal a real IPv6 address (no zone) or IPvFuture, which this pattern does not check",
+      "type": "string",
+      "maxLength": 2048,
+      "pattern": "^https://(?:(?:[A-Za-z0-9\\-._~!$&'()*+,;=]|%[0-9A-Fa-f]{2})+|\\[(?:[0-9A-Fa-f:.]+|[vV][0-9A-Fa-f]+\\.[A-Za-z0-9\\-._~!$&'()*+,;=:]+)\\])(?::(?:[0-9]{1,4}|0[0-9]{4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]))?(?:/(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})*)*(?:\\?(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@/?]|%[0-9A-Fa-f]{2})*)?(?![\\s\\S])"
+    },
+    "canonical_source": {
+      "description": "§13.1: an absolute HTTPS URI (§3), or a URN (RFC 8141: lowercase urn:, a 2-32 character namespace, no r-, q-, or f-component) for a registry kept in a private store",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/https"
+        },
+        {
+          "type": "string",
+          "maxLength": 2048,
+          "pattern": "^urn:[A-Za-z0-9][A-Za-z0-9-]{0,30}[A-Za-z0-9]:(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@]|%[0-9A-Fa-f]{2})(?:[A-Za-z0-9\\-._~!$&'()*+,;=:@/]|%[0-9A-Fa-f]{2})*(?![\\s\\S])"
+        }
+      ]
+    },
+    "hex64": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+    },
+    "lclabel64": {
+      "type": "string",
+      "pattern": "^(?=.{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])"
+    },
+    "lclabel100": {
+      "type": "string",
+      "pattern": "^(?=.{1,100}$)[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])"
+    },
+    "kind": {
+      "description": "§6.1.1 kind: lclabel '.' lclabel, each 1-64",
+      "type": "string",
+      "pattern": "^(?=[a-z0-9-]{1,64}\\.)[a-z0-9]+(?:-[a-z0-9]+)*\\.(?=[a-z0-9-]{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])"
+    },
+    "stream_id": {
+      "description": "§6.1.1 stream forms: body-stream (a rappid), memory-stream (rappid ':' lclabel 1-64), swarm-stream ('net:' lclabel)",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/rappid"
+        },
+        {
+          "type": "string",
+          "pattern": "^rappid:@(?=[a-z0-9-]{1,39}/)[a-z0-9]+(?:-[a-z0-9]+)*/(?=[a-z0-9-]{1,100}:)[a-z0-9]+(?:-[a-z0-9]+)*:[0-9a-f]{64}:(?=[a-z0-9-]{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])"
+        },
+        {
+          "type": "string",
+          "pattern": "^net:[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])"
+        }
+      ]
+    },
+    "subject": {
+      "description": "§13.6 lifecycle subject: an organism's rappid, or the absolute HTTPS URI of a repository that has no rappid (spelled exactly as the estate's release manifests spell it)",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/rappid"
+        },
+        {
+          "$ref": "#/$defs/https"
+        }
+      ]
+    },
+    "path": {
+      "description": "ASCII §9.1 path grammar (rapp._path_valid; rev-17 manifests and locators are ASCII): relative POSIX path, no empty/'.'/'..' segment, no '\\\\' or ':' or control character, no segment ending in space or dot, no Windows reserved name, no drive prefix; ASCII only (so already NFC; DEL is allowed, as §9.1 forbids only C0 controls)",
+      "type": "string",
+      "pattern": "^(?![A-Za-z]:)(?!\\.\\.?(?:/|$))(?!(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$))[\\x20-\\x2e\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7f]*[\\x21-\\x2d\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7f](?:/(?!\\.\\.?(?:/|$))(?!(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$))[\\x20-\\x2e\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7f]*[\\x21-\\x2d\\x30-\\x39\\x3b-\\x5b\\x5d-\\x7f])*(?![\\s\\S])"
+    },
+    "full_tag_name": {
+      "description": "§3 full tag name: refs/tags/ and a non-empty ASCII name git's ref-name rules accept (no control character, space, ~^:?*[\\, '..', '@{', '//', component starting with '.' or ending '.lock', trailing '/' or '.')",
+      "type": "string",
+      "pattern": "^refs/tags/(?!\\.)(?!.*\\.\\.)(?!.*@\\{)(?!.*/\\.)(?!.*\\.lock(?:/|$))(?!.*\\.$)[\\x21-\\x29\\x2b-\\x2e\\x30-\\x39\\x3b-\\x3e\\x40-\\x5a\\x5d\\x5f-\\x7d]+(?:/[\\x21-\\x29\\x2b-\\x2e\\x30-\\x39\\x3b-\\x3e\\x40-\\x5a\\x5d\\x5f-\\x7d]+)*(?![\\s\\S])"
+    },
+    "uint53": {
+      "description": "written without fraction or exponent (JSON Schema's integer also admits 1.0, which §13.1 refuses)",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "positive_uint53": {
+      "description": "a uint53 of at least 1, written without fraction or exponent (JSON Schema's integer also admits 1.0, which §13.1 refuses)",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "sig": {
+      "description": "detached §10 JWS (kid = declared_by) over canonical(entry \\ {sig})",
+      "type": "string",
+      "minLength": 1
+    },
+    "object_id_by_format": {
+      "if": {
+        "properties": {
+          "object_format": {
+            "const": "sha1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "commit": {
+            "pattern": "^[0-9a-f]{40}(?![\\s\\S])"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "commit": {
+            "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+          }
+        }
+      }
+    },
+    "grail_id": {
+      "description": "grail:<64 lowercase hex>, 'grail:' || Hb('rapp/1:grail', kernel bytes)",
+      "type": "string",
+      "pattern": "^grail:[0-9a-f]{64}(?![\\s\\S])"
+    },
+    "grail-kernel": {
+      "description": "§13.3 grail-kernel (declared, persisted): rev-16's members, with rev-17 holding release_scope and repository to §3's absolute HTTPS URI, immutable_ref to a full tag name, and activated_utc to a §7.4 time. Not expressible here: grail_id and sha256/size_bytes computed over the kernel bytes; no two grail-kernel entries share release_scope or grail_id; predecessor names another grail-kernel entry of the registry, with no cycle; immutable_ref resolves to commit, and path at commit to one regular blob with that mode and blob id (a git-capable verifier's check); path is NFC (not checked by the reference; see rapp-backlog.md); the entry precedes its release_scope's first release-pin and no consumer-accepted release of that family.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "release_scope",
+        "grail_id",
+        "repository",
+        "immutable_ref",
+        "object_format",
+        "commit",
+        "path",
+        "mode",
+        "blob",
+        "sha256",
+        "size_bytes",
+        "activated_utc",
+        "predecessor",
+        "declared_by",
+        "sig"
+      ],
+      "properties": {
+        "type": {
+          "const": "grail-kernel"
+        },
+        "release_scope": {
+          "$ref": "#/$defs/https"
+        },
+        "grail_id": {
+          "$ref": "#/$defs/grail_id"
+        },
+        "repository": {
+          "$ref": "#/$defs/https"
+        },
+        "immutable_ref": {
+          "$ref": "#/$defs/full_tag_name"
+        },
+        "object_format": {
+          "enum": [
+            "sha1",
+            "sha256"
+          ]
+        },
+        "commit": {
+          "type": "string"
+        },
+        "path": {
+          "description": "a relative POSIX path with no empty, '.', or '..' component",
+          "type": "string",
+          "pattern": "^(?!\\.\\.?(?:/|(?![\\s\\S])))[^/]+(?:/(?!\\.\\.?(?:/|(?![\\s\\S])))[^/]+)*(?![\\s\\S])"
+        },
+        "mode": {
+          "enum": [
+            "100644",
+            "100755"
+          ]
+        },
+        "blob": {
+          "type": "string"
+        },
+        "sha256": {
+          "$ref": "#/$defs/hex64"
+        },
+        "size_bytes": {
+          "$ref": "#/$defs/positive_uint53"
+        },
+        "activated_utc": {
+          "$ref": "#/$defs/utc"
+        },
+        "predecessor": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/grail_id"
+            }
+          ]
+        },
+        "declared_by": {
+          "$ref": "#/$defs/rappid"
+        },
+        "sig": {
+          "$ref": "#/$defs/sig"
+        }
+      },
+      "allOf": [
+        {
+          "$ref": "#/$defs/object_id_by_format"
+        },
+        {
+          "if": {
+            "properties": {
+              "object_format": {
+                "const": "sha1"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "blob": {
+                "pattern": "^[0-9a-f]{40}(?![\\s\\S])"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "blob": {
+                "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "release-pin": {
+      "description": "§13.3/§13.5 release-pin (declared, persisted). Cross-entry rules not expressible here: manifest_hash unique; predecessor names an EARLIER release-pin of the same channel; one root and no fork per channel; activated_utc never decreases along a channel; a family's releases may span channels (newest graduating to LTS) and its current release is its pin last in entries; a scope's grail-kernel (if any) precedes its first release-pin; path is ASCII (a pattern cannot state NFC).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "release_scope",
+        "channel",
+        "predecessor",
+        "manifest_hash",
+        "repository",
+        "object_format",
+        "commit",
+        "path",
+        "activated_utc",
+        "declared_by",
+        "sig"
+      ],
+      "properties": {
+        "type": {
+          "const": "release-pin"
+        },
+        "release_scope": {
+          "$ref": "#/$defs/https"
+        },
+        "channel": {
+          "$ref": "#/$defs/lclabel64"
+        },
+        "predecessor": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/hex64"
+            }
+          ]
+        },
+        "manifest_hash": {
+          "$ref": "#/$defs/hex64"
+        },
+        "repository": {
+          "$ref": "#/$defs/https"
+        },
+        "object_format": {
+          "enum": [
+            "sha1",
+            "sha256"
+          ]
+        },
+        "commit": {
+          "type": "string"
+        },
+        "path": {
+          "$ref": "#/$defs/path"
+        },
+        "activated_utc": {
+          "$ref": "#/$defs/utc"
+        },
+        "declared_by": {
+          "$ref": "#/$defs/rappid"
+        },
+        "sig": {
+          "$ref": "#/$defs/sig"
+        }
+      },
+      "allOf": [
+        {
+          "$ref": "#/$defs/object_id_by_format"
+        }
+      ]
+    },
+    "lifecycle": {
+      "description": "§13.3/§13.6 lifecycle notice (declared, persisted). Not expressible here: superseded_by != subject; one chain per subject through previous = H('rapp/1:particle', earlier entry) naming an EARLIER entry of the same subject, one root, no fork; since_utc and activated_utc never decrease along the chain; no cycle among the successors in effect at any one time.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "subject",
+        "state",
+        "superseded_by",
+        "since_utc",
+        "previous",
+        "activated_utc",
+        "declared_by",
+        "sig"
+      ],
+      "properties": {
+        "type": {
+          "const": "lifecycle"
+        },
+        "subject": {
+          "$ref": "#/$defs/subject"
+        },
+        "state": {
+          "enum": [
+            "active",
+            "deprecated",
+            "superseded",
+            "archived"
+          ]
+        },
+        "superseded_by": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/subject"
+            }
+          ]
+        },
+        "since_utc": {
+          "$ref": "#/$defs/utc"
+        },
+        "previous": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/hex64"
+            }
+          ]
+        },
+        "activated_utc": {
+          "$ref": "#/$defs/utc"
+        },
+        "declared_by": {
+          "$ref": "#/$defs/rappid"
+        },
+        "sig": {
+          "$ref": "#/$defs/sig"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "active"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "superseded_by": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "superseded"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "superseded_by": {
+                "not": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "stream-signer": {
+      "description": "§13.3/§13.7 stream-signer grant (declared, persisted). Not expressible here: kinds strictly ascending bytewise; until_utc (when not null) after since_utc; signer has an spki entry in the same registry; every kind is registered in the same registry (deprecated or not) with a family whose stream form is stream_id's; no other declared entry of the registry has the same canonical form (§13.4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "stream_id",
+        "signer",
+        "kinds",
+        "since_utc",
+        "until_utc",
+        "activated_utc",
+        "declared_by",
+        "sig"
+      ],
+      "properties": {
+        "type": {
+          "const": "stream-signer"
+        },
+        "stream_id": {
+          "$ref": "#/$defs/stream_id"
+        },
+        "signer": {
+          "$ref": "#/$defs/rappid"
+        },
+        "kinds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/kind"
+              },
+              {
+                "not": {
+                  "enum": [
+                    "memory.re-genesis",
+                    "swarm.re-genesis",
+                    "body.re-genesis"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "since_utc": {
+          "$ref": "#/$defs/utc"
+        },
+        "until_utc": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/utc"
+            }
+          ]
+        },
+        "activated_utc": {
+          "$ref": "#/$defs/utc"
+        },
+        "declared_by": {
+          "$ref": "#/$defs/rappid"
+        },
+        "sig": {
+          "$ref": "#/$defs/sig"
+        }
+      }
+    },
+    "release-manifest": {
+      "description": "§13.5 rapp/1-release-manifest, stored as exactly canonical(manifest) (UTF-8, no BOM, no trailing newline) and pinned by manifest_hash = H('rapp/1:particle', manifest). Not expressible here: components sorted ascending by id with no duplicate; files sorted by UTF-8 path bytes with no duplicate and no case-insensitive (NFD, casefold) collision or file/directory clash; identity_path is one of the component's files; one rappid bound at most once per manifest; at most 1 MiB canonical; kernel coherence with the scope's grail-kernel ('kernel' kind is reserved).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "release_scope",
+        "release",
+        "components"
+      ],
+      "properties": {
+        "schema": {
+          "const": "rapp/1-release-manifest"
+        },
+        "release_scope": {
+          "$ref": "#/$defs/https"
+        },
+        "release": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}(?![\\s\\S])"
+        },
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "kind",
+              "rappid",
+              "identity_path",
+              "repository",
+              "object_format",
+              "commit",
+              "immutable_ref",
+              "files"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/lclabel100"
+              },
+              "kind": {
+                "$ref": "#/$defs/lclabel64"
+              },
+              "rappid": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/$defs/rappid"
+                  }
+                ]
+              },
+              "identity_path": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/$defs/path"
+                  }
+                ]
+              },
+              "repository": {
+                "$ref": "#/$defs/https"
+              },
+              "object_format": {
+                "enum": [
+                  "sha1",
+                  "sha256"
+                ]
+              },
+              "commit": {
+                "type": "string"
+              },
+              "immutable_ref": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/$defs/full_tag_name"
+                  }
+                ]
+              },
+              "files": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "path",
+                    "sha256",
+                    "size_bytes"
+                  ],
+                  "properties": {
+                    "path": {
+                      "$ref": "#/$defs/path"
+                    },
+                    "sha256": {
+                      "$ref": "#/$defs/hex64"
+                    },
+                    "size_bytes": {
+                      "$ref": "#/$defs/uint53"
+                    }
+                  }
+                }
+              }
+            },
+            "allOf": [
+              {
+                "$ref": "#/$defs/object_id_by_format"
+              },
+              {
+                "if": {
+                  "properties": {
+                    "rappid": {
+                      "type": "null"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "identity_path": {
+                      "type": "null"
+                    }
+                  }
+                },
+                "else": {
+                  "properties": {
+                    "identity_path": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "registry-document": {
+      "description": "§13.1 registry document: exactly these five members carry meaning; any other top-level member is covered by sig and carries none. sig null = unsigned draft, never authority. Each entry of a type defined here matches its schema; an entry of a type a consumer does not implement is ignored unless it carries critical other than false, which refuses the registry (§13.3). Not expressible here: at most 1 MiB canonical and nested at most 64 deep (§4(d)); every number anywhere an integer within ±(2^53-1) (§13.1); the own rules of the rev-16 types other than grail-kernel, and every cross-entry rule (the reference checks them); no two declared entries with the same canonical form (§13.4); against a consumer's history, the declared entries it accepted come first, unchanged and in order (§13.4).",
+      "type": "object",
+      "required": [
+        "schema",
+        "registry_seq",
+        "canonical_source",
+        "entries",
+        "sig"
+      ],
+      "properties": {
+        "schema": {
+          "const": "rapp/1-registry"
+        },
+        "registry_seq": {
+          "$ref": "#/$defs/uint53"
+        },
+        "canonical_source": {
+          "$ref": "#/$defs/canonical_source"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "grail-kernel"
+                    }
+                  }
+                },
+                "then": {
+                  "$ref": "#/$defs/grail-kernel"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "release-pin"
+                    }
+                  }
+                },
+                "then": {
+                  "$ref": "#/$defs/release-pin"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "lifecycle"
+                    }
+                  }
+                },
+                "then": {
+                  "$ref": "#/$defs/lifecycle"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "stream-signer"
+                    }
+                  }
+                },
+                "then": {
+                  "$ref": "#/$defs/stream-signer"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "protocol",
+                        "kind",
+                        "egg-variant",
+                        "error-code",
+                        "genesis",
+                        "spki",
+                        "tombstone",
+                        "re-anchor",
+                        "grail-kernel",
+                        "release-pin",
+                        "lifecycle",
+                        "stream-signer",
+                        "estate_owner",
+                        "master-plan"
+                      ]
+                    }
+                  }
+                },
+                "then": {
+                  "not": {
+                    "required": [
+                      "critical"
+                    ]
+                  }
+                },
+                "else": {
+                  "properties": {
+                    "critical": {
+                      "const": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "sig": {
+          "description": "the §13.1 document signature: a detached §10 JWS with kid = the estate_owner rappid over canonical(registry \\ {sig}); null only on an unsigned draft, never authority",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+```
+<!-- schemas:end -->

@@ -90,7 +90,10 @@ show("owner in effect 2026-08: the new key", reg.owner_at("2026-08-01T00:00:00.0
 
 # ── 6. The document envelope (§13.1): draft is not authority; rollback is refused. ──
 print("\ndocument envelope:")
-doc = {"schema": "rapp/1-registry", "registry_seq": 7, "entries": entries, "sig": None}
+# §13.1 names the container: the entries live under `entries`, and `canonical_source` is the
+# owner-selected location of record (a mirror must be provenance-stamped back to it).
+doc = {"schema": "rapp/1-registry", "registry_seq": 7,
+       "canonical_source": "https://acme.example/rapp/registry.json", "entries": entries, "sig": None}
 status, _, why = REG.load_document(doc, entries_member="entries", trust_anchor=owner)
 show("unsigned registry is refused by default", status == "refused", why); assert status == "refused"
 status, _, why = REG.load_document(doc, entries_member="entries", trust_anchor=owner, allow_unsigned=True)
@@ -99,6 +102,12 @@ status, _, why = REG.load_document(doc, entries_member="entries", trust_anchor=o
 show("registry_seq below the persisted one is a rollback", status == "refused", why); assert status == "refused"
 status, _, why = REG.load_document(doc, entries_member="entries", trust_anchor=factory, allow_unsigned=True)
 show("a registry naming a different owner than the trust anchor is refused before any signature check", status == "refused", why); assert status == "refused"
+status, _, why = REG.load_document({k: v for k, v in doc.items() if k != "canonical_source"},
+                                   trust_anchor=owner, allow_unsigned=True)
+show("a document without its canonical_source is not a rapp/1-registry", status == "refused", why); assert status == "refused"
+status, _, why = REG.load_document(doc, trust_anchor=owner, allow_unsigned=True,
+                                   canonical_source="https://mirror.example/registry.json")
+show("a canonical_source other than the one obtained with the anchor is refused", status == "refused", why); assert status == "refused"
 
 # ── 7. Refusals are whole: one malformed entry refuses the registry. ──
 print("\nrefusals (never repaired, never partial):")

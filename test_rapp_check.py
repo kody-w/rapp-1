@@ -9,6 +9,7 @@ import unittest
 
 import rapp as R
 import rapp_check as C
+import rapp_registry as REG
 
 
 ROOT = Path(__file__).resolve().parent
@@ -252,6 +253,235 @@ class RappCheckDiscoveryTests(unittest.TestCase):
         self.assertTrue(
             any("payload_hash mismatch" in item["detail"] for item in report["findings"])
         )
+
+    def registry_document(self, **changes):
+        der = b"synthetic SPKI bytes for a registry lint test"
+        owner = R.mint_rappid("test", "estate-owner", spki_der=der)
+        document = {
+            "schema": "rapp/1-registry",
+            "registry_seq": 3,
+            "canonical_source": "https://registry.example.test/rapp-registry.json",
+            "entries": [
+                {"type": "estate_owner", "rappid": owner},
+                {"type": "spki", "rappid": owner, "deprecated": False,
+                 "spki_der_b64": base64.b64encode(der).decode("ascii")},
+            ],
+            "sig": None,
+        }
+        document.update(changes)
+        return document
+
+    def test_registry_documents_are_structural_evidence_never_authority(self):
+        repository = self.fixture_repo("clean")
+        self.write_json(repository / "estate" / "registry.json", self.registry_document())
+        verdict, findings, evidence = C.check_repo(repository)
+
+        self.assertEqual((verdict, findings), ("COMPLIANT", []))
+        self.assertEqual(len(evidence), 1)
+        self.assertEqual(evidence[0]["status"], "unverified")
+        self.assertIn("§13.1 registry structure OK", evidence[0]["ok"])
+        self.assertIn("unsigned draft", evidence[0]["ok"])
+
+    def test_registry_documents_that_fail_strict_parsing_are_findings(self):
+        repository = self.fixture_repo("clean")
+        text = json.dumps(self.registry_document(), sort_keys=True)
+        duplicate = text[:-1] + ', "entries": []}'
+        (repository / "dup").mkdir()
+        (repository / "dup" / "registry.json").write_text(duplicate, encoding="utf-8")
+        floating = text.replace('"registry_seq": 3', '"registry_seq": 3.5')
+        (repository / "float").mkdir()
+        (repository / "float" / "registry.json").write_text(floating, encoding="utf-8")
+        verdict, findings, _ = C.check_repo(repository)
+
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual(
+            {(item["artifact"], item["rule"]) for item in findings},
+            {
+                ("dup/registry.json", "§13 registry document"),
+                ("float/registry.json", "§13 registry document"),
+            },
+        )
+
+    def test_a_registry_nested_inside_another_document_is_not_linted(self):
+        repository = self.fixture_repo("clean")
+        nested = {"schema": "example-vectors/1",
+                  "cases": [{"document": self.registry_document(registry_seq=3.5)}]}
+        (repository / "vectors.json").write_text(json.dumps(nested), encoding="utf-8")
+        self.assertEqual(C.check_repo(repository), ("CLEAN", [], []))
+
+    def test_malformed_registry_documents_are_findings(self):
+        repository = self.fixture_repo("clean")
+        broken = self.registry_document()
+        del broken["canonical_source"]
+        self.write_json(repository / "a" / "registry.json", broken)
+        duplicate_owner = self.registry_document()
+        duplicate_owner["entries"].append(dict(duplicate_owner["entries"][0]))
+        self.write_json(repository / "b" / "registry.json", duplicate_owner)
+        verdict, findings, _ = C.check_repo(repository)
+
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual(
+            {(item["artifact"], item["rule"]) for item in findings},
+            {
+                ("a/registry.json", "§13 registry document"),
+                ("b/registry.json", "§13 registry document"),
+            },
+        )
+
+    def test_a_registry_over_the_section_4_limit_is_a_finding_not_skipped(self):
+        repository = self.fixture_repo("clean")
+        oversized = self.registry_document()
+        oversized["entries"] += [{"type": "kind", "kind": f"body.k{n}", "family": "body", "deprecated": False}
+                                 for n in range(16000)]
+        self.write_json(repository / "big" / "registry.json", oversized)
+        self.assertGreater(len(R.canonical(oversized).encode("utf-8")), R.MAX_CANONICAL_BYTES)  # §4 measures this
+        verdict, findings, _ = C.check_repo(repository)
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual([(item["artifact"], item["rule"]) for item in findings],
+                         [("big/registry.json", "§13 registry document")])
+        self.assertIn("1 MiB canonical limit", findings[0]["detail"])
+
+    def test_a_registry_past_the_parse_limit_is_reported_not_checked(self):
+        # Past the 8 MiB this checker parses, a file that names a registry schema is not silently
+        # skipped: the scan is incomplete there, as when frame discovery's budget runs out.
+        repository = self.fixture_repo("clean")
+        text = json.dumps(self.registry_document(), sort_keys=True, separators=(",", ":"))
+        (repository / "big").mkdir()
+        (repository / "big" / "registry.json").write_text(text[:-1] + " " * (9 * 2**20) + "}", encoding="utf-8")
+        verdict, findings, _ = C.check_repo(repository)
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual([(item["artifact"], item["rule"], item.get("status")) for item in findings],
+                         [("big/registry.json", "verification unavailable", "unverified")])
+        self.assertIn("was not checked", findings[0]["detail"])
+
+    def test_a_registry_stored_in_another_encoding_is_a_finding(self):
+        # §13.1: UTF-8 without a byte-order mark; the strict parser alone would guess UTF-16 or UTF-32.
+        repository = self.fixture_repo("clean")
+        text = json.dumps(self.registry_document(), sort_keys=True)
+        for name, octets in (("bom", b"\xef\xbb\xbf" + text.encode("utf-8")), ("utf16", text.encode("utf-16")),
+                             ("utf32", text.encode("utf-32-le"))):
+            (repository / name).mkdir()
+            (repository / name / "registry.json").write_bytes(octets)
+        verdict, findings, evidence = C.check_repo(repository)
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual(sorted((item["artifact"], item["rule"]) for item in findings),
+                         [(f"{name}/registry.json", "§13 registry document") for name in ("bom", "utf16", "utf32")])
+        self.assertTrue(all("UTF-8" in item["detail"] for item in findings))
+        self.assertEqual(evidence, [])
+
+    def test_padding_past_1_mib_hides_no_defect(self):
+        repository = self.fixture_repo("clean")
+        text = json.dumps(self.registry_document(), sort_keys=True)
+        padding = " " * (R.MAX_CANONICAL_BYTES + 1)
+        duplicate = text[:-1] + ', "registry_seq": 7' + padding + "}"          # §4(a): a repeated member
+        second_owner = self.registry_document()
+        second_owner["entries"].append(dict(second_owner["entries"][0]))       # two estate_owner entries
+        (repository / "a").mkdir()
+        (repository / "a" / "registry.json").write_text(duplicate, encoding="utf-8")
+        (repository / "b").mkdir()
+        (repository / "b" / "registry.json").write_text(
+            json.dumps(second_owner, sort_keys=True)[:-1] + padding + "}", encoding="utf-8")
+        verdict, findings, evidence = C.check_repo(repository)
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual(sorted((item["artifact"], item["rule"]) for item in findings),
+                         [("a/registry.json", "§13 registry document"), ("b/registry.json", "§13 registry document")])
+        details = {item["artifact"]: item["detail"] for item in findings}
+        self.assertIn("duplicate JSON member", details["a/registry.json"])
+        self.assertIn("estate_owner", details["b/registry.json"])
+        self.assertEqual(evidence, [])
+
+    def test_a_registry_stored_past_1_mib_is_a_finding_though_its_canonical_form_fits(self):
+        # §13.1 bounds a registry's stored octets at 1 MiB as well as its canonical form (§4(d)).
+        repository = self.fixture_repo("clean")
+        document = self.registry_document()
+        document["entries"] += [{"type": "kind", "kind": f"body.k{n}", "family": "body", "deprecated": False}
+                                for n in range(12000)]
+        path = repository / "registry.json"
+        path.write_text(json.dumps(document, indent=2, sort_keys=True), encoding="utf-8")
+        self.assertGreater(path.stat().st_size, R.MAX_CANONICAL_BYTES)
+        self.assertLess(len(R.canonical(document).encode("utf-8")), R.MAX_CANONICAL_BYTES)
+        verdict, findings, evidence = C.check_repo(repository)
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual([(item["artifact"], item["rule"]) for item in findings],
+                         [("registry.json", "§13 registry document")])
+        self.assertIn("at most 1 MiB as stored", findings[0]["detail"])
+        self.assertEqual(evidence, [])
+        with self.assertRaisesRegex(REG.RegistryError, "at most 1 MiB as stored"):
+            REG.parse_document(path.read_bytes())
+        compact = R.canonical(document).encode("utf-8")  # the same registry published compact
+        self.assertEqual(REG.parse_document(compact), document)
+        path.write_bytes(compact)
+        self.assertEqual(C.check_repo(repository)[:2], ("COMPLIANT", []))
+
+    def test_a_registry_past_1_mib_in_utf16_is_a_finding_not_skipped(self):
+        repository = self.fixture_repo("clean")
+        document = self.registry_document()
+        document["entries"] += [{"type": "kind", "kind": f"body.k{n}", "family": "body", "deprecated": False}
+                                for n in range(8000)]
+        path = repository / "registry.json"
+        path.write_bytes(json.dumps(document, sort_keys=True).encode("utf-16"))
+        self.assertGreater(path.stat().st_size, R.MAX_CANONICAL_BYTES)
+        verdict, findings, _ = C.check_repo(repository)
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual([(item["artifact"], item["rule"]) for item in findings],
+                         [("registry.json", "§13 registry document")])
+        self.assertIn("UTF-8 without a byte-order mark", findings[0]["detail"])
+
+    def test_an_ignored_entry_type_in_a_registry_is_a_finding(self):
+        repository = self.fixture_repo("clean")
+        document = self.registry_document()
+        document["entries"].append({"type": "tombstone ", "rappid": document["entries"][0]["rappid"]})
+        self.write_json(repository / "registry.json", document)
+        verdict, findings, _ = C.check_repo(repository)
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual([(item["artifact"], item["rule"]) for item in findings],
+                         [("registry.json", "§13 registry document")])
+        self.assertIn("'tombstone ' is not one this checker implements", findings[0]["detail"])
+
+    def test_registry_findings_do_not_depend_on_the_python_version(self):
+        repository = self.fixture_repo("clean")
+        text = json.dumps(self.registry_document(), sort_keys=True)
+        # A 5000-digit integer (refused by json.loads on 3.11+) and nesting past 3.9's recursion limit.
+        (repository / "a").mkdir()
+        (repository / "a" / "registry.json").write_text(
+            text[:-1] + ', "note": ' + "9" * 5000 + "}", encoding="utf-8")
+        (repository / "b").mkdir()
+        (repository / "b" / "registry.json").write_text(
+            text[:-1] + ', "note": ' + "[" * 3000 + "]" * 3000 + "}", encoding="utf-8")
+        verdict, findings, _ = C.check_repo(repository)
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual(sorted((item["artifact"], item["rule"]) for item in findings),
+                         [("a/registry.json", "§13 registry document"), ("b/registry.json", "§13 registry document")])
+
+    def test_large_ordinary_json_never_exhausts_frame_discovery(self):
+        repository = self.fixture_repo("clean")
+        data = repository / "data"
+        data.mkdir()
+        block = ("[" + ",".join(["1234567"] * 262144) + "]").encode("ascii")  # about 2 MiB, not RAPP
+        for n in range(33):  # more than the 64 MiB frame-discovery budget in all
+            (data / f"series-{n:02d}.json").write_bytes(block)
+        # Frame discovery must still reach these ordinary files under 1 MiB, which it charges to its
+        # budget: charging the oversized files too would exhaust it first and report DRIFT.
+        near_limit = ("[" + ",".join(["1234567"] * 115000) + "]").encode("ascii")  # about 900 KB
+        for n in range(3):
+            (repository / f"zz-{n}.json").write_bytes(near_limit)
+        (repository / "zzz.json").write_text('{"note": "small"}', encoding="utf-8")
+        self.assertEqual(C.check_repo(repository), ("CLEAN", [], []))
+
+    def test_a_release_manifest_over_the_section_4_limit_is_a_finding_not_skipped(self):
+        repository = self.fixture_repo("clean")
+        manifest = {"schema": "rapp/1-release-manifest", "release_scope": "https://releases.example.test/big",
+                    "release": "big", "components": [
+                        {"id": f"c{n}", "kind": "document", "rappid": None, "identity_path": None,
+                         "repository": "https://git.example.test/big", "object_format": "sha1", "commit": "a" * 40,
+                         "immutable_ref": None, "files": [{"path": "README.md", "sha256": "b" * 64, "size_bytes": 1}]}
+                        for n in range(9000)]}
+        self.write_json(repository / "releases" / "big.json", manifest)
+        self.assertGreater((repository / "releases" / "big.json").stat().st_size, R.MAX_CANONICAL_BYTES)
+        verdict, findings, _ = C.check_repo(repository)
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual([(item["artifact"], item["rule"]) for item in findings],
+                         [("releases/big.json", "§13.5 release manifest")])
 
 
 if __name__ == "__main__":

@@ -14,9 +14,14 @@ signs. This page is the lane. Nothing on it needs a change to `rapp/1`.
 | your own egg variant or error code | `egg-variant` / `error-code` entries in your registry | §13.3 (see the open question below) |
 | your signers and their keys | `spki` entries; rotation by `re-anchor`; compromise by `tombstone` | §10, §13.2 |
 | your production runtime pinned | a `grail-kernel` entry | §11.1 |
+| every component of one release of a family pinned together (an LTS line and its corrections, a newest channel) | one `release-pin` entry per pinned release + its `rapp/1-release-manifest` (`schema`, `release_scope`, `release`, `components`); the `release_scope` names the release family, and `release` names the release for people; paths are ASCII; a newest family graduates to LTS by being pinned in the LTS channel | §13.5 |
+| to say an organism — or a repository that never minted a rappid — is deprecated, superseded, or archived, and since when | `lifecycle` notices (one signed chain per subject: a rappid, or a repository's HTTPS URI) | §13.6 |
+| to let a key speak for you on one stream (a pulse, a notice feed) | `stream-signer` grants — keyless organisms stay keyless | §13.7 |
+| your own signature on each of those four (a kernel, a release, a notice, a grant) | a declared entry: signed by the owner in effect at its `activated_utc`, retained unchanged once accepted; a copy elsewhere counts only when its canonical form equals a carried entry's | §13.4 |
 | a subordinate profile (`acme-factory/1`) with its own normative text | **your** repository; adopted by a `protocol` entry pinning repo, path, and SHA-256 | §11.2, `protocols/README.md` |
 | tooling that needs a library (Ed25519 signing, HSMs, a database) | **your** repository; it imports `rapp.py`'s canonicalizer, never re-types it | Art. 10 |
 | to say which RAPP/1 you implement | a `protocol` entry `name:"rapp/1"` whose `spec_hash` comes from **this** repository's anchor | §13.3 |
+| the registry document itself | exactly `schema`, `registry_seq`, `canonical_source` (an absolute HTTPS URI, or a URN for a private store), `entries`, `sig`; other members carry no meaning; an entry type a consumer does not implement is ignored unless marked `critical`; every number written as an integer (no fraction or exponent); at most 1 MiB canonical, so spend entries on releases and changes | §13.1, §13.3, §4 |
 
 Every estate pins RAPP/1 the same way, so two estates interoperate on bytes while
 disagreeing on everything else. That is the point.
@@ -35,7 +40,9 @@ disagreeing on everything else. That is the point.
    published, reviewed, and rehearsed, and it authorizes nothing (§13.1). The reference
    (`rapp_registry.load_document`) reports it as `draft`, never `verified`. The loader also
    requires the caller's out-of-band trust anchor (the estate-owner rappid) and refuses a
-   registry that names any other owner before it looks at the signature.
+   registry that names any other owner before it looks at the signature. Read the document's
+   octets with `rapp_registry.parse_document`, which refuses anything but UTF-8 without a
+   byte-order mark, at most 1 MiB as stored (§13.1), rather than guess an encoding.
 5. **Pin through the anchor, not by hand.** Read `spec.normative_sha256` from
    `anchor/orient.json` (or a commit-pinned copy of it) when you write your `protocol`
    entry. A hand-typed hash rots silently; `examples/07_your_own_estate.py` shows the
@@ -45,6 +52,7 @@ disagreeing on everything else. That is the point.
 
 ```bash
 python3 examples/07_your_own_estate.py      # a complete fictional estate, checked end to end
+python3 examples/09_distributed_hive_lts.py # pinned releases, lifecycle notices, a pulse signer
 ```
 
 `rapp_registry.py` (stdlib only) validates every §13.3 entry type to its exact member
@@ -55,8 +63,20 @@ your registry. Signature verification itself uses the optional `cryptography` im
 inside `rapp.verify_detached_jws`; without it, signed artifacts are refused, never
 assumed.
 
-`load_document` also verifies lifecycle entries: a valid enclosing registry
-signature is not a substitute for a tombstone or re-anchor's own signature.
+`load_document` also verifies key-lifecycle entries: a valid enclosing registry
+signature is not a substitute for a tombstone or re-anchor's own signature. The
+same holds for every declared entry (§13.4: `grail-kernel`, `release-pin`,
+`lifecycle`, and `stream-signer`): its own owner signature is checked at its
+`activated_utc`, `first_seen=` (or `verification_utc=` for a first sighting) applies
+the per-entry 300-second first-seen bound — a signed registry carrying a declared
+entry is refused without one; record an entry's first-seen time when you accept a
+registry carrying it, never on a refusal, so an entry published ahead of its
+`activated_utc` is accepted once your clock is within 300 seconds of it — and `persisted_entries=` (every declared entry you accepted, in the order
+your accepted registry held them) refuses a later registry that dropped, changed, or reordered a
+declaration, or placed a new declared entry before one you accepted: a registry grows only by appending,
+and carries each declared entry once. A copy of a declared entry found outside the registry
+counts only when its canonical form equals one the registry carries — the same JSON value, however
+it is formatted — and `Registry.declared_entry_ok(copy)` answers that only for a verified registry.
 The issuer must be the owner in tenure at the authenticated issuance/action
 time; an owner's own succession record is signed by the outgoing owner at that
 boundary, after checking that its tenure is nonempty and chronologically
@@ -78,6 +98,58 @@ timestamp. Without this evidence the loader refuses to guess. In particular,
 `revoked_utc` is an effective revocation cutoff, not proof of when the tombstone
 was issued.
 
+`verify_snapshot(registry, fetch, release_scope=…)` — or `channel=…`, or
+`manifest_hash=…`, exactly one, never the manifest's `release` name — turns one
+pinned release of a verified registry into a verified snapshot (§13.5): a family's
+current release, a channel's head, or one exact pinned release, which a successor
+supersedes without retiring. It fetches the pinned manifest and every pinned file
+through your `fetch`, and returns the files only when the manifest's canonical bytes,
+hash, and kernel coherence, every file's length and SHA-256, and every
+door-of-record binding verify (`examples/09_distributed_hive_lts.py`). Pass every
+declared entry you accepted as `persisted_entries=`: `load_document` then also refuses a
+later registry that adds a `grail-kernel` to a family one of whose releases you
+accepted. `rapp_check.py` lints a committed release manifest's structure and canonical
+bytes and reports it as unverified evidence: it has authority only through a verified
+`release-pin`.
+
+`Registry.lifecycle_state_at(subject, utc)` answers from a subject's signed
+`lifecycle` chain (§13.6) whether it was active, deprecated, superseded, or archived
+at that time, and returns `None` — never a guessed deprecation — when none of the
+estate's notices is in effect then. It answers only for a registry `load_document`
+returned as "verified" (a draft only with `allow_draft=True`); a `Registry` you built
+directly raises instead, so a `None` always means "no notice", never "not checked". A subject is an organism's rappid or, for a
+repository that never minted one, its HTTPS URI spelled exactly as your release
+manifests spell it; `lifecycle_subject(component)` picks the right one for a release
+component, so a station keeps a signed lifecycle without an identity of its own, and
+moving it is a `superseded` notice naming its new repository.
+`Registry.successor_at(subject, utc)` returns the successor — a rappid or a repository
+URI — that the notice in effect then names, or `None` (a scheduled notice names
+none before its `since_utc`); naming grants nothing, and because a registry whose
+successors in effect at any one time form a cycle is refused whole, a walk along the
+successors in effect at one time always ends.
+Notices are persisted like every declared entry: pass the ones you accepted back as
+`persisted_entries=`, and a later registry that drops or rewrites one is refused, so a
+state changes only by a new notice on the record.
+
+Stream signers decide who speaks for you on a stream (§13.7).
+`Registry.verify_authorized_frame(frame, head=…, stream_id_of_record=…)` runs §7.5 with
+your registry's `signature_verifier()`, kind binding included, and then the authority
+rule: a valid frame whose signer is neither your owner in effect nor granted its stream,
+kind, and time fails at step `"authority"`, never at a §7.5 step, and
+`Registry.authorization_verifier()` hands the same rule to a profile's
+`authorization_verifier`. Like `verify_snapshot`, these answer only for a registry
+`load_document` returned as "verified" (a draft only with `allow_draft=True`, as a
+rehearsal; a `Registry` you built directly never); `authority_decision` is the bare
+rule over the entries. §13.7 binds a consumer that follows no profile-defined signer
+rule; a profile with its own (`rapp-work/1` §1, a `rapp-cicd/1` stage approver) keeps it
+and may meet it this way. A grant may start before its `activated_utc` and so adopt
+frames already published in its window. Authority is decided against the verified
+registry in hand: a newer registry can add a grant that adopts earlier frames but never
+withdraw one, so re-evaluate a cached refusal against a newer registry — and a cached
+acceptance too, since a newer registry can still supersede, tombstone, or retire the signer's
+key (an `spki` entry flagged `deprecated` that no re-anchor names as its `old_rappid` refuses its
+key at every time).
+
 This is still not a complete distributed consumer. The caller retains trusted
 heads and registry high-water marks, enforces freshness, and verifies the history
 needed to establish a compromise tombstone's **same-append** provenance. A
@@ -91,10 +163,10 @@ profile; it is not an implementation of every binary64 input allowed by JCS.
 These are recorded in `rapp-backlog.md` for the owner's ratification. Until then they
 are interoperable only by out-of-band agreement, and a candidate registry should say so.
 
-- **The registry document's container.** §13.1 names `schema`, `registry_seq`, and `sig`;
-  §13.3 names every entry; nothing names the member that holds the entries or how
-  `canonical_source` is carried. `rapp_registry.load_document` therefore requires the
-  caller to name the entries member — it will not guess.
+- **The registry document's container** — closed by rev-17 (§13.1): the entries are the
+  `entries` member and the document carries its own `canonical_source`. It becomes
+  normative when the owner accepts the rev-17 chain snapshot; until then the loader already
+  refuses any other entries-member name.
 - **Tombstone issuance time.** §13.2 scopes an issuer's authority to the
   artifact's time, but the exact tombstone entry carries only `revoked_utc`,
   not a separate issuance time. A current owner can discover an earlier

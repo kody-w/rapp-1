@@ -1,12 +1,24 @@
 """rapp_check.py — the RAPP compliance linter.
 
 Point it at any repo checkout and it verdicts every RAPP artifact (rappid.json,
-frame chains, egg/schema labels) against the RAPP standard, using the reference
-implementation. It classifies a repo as:
+frame chains, egg/schema labels, §13 registry documents, §13.5 release manifests)
+against the RAPP standard, using the reference implementation. A registry document
+is checked for structure only: its owner signature needs the out-of-band trust anchor
+(§13.1), so it is reported as unverified evidence, never as authority. A release
+manifest is likewise structure and canonical bytes only: it has authority only through
+a verified registry's `release-pin`. It classifies a repo as:
 
   CLEAN     — no RAPP artifacts found by a complete bounded scan
-  COMPLIANT — has artifacts, all pass RAPP
-  DRIFT     — has violations or cannot establish signed conformance
+  COMPLIANT — has artifacts, all pass RAPP (registries and release manifests by structure)
+  DRIFT     — has violations or cannot establish signed conformance of a frame
+
+A registry entry of a type this checker does not implement is a finding: every consumer
+at this revision ignores it (§13.3), which silently drops a misspelled entry, so lint a
+later revision's registry with that revision's checker. A registry or release manifest
+over 1 MiB as stored is a finding (§13.1, §13.5), and so is one in UTF-16 or UTF-32; such a
+file, found by the schema it names near its start or end, is parsed up to 8 MiB (64 MiB in
+all) so the finding names what else is wrong, and one past those bounds is reported as not
+checked, never skipped.
 
 Usage:  python3 rapp_check.py <repo_path> [--json]
 Exit:   0 CLEAN/COMPLIANT · 1 DRIFT · 2 error
@@ -20,6 +32,7 @@ import stat
 import sys
 
 import rapp as R
+import rapp_registry as REG
 
 _32HEX = re.compile(r"^[0-9a-f]{32}$")
 _64HEX = re.compile(r"^[0-9a-f]{64}$")
@@ -99,6 +112,83 @@ def _read_blob(path, maximum=None):
 
 def _strict_json(path):
     return R._strict_json(_read_blob(path, R.MAX_CANONICAL_BYTES))
+
+
+_SCHEMA_CLAIM = re.compile(rb'"schema"\s*:\s*"(rapp/1-registry|rapp/1-release-manifest)"')
+
+
+def _lenient_schema(blob):
+    """The top-level `schema` of a JSON object that failed strict parsing, or None.
+
+    Only names what the document claims to be, so a registry that is not strict
+    I-JSON (a duplicate member, a float) is reported rather than skipped. Numbers stay
+    strings, and a text the parser cannot finish (nesting past the recursion limit)
+    falls back to a byte scan for a registry or manifest claim, so the verdict does not
+    depend on the Python version's integer-digit or recursion limits."""
+    try:
+        value = json.loads(blob, parse_int=str, parse_float=str)
+    except (ValueError, RecursionError):
+        match = _SCHEMA_CLAIM.search(blob) if isinstance(blob, bytes) else None
+        return match.group(1).decode("ascii") if match else None
+    return value.get("schema") if isinstance(value, dict) else None
+
+
+_SNIFF_LIMIT = 8 * R.MAX_CANONICAL_BYTES   # an oversized file is parsed only up to this size
+_SNIFF_WINDOW = 64 * 1024                  # bytes read from each end before any parse
+_MAX_SNIFF_BYTES = 64 * 1024 * 1024        # full parses of oversized files, apart from frame discovery
+_SNIFF_MARKERS = (b'"rapp/1-registry"', b'"rapp/1-release-manifest"')
+# The same claims in the encodings a strict UTF-8 reader refuses (§13.1), so they are reported, not skipped.
+_WIDE_MARKERS = tuple(marker.decode("ascii").encode(codec) for marker in _SNIFF_MARKERS
+                      for codec in ("utf-16-le", "utf-16-be", "utf-32-le", "utf-32-be"))
+_NOT_PARSED = "not parsed"  # names a schema near an end, but past the sniff limit or budget
+_NOT_UTF8 = "not UTF-8"     # names a schema near an end in UTF-16 or UTF-32
+
+
+def _oversized_schema(path, size, budget):
+    """The top-level `schema` an over-§4 JSON file claims, so a registry or release manifest that grew
+    past 1 MiB is reported rather than skipped; None for anything else. Cheap for ordinary data files:
+    only a file whose first or last 64 KiB names one of the two schemas (a canonical document sorts
+    `schema` near its end) is parsed, only up to 8 MiB, and only while `budget` (a one-item list of
+    remaining bytes, kept apart from frame discovery's) allows; past those bounds it is `_NOT_PARSED`,
+    which the caller reports as not checked, and a claim written in UTF-16 or UTF-32 is `_NOT_UTF8`."""
+    try:
+        info = os.lstat(path)
+        if not stat.S_ISREG(info.st_mode):
+            return None
+        with open(path, "rb") as source:
+            head = source.read(_SNIFF_WINDOW)
+            source.seek(max(0, size - _SNIFF_WINDOW))
+            tail = source.read(_SNIFF_WINDOW)
+    except OSError:
+        return None
+    if not any(marker in head or marker in tail for marker in _SNIFF_MARKERS):
+        return _NOT_UTF8 if any(marker in head or marker in tail for marker in _WIDE_MARKERS) else None
+    if size > _SNIFF_LIMIT or size > budget[0]:
+        return _NOT_PARSED
+    budget[0] -= size
+    try:
+        return _lenient_schema(_read_blob(path, _SNIFF_LIMIT))
+    except Exception:
+        return None
+
+
+def _no_duplicate_members(pairs):
+    """An object hook that refuses a repeated member, as `rapp._strict_json` does (§4(a))."""
+    value = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError(f"duplicate JSON member: {key}")
+        value[key] = item
+    return value
+
+
+def _number_or_json(exc, section):
+    """Why a registry or manifest failed strict parsing: a number the section forbids (a fraction, an
+    exponent, or beyond 2^53-1), else not strict I-JSON (§4)."""
+    text = str(exc)
+    if "floats require" in text or "interoperable range" in text:
+        return f"every number must be an integer written without fraction or exponent, within ±(2^53-1) ({section}): {text}"
+    return f"not strict I-JSON (§4): {text}"
 
 
 def _looks_like_frame(blob):
@@ -319,6 +409,64 @@ def check_repo(root, signature_verifier=None):
 
     records = {}
 
+    def registry_document(rel, document, report=True):
+        """Lint one registry document; True when it raised no finding. `report=False` records no
+        structure evidence (the caller reports the document another way)."""
+        try:
+            REG.validate_document(document)
+            registry = REG.Registry(document[REG.ENTRIES_MEMBER])
+        except (REG.RegistryError, ValueError) as exc:
+            finding(rel, "§13 registry document", str(exc))
+            return False
+        for index in registry.unknown_entries:
+            # Every consumer at this revision ignores it (§13.3); in an estate's own registry that is
+            # most often a misspelled type, which silently drops the entry (a tombstone, a notice).
+            finding(rel, "§13 registry document",
+                    f"entries[{index}]: type {registry.entries[index]['type']!r} is not one this checker "
+                    "implements, so it is ignored (§13.3); check for a misspelled type")
+        state = (
+            "unsigned draft"
+            if document["sig"] is None
+            else "owner signature needs the out-of-band trust anchor"
+        )
+        if not report:
+            return not registry.unknown_entries
+        evidence.append(
+            {
+                "artifact": rel,
+                "ok": (
+                    f"§13.1 registry structure OK (registry_seq "
+                    f"{document['registry_seq']}, {len(registry.entries)} entries; {state})"
+                ),
+                "status": "unverified",
+            }
+        )
+        return not registry.unknown_entries
+
+    def release_manifest(rel, blob, manifest):
+        try:
+            REG.validate_release_manifest(manifest)
+            if blob != R.canonical(manifest).encode("utf-8"):
+                raise REG.RegistryError(
+                    "file octets are not exactly canonical(manifest) (no BOM, whitespace, "
+                    "or trailing line terminator)"
+                )
+        except (REG.RegistryError, ValueError) as exc:
+            finding(rel, "§13.5 release manifest", str(exc))
+            return
+        evidence.append(
+            {
+                "artifact": rel,
+                "ok": (
+                    f"§13.5 release manifest structure OK (release name {manifest['release']}; "
+                    f"{len(manifest['components'])} components; "
+                    f"manifest_hash {R.H('rapp/1:particle', manifest)[:16]}…; "
+                    "authority requires a verified release-pin)"
+                ),
+                "status": "unverified",
+            }
+        )
+
     def consider(path, is_required):
         nonlocal has_artifact
         rel = os.path.relpath(path, root)
@@ -327,12 +475,40 @@ def check_repo(root, signature_verifier=None):
             blob = _read_blob(path, R.MAX_CANONICAL_BYTES)
             value = R._strict_json(blob)
         except Exception as exc:
+            if not is_required and blob is not None and _lenient_schema(blob) == REG.DOCUMENT_SCHEMA:
+                has_artifact = True
+                finding(rel, "§13 registry document", _number_or_json(exc, "§13.1"))
+                return
+            if not is_required and blob is not None and _lenient_schema(blob) == REG.MANIFEST_SCHEMA:
+                has_artifact = True
+                finding(rel, "§13.5 release manifest", _number_or_json(exc, "§13.5"))
+                return
             candidate = is_required or (
                 blob is not None and _looks_like_frame(blob)
             )
             if candidate:
                 has_artifact = True
                 finding(rel, "RAPP/1 frame candidate", str(exc))
+            return
+        if (
+            not is_required
+            and isinstance(value, dict)
+            and value.get("schema") == REG.DOCUMENT_SCHEMA
+        ):
+            has_artifact = True
+            encoding = REG._utf8_text_problem(blob, "a registry document")
+            if encoding:  # the strict parser guessed UTF-16/UTF-32 or dropped a BOM; I-JSON is UTF-8 (§13.1)
+                finding(rel, "§13 registry document", f"{encoding} (§13.1)")
+                return
+            registry_document(rel, value)
+            return
+        if (
+            not is_required
+            and isinstance(value, dict)
+            and value.get("schema") == REG.MANIFEST_SCHEMA
+        ):
+            has_artifact = True
+            release_manifest(rel, blob, value)
             return
         candidate = is_required or (
             isinstance(value, dict)
@@ -352,6 +528,7 @@ def check_repo(root, signature_verifier=None):
 
     # Bounded exact-shape discovery finds Frames regardless of filename/layout.
     count = total = 0
+    sniff_budget = [_MAX_SNIFF_BYTES]
     for path in (
         p
         for p in json_paths
@@ -364,6 +541,45 @@ def check_repo(root, signature_verifier=None):
             unknown(os.path.relpath(path, root), f"cannot stat JSON: {exc}")
             continue
         if size > R.MAX_CANONICAL_BYTES:
+            # Never charged to frame discovery. A registry or release manifest is at most 1 MiB as stored
+            # (§13.1, §13.5), so one past it is always a finding; it is still parsed, up to the sniff
+            # limit, so the finding also names what else is wrong with it.
+            claimed = _oversized_schema(path, size, sniff_budget)
+            if claimed == _NOT_UTF8:
+                has_artifact = True
+                finding(os.path.relpath(path, root), "§13 registry document",
+                        f"{size} bytes in UTF-16 or UTF-32 naming a registry or release manifest schema: a registry "
+                        "document is UTF-8 without a byte-order mark and at most 1 MiB as stored (§13.1)")
+                continue
+            if claimed == _NOT_PARSED:
+                has_artifact = True
+                unknown(os.path.relpath(path, root),
+                        f"{size} bytes: names a §13 registry or §13.5 release manifest schema within its first "
+                        f"or last {_SNIFF_WINDOW // 1024} KiB, but is past the {_SNIFF_LIMIT // 2**20} MiB this "
+                        "checker parses per file or its parse budget, so it was not checked")
+                continue
+            if claimed in (REG.DOCUMENT_SCHEMA, REG.MANIFEST_SCHEMA):
+                has_artifact = True
+                rel = os.path.relpath(path, root)
+                what = "§13 registry document" if claimed == REG.DOCUMENT_SCHEMA else "§13.5 release manifest"
+                try:
+                    blob = _read_blob(path, _SNIFF_LIMIT)
+                    encoding = REG._utf8_text_problem(blob, what)
+                    if encoding:
+                        raise ValueError(encoding)
+                    value = json.loads(blob, object_pairs_hook=_no_duplicate_members)  # never collapse one
+                    canonical_octets = R.canonical(value).encode("utf-8")
+                    R._strict_json(canonical_octets)  # §4(d): at most 1 MiB canonical, nested at most 64
+                except Exception as exc:
+                    finding(rel, what, f"not a §4 value within its 1 MiB canonical limit ({size} bytes stored): {exc}")
+                    continue
+                if claimed == REG.MANIFEST_SCHEMA:
+                    release_manifest(rel, blob, value)  # stored octets must be exactly canonical (§13.5)
+                    continue
+                if not registry_document(rel, value, report=False):
+                    continue
+                finding(rel, what, f"stored as {size} bytes, {len(canonical_octets)} canonical: a registry "
+                        "document is at most 1 MiB as stored (§13.1); publish it compact")
             continue
         if count >= _MAX_JSON_FILES or total + size > _MAX_JSON_BYTES:
             unknown(".", "bounded frame discovery JSON budget exhausted")
