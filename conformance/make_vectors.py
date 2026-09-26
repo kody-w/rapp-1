@@ -630,6 +630,15 @@ def registry_sections():
             history_case("an accepted release moved to another locator", [rp(1)], [rp(1, commit="4" * 40)],
                          "refuse"),
             history_case("an accepted kernel dropped", [grail, rp(1)], [rp(1)], "refuse"),
+            history_case("two accepted releases reordered", [rp(1), rp(4, NEW_2, **newest)],
+                         [rp(4, NEW_2, **newest), rp(1)], "refuse"),
+            history_case("another family's release pinned ahead of an accepted release (entries append)",
+                         [rp(1)], [rp(4, NEW_2, **newest), rp(1)], "refuse"),
+            history_case("a correction placed between two accepted releases", [rp(1), rp(4, NEW_2, **newest)],
+                         [rp(1), rp(2, after=1, activated_utc=LATER), rp(4, NEW_2, **newest)], "refuse"),
+            history_case("the same correction appended after both", [rp(1), rp(4, NEW_2, **newest)],
+                         [rp(1), rp(4, NEW_2, **newest), rp(2, after=1, activated_utc=LATER)], "accept"),
+            history_case("an accepted entry repeated in the persisted list", [rp(1), rp(1)], [rp(1)], "refuse"),
         ]
 
         def file_cases():
@@ -639,10 +648,13 @@ def registry_sections():
             cases = [("length and digest both match", digest, size),
                      ("the right digest with another length", digest, size + 1),
                      ("the right length with another digest", "0" * 64, size)]
-            return [{"label": label, "sha256": pinned_digest, "size_bytes": pinned_size, "octets_hex": octets.hex(),
-                     "expect": "accept" if (hashlib.sha256(octets).hexdigest(), len(octets)) == (pinned_digest,
-                                                                                               pinned_size)
-                     else "refuse"} for label, pinned_digest, pinned_size in cases]
+            out = []
+            for label, pinned_digest, pinned_size in cases:
+                item = {"path": "notes/pinned.md", "sha256": pinned_digest, "size_bytes": pinned_size}
+                expect = "accept" if REG._pinned_file_mismatch(item, octets) is None else "refuse"
+                out.append({"label": label, "sha256": pinned_digest, "size_bytes": pinned_size,
+                            "octets_hex": octets.hex(), "expect": expect})
+            return out
 
         def identity_cases():
             """§13.5 door of record: an identity file's octets against its component's rappid."""
@@ -1069,6 +1081,9 @@ def registry_sections():
             grant_case("a body kind on a swarm stream", [grant(stream_id="net:wire", kinds=["body.pulse"])], "refuse"),
             grant_case("a re-genesis kind (§12.1 reserves it for the owner)",
                        [grant(kinds=["body.pulse", "body.re-genesis"])], "refuse"),
+            grant_case("a registered kind that merely ends in .re-genesis is not one of the three",
+                       [{"type": "kind", "kind": "acme.re-genesis", "family": "body", "deprecated": False},
+                        grant(kinds=["acme.re-genesis", "body.pulse"])], "accept"),
             grant_case("kinds out of bytewise order", [grant(kinds=["body.pulse", "body.notice"])], "refuse"),
             grant_case("'-' after '.' is out of bytewise order",
                        [grant(kinds=["body.pulse", "body-sensor.pulse"])], "refuse"),

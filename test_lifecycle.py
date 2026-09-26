@@ -569,6 +569,13 @@ class LifecycleSignatureTests(LifecycleCase):
         self.assertEqual(self.load([a1, a2], verification_utc=T0)[0], "refused")  # one time for both
         seen[REG.entry_hash(a2)] = T0  # first seen a month before it says it was declared
         self.assertEqual(self.load([a1, a2], first_seen=seen.__getitem__)[0], "refused")
+        # The first notice against its own first sighting, never the later notice's.
+        dated_late = self.notice(ALPHA, "active", activated="2026-07-01T00:10:00.000Z")
+        follows = self.notice(ALPHA, "deprecated", since=T1, previous=dated_late, activated=T1)
+        seen = {REG.entry_hash(dated_late): T0, REG.entry_hash(follows): T1}
+        status, _, why = self.load([dated_late, follows], first_seen=seen.__getitem__)
+        self.assertEqual(status, "refused")
+        self.assertIn("300 s after first-seen", why)
 
     def test_a_copy_counts_only_when_the_registry_carries_it(self):
         a1 = self.notice(ALPHA, "active")

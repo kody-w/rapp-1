@@ -1016,8 +1016,9 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   §6.1.1 form; `signer` is a keyed rappid with a §13 `spki` entry (deprecated or not) in the same
   registry; `kinds` is a non-empty array of distinct kinds in ascending bytewise order, each registered
   (deprecated or not) in the same registry with a family compatible with `stream_id`'s form (§7.2) and
-  none a `*.re-genesis` kind (§12.1 reserves those for the owner); `since_utc` has the §7.4 form;
-  `until_utc` is `null` or a §7.4 time after `since_utc` (§13.7).
+  none of the three re-genesis kinds `memory.re-genesis`, `swarm.re-genesis`, and `body.re-genesis`
+  (§12.1 reserves them for the owner); `since_utc` has the §7.4 form; `until_utc` is `null` or a §7.4
+  time after `since_utc` (§13.7).
 - **estate_owner** `{type:"estate_owner", rappid}` (exactly one non-deprecated) · **master-plan**
   `{type:"master-plan", repo, path}` (Fed. Const. Art. VII).
 
@@ -1061,9 +1062,10 @@ is not a declaration however well it is signed. `H("rapp/1:particle", entry)` ov
 entry names it, so a registry carries each declared entry once: a registry in which two declared entries
 have the same canonical form is refused whole. Every declared entry is persisted: once a consumer has
 accepted one it **MUST** persist the canonical entry, and every later accepted registry **MUST** retain it
-byte-for-byte and keep the persisted entries in the order they were appended (`entries` is append-ordered,
-§13.1); removal, mutation, or reordering is a permanent refusal even when `registry_seq` increased (§11.1
-item 9 states the rule for `grail-kernel`).
+byte-for-byte in the order it was appended (`entries` is append-ordered, §13.1): a later registry appends,
+so the declared entries a consumer accepted come first among its declared entries, in their order.
+Removal, mutation, reordering, or a declared entry placed before one the consumer accepted is a permanent
+refusal even when `registry_seq` increased (§11.1 item 9 states the rule for `grail-kernel`).
 
 ### 13.5 Release pins, release manifests, and verified snapshots
 A **release scope** (§11.1) names one release family — for example an LTS line whose corrections all keep
@@ -1323,10 +1325,11 @@ registry.
   number; says a consumer ignores an entry type it does not implement unless the entry is marked
   critical;
   generalizes the `grail-kernel` entry-level owner signature into §13.4 declared entries, each verified
-  at its own `activated_utc` and retained byte-for-byte once accepted; and adds three declared entry
-  types. **Release pins** (§13.5): a release scope names a release family bound to at most one kernel, and
-  each `release-pin` names the `rapp/1-release-manifest` that pins every component of one immutable release
-  by digest at an immutable commit, with door-of-record bindings, kernel coherence and kernel ordering,
+  at its own `activated_utc`, carried once, and, once accepted, retained byte-for-byte ahead of every
+  later declaration; and adds three declared entry types. **Release pins** (§13.5): a release scope
+  names a release family bound to at most one kernel, and each `release-pin` names the
+  `rapp/1-release-manifest` that pins every component of one immutable release by digest at an immutable
+  commit, with door-of-record bindings, kernel coherence and kernel ordering,
   linear channels, and all-or-nothing verified snapshots. **Lifecycle notices** (§13.6): estate-signed,
   chained notices that an organism — or a repository that has no rappid — is active, deprecated,
   superseded (with `superseded_by`), or archived since a given time. **Stream signers** (§13.7): an

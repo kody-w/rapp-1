@@ -489,6 +489,13 @@ class ReleasePinDeclarationTests(unittest.TestCase):
         status, _, why = self.world.load([first, correction], first_seen=seen.__getitem__)
         self.assertEqual(status, "refused")
         self.assertIn("300 s after first-seen", why)
+        # The earlier pin against its own first sighting too, never the correction's later one.
+        dated_late = self.world.pin(self.manifest, activated="2026-07-01T00:10:00.000Z")
+        follows = self.world.pin(self.world.manifest(kernel=None, fix=1), predecessor=dated_late, activated=LATER)
+        seen = {REG.entry_hash(dated_late): T0, REG.entry_hash(follows): LATER}
+        status, _, why = self.world.load([dated_late, follows], first_seen=seen.__getitem__)
+        self.assertEqual(status, "refused")
+        self.assertIn("300 s after first-seen", why)
 
     def test_persisted_release_pins_are_retained_byte_for_byte(self):
         pin = self.world.pin(self.manifest)
@@ -1232,13 +1239,36 @@ class ReleaseHistoryTests(unittest.TestCase):
         world = self.world
         other = world.grail(NEW_2, "2.0.0", "5" * 40)
         newest = world.pin(world.manifest(NEW_2, kernel="2.0.0", kernel_commit="5" * 40), channel="newest")
-        status, _, why = world.load([other, self.release, newest], seq=3, persisted_entries=self.kept)
+        status, _, why = world.load([self.release, other, newest], seq=3, persisted_entries=self.kept)
         self.assertEqual((status, why), ("verified", "ok"))
         correction = world.pin(world.manifest(kernel=None, fix=1), predecessor=self.release, activated=LATER)
-        entries = [other, self.release, newest, correction]
-        status, reg, why = world.load(entries, seq=4, persisted_entries=persisted(other, self.release, newest))
+        entries = [self.release, other, newest, correction]
+        status, reg, why = world.load(entries, seq=4, persisted_entries=persisted(self.release, other, newest))
         self.assertEqual((status, why), ("verified", "ok"))
         self.assertEqual(len(REG.verify_snapshot(reg, world.fetch, release_scope=LTS)), 5)
+
+    def test_a_later_registry_appends_after_every_accepted_entry(self):
+        # §13.1/§13.4: entries are append-ordered, so the accepted declared entries come first. Placed
+        # ahead of an accepted release, even another family's kernel, or a correction of the release's
+        # own channel ahead of a later accepted pin, would be an insertion; the same entries appended
+        # are growth.
+        world = self.world
+        other = world.grail(NEW_2, "2.0.0", "5" * 40)
+        newest = world.pin(world.manifest(NEW_2, kernel="2.0.0", kernel_commit="5" * 40), channel="newest")
+        status, _, why = world.load([other, self.release, newest], seq=3, persisted_entries=self.kept)
+        self.assertEqual(status, "refused")
+        self.assertIn("a grail-kernel entry the consumer has not accepted is placed before this accepted "
+                      "release-pin entry", why)
+        accepted = persisted(self.release, other, newest)
+        correction = world.pin(world.manifest(kernel=None, fix=1), predecessor=self.release, activated=LATER)
+        status, reg, why = world.load([self.release, correction, other, newest], seq=4, persisted_entries=accepted)
+        self.assertEqual(status, "refused")
+        self.assertIn("a release-pin entry the consumer has not accepted is placed before", why)
+        # Loaded fresh, the same order is a valid registry; only the consumer's history shows the insertion.
+        self.assertEqual(world.load([self.release, correction, other, newest], seq=4)[:3:2], ("verified", "ok"))
+        status, reg, why = world.load([self.release, other, newest, correction], seq=4, persisted_entries=accepted)
+        self.assertEqual((status, why), ("verified", "ok"))
+        self.assertEqual(reg.scope_head(LTS), correction)  # appended last, so the family's current release
 
     def test_history_is_every_declared_entry_the_consumer_accepted(self):
         world = self.world

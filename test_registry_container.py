@@ -392,6 +392,13 @@ class DeclaredEntryTests(unittest.TestCase):
         seen[REG.entry_hash(later)] = T0
         self.assertEqual(self.load([early, later], first_seen=seen.__getitem__)[0], "refused")
         self.assertEqual(self.load([early], first_seen={}.__getitem__)[0], "refused")
+        # Each entry against its own first sighting: an early entry dated 10 minutes after it was first
+        # seen is refused, though a later entry's first sighting would have covered it.
+        early_dated_late = self.estate.grail_kernel(activated="2026-07-01T00:10:00.000Z")
+        seen = {REG.entry_hash(early_dated_late): T0, REG.entry_hash(later): "2026-07-09T00:00:00.000Z"}
+        status, _, why = self.load([early_dated_late, later], first_seen=seen.__getitem__)
+        self.assertEqual(status, "refused")
+        self.assertIn("300 s after first-seen", why)
         self.assertEqual(self.load([early], first_seen={}.get)[0], "refused")  # None is no time
         self.assertEqual(self.load([early], first_seen=lambda h: "yesterday")[0], "refused")
         self.assertEqual(

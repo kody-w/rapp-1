@@ -9,8 +9,14 @@ manifest is likewise structure and canonical bytes only: it has authority only t
 a verified registry's `release-pin`. It classifies a repo as:
 
   CLEAN     — no RAPP artifacts found by a complete bounded scan
-  COMPLIANT — has artifacts, all pass RAPP
-  DRIFT     — has violations or cannot establish signed conformance
+  COMPLIANT — has artifacts, all pass RAPP (registries and release manifests by structure)
+  DRIFT     — has violations or cannot establish signed conformance of a frame
+
+A registry entry of a type this checker does not implement is a finding: every consumer
+at this revision ignores it (§13.3), which silently drops a misspelled entry, so lint a
+later revision's registry with that revision's checker. A JSON file over §4's 1 MiB that
+names a registry or manifest schema near its start or end is parsed up to 8 MiB (64 MiB
+in all); one past those bounds is reported as not checked, never skipped.
 
 Usage:  python3 rapp_check.py <repo_path> [--json]
 Exit:   0 CLEAN/COMPLIANT · 1 DRIFT · 2 error
@@ -129,6 +135,7 @@ _SNIFF_LIMIT = 8 * R.MAX_CANONICAL_BYTES   # an oversized file is parsed only up
 _SNIFF_WINDOW = 64 * 1024                  # bytes read from each end before any parse
 _MAX_SNIFF_BYTES = 64 * 1024 * 1024        # full parses of oversized files, apart from frame discovery
 _SNIFF_MARKERS = (b'"rapp/1-registry"', b'"rapp/1-release-manifest"')
+_NOT_PARSED = "not parsed"  # names a schema near an end, but past the sniff limit or budget
 
 
 def _oversized_schema(path, size, budget):
@@ -136,7 +143,8 @@ def _oversized_schema(path, size, budget):
     past 1 MiB is reported rather than skipped; None for anything else. Cheap for ordinary data files:
     only a file whose first or last 64 KiB names one of the two schemas (a canonical document sorts
     `schema` near its end) is parsed, only up to 8 MiB, and only while `budget` (a one-item list of
-    remaining bytes, kept apart from frame discovery's) allows. Best effort, never a finding by itself."""
+    remaining bytes, kept apart from frame discovery's) allows; past those bounds it is `_NOT_PARSED`,
+    which the caller reports as not checked."""
     try:
         info = os.lstat(path)
         if not stat.S_ISREG(info.st_mode):
@@ -150,7 +158,7 @@ def _oversized_schema(path, size, budget):
     if not any(marker in head or marker in tail for marker in _SNIFF_MARKERS):
         return None
     if size > _SNIFF_LIMIT or size > budget[0]:
-        return None
+        return _NOT_PARSED
     budget[0] -= size
     try:
         return _lenient_schema(_read_blob(path, _SNIFF_LIMIT))
@@ -525,6 +533,13 @@ def check_repo(root, signature_verifier=None):
             # over the limit it is a finding; within it, a valid registry the reference reader
             # (`rapp._strict_json`) still cannot read as stored, which is reported as advice.
             claimed = _oversized_schema(path, size, sniff_budget)
+            if claimed == _NOT_PARSED:
+                has_artifact = True
+                unknown(os.path.relpath(path, root),
+                        f"{size} bytes: names a §13 registry or §13.5 release manifest schema within its first "
+                        f"or last {_SNIFF_WINDOW // 1024} KiB, but is past the {_SNIFF_LIMIT // 2**20} MiB this "
+                        "checker parses per file or its parse budget, so it was not checked")
+                continue
             if claimed in (REG.DOCUMENT_SCHEMA, REG.MANIFEST_SCHEMA):
                 has_artifact = True
                 rel = os.path.relpath(path, root)

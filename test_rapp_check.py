@@ -340,6 +340,19 @@ class RappCheckDiscoveryTests(unittest.TestCase):
                          [("big/registry.json", "§13 registry document")])
         self.assertIn("1 MiB canonical limit", findings[0]["detail"])
 
+    def test_a_registry_past_the_parse_limit_is_reported_not_checked(self):
+        # Past the 8 MiB this checker parses, a file that names a registry schema is not silently
+        # skipped: the scan is incomplete there, as when frame discovery's budget runs out.
+        repository = self.fixture_repo("clean")
+        text = json.dumps(self.registry_document(), sort_keys=True, separators=(",", ":"))
+        (repository / "big").mkdir()
+        (repository / "big" / "registry.json").write_text(text[:-1] + " " * (9 * 2**20) + "}", encoding="utf-8")
+        verdict, findings, _ = C.check_repo(repository)
+        self.assertEqual(verdict, "DRIFT")
+        self.assertEqual([(item["artifact"], item["rule"], item.get("status")) for item in findings],
+                         [("big/registry.json", "verification unavailable", "unverified")])
+        self.assertIn("was not checked", findings[0]["detail"])
+
     def test_padding_past_1_mib_hides_no_defect(self):
         repository = self.fixture_repo("clean")
         text = json.dumps(self.registry_document(), sort_keys=True)

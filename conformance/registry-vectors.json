@@ -5921,6 +5921,376 @@
        "type": "release-pin"
       }
      ]
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "newest",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710",
+       "object_format": "sha1",
+       "path": "releases/d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "label": "two accepted releases reordered",
+     "persisted": [
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "newest",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710",
+       "object_format": "sha1",
+       "path": "releases/d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ]
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "newest",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710",
+       "object_format": "sha1",
+       "path": "releases/d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "label": "another family's release pinned ahead of an accepted release (entries append)",
+     "persisted": [
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ]
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "c8d1d8089f5d28f117b0d8ed309748a7c63d281fb81af76566161e919fc9328a",
+       "object_format": "sha1",
+       "path": "releases/c8d1d8089f5d28f117b0d8ed309748a7c63d281fb81af76566161e919fc9328a.json",
+       "predecessor": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "newest",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710",
+       "object_format": "sha1",
+       "path": "releases/d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "label": "a correction placed between two accepted releases",
+     "persisted": [
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "newest",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710",
+       "object_format": "sha1",
+       "path": "releases/d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ]
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "newest",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710",
+       "object_format": "sha1",
+       "path": "releases/d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-08-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "c8d1d8089f5d28f117b0d8ed309748a7c63d281fb81af76566161e919fc9328a",
+       "object_format": "sha1",
+       "path": "releases/c8d1d8089f5d28f117b0d8ed309748a7c63d281fb81af76566161e919fc9328a.json",
+       "predecessor": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "accept",
+     "label": "the same correction appended after both",
+     "persisted": [
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "newest",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710",
+       "object_format": "sha1",
+       "path": "releases/d1eb2f7be08312aca72af70975d839ab6b5398051d1dc7dd6f76c2345364f710.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/2.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ]
+    },
+    {
+     "entries": [
+      {
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "type": "estate_owner"
+      },
+      {
+       "deprecated": false,
+       "rappid": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "spki_der_b64": "dmVjdG9yLW9ubHkgU1BLSSBieXRlczogYSBmaW5nZXJwcmludCwgbm90IGEga2V5",
+       "type": "spki"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ],
+     "expect": "refuse",
+     "label": "an accepted entry repeated in the persisted list",
+     "persisted": [
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      },
+      {
+       "activated_utc": "2026-07-01T00:00:00.000Z",
+       "channel": "lts",
+       "commit": "3333333333333333333333333333333333333333",
+       "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+       "manifest_hash": "659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6",
+       "object_format": "sha1",
+       "path": "releases/659151fd7b244deedcc9b8c4620c61360153bbb7f7689c8f14ca04f0fcf63cf6.json",
+       "predecessor": null,
+       "release_scope": "https://releases.example.test/vector/1.0",
+       "repository": "https://git.example.test/vector/releases",
+       "sig": "<detached-jws>",
+       "type": "release-pin"
+      }
+     ]
     }
    ],
    "identity_cases": [
@@ -9983,6 +10353,32 @@
       ],
       "expect": "refuse",
       "label": "a re-genesis kind (§12.1 reserves it for the owner)"
+     },
+     {
+      "entries": [
+       {
+        "deprecated": false,
+        "family": "body",
+        "kind": "acme.re-genesis",
+        "type": "kind"
+       },
+       {
+        "activated_utc": "2026-07-01T00:00:00.000Z",
+        "declared_by": "rappid:@vector/estate-owner:9de0fdedced97e937c663a09235af9fbc709aec067465b621a9547133d6efde5",
+        "kinds": [
+         "acme.re-genesis",
+         "body.pulse"
+        ],
+        "sig": "<detached-jws>",
+        "signer": "rappid:@vector/pulse-signer:3bebbeebb46b427b7eeea3733c68f5c3291572bb6e7116134f1c653d729184d9",
+        "since_utc": "2026-07-10T00:00:00.000Z",
+        "stream_id": "rappid:@vector/station:6c81b0f7172f72fa096ced49973f49aad22d074f2ed95eee72034d4090cfe64d",
+        "type": "stream-signer",
+        "until_utc": "2026-08-10T00:00:00.000Z"
+       }
+      ],
+      "expect": "accept",
+      "label": "a registered kind that merely ends in .re-genesis is not one of the three"
      },
      {
       "entries": [

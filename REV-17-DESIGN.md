@@ -78,8 +78,9 @@ so that a release of about 300 repositories costs one registry entry.
 Every declared entry carries `activated_utc`, `declared_by`, and `sig`. `sig` is a detached §10 JWS by the
 estate owner in effect at `activated_utc` (`kid` = `declared_by`) over `canonical(entry \ {sig})`, and the
 whole registry is refused if one entry fails (§13.4). An entry's bytes are its canonical form (§4): every
-accepted declaration is retained unchanged, and in its append order, by every later registry (so a family's
-current release, its last pin in `entries`, can never move back), and a copy elsewhere counts only when its
+accepted declaration is retained unchanged, in its append order and ahead of every newer declared entry, by
+every later registry (so a family's current release, its last pin in `entries`, can never move back, and a
+release pinned later is always after it), and a copy elsewhere counts only when its
 canonical form equals that of an entry of an accepted registry, however it is formatted. Every
 `immutable_ref` is a full tag name (§3): `refs/tags/` and a name git's ref-name rules accept.
 `H("rapp/1:particle", entry)` over the complete signed entry names it, so a registry carries each declared
@@ -122,7 +123,7 @@ registry      {schema:"rapp/1-registry", registry_seq, canonical_source, entries
   A notice grants and revokes nothing.
 - **Stream signers (§13.7).** `signer` is a keyed rappid with an `spki` entry in the same registry; `kinds`
   are registered kinds (deprecated or not) whose family fits `stream_id`'s form, strictly ascending, and
-  never a re-genesis kind; the window is `since_utc` ≤ `utc` < `until_utc` (or open). A consumer that
+  never one of the three §12.1 re-genesis kinds; the window is `since_utc` ≤ `utc` < `until_utc` (or open). A consumer that
   follows no profile-defined signer rule treats a verified frame as the estate's statement only when its
   `kid` is the owner in effect or a covering grant's signer. Unsigned frames never speak for the estate.
   Grants are never inherited across a rotation. A registry whose grants break these rules is refused
@@ -175,9 +176,11 @@ unverified until the estate that pins this root is anchored". Rev-17 answers bot
   consumers run it. From rev-17 on, a later entry type that is not marked critical no longer cuts off an
   LTS consumer. Check your own registry's `unknown_entries` is empty (`rapp_check.py` reports each one):
   a misspelled type is ignored, not refused.
-- **Entry order.** `estate_owner` and `spki`; `kind`; the pulse stream's `genesis`; each family's
-  `grail-kernel` before that family's first `release-pin`; the `release-pin` entries; `lifecycle` notices;
-  `stream-signer` grants after their signer's `spki` and their kinds.
+- **Entry order.** In the first registry that carries them: `estate_owner` and `spki`; `kind`; the pulse
+  stream's `genesis`; each family's `grail-kernel` before that family's first `release-pin`; the
+  `release-pin` entries; `lifecycle` notices; `stream-signer` grants after their signer's `spki` and their
+  kinds. Every later registry appends its new entries after all of these and never regroups them by type:
+  a consumer refuses a registry that places a declared entry before one it accepted (§13.4).
 - **Families, channels, scopes.** One release scope per kernel family, for example an LTS family bound to
   kernel `brainstem-v0.6.9` and a newest family per newest kernel. Corrections of the LTS release are new
   `release-pin` entries of the same scope in the LTS channel; the newest channel moves to each new family.
@@ -249,8 +252,10 @@ front doors, the Internet-Draft, `conformance/make_vectors.py --check`, parity, 
 example, `test_rapp_work`, and the token and envelope proof in §1, on Python 3.9 and 3.14, plus a
 `signatures` CI job that runs the registry suite with real Ed25519 keys and refuses skips. Against real
 data: the published estate registry (`registry_seq` 2) still verifies; `rapp_check.py` gives byte-identical
-output with and without rev-17 on the RAPP, model Hive, public Hive copy, and estate repositories; and the
-network's first pulse verifies as a frame and correctly does not yet speak for the estate. The schemas
+output with and without rev-17 on RAPP, the model Hive, the public Hive copy, and `rapp-estate`, and on
+`rapp-map`, which holds the estate registry, the same verdict with one added line reporting that
+registry's §13.1 structure; and the network's first pulse verifies as a frame and correctly does not yet
+speak for the estate. The schemas
 below agree with `rapp_registry.py` on every value in the registry vectors, except values refused only by
 rules a schema cannot state (listed with each schema).
 
@@ -771,7 +776,7 @@ reference's.
       }
     },
     "registry-document": {
-      "description": "§13.1 registry document: exactly these five members carry meaning; any other top-level member is covered by sig and carries none. sig null = unsigned draft, never authority. Each entry of a type defined here matches its schema; an entry of a type a consumer does not implement is ignored unless it carries critical other than false, which refuses the registry (§13.3). Not expressible here: at most 1 MiB canonical and nested at most 64 deep (§4(d)); every number anywhere an integer within ±(2^53-1) (§13.1); the other known types' own rules and every cross-entry rule (the reference checks them).",
+      "description": "§13.1 registry document: exactly these five members carry meaning; any other top-level member is covered by sig and carries none. sig null = unsigned draft, never authority. Each entry of a type defined here matches its schema; an entry of a type a consumer does not implement is ignored unless it carries critical other than false, which refuses the registry (§13.3). Not expressible here: at most 1 MiB canonical and nested at most 64 deep (§4(d)); every number anywhere an integer within ±(2^53-1) (§13.1); the other known types' own rules and every cross-entry rule (the reference checks them); no two declared entries with the same canonical form (§13.4); against a consumer's history, the declared entries it accepted come first, unchanged and in order (§13.4).",
       "type": "object",
       "required": [
         "schema",

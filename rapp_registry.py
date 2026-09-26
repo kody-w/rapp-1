@@ -871,13 +871,14 @@ class Registry:
 
     def check_retained(self, persisted_entries):
         """§13.4 retention: every previously accepted persisted entry is still here, canonical form
-        unchanged, and in the same relative order — `entries` is append-ordered (§13.1), and a family's
-        current release is its last pin in that order (§13.5), so reordering could regress it. Pass the
-        persisted entries in the order the accepted registry held them. Then the §13.5 release history
-        against those same entries."""
+        unchanged, in the same order, and ahead of every declared entry the consumer has not accepted
+        — `entries` is append-ordered (§13.1), so a later registry appends, and a family's current
+        release is its last pin in that order (§13.5), so neither reordering nor insertion can move it.
+        Pass the persisted entries in the order the accepted registry held them. Then the §13.5 release
+        history against those same entries."""
         persisted_entries = list(persisted_entries)  # read twice: presence and order, then release history
         position = self._declared  # canonical form -> index; each declared entry appears once (§13.4)
-        previous, held = -1, set()
+        previous, held, owns = -1, set(), []
         for i, entry in enumerate(persisted_entries):
             if not isinstance(entry, dict) or entry.get("type") not in PERSISTED_TYPES:
                 return False, f"persisted_entries[{i}] is not a persisted entry type (§13.4)"
@@ -889,6 +890,7 @@ class Registry:
                 return False, (f"persisted_entries[{i}] repeats an earlier persisted entry; an accepted "
                                "registry carries each declared entry once (§13.4)")
             held.add(own)
+            owns.append(own)
             at = position.get(own)
             if at is None:
                 return False, f"a persisted {entry['type']} entry was removed or mutated (§13.4)"
@@ -896,7 +898,20 @@ class Registry:
                 return False, (f"persisted_entries[{i}]: a persisted {entry['type']} entry now precedes one "
                                "appended before it; entries keep their append order (§13.1, §13.4)")
             previous = at
-        return self._check_release_history(persisted_entries)
+        ok, why = self._check_release_history(persisted_entries)  # names a kernel insertion (§13.5) first
+        if not ok:
+            return ok, why
+        # The accepted declared entries come first among this registry's declared entries: in order,
+        # the rank of the i-th is i, and a larger rank means a new declared entry was placed ahead of it.
+        order = sorted(position, key=position.get)  # this registry's declared entries, in entries order
+        rank = {own: r for r, own in enumerate(order)}
+        for i, own in enumerate(owns):
+            if rank[own] != i:
+                placed = self.entries[position[order[i]]]
+                return False, (f"persisted_entries[{i}]: a {placed['type']} entry the consumer has not accepted "
+                               f"is placed before this accepted {persisted_entries[i]['type']} entry; a later "
+                               "registry appends its declared entries after every accepted one (§13.1, §13.4)")
+        return True, "ok"
 
     # ---- §10 / §13.3 key-lifecycle entries (tombstones and re-anchors) ----
     def check_lifecycle_signatures(self, *, tombstone_issued_at=None):
@@ -1701,6 +1716,16 @@ def _fetch_pinned(fetch, locator, path, where):
     return octets
 
 
+def _pinned_file_mismatch(item, octets):
+    """§13.5 step 3 for one fetched file: why its octets are not the pinned ones, or None. Both the
+    length and the raw SHA-256 must be the manifest's."""
+    if len(octets) != item["size_bytes"]:
+        return f"{len(octets)} bytes, {item['size_bytes']} pinned"
+    if hashlib.sha256(octets).hexdigest() != item["sha256"]:
+        return "SHA-256 differs from the pinned digest"
+    return None
+
+
 def _door_of_record_mismatch(component, octets):
     # json.loads would guess UTF-16 or UTF-32 from a byte-order mark or from NUL bytes; the identity
     # file is UTF-8 without one, and NUL is never part of a UTF-8 JSON text.
@@ -1781,10 +1806,9 @@ def verify_snapshot(registry, fetch, *, release_scope=None, channel=None, manife
         for item in component["files"]:
             where = f"component {component['id']!r} file {item['path']!r}"
             octets = _fetch_pinned(fetch, component, item["path"], where)
-            if len(octets) != item["size_bytes"]:
-                raise RegistryError(f"{where}: {len(octets)} bytes, {item['size_bytes']} pinned (§13.5)")
-            if hashlib.sha256(octets).hexdigest() != item["sha256"]:
-                raise RegistryError(f"{where}: SHA-256 differs from the pinned digest (§13.5)")
+            why = _pinned_file_mismatch(item, octets)
+            if why:
+                raise RegistryError(f"{where}: {why} (§13.5)")
             snapshot[(component["id"], item["path"])] = octets
     for component in manifest["components"]:
         if component["rappid"] is not None:

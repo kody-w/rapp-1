@@ -65,7 +65,10 @@ internals, customer content and anything a reader here has no business seeing.
       Python 3.9 (Unicode 13) and refused on 3.14 (Unicode 16), or collide on one and not the other.
       rev-17 keeps a `release-pin` path and every release-manifest path ASCII, so its own verdicts never
       depend on it; §9.1 itself (egg paths) is frozen, so pinning a Unicode version belongs to a reviewed
-      §9.1 note or `rapp/2`.
+      §9.1 note or `rapp/2`. Related, and older than rev-17: §13.3 calls a `grail-kernel` `path` "a
+      relative NFC POSIX path", but `rapp_registry` checks only its components, never NFC — the same
+      Unicode-version question; a `grail-kernel` whose `path` is not ASCII binds a family no release
+      can carry (§13.5), so no rev-17 verdict depends on it.
 
 ## Known limit
 
