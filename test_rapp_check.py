@@ -358,7 +358,12 @@ class RappCheckDiscoveryTests(unittest.TestCase):
         block = ("[" + ",".join(["1234567"] * 262144) + "]").encode("ascii")  # about 2 MiB, not RAPP
         for n in range(33):  # more than the 64 MiB frame-discovery budget in all
             (data / f"series-{n:02d}.json").write_bytes(block)
-        (repository / "z.json").write_text('{"note": "small"}', encoding="utf-8")
+        # Frame discovery must still reach these ordinary files under 1 MiB, which it charges to its
+        # budget: charging the oversized files too would exhaust it first and report DRIFT.
+        near_limit = ("[" + ",".join(["1234567"] * 115000) + "]").encode("ascii")  # about 900 KB
+        for n in range(3):
+            (repository / f"zz-{n}.json").write_bytes(near_limit)
+        (repository / "zzz.json").write_text('{"note": "small"}', encoding="utf-8")
         self.assertEqual(C.check_repo(repository), ("CLEAN", [], []))
 
     def test_a_release_manifest_over_the_section_4_limit_is_a_finding_not_skipped(self):

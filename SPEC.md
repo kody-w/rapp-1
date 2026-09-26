@@ -1297,10 +1297,11 @@ registry.
 - **rev-17 (registry closure for the distributed Hive)** — names the §13.1 document container
   (`schema`, `registry_seq`, `canonical_source` — an absolute HTTPS URI or a URN — `entries`, `sig`; any
   other member carries no meaning; a document lacking one of the five is not a `rapp/1-registry`); defines
-  an absolute HTTPS URI (§3), which every such member now meets — `grail-kernel` `release_scope` and
-  `repository` and `protocol` `spec_repo` included, so a value with user information, an empty host, or a
-  port above 65535, once accepted, is now refused; says a consumer ignores an entry type it does not
-  implement unless the entry is marked critical;
+  an absolute HTTPS URI (§3) and holds every member specified as one to it — `grail-kernel`
+  `release_scope` and `repository` and `protocol` `spec_repo` included — so a value with user information,
+  an empty host, or a port above 65535, which rev-16's reference accepted, is now refused (no published
+  registry carries one); says a consumer ignores an entry type it does not implement unless the entry is
+  marked critical;
   generalizes the `grail-kernel` entry-level owner signature into §13.4 declared entries, each verified
   at its own `activated_utc` and retained byte-for-byte once accepted; and adds three declared entry
   types. **Release pins** (§13.5): a release scope names a release family bound to at most one kernel, and
