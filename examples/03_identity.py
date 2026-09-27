@@ -14,7 +14,10 @@ keyless = R.mint_rappid("kody", "twin")
 print("keyless :", keyless, "  valid:", R.rappid_valid(keyless))
 
 # Keyed: tail = Hb("rapp/1:rappid", SPKI_DER) — verifiable against the public key.
-spki = b"\x30\x2a...your-DER-SubjectPublicKeyInfo-here..."
+# Use your key's DER SubjectPublicKeyInfo; §6.2 refuses octets that are not one. This is the
+# RFC 8410 Ed25519 prefix + the RFC 8032 §7.1 TEST 1 public key.
+spki = bytes.fromhex("302a300506032b6570032100"
+                     "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a")
 keyed = R.mint_rappid("kody", "twin", spki_der=spki)
 print("keyed   :", keyed)
 print("keyed is deterministic (mint-once):", R.mint_rappid("kody", "twin", spki) == keyed)

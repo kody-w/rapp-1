@@ -47,7 +47,8 @@ check(
     ),
     rid,
 )
-spki = b"\x30\x2a fake-spki-der-bytes-for-the-vector\x00"
+# a structurally real Ed25519 SPKI: the RFC 8410 prefix + the RFC 8032 §7.1 TEST 1 public key (§6.2 refuses fakes)
+spki = bytes.fromhex("302a300506032b6570032100d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a")
 rid_k = R.mint_rappid("kody", "twin", spki_der=spki)
 check("V3 keyed tail == Hb('rapp/1:rappid', SPKI)", rid_k.rsplit(":", 1)[1] == R.Hb("rapp/1:rappid", spki))
 check("V3 mint-once determinism for keyed identity", R.mint_rappid("kody", "twin", spki) == rid_k)

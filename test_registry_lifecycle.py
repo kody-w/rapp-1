@@ -14,8 +14,16 @@ class RegistryLifecycleTests(unittest.TestCase):
         self.keys = {}
         self.signatures = {}
         self.issued_utc = "2026-07-01T00:00:00.000Z"
+        # §6.2 refuses a keyed mint over octets that are not a DER SPKI, so the stand-in keys are
+        # the RFC 8032 §7.1 public keys under the RFC 8410 Ed25519 prefix (the JWS boundary stays mocked).
+        points = {
+            "owner": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+            "worker": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+            "successor": "fc51cd8e6218a1a38da47ed00230f0580816ed13ba3303ac5deb911548908025",
+            "outsider": "278117fc144c72340f67d0f2316e8386ceffbf2b2428c9c51fef7c597f1d426e",
+        }
         for name in ("owner", "worker", "successor", "outsider"):
-            der = ("synthetic-public-key-" + name).encode()
+            der = bytes.fromhex("302a300506032b6570032100" + points[name])
             kid = R.mint_rappid("test", name, spki_der=der)
             self.der[kid] = der
             self.keys[name] = kid

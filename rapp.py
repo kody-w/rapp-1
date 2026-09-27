@@ -149,6 +149,58 @@ def sealed_plaintext_commitment(dek, plaintext):
 
 
 # ---------- §6 identity ----------
+# §6.2 (rev-17 E-8): the only SPKI octets a keyed mint accepts. RFC 8410 id-Ed25519 with a 32-octet key;
+# RFC 5480 id-ecPublicKey prime256v1 with a 65-octet uncompressed point (04 || X || Y).
+_ED25519_SPKI_PREFIX = bytes.fromhex("302a300506032b6570032100")
+_P256_SPKI_PREFIX = bytes.fromhex("3059301306072a8648ce3d020106082a8648ce3d030107034200")
+_ED25519_P = 2**255 - 19
+_ED25519_D = -121665 * pow(121666, _ED25519_P - 2, _ED25519_P) % _ED25519_P
+_P256_P = 2**256 - 2**224 + 2**192 + 2**96 - 1
+_P256_B = 0x5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B
+
+
+def _ed25519_point_decodes(key):
+    """RFC 8032 §5.1.3: the 32 octets decode to a point (y < p, x recoverable, no x = 0 with sign 1)."""
+    p = _ED25519_P
+    y = int.from_bytes(key, "little") & (2**255 - 1)
+    sign = key[31] >> 7
+    if y >= p:
+        return False
+    u = (y * y - 1) % p
+    v = (_ED25519_D * y * y + 1) % p
+    x = u * pow(v, 3, p) * pow(u * pow(v, 7, p), (p - 5) // 8, p) % p
+    if (v * x * x - u) % p != 0:
+        if (v * x * x + u) % p != 0:
+            return False
+        x = x * pow(2, (p - 1) // 4, p) % p
+    return not (x == 0 and sign == 1)
+
+
+def _p256_point_on_curve(point):
+    """SEC 1 §3.2.2.1 for an uncompressed point: 0 <= X, Y < p and Y^2 = X^3 - 3X + b (mod p)."""
+    p = _P256_P
+    x = int.from_bytes(point[1:33], "big")
+    y = int.from_bytes(point[33:65], "big")
+    return x < p and y < p and (y * y - (x * x * x - 3 * x + _P256_B)) % p == 0
+
+
+def _spki_ok(spki_der):
+    """True iff the octets are exactly the DER SPKI of a §10 key (§6.2, rev-17 E-8).
+
+    The point must also decode (Ed25519) or lie on the curve (P-256). The five clean-room
+    implementations split 4-1 on this at mint (python D-11/D-C07, typescript D-27, go D-21 and
+    rust D-20 decode the point; swift D-06/D-32 checks the layout only); the reference follows
+    the majority, since a key that is not a point can never verify a §10 signature."""
+    if not isinstance(spki_der, (bytes, bytearray)):
+        return False
+    spki_der = bytes(spki_der)
+    if len(spki_der) == 44 and spki_der.startswith(_ED25519_SPKI_PREFIX):
+        return _ed25519_point_decodes(spki_der[12:])
+    if len(spki_der) == 91 and spki_der.startswith(_P256_SPKI_PREFIX) and spki_der[26] == 0x04:
+        return _p256_point_on_curve(spki_der[26:])
+    return False
+
+
 def mint_rappid(owner, slug, spki_der=None):
     """§6.2 mint-once. keyless = Hb(uuid4); keyed = Hb(SPKI). NEVER a name-hash."""
     if (
@@ -161,9 +213,17 @@ def mint_rappid(owner, slug, spki_der=None):
     ):
         raise ValueError("owner or slug violates the RAPPID grammar")
     if spki_der is not None:
-        tail = Hb("rapp/1:rappid", spki_der)
+        if not _spki_ok(spki_der):
+            raise ValueError(
+                "§6.2: a keyed mint needs the exact DER SPKI of an Ed25519 key (RFC 8410) "
+                "or of a P-256 key with an uncompressed on-curve point"
+            )
+        tail = Hb("rapp/1:rappid", bytes(spki_der))
     else:
-        tail = Hb("rapp/1:rappid", uuid.uuid4().bytes)
+        octets = uuid.uuid4().bytes
+        if len(octets) != 16 or octets[6] >> 4 != 4 or octets[8] >> 6 != 0b10:
+            raise ValueError("§6.2: keyless mint octets are not a UUIDv4 (RFC 9562: version 4, variant 0b10)")
+        tail = Hb("rapp/1:rappid", octets)
     return f"rappid:@{owner}/{slug}:{tail}"
 
 def rappid_valid(s):

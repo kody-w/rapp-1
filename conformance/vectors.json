@@ -1,7 +1,7 @@
 {
  "derived_from": "rapp.py",
  "reference_limits": [
-  "rapp.py refuses non-integer JSON numbers rather than implementing full JCS number serialization; an implementation that does implement RFC 8785 numbers is more complete, not less conformant. Vectors therefore use integers only."
+  "rapp.py implements RFC 8785 number serialization (ECMA-262 Number::toString) and the §4 (c) binary64 round-trip test; these vectors still use integers only, so every hash is reproducible by an implementation whose number support is narrower."
  ],
  "schema": "rapp/1-conformance-vectors",
  "sections": {
@@ -120,7 +120,7 @@
    },
    "Hb": {
     "rapp/1:egg": "6ee41fa6eb674a573496294f5ac6aedf70e38f7e8f7e5e36ba8528c5c0eeaf46",
-    "rapp/1:rappid": "ab8378d3177d0b0fc27dc237396675382754d8273e99290bf85650662212f301"
+    "rapp/1:rappid": "ba71c721cbd5605b7e155f20d25efb77fecf935449bfc5bf7849da6d577773c4"
    },
    "rule": "H(space,v) = hex(sha256(utf8(space) || 0x0A || canonical(v))); Hb likewise over raw octets",
    "value": {
@@ -142,8 +142,8 @@
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
    ],
    "keyed_mint": {
-    "rappid": "rappid:@kody/twin:ab8378d3177d0b0fc27dc237396675382754d8273e99290bf85650662212f301",
-    "spki_der_hex": "302a2066616b652d73706b69"
+    "rappid": "rappid:@kody/twin:ba71c721cbd5605b7e155f20d25efb77fecf935449bfc5bf7849da6d577773c4",
+    "spki_der_hex": "302a300506032b6570032100d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
    },
    "valid": [
     "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6"
