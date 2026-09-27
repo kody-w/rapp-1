@@ -8,6 +8,7 @@ whether the protocol implementation conforms; use realcheck.py for that audit.
 import json
 import urllib.request
 import hashlib
+import base64
 import io
 import zipfile
 import rapp as R
@@ -136,7 +137,16 @@ sealed_payload = {
     "access": "scoped-key-release",
     "aad_hash": R.H("rapp/1:sealed-aad", descriptor),
 }
-test_signature = "test-detached-jws"
+def placeholder_jws(kid):
+    """A §10-form detached JWS (canonical header, 64-octet signature) for the trust-mode test verifiers."""
+    def b64url(octets):
+        return base64.urlsafe_b64encode(octets).rstrip(b"=").decode("ascii")
+
+    header = {"alg": "EdDSA", "b64": False, "crit": ["b64"], "kid": kid}
+    return b64url(R.canonical(header).encode("utf-8")) + ".." + b64url(bytes(64))
+
+
+test_signature = placeholder_jws(sealed_rappid)
 test_nonce = b"0123456789ab"
 test_aad = R.canonical(descriptor).encode("utf-8")
 known_ciphertext = bytes.fromhex(
@@ -163,6 +173,29 @@ def known_answer_decryptor(dek, nonce, aad, ciphertext):
     ):
         raise ValueError("AES-GCM known-answer authentication mismatch")
     return plaintext
+
+
+def forged_egg(blob, mutate):
+    """A deliberately refused egg: a valid egg re-packed by hand after mutate(manifest, files).
+
+    Contents hashes are recomputed so the intended rule is the one that fails; the
+    producer (R.pack_egg) refuses to emit any of these eggs."""
+    manifest, files = R.read_egg(blob)
+    manifest, files = json.loads(json.dumps(manifest)), dict(files)
+    mutate(manifest, files)
+    manifest["contents"] = R._egg_contents(files)
+    return R._zip_pack(
+        [("manifest.json", R.canonical(manifest).encode("utf-8"))]
+        + [(item["path"], files[item["path"]]) for item in manifest["contents"]]
+    )
+
+
+def producer_refuses(*args, **kwargs):
+    try:
+        R.pack_egg(*args, **kwargs)
+    except ValueError:
+        return True
+    return False
 
 
 sealed = R.pack_egg(
@@ -229,15 +262,11 @@ for blob in negative_open_blobs:
         )
     except ValueError:
         open_refusals += 1
-oversized_payload = dict(sealed_payload)
-oversized_payload["plaintext_bytes"] = R.MAX_SEALED_PLAINTEXT_BYTES + 1
-oversized = R.pack_egg(
-    "sealed",
-    sealed_rappid,
-    descriptor["created_utc"],
-    files={"ciphertext.bin": known_ciphertext},
-    payload=oversized_payload,
-    sig=test_signature,
+oversized = forged_egg(
+    sealed,
+    lambda manifest, _files: manifest["payload"].update(
+        plaintext_bytes=R.MAX_SEALED_PLAINTEXT_BYTES + 1
+    ),
 )
 oversized_ok, oversized_step, _ = R.verify_egg(
     oversized,
@@ -280,58 +309,48 @@ bad_variant_manifest = {
 bad_variant_ok, bad_variant_step, _ = R.verify_egg(
     R.canonical(bad_variant_manifest).encode("utf-8"),
 )
-nfc_egg = R.pack_egg(
+organism_files = {
+    "rappid.json": ('{"rappid":"' + sealed_rappid + '"}').encode(),
+    "soul.md": b"# soul\n",
+}
+organism = R.pack_egg(
     "organism",
     sealed_rappid,
     descriptor["created_utc"],
-    files={
-        "rappid.json": b"{}",
-        "soul.md": b"# soul\n",
-        "cafe\u0301.txt": b"x",
-    },
+    files=organism_files,
 )
+nfc_egg = forged_egg(organism, lambda _m, files: files.update({"cafe\u0301.txt": b"x"}))
 nfc_ok, nfc_step, _ = R.verify_egg(nfc_egg)
-windows_alias = R.pack_egg(
-    "organism",
-    sealed_rappid,
-    descriptor["created_utc"],
-    files={
-        "rappid.json": (
-            '{"rappid":"' + sealed_rappid + '"}'
-        ).encode(),
-        "rappid.json.": b"shadow",
-        "soul.md": b"# soul\n",
-    },
-)
+windows_alias = forged_egg(organism, lambda _m, files: files.update({"rappid.json.": b"shadow"}))
 alias_ok, alias_step, _ = R.verify_egg(windows_alias)
+unsafe_paths_unpackable = all(
+    producer_refuses(
+        "organism",
+        sealed_rappid,
+        descriptor["created_utc"],
+        files={**organism_files, path: b"x"},
+    )
+    for path in ("cafe\u0301.txt", "rappid.json.", "../x", "manifest.json")
+)
+# §9.1 (rev-17 E-14): paths equal only after folding, or a file beside a directory of the
+# same name, are distinct and valid; an extractor that cannot hold both refuses the extraction.
 prefix_conflict = R.pack_egg(
     "organism",
     sealed_rappid,
     descriptor["created_utc"],
-    files={
-        "rappid.json": (
-            '{"rappid":"' + sealed_rappid + '"}'
-        ).encode(),
-        "soul.md": b"# soul\n",
-        "a": b"file",
-        "a/b": b"child",
-    },
+    files={**organism_files, "a": b"file", "a/b": b"child"},
 )
 prefix_ok, prefix_step, _ = R.verify_egg(prefix_conflict)
 manifest_alias = R.pack_egg(
     "organism",
     sealed_rappid,
     descriptor["created_utc"],
-    files={
-        "rappid.json": (
-            '{"rappid":"' + sealed_rappid + '"}'
-        ).encode(),
-        "soul.md": b"# soul\n",
-        "MANIFEST.JSON": b"shadow",
-    },
+    files={**organism_files, "MANIFEST.JSON": b"shadow"},
 )
 manifest_alias_ok, manifest_alias_step, _ = R.verify_egg(manifest_alias)
-
+lookalikes_not_extractable = not R._path_set_extractable(
+    R.read_egg(prefix_conflict)[1]
+) and not R._path_set_extractable(["manifest.json", *R.read_egg(manifest_alias)[1]])
 
 class Utf8ZipInfo(zipfile.ZipInfo):
     def _encodeFilenameFlags(self):
@@ -351,7 +370,7 @@ with zipfile.ZipFile(malformed_buffer, "w", zipfile.ZIP_STORED) as archive:
         archive.writestr(info, octets)
 malformed_ok, malformed_step, _ = R.verify_egg(malformed_buffer.getvalue())
 check(
-    "V10c trailing bytes, malformed manifests, and non-NFC paths are refused",
+    "V10c trailing bytes, malformed manifests, and unsafe paths are refused; lookalike paths are valid",
     (
         not trailing_ok
         and trailing_step == "parse"
@@ -363,15 +382,16 @@ check(
         and malformed_step == "parse"
         and not alias_ok
         and alias_step == "§9.1"
-        and not prefix_ok
-        and prefix_step == "§9.1"
-        and not manifest_alias_ok
-        and manifest_alias_step == "§9.1"
+        and unsafe_paths_unpackable
+        and prefix_ok
+        and manifest_alias_ok
+        and lookalikes_not_extractable
     ),
 )
 
 estate_owner = "rappid:@kody/estate-owner:" + "9" * 64
 invite_rappid = "rappid:@kody/invite:" + "8" * 64
+invite_signature = placeholder_jws(estate_owner)
 invite = R.pack_egg(
     "invite",
     invite_rappid,
@@ -381,14 +401,14 @@ invite = R.pack_egg(
         "target_url": "https://example.test/estate.egg",
         "target_kind": "estate",
     },
-    sig=test_signature,
+    sig=invite_signature,
 )
 seen_expected = []
 
 
 def invite_signature_verifier(_unsigned, sig, expected_signer):
     seen_expected.append(expected_signer)
-    return sig == test_signature and expected_signer == estate_owner, "wrong owner"
+    return sig == invite_signature and expected_signer == estate_owner, "wrong owner"
 
 
 invite_ok, invite_step, invite_why = R.verify_egg(
@@ -416,15 +436,9 @@ check(
     ),
 )
 
-wrong_aad = dict(sealed_payload)
-wrong_aad["aad_hash"] = "f" * 64
-bad_aad = R.pack_egg(
-    "sealed",
-    sealed_rappid,
-    descriptor["created_utc"],
-    files={"ciphertext.bin": known_ciphertext},
-    payload=wrong_aad,
-    sig=test_signature,
+bad_aad = forged_egg(
+    sealed,
+    lambda manifest, _files: manifest["payload"].update(aad_hash="f" * 64),
 )
 ok, step, _ = R.verify_egg(
     bad_aad,
@@ -432,31 +446,19 @@ ok, step, _ = R.verify_egg(
 )
 check("V10e sealed authenticated-data mismatch is refused", (not ok) and step == "§9.2")
 
-extra_plaintext = R.pack_egg(
-    "sealed",
-    sealed_rappid,
-    descriptor["created_utc"],
-    files={
-        "ciphertext.bin": known_ciphertext,
-        "plaintext.wasm": plaintext,
-    },
-    payload=sealed_payload,
-    sig=test_signature,
+extra_plaintext = forged_egg(
+    sealed,
+    lambda _manifest, files: files.update({"plaintext.wasm": plaintext}),
 )
 ok, step, _ = R.verify_egg(
     extra_plaintext,
     signature_verifier=test_signature_verifier,
 )
-identity_mismatch = R.pack_egg(
-    "organism",
-    sealed_rappid,
-    descriptor["created_utc"],
-    files={
-        "rappid.json": (
-            '{"rappid":"rappid:@kody/other:' + "7" * 64 + '"}'
-        ).encode(),
-        "soul.md": b"# soul\n",
-    },
+identity_mismatch = forged_egg(
+    organism,
+    lambda _manifest, files: files.update(
+        {"rappid.json": ('{"rappid":"rappid:@kody/other:' + "7" * 64 + '"}').encode()}
+    ),
 )
 identity_ok, identity_step, _ = R.verify_egg(identity_mismatch)
 check(
