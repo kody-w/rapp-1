@@ -313,7 +313,7 @@ class Registry:
 
     def check_frame_binding(self, frame):
         """Registry-bound part of §7.5 step 1: kind registered here, family compatible with
-        the stream form. Returns (ok, reason). Run alongside rapp.verify_frame."""
+        the stream form. Returns (ok, reason). rapp.verify_frame(registry=...) runs it at step 1."""
         kind = frame.get("kind")
         fam = self.family(kind)
         if fam is None:
