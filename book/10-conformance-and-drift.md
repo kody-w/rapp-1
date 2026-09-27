@@ -53,7 +53,7 @@ RAPP rev-7 — conformance vectors
   [PASS] V6  broken prev caught at step 4
   [PASS] V7  cross-stream genesis replay refused at 1a
   [PASS] V8  missing key and impossible calendar time are refused at step 1
-  [PASS] V9  unsigned swarm and unverified frame signatures are refused at step 6
+  [PASS] V9  unsigned swarm and unverified frame signatures are refused at step 6 (a malformed sig at step 1)
   [PASS] V10 sealed artifact verifies and opens through crypto adapters
   [PASS] V10b tamper, oversize, missing trust, and wrong signer are refused
   [PASS] V10c trailing bytes, malformed manifests, and unsafe path aliases are refused

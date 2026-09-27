@@ -74,7 +74,8 @@ def main():
     with open(os.path.join(ROOT, "agents", "rapp_sdk_builder_agent.py"), encoding="utf-8") as f:
         agent_embedded = normalized_defs(f.read(), embedded)
     for p in embedded:
-        check(f"source of embedded {p}", p in ref_embedded and ref_embedded[p] == agent_embedded.get(p))
+        check(f"source of embedded {p}", p in ref_embedded and ref_embedded[p] == agent_embedded.get(p),
+              "copy rapp.py's definition verbatim into the agent's rev-17 helper block")
 
     # 2. behavioral parity — canonicalization and addressing
     vectors = [
