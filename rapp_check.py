@@ -152,11 +152,6 @@ def _safe_index_path(root, index_path, member):
 
 
 def _assess_frame(frame, head, signature_verifier):
-    if frame.get("sig") is not None:
-        try:
-            R.parse_detached_jws(frame["sig"])
-        except (TypeError, ValueError) as exc:
-            return "invalid", "6", str(exc)
     try:
         ok, step, why = R.verify_frame(
             frame,

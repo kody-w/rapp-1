@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import copy
 import hashlib
 import json
@@ -17,7 +18,14 @@ from rapp_profile import particle_hash
 
 ROOT = Path(__file__).resolve().parent
 EXAMPLES = ROOT / "protocols" / "examples"
-SIGNATURE = "fixture-signature"
+# A syntactically valid §10 detached JWS; the fixture verifier accepts exactly these octets.
+SIGNATURE = (
+    base64.urlsafe_b64encode(
+        R.canonical({"alg": "EdDSA", "b64": False, "crit": ["b64"], "kid": "rappid:@example/work-signer:" + "c" * 64}).encode("utf-8")
+    ).rstrip(b"=").decode("ascii")
+    + ".."
+    + base64.urlsafe_b64encode(bytes(64)).rstrip(b"=").decode("ascii")
+)
 
 
 def digest(value: str) -> str:

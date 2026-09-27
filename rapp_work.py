@@ -1054,8 +1054,9 @@ def validate_registry_adoption(
             f"rapp-work registry: {name} pin does not match authenticated canonical authority",
         )
     for kind in WORK_KINDS:
+        entry = registry.kinds.get(kind)
         require(
-            registry.family(kind) == "body",
+            entry is not None and entry["deprecated"] is False and entry["family"] == "body",
             f"rapp-work registry: {kind} is not a live body kind",
         )
     unknown_work_kinds = {
