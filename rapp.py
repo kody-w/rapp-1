@@ -439,9 +439,10 @@ def pack_egg(variant, rappid, created_utc, files=None, payload=None, sig=None):
             raise ValueError(f"egg sig is not a §10 detached JWS: {exc}") from None
     elif variant in {"invite", "sealed"}:
         raise ValueError(f"a {variant} egg's sig is REQUIRED (§9.1, §9.2)")
-    files = {} if files is None else files
-    if not isinstance(files, dict):
-        raise ValueError("egg files MUST be a {path: octets} mapping")
+    try:
+        files = dict(files or {})
+    except (TypeError, ValueError):
+        raise ValueError("egg files MUST be a {path: octets} mapping") from None
     is_json = variant in _EGG_JSON_VARIANTS
     if is_json and files:
         raise ValueError(f"{variant} is a JSON variant — no packed files")
