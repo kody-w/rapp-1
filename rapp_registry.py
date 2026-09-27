@@ -66,24 +66,13 @@ class RegistryError(ValueError):
 
 
 def kind_valid(kind):
-    """§6.1.1 `kind = lclabel "." lclabel`, each label 1–64."""
-    m = _KIND.fullmatch(kind) if isinstance(kind, str) else None
-    return bool(m and 1 <= len(m.group(1)) <= 64 and 1 <= len(m.group(2)) <= 64)
+    """§6.1.1 `kind = lclabel "." lclabel`, each label 1–64 (the grammar lives in rapp.py)."""
+    return R.kind_valid(kind)
 
 
 def stream_form(stream_id):
-    """§6.1.1: which stream form a stream_id is, or None if it is none of them."""
-    if not isinstance(stream_id, str):
-        return None
-    if stream_id.startswith("net:"):
-        label = stream_id[4:]
-        return "swarm-stream" if _LABEL.fullmatch(label) else None
-    if R.rappid_valid(stream_id):
-        return "body-stream"
-    head, sep, instance = stream_id.rpartition(":")
-    if sep and R.rappid_valid(head) and _LABEL.fullmatch(instance) and 1 <= len(instance) <= 64:
-        return "memory-stream"
-    return None
+    """§6.1.1: which stream form a stream_id is, or None if it is none of them (rapp.py)."""
+    return R.stream_form(stream_id)
 
 
 def _bool(entry, member, where):

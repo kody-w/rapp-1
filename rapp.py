@@ -116,6 +116,50 @@ def rappid_valid(s):
     )
 
 
+_KIND = re.compile(r"([a-z0-9]+(?:-[a-z0-9]+)*)\.([a-z0-9]+(?:-[a-z0-9]+)*)")
+
+
+def kind_valid(kind):
+    """§6.1.1 `kind = lclabel "." lclabel`, each label 1–64 characters."""
+    match = _KIND.fullmatch(kind) if isinstance(kind, str) else None
+    return bool(match and 1 <= len(match.group(1)) <= 64 and 1 <= len(match.group(2)) <= 64)
+
+
+def stream_form(stream_id):
+    """§6.1.1: "memory-stream", "body-stream" or "swarm-stream", or None if the string is none of them."""
+    if not isinstance(stream_id, str):
+        return None
+    if stream_id.startswith("net:"):
+        return "swarm-stream" if _LCLABEL.fullmatch(stream_id[4:]) else None
+    if rappid_valid(stream_id):
+        return "body-stream"
+    head, sep, instance = stream_id.rpartition(":")
+    if sep and rappid_valid(head) and _LCLABEL.fullmatch(instance) and 1 <= len(instance) <= 64:
+        return "memory-stream"
+    return None
+
+
+def _names_ok(value):
+    """§4 (rev-17 E-5, E-6): a producer treats every `payload` member name, at any depth, as a new string.
+
+    It refuses (never normalizes) a name that is not NFC or that holds a code point unassigned
+    (General_Category Cn) in the Unicode version this Python implements."""
+    stack = [value]
+    while stack:
+        current = stack.pop()
+        if isinstance(current, dict):
+            for name, item in current.items():
+                if not isinstance(name, str):
+                    raise ValueError("payload member names must be strings")
+                if not unicodedata.is_normalized("NFC", name):
+                    raise ValueError(f"payload member name is not NFC (§4): {name!r}")
+                if any(unicodedata.category(char) == "Cn" for char in name):
+                    raise ValueError(f"payload member name holds an unassigned code point (§4): {name!r}")
+                stack.append(item)
+        elif isinstance(current, list):
+            stack.extend(current)
+
+
 def utc_valid(value):
     if not isinstance(value, str) or not _UTC.fullmatch(value):
         return False
@@ -171,7 +215,10 @@ def parse_detached_jws(sig):
         raise ValueError("JWS kid must be a valid keyed RAPPID")
     if header_octets != canonical(header).encode("utf-8"):
         raise ValueError("JWS protected header is not canonical")
-    return header, parts[0], _b64url_decode(parts[2])
+    signature = _b64url_decode(parts[2])
+    if len(signature) != 64:
+        raise ValueError("JWS signature must be exactly 64 octets (§7.5 step 1, §10)")
+    return header, parts[0], signature
 
 
 def verify_detached_jws(value, sig, spki_der, expected_kid=None):
