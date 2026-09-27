@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Append the deterministic rev-16 RAPP/1 specification-chain frame."""
+"""Append the deterministic rev-17 RAPP/1 specification-chain frame."""
 
 from __future__ import annotations
 
@@ -32,8 +32,8 @@ INDEX = ANCHOR / "index.json"
 FRAMES = ANCHOR / "frames"
 BOOTSTRAP = ANCHOR / "bootstrap"
 LOCK = ANCHOR / ".update_anchor.lock"
-REVISION = "rev-16"
-PREVIOUS_REVISION = "rev-15"
+REVISION = "rev-17"
+PREVIOUS_REVISION = "rev-16"
 INPUT_PATHS = [
     "SPEC.md",
     "CONSTITUTION.md",
@@ -710,6 +710,29 @@ def revision_payload(
                 "The rapp/1 wire is frozen: §4, §5, §6.1-6.2, §7.1, §7.3, §7.5, §8 and §9.1 "
                 "never change under the rapp/1 token; a change is rapp/2 beside it, and rapp/1 "
                 "artifacts verify forever."
+            ),
+        },
+        {
+            "t": "gotcha",
+            "c": (
+                "rev-17 clarifies without changing the wire: utc digits are ASCII; noncharacters, a "
+                "byte-order mark and UTF-16 input are outside §4; a §4-valid seq such as 2^53 or -0 is "
+                "refused at §7.5 step 1, never before the checklist."
+            ),
+        },
+        {
+            "t": "fact",
+            "c": (
+                "Two conformant packers of one manifest emit byte-identical eggs: every ZIP header field "
+                "is pinned (version needed 20, made by 0x0014, flags 0x0800, attributes 0); a consumer "
+                "accepts any value only in version made by, version needed and the attributes."
+            ),
+        },
+        {
+            "t": "pattern",
+            "c": (
+                "A producer refuses what a consumer refuses: a frame builder or egg packer runs the "
+                "consumer's registry-free checks on its own output and refuses rather than emit or repair."
             ),
         },
     ]
