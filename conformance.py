@@ -485,6 +485,20 @@ check(
     ),
 )
 
+# V11 rev-17 regression suites: the five-implementation erratum (E-1..E-23) and the reference fixes it
+# required. They are unittest modules at the repository root; CI runs them here.
+import unittest
+
+REV17_SUITES = ["test_rev17_l1", "test_rev17_frames", "test_rev17_integration"]
+rev17_run = unittest.TextTestRunner(stream=io.StringIO(), verbosity=0).run(
+    unittest.defaultTestLoader.loadTestsFromNames(REV17_SUITES)
+)
+check(
+    f"V11 rev-17 regression suites pass ({rev17_run.testsRun} tests)",
+    rev17_run.wasSuccessful() and rev17_run.testsRun > 0,
+    "; ".join(str(test) for test, _ in rev17_run.failures + rev17_run.errors)[:600],
+)
+
 print()
 vector_count = len(results)
 vector_ok = sum(results)

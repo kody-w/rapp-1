@@ -320,7 +320,9 @@ class TestCI6Utc(unittest.TestCase):
         sid = "rappid:@kody/twin:" + "a" * 64
         ok = R.build_frame("memory.note", sid, 0, "0000-01-01T00:00:00.000Z", {"n": 1}, None)
         self.assertEqual(R.verify_frame(ok), (True, None, "ok"))
-        bad = R.build_frame("memory.note", sid, 0, "２０２６-07-15T12:34:56.789Z", {"n": 1}, None)
+        with self.assertRaises(ValueError):          # the producer refuses it (FR-6)
+            R.build_frame("memory.note", sid, 0, "２０２６-07-15T12:34:56.789Z", {"n": 1}, None)
+        bad = dict(ok, utc="２０２６-07-15T12:34:56.789Z")   # a consumer refuses it at step 1
         self.assertEqual(R.verify_frame(bad)[:2], (False, "1"))
 
 

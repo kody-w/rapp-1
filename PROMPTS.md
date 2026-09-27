@@ -28,7 +28,7 @@ key. Narrate as you go, show real output, and stop on any red result — a red c
 finding, not something to patch around.
 ```
 
-**Expect:** `22 controlled checks | 22 PASS | 0 FAIL`, a JSON revision identity
+**Expect:** `23 controlled checks | 23 PASS | 0 FAIL`, a JSON revision identity
 for the byte-exact materialized chain head, an estate verdict with zero drift
 findings, and an 11-key frame explained.
 

@@ -60,7 +60,7 @@ python3 realcheck.py       # the spec run against the REAL committed estate
 python3 examples/01_hello_frame.py   # build and verify your first frame
 ```
 
-`conformance.py` proves the reference implementation against 22 controlled checks. `realcheck.py`
+`conformance.py` proves the reference implementation against 23 controlled checks. `realcheck.py`
 synchronizes the public repos of a live estate and verifies every committed frame: the captured
 2026-08-20 run accepted **46/46 committed frames**, all chain links, and four canonical identity
 records with **0 drift findings**, and a 2026-08-26 re-observation of the grown estate accepted
