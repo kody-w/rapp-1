@@ -16,10 +16,10 @@ import hmac
 import json
 import re
 import uuid
-import io
+import struct
 import urllib.parse
 import unicodedata
-import zipfile
+import zlib
 from datetime import datetime
 
 SPEC = "rapp/1"
@@ -374,19 +374,84 @@ def _egg_contents(files):
     return items
 
 
+_ZIP_LOCAL = struct.Struct("<IHHHHHIIIHH")          # 30-octet local file header
+_ZIP_CENTRAL = struct.Struct("<IHHHHHHIIIHHHHHII")  # 46-octet central directory header
+_ZIP_END = struct.Struct("<IHHHHIIH")               # 22-octet end-of-central-directory record
+_ZIP_VERSION = 0x0014                               # §9.1: version needed 20, version made by 0x0014
+_ZIP_FLAGS = 0x0800                                 # §9.1: UTF-8 name; no data descriptor, no encryption
+_ZIP_DOS_TIME, _ZIP_DOS_DATE = 0x0000, 0x0021       # §9.1: 1980-01-01 00:00:00
+_ZIP_MAX_ENTRIES = 0xFFFE                           # 0xFFFF is the ZIP64 marker
+_ZIP_MAX_FIELD = 0xFFFFFFFE                         # 0xFFFFFFFF is the ZIP64 marker
+
+
+def _zip_pack(entries):
+    """§9.1 container writer: [(name, octets)] in entry order -> bytes, every header field as pinned.
+
+    Refuses (ValueError) an archive that would need ZIP64: more than 65,534 entries, or any
+    size or offset above 0xFFFFFFFE."""
+    if len(entries) > _ZIP_MAX_ENTRIES:
+        raise ValueError("egg needs more than 65,534 ZIP entries; ZIP64 is not a §9.1 container")
+    local, central, offset = [], [], 0
+    for name, data in entries:
+        encoded = name.encode("utf-8")
+        if len(encoded) > 0xFFFF:
+            raise ValueError(f"ZIP entry name exceeds 65,535 octets: {name!r}")
+        if len(data) > _ZIP_MAX_FIELD or offset > _ZIP_MAX_FIELD:
+            raise ValueError("egg needs a ZIP size or offset above 0xFFFFFFFE; ZIP64 is not a §9.1 container")
+        crc = zlib.crc32(data) & 0xFFFFFFFF
+        fields = (_ZIP_FLAGS, 0, _ZIP_DOS_TIME, _ZIP_DOS_DATE, crc, len(data), len(data), len(encoded), 0)
+        header = _ZIP_LOCAL.pack(0x04034B50, _ZIP_VERSION, *fields) + encoded
+        central.append(_ZIP_CENTRAL.pack(0x02014B50, _ZIP_VERSION, _ZIP_VERSION, *fields, 0, 0, 0, 0, offset) + encoded)
+        local += [header, data]
+        offset += len(header) + len(data)
+    directory = b"".join(central)
+    if offset > _ZIP_MAX_FIELD or len(directory) > _ZIP_MAX_FIELD:
+        raise ValueError("egg needs a ZIP size or offset above 0xFFFFFFFE; ZIP64 is not a §9.1 container")
+    end = _ZIP_END.pack(0x06054B50, 0, 0, len(entries), len(entries), len(directory), offset, 0)
+    return b"".join(local) + directory + end
+
+
 def pack_egg(variant, rappid, created_utc, files=None, payload=None, sig=None):
-    """Build a byte-reproducible §9 `rapp/1-egg`. Returns bytes.
+    """§9.3 Producer: build a byte-reproducible `rapp/1-egg`, or refuse (ValueError). Returns bytes.
 
     files: {relative_posix_path: octets} for ZIP (tree) variants; MUST be empty for
-    JSON variants (session/invite). Two conformant packers of the same manifest value
-    emit byte-identical eggs (ZIP stored, manifest.json first, timestamps 1980-01-01)."""
-    if variant not in EGG_VARIANTS:
-        raise ValueError(f"unknown variant: {variant}")
-    files = dict(files or {})
+    JSON variants (session/invite). Every §9.1 container field is written exactly as
+    pinned, so two conformant packers of the same manifest value emit byte-identical
+    eggs. The packed octets must then pass consumer steps (0)-(2), sub-eggs included
+    (verify_egg_static); the §10 signature equation needs the signer's key context and
+    is left to the consumer."""
+    if not isinstance(variant, str) or variant not in EGG_VARIANTS:
+        raise ValueError(f"unknown variant: {variant!r}")
+    if not rappid_valid(rappid):
+        raise ValueError(f"egg rappid is not a §6.1 rappid: {rappid!r}")
+    if not utc_valid(created_utc):
+        raise ValueError(f"created_utc is not the §7.4 millisecond UTC form: {created_utc!r}")
     payload = {} if payload is None else payload
+    if not isinstance(payload, dict):
+        raise ValueError("egg payload MUST be an object")
+    _names_ok(payload)
+    if sig is not None:
+        if not isinstance(sig, str):
+            raise ValueError("egg sig MUST be null or a §10 detached JWS string")
+        try:
+            parse_detached_jws(sig)
+        except ValueError as exc:
+            raise ValueError(f"egg sig is not a §10 detached JWS: {exc}") from None
+    elif variant in {"invite", "sealed"}:
+        raise ValueError(f"a {variant} egg's sig is REQUIRED (§9.1, §9.2)")
+    files = {} if files is None else files
+    if not isinstance(files, dict):
+        raise ValueError("egg files MUST be a {path: octets} mapping")
     is_json = variant in _EGG_JSON_VARIANTS
     if is_json and files:
         raise ValueError(f"{variant} is a JSON variant — no packed files")
+    for path, octets in files.items():
+        if not _path_valid(path):
+            raise ValueError(f"egg path violates the §9.1 path grammar: {path!r}")
+        if not isinstance(octets, bytes):
+            raise ValueError(f"egg file octets MUST be bytes: {path!r}")
+    if not _path_set_valid(list(files)):
+        raise ValueError("egg contents MUST NOT hold the root path manifest.json")
     manifest = {
         "schema": "rapp/1-egg", "variant": variant, "rappid": rappid,
         "created_utc": created_utc,
@@ -395,22 +460,16 @@ def pack_egg(variant, rappid, created_utc, files=None, payload=None, sig=None):
     }
     man_octets = canonical(manifest).encode("utf-8")
     if is_json:
-        return man_octets                                  # JSON egg serialized == canonical(manifest)
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_STORED) as z:
-        class _Utf8ZipInfo(zipfile.ZipInfo):
-            def _encodeFilenameFlags(self):
-                return self.filename.encode("utf-8"), self.flag_bits | 0x800
-
-        def _w(name, data):
-            zi = _Utf8ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
-            zi.compress_type = zipfile.ZIP_STORED
-            zi.flag_bits |= 0x800                          # UTF-8 filename flag
-            z.writestr(zi, data)
-        _w("manifest.json", man_octets)                    # manifest.json first
-        for c in manifest["contents"]:                     # then contents order
-            _w(c["path"], files[c["path"]])
-    return buf.getvalue()
+        blob = man_octets                                  # JSON egg serialized == canonical(manifest)
+    else:
+        blob = _zip_pack(                                  # manifest.json first, then contents order
+            [("manifest.json", man_octets)]
+            + [(c["path"], files[c["path"]]) for c in manifest["contents"]]
+        )
+    ok, step, why = verify_egg_static(blob)
+    if not ok:
+        raise ValueError(f"producer refuses to emit an egg a consumer refuses at {step}: {why}")
+    return blob
 
 
 def _strict_json(blob):
@@ -441,109 +500,119 @@ def _strict_json(blob):
     return value
 
 
-def _validate_zip_layout(blob, archive, infos):
-    if not blob.startswith(b"PK\x03\x04"):
-        raise ValueError("ZIP MUST begin with a local file header")
-    eocd = blob.rfind(b"PK\x05\x06")
-    if eocd < 0 or eocd + 22 > len(blob):
-        raise ValueError("ZIP end-of-central-directory record is missing")
-    comment_length = int.from_bytes(blob[eocd + 20:eocd + 22], "little")
-    if eocd + 22 + comment_length != len(blob):
-        raise ValueError("ZIP has unauthenticated trailing bytes")
-    if any(blob[eocd + offset:eocd + offset + 2] != b"\x00\x00" for offset in (4, 6)):
-        raise ValueError("multi-disk ZIP is not supported")
-    entries_on_disk = int.from_bytes(blob[eocd + 8:eocd + 10], "little")
-    entries_total = int.from_bytes(blob[eocd + 10:eocd + 12], "little")
-    central_size = int.from_bytes(blob[eocd + 12:eocd + 16], "little")
-    central_offset = int.from_bytes(blob[eocd + 16:eocd + 20], "little")
-    if entries_on_disk != len(infos) or entries_total != len(infos):
-        raise ValueError("ZIP entry count mismatch")
-    if central_offset != archive.start_dir or central_offset + central_size != eocd:
-        raise ValueError("ZIP central directory is not canonical")
+def _zip_unpack(blob):
+    """§9.1 container reader: ZIP octets -> [(name, octets)] in archive order, or ValueError.
 
-    cursor = 0
-    for info in infos:
-        if info.header_offset != cursor:
-            raise ValueError("ZIP contains unreferenced local data")
-        header = blob[cursor:cursor + 30]
-        if len(header) != 30 or header[:4] != b"PK\x03\x04":
-            raise ValueError("ZIP local header is malformed")
-        flags = int.from_bytes(header[6:8], "little")
-        method = int.from_bytes(header[8:10], "little")
-        crc = int.from_bytes(header[14:18], "little")
-        compressed_size = int.from_bytes(header[18:22], "little")
-        file_size = int.from_bytes(header[22:26], "little")
-        filename_length = int.from_bytes(header[26:28], "little")
-        extra_length = int.from_bytes(header[28:30], "little")
-        if flags != info.flag_bits or flags != 0x800:
-            raise ValueError("ZIP local and central UTF-8 flags must match exactly")
-        if method != zipfile.ZIP_STORED or method != info.compress_type:
-            raise ValueError("ZIP local and central compression methods differ")
-        if header[10:14] != b"\x00\x00\x21\x00":
-            raise ValueError("ZIP local timestamp is not deterministic")
-        if (
-            crc != info.CRC
-            or compressed_size != info.compress_size
-            or file_size != info.file_size
+    Parses the end record, the central directory and the local records itself (never
+    through zipfile) and refuses every violation of §9.1's container paragraph. It accepts
+    any value of version made by, version needed (when the local and central headers
+    agree) and the internal and external attributes, and never interprets them."""
+    end_at = len(blob) - _ZIP_END.size
+    if end_at < 0 or blob[end_at:end_at + 4] != b"PK\x05\x06":
+        if blob.rfind(b"PK\x05\x06") >= 0:
+            raise ValueError("ZIP end record has a comment or octets follow it")
+        raise ValueError("ZIP end-of-central-directory record is missing")
+    (_, disk, directory_disk, disk_entries, entries_total, directory_size, directory_offset,
+     comment_length) = _ZIP_END.unpack_from(blob, end_at)
+    if comment_length:
+        raise ValueError("ZIP archive comment MUST be empty")
+    if disk or directory_disk:
+        raise ValueError("ZIP end record disk numbers MUST be 0")
+    if disk_entries != entries_total:
+        raise ValueError("ZIP end record entry counts MUST be equal")
+    if (
+        entries_total == 0xFFFF
+        or 0xFFFFFFFF in (directory_size, directory_offset)
+        or blob[end_at - 20:end_at - 16] == b"PK\x06\x07"
+    ):
+        raise ValueError("ZIP64 records are not a §9.1 container")
+    if directory_offset + directory_size != end_at:
+        raise ValueError("ZIP central directory MUST end at the end record")
+    entries, cursor, at = [], 0, directory_offset
+    for _ in range(entries_total):
+        if at + _ZIP_CENTRAL.size > end_at or blob[at:at + 4] != b"PK\x01\x02":
+            raise ValueError("ZIP central directory header is malformed")
+        (_, _made_by, needed, flags, method, time, date, crc, compressed, size,
+         name_length, extra_length, file_comment_length, disk_start, _internal, _external,
+         offset) = _ZIP_CENTRAL.unpack_from(blob, at)
+        name_octets = blob[at + _ZIP_CENTRAL.size:at + _ZIP_CENTRAL.size + name_length]
+        at += _ZIP_CENTRAL.size + name_length + extra_length + file_comment_length
+        if at > end_at:
+            raise ValueError("ZIP central directory header overruns the directory")
+        if flags != _ZIP_FLAGS:
+            raise ValueError("ZIP flags MUST be exactly 0x0800 (UTF-8 name; no data descriptor, no encryption)")
+        if method != 0:
+            raise ValueError("ZIP entries MUST use stored compression (method 0)")
+        if (time, date) != (_ZIP_DOS_TIME, _ZIP_DOS_DATE):
+            raise ValueError("ZIP entry timestamp MUST be 1980-01-01 00:00:00 (time 0x0000, date 0x0021)")
+        if extra_length:
+            raise ValueError("ZIP entry extra fields MUST be empty")
+        if file_comment_length:
+            raise ValueError("ZIP file comments MUST be empty")
+        if disk_start:
+            raise ValueError("ZIP disk number start MUST be 0")
+        if 0xFFFFFFFF in (compressed, size, offset):
+            raise ValueError("ZIP64 records are not a §9.1 container")
+        if compressed != size:
+            raise ValueError("stored ZIP entry sizes differ")
+        if offset != cursor:
+            raise ValueError("ZIP local records MUST be contiguous, in entry order, from octet 0")
+        local = blob[cursor:cursor + _ZIP_LOCAL.size]
+        if len(local) != _ZIP_LOCAL.size or local[:4] != b"PK\x03\x04":
+            raise ValueError("ZIP local file header is malformed")
+        if _ZIP_LOCAL.unpack(local)[1:] != (
+            needed, flags, method, time, date, crc, compressed, size, name_length, extra_length
         ):
-            raise ValueError("ZIP local and central CRC/size fields differ")
-        if extra_length != 0:
-            raise ValueError("ZIP local extra fields MUST be empty")
-        filename_octets = blob[cursor + 30:cursor + 30 + filename_length]
-        if filename_octets.decode("utf-8") != info.filename:
-            raise ValueError("ZIP local filename bytes are not canonical UTF-8")
-        cursor += 30 + filename_length + extra_length + info.compress_size
-    if cursor != archive.start_dir:
-        raise ValueError("ZIP local records do not end at the central directory")
+            raise ValueError("ZIP local and central headers MUST hold the same values")
+        start = cursor + _ZIP_LOCAL.size + name_length
+        if blob[cursor + _ZIP_LOCAL.size:start] != name_octets:
+            raise ValueError("ZIP local and central file names differ")
+        data = blob[start:start + size]
+        cursor = start + size
+        if cursor > directory_offset:
+            raise ValueError("ZIP local record overruns the central directory")
+        if zlib.crc32(data) & 0xFFFFFFFF != crc:
+            raise ValueError("ZIP entry CRC-32 mismatch")
+        try:
+            name = bytes(name_octets).decode("utf-8")
+        except UnicodeDecodeError:
+            raise ValueError("ZIP entry name is not UTF-8") from None
+        entries.append((name, bytes(data)))
+    if at != end_at:
+        raise ValueError("ZIP central directory holds octets beyond its entries")
+    if cursor != directory_offset:
+        raise ValueError("ZIP local records MUST end at the central directory")
+    return entries
 
 
 def read_egg(blob):
     """Parse a rapp/1-egg → (manifest_dict, files_dict). files={} for JSON variants."""
     if blob[:2] == b"PK":
-        with zipfile.ZipFile(io.BytesIO(blob)) as z:
-            infos = z.infolist()
-            _validate_zip_layout(blob, z, infos)
-            names = [info.filename for info in infos]
-            if len(names) != len(set(names)):
-                raise ValueError("duplicate ZIP entry")
-            if not names or names[0] != "manifest.json":
-                raise ValueError("manifest.json MUST be the first ZIP entry")
-            if z.comment:
-                raise ValueError("ZIP archive comment MUST be empty")
-            for info in infos:
-                if info.compress_type != zipfile.ZIP_STORED:
-                    raise ValueError("ZIP entries MUST use stored compression")
-                if info.date_time != (1980, 1, 1, 0, 0, 0):
-                    raise ValueError("ZIP entry timestamp is not deterministic")
-                if info.extra or info.comment:
-                    raise ValueError("ZIP entry extra fields/comments MUST be empty")
-                if info.file_size != info.compress_size:
-                    raise ValueError("stored ZIP entry size mismatch")
-                if info.flag_bits != 0x800:
-                    raise ValueError("ZIP entry flags MUST be exactly UTF-8")
-            manifest_octets = z.read("manifest.json")
-            manifest = _strict_json(manifest_octets)
-            if manifest_octets != canonical(manifest).encode("utf-8"):
-                raise ValueError("manifest.json bytes MUST equal canonical(manifest)")
-            contents = manifest.get("contents") if isinstance(manifest, dict) else None
-            if not isinstance(contents, list):
-                raise ValueError("manifest contents MUST be a list")
-            if not all(
-                isinstance(item, dict)
-                and set(item) == {"path", "hash"}
-                and isinstance(item["path"], str)
-                and isinstance(item["hash"], str)
-                for item in contents
-            ):
-                raise ValueError("manifest content descriptors MUST be {path,hash} strings")
-            expected = ["manifest.json"] + [item["path"] for item in contents]
-            if names != expected:
-                raise ValueError("ZIP entry order/set does not match manifest contents")
-            files = {
-                info.filename: z.read(info)
-                for info in infos[1:]
-            }
-            return manifest, files
+        entries = _zip_unpack(blob)
+        names = [name for name, _ in entries]
+        if len(names) != len(set(names)):
+            raise ValueError("duplicate ZIP entry")
+        if not names or names[0] != "manifest.json":
+            raise ValueError("manifest.json MUST be the first ZIP entry")
+        manifest_octets = entries[0][1]
+        manifest = _strict_json(manifest_octets)
+        if manifest_octets != canonical(manifest).encode("utf-8"):
+            raise ValueError("manifest.json bytes MUST equal canonical(manifest)")
+        contents = manifest.get("contents") if isinstance(manifest, dict) else None
+        if not isinstance(contents, list):
+            raise ValueError("manifest contents MUST be a list")
+        if not all(
+            isinstance(item, dict)
+            and set(item) == {"path", "hash"}
+            and isinstance(item["path"], str)
+            and isinstance(item["hash"], str)
+            for item in contents
+        ):
+            raise ValueError("manifest content descriptors MUST be {path,hash} strings")
+        expected = ["manifest.json"] + [item["path"] for item in contents]
+        if names != expected:
+            raise ValueError("ZIP entry order/set does not match manifest contents")
+        return manifest, dict(entries[1:])
     manifest = _strict_json(blob)
     if blob != canonical(manifest).encode("utf-8"):
         raise ValueError("JSON egg bytes MUST equal canonical(manifest)")
@@ -576,7 +645,17 @@ def _egg_variant_ok(
     signature_verifier=None,
     estate_owner_rappid=None,
     depth=0,
+    *,
+    verify_child=None,
 ):
+    if verify_child is None:
+        def verify_child(sub_blob, sub_depth):
+            return verify_egg(
+                sub_blob,
+                signature_verifier=signature_verifier,
+                estate_owner_rappid=estate_owner_rappid,
+                _depth=sub_depth,
+            )
     p = m["payload"]
     if v == "organism":
         if not {"rappid.json", "soul.md"} <= set(files):
@@ -645,12 +724,7 @@ def _egg_variant_ok(
         if set(files) != set(expected_files):
             return "neighborhood files MUST match members one-to-one"
         for filename, member in expected_files.items():
-            ok, step, why = verify_egg(
-                files[filename],
-                signature_verifier=signature_verifier,
-                estate_owner_rappid=estate_owner_rappid,
-                _depth=depth + 1,
-            )
+            ok, step, why = verify_child(files[filename], depth + 1)
             if not ok:
                 return f"neighborhood member {filename} refused at {step}: {why}"
             child, _ = read_egg(files[filename])
@@ -678,12 +752,7 @@ def _egg_variant_ok(
         if set(files) != set(expected_files):
             return "estate files MUST match neighborhoods one-to-one"
         for filename, neighborhood in expected_files.items():
-            ok, step, why = verify_egg(
-                files[filename],
-                signature_verifier=signature_verifier,
-                estate_owner_rappid=estate_owner_rappid,
-                _depth=depth + 1,
-            )
+            ok, step, why = verify_child(files[filename], depth + 1)
             if not ok:
                 return f"estate neighborhood {filename} refused at {step}: {why}"
             child, _ = read_egg(files[filename])
@@ -801,37 +870,39 @@ def _signature_ok(manifest, signature_verifier, expected_signer=None):
     return bool(result), "signature refused"
 
 
-def verify_egg(
-    blob,
-    signature_verifier=None,
-    estate_owner_rappid=None,
-    _depth=0,
-):
-    """§9.3 consumer verify — integrity then viability. Returns (ok, failing_step, reason)."""
-    if _depth > 8:
-        return (False, "§9.2", "nested egg depth exceeds eight")
+def _egg_static(blob, depth, child):
+    """§9.3 consumer steps (0)-(2) → (ok, failing_step, reason, manifest or None).
+
+    child(sub_blob, sub_depth) -> (ok, step, why) verifies each packed sub-egg; no §10 equation here."""
+    if depth > 8:
+        return False, "§9.2", "nested egg depth exceeds eight", None
     try:
         manifest, files = read_egg(blob)
     except Exception as e:
-        return (False, "parse", str(e))
+        return False, "parse", str(e), None
     if not isinstance(manifest, dict) or set(manifest.keys()) != _EGG_MANIFEST_KEYS:
-        return (False, "§9.1", "manifest must have exactly the 7 members")
+        return False, "§9.1", "manifest must have exactly the 7 members", None
     if not isinstance(manifest["schema"], str) or manifest["schema"] != "rapp/1-egg":
-        return (False, "§9.1", f"schema != rapp/1-egg ({manifest.get('schema')})")
+        return False, "§9.1", f"schema != rapp/1-egg ({manifest.get('schema')})", None
     v = manifest["variant"]
     if not isinstance(v, str) or v not in EGG_VARIANTS:
-        return (False, "§9.2", f"unknown variant {v}")
+        return False, "§9.2", f"unknown variant {v}", None
     if not isinstance(manifest["rappid"], str) or not rappid_valid(manifest["rappid"]):
-        return (False, "§6.1", f"bad rappid {manifest['rappid']}")
+        return False, "§6.1", f"bad rappid {manifest['rappid']}", None
     if not utc_valid(manifest["created_utc"]):
-        return (False, "§7.4", "created_utc not the fixed millisecond form")
+        return False, "§7.4", "created_utc not the fixed millisecond form", None
     if not isinstance(manifest["payload"], dict):
-        return (False, "§9.1", "payload not an object")
-    if manifest["sig"] is not None and not isinstance(manifest["sig"], str):
-        return (False, "§10", "sig MUST be null or detached JWS text")
+        return False, "§9.1", "payload not an object", None
+    if manifest["sig"] is not None:
+        if not isinstance(manifest["sig"], str):
+            return False, "§10", "sig MUST be null or detached JWS text", None
+        try:
+            parse_detached_jws(manifest["sig"])
+        except Exception as exc:
+            return False, "§10", f"sig is not a §10 detached JWS: {exc}", None
     contents = manifest["contents"]
     if not isinstance(contents, list):
-        return (False, "§9.1", "contents not a list")
+        return False, "§9.1", "contents not a list", None
     for c in contents:
         if (
             not isinstance(c, dict)
@@ -840,38 +911,68 @@ def verify_egg(
             or not isinstance(c["hash"], str)
             or not _HEX64.fullmatch(c["hash"])
         ):
-            return (False, "§9.1", "content descriptor MUST be exactly {path,hash}")
+            return False, "§9.1", "content descriptor MUST be exactly {path,hash}", None
     paths = [c["path"] for c in contents]
     for p in paths:
         if not _path_valid(p):
-            return (False, "§9.1", f"bad path grammar: {p}")
+            return False, "§9.1", f"bad path grammar: {p}", None
     if paths != sorted(paths, key=lambda x: x.encode("utf-8")):
-        return (False, "§9.1", "contents not sorted by path bytes")
+        return False, "§9.1", "contents not sorted by path bytes", None
     if len(paths) != len(set(paths)):
-        return (False, "§9.1", "duplicate path")
-    if not _path_set_valid(["manifest.json", *paths]):
-        return (False, "§9.1", "paths collide or conflict on common filesystems")
+        return False, "§9.1", "duplicate path", None
+    if not _path_set_valid(paths):
+        return False, "§9.1", "contents MUST NOT list the root path manifest.json", None
     if v in _EGG_JSON_VARIANTS:
         if contents != []:
-            return (False, "§9.1", "JSON variant contents MUST be []")
+            return False, "§9.1", "JSON variant contents MUST be []", None
         if blob != canonical(manifest).encode("utf-8"):
-            return (False, "§9.1", "JSON egg serialized form != canonical(manifest)")
+            return False, "§9.1", "JSON egg serialized form != canonical(manifest)", None
     else:
+        if blob[:2] != b"PK":
+            return False, "§9.1", f"a {v} egg MUST be a ZIP container", None
         if set(files.keys()) != set(paths):                # zip-slip defense
-            return (False, "§9.1", "archive entry set != contents")
+            return False, "§9.1", "archive entry set != contents", None
         for c in contents:
             if Hb("rapp/1:egg", files[c["path"]]) != c["hash"]:
-                return (False, "§5", f"content hash mismatch: {c['path']}")
-    why = _egg_variant_ok(
-        v,
-        manifest,
-        files,
-        signature_verifier=signature_verifier,
-        estate_owner_rappid=estate_owner_rappid,
-        depth=_depth,
-    )
+                return False, "§5", f"content hash mismatch: {c['path']}", None
+    why = _egg_variant_ok(v, manifest, files, depth=depth, verify_child=child)
     if why:
-        return (False, "§9.2", why)
+        return False, "§9.2", why, None
+    return True, None, "ok", manifest
+
+
+def verify_egg_static(blob, _depth=0):
+    """§9.3 consumer steps (0)-(2), sub-eggs included, without the §10 signature equation.
+
+    The check a producer runs on the octets it is about to emit (it lacks the signer's key
+    context): every §9.1 rule, a present `sig` in the §10 detached form and header profile,
+    every contents hash, and the §9.2 variant rules. verify_egg adds §10. Returns
+    (ok, failing_step, reason)."""
+    return _egg_static(blob, _depth, verify_egg_static)[:3]
+
+
+def verify_egg(
+    blob,
+    signature_verifier=None,
+    estate_owner_rappid=None,
+    _depth=0,
+):
+    """§9.3 consumer verify — integrity then viability. Returns (ok, failing_step, reason).
+
+    Steps (0)-(2) are verify_egg_static's (a signed sub-egg also verifies per §10); then a
+    present `sig` verifies per §10 through signature_verifier."""
+    def child(sub_blob, sub_depth):
+        return verify_egg(
+            sub_blob,
+            signature_verifier=signature_verifier,
+            estate_owner_rappid=estate_owner_rappid,
+            _depth=sub_depth,
+        )
+
+    ok, step, why, manifest = _egg_static(blob, _depth, child)
+    if not ok:
+        return (False, step, why)
+    v = manifest["variant"]
     if manifest["sig"] is not None:
         if v == "invite" and not rappid_valid(estate_owner_rappid):
             return (False, "§10", "invite verification requires estate_owner_rappid")
@@ -964,6 +1065,22 @@ def _path_valid(path):
 
 
 def _path_set_valid(paths):
+    """§9.1 (rev-17 E-14): a manifest's contents paths, as a set.
+
+    Refuses only two paths equal as code-point sequences and the reserved root path
+    `manifest.json`. Paths differing only in case or normalization, and a file beside a
+    directory of the same name (`docs`, `docs/a.md`), are distinct and valid; whether they
+    can be extracted together is the extractor's question (_path_set_extractable)."""
+    paths = list(paths)
+    return "manifest.json" not in paths and len(paths) == len(set(paths))
+
+
+def _path_set_extractable(paths):
+    """Extractor-side (§9.1): can these paths coexist on a case-insensitive, normalizing filesystem?
+
+    False when two paths fold together (NFD + casefold per segment) or one is a directory
+    prefix of another. An extractor refuses the extraction, never the egg; verify_egg does
+    not call this."""
     keys = []
     for path in paths:
         key = tuple(
