@@ -50,8 +50,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame 39936d8b027df010b57a8e9202408ebd72d5e44ca0de6b39f0a5809973ca6521, normative
-SHA-256 38f568ad615fc76a304f867751622efc51e5b1d65bffa3444f92d1d1d5d80684. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame 84f1975daf09010b8880b9da930841054700ee3f401ccedf0d333dc44453f7ed, normative
+SHA-256 768aeefbf779925b6c937bd497ff628a5061b1e20a82a29892f6cdd5481178e1. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -628,8 +628,9 @@ unencoded payload** ({{RFC7515}} App. F + {{RFC7797}}):
 - the `sig` string is the detached compact form `BASE64URL(canonical(header)) || ".." || BASE64URL(signature)`;
 - JWS signing input = `BASE64URL(canonical(header)) || "." || canonical(frame \ {sig})`;
 - `alg`: `EdDSA`/Ed25519 {{RFC8037}} or `ES256` {{RFC7518}}; Ed25519 verification is {{RFC8032}} §5.1.7 with
-  `S < L` required and the cofactorless check `encode([S]B - [k]A) == R`; public keys that decode (including
-  small-order points) are not refused for their order; ES256 signers **SHOULD** sign deterministically
+  `S < L` required and the cofactorless check `encode([S]B - [k]A) == R`, where `k` is SHA-512(`R` || `A` ||
+  message) read as a little-endian integer and reduced mod `L` (as in {{RFC8032}}'s §6 reference code); public
+  keys that decode (including small-order points) are not refused for their order; ES256 signers **SHOULD** sign deterministically
   {{RFC6979}} (Ed25519 is deterministic by construction) so signed frame files stay byte-reproducible.
 
 **Key discovery.** A keyed rappid's tail is one-way (`Hb("rapp/1:rappid",SPKI)`). A verifier resolves the
