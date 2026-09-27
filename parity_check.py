@@ -64,6 +64,17 @@ def main():
     print("source parity (ast-normalized, no network):")
     for p in prims:
         check(f"source of {p}", ref_defs.get(p) == agent_defs.get(p))
+    # the rev-17 frame helpers and build_frame are embedded verbatim too (verify_frame keeps
+    # its inline signature check, so only its behaviour is compared below)
+    embedded = ("kind_valid", "stream_form", "_names_ok", "_b64url_decode", "_strict_json",
+                "parse_detached_jws", "_uint53", "_hex64_or_null", "_is_regenesis",
+                "_regenesis_payload_error", "_container_depth", "build_frame")
+    with open(os.path.join(ROOT, "rapp.py"), encoding="utf-8") as f:
+        ref_embedded = normalized_defs(f.read(), embedded)
+    with open(os.path.join(ROOT, "agents", "rapp_sdk_builder_agent.py"), encoding="utf-8") as f:
+        agent_embedded = normalized_defs(f.read(), embedded)
+    for p in embedded:
+        check(f"source of embedded {p}", p in ref_embedded and ref_embedded[p] == agent_embedded.get(p))
 
     # 2. behavioral parity — canonicalization and addressing
     vectors = [
