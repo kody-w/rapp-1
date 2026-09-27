@@ -22,9 +22,11 @@ The RAPP primitives are embedded here verbatim from the reference implementation
 embedded primitive definitions are identical to it — by comparing source (parsed with
 ast, never executed), so it is provenance you can check, not trust, and safe to run.
 """
+import base64
 import hashlib
 import json
 import re
+import unicodedata
 import urllib.request
 import uuid
 from datetime import datetime
@@ -162,25 +164,247 @@ def utc_valid(value):
     return True
 
 
+# ── rev-17 frame helpers (embedded verbatim from rapp.py; parity_check.py proves behaviour) ──
+MAX_CANONICAL_BYTES = 1024 * 1024
+_B64URL = re.compile(r"^[A-Za-z0-9_-]*$")
+_KIND = re.compile(r"([a-z0-9]+(?:-[a-z0-9]+)*)\.([a-z0-9]+(?:-[a-z0-9]+)*)")
+
+
+def kind_valid(kind):
+    """§6.1.1 `kind = lclabel "." lclabel`, each label 1–64 characters."""
+    match = _KIND.fullmatch(kind) if isinstance(kind, str) else None
+    return bool(match and 1 <= len(match.group(1)) <= 64 and 1 <= len(match.group(2)) <= 64)
+
+
+def stream_form(stream_id):
+    """§6.1.1: "memory-stream", "body-stream" or "swarm-stream", or None if the string is none of them."""
+    if not isinstance(stream_id, str):
+        return None
+    if stream_id.startswith("net:"):
+        return "swarm-stream" if _LCLABEL.fullmatch(stream_id[4:]) else None
+    if rappid_valid(stream_id):
+        return "body-stream"
+    head, sep, instance = stream_id.rpartition(":")
+    if sep and rappid_valid(head) and _LCLABEL.fullmatch(instance) and 1 <= len(instance) <= 64:
+        return "memory-stream"
+    return None
+
+
+def _names_ok(value):
+    """§4 (rev-17 E-5, E-6): a producer treats every `payload` member name, at any depth, as a new string.
+
+    It refuses (never normalizes) a name that is not NFC or that holds a code point unassigned
+    (General_Category Cn) in the Unicode version this Python implements."""
+    stack = [value]
+    while stack:
+        current = stack.pop()
+        if isinstance(current, dict):
+            for name, item in current.items():
+                if not isinstance(name, str):
+                    raise ValueError("payload member names must be strings")
+                if not unicodedata.is_normalized("NFC", name):
+                    raise ValueError(f"payload member name is not NFC (§4): {name!r}")
+                if any(unicodedata.category(char) == "Cn" for char in name):
+                    raise ValueError(f"payload member name holds an unassigned code point (§4): {name!r}")
+                stack.append(item)
+        elif isinstance(current, list):
+            stack.extend(current)
+
+
+def _b64url_decode(value):
+    if (
+        not isinstance(value, str)
+        or "=" in value
+        or not _B64URL.fullmatch(value)
+        or len(value) % 4 == 1
+    ):
+        raise ValueError("base64url value must be unpadded")
+    decoded = base64.b64decode(
+        value + "=" * (-len(value) % 4),
+        altchars=b"-_",
+        validate=True,
+    )
+    if base64.urlsafe_b64encode(decoded).rstrip(b"=").decode("ascii") != value:
+        raise ValueError("base64url value is not canonical")
+    return decoded
+
+
+def _strict_json(blob):
+    raw = blob.encode("utf-8") if isinstance(blob, str) else blob
+    if not isinstance(raw, bytes) or len(raw) > MAX_CANONICAL_BYTES:
+        raise ValueError("JSON exceeds the 1 MiB input ceiling")
+
+    def pairs(values):
+        result = {}
+        for key, value in values:
+            if key in result:
+                raise ValueError(f"duplicate JSON member: {key}")
+            result[key] = value
+        return result
+
+    value = json.loads(raw, object_pairs_hook=pairs)
+    stack = [(value, 1)]
+    while stack:
+        current, depth = stack.pop()
+        if depth > 64:
+            raise ValueError("JSON nesting depth exceeds 64")
+        if isinstance(current, dict):
+            stack.extend((item, depth + 1) for item in current.values())
+        elif isinstance(current, list):
+            stack.extend((item, depth + 1) for item in current)
+    if len(canonical(value).encode("utf-8")) > MAX_CANONICAL_BYTES:
+        raise ValueError("canonical JSON exceeds the 1 MiB input ceiling")
+    return value
+
+
+def parse_detached_jws(sig):
+    parts = sig.split(".") if isinstance(sig, str) else []
+    if len(parts) != 3 or parts[1] != "":
+        raise ValueError("JWS must use detached compact serialization")
+    header_octets = _b64url_decode(parts[0])
+    header = _strict_json(header_octets)
+    if not isinstance(header, dict) or set(header) != {"alg", "b64", "crit", "kid"}:
+        raise ValueError("JWS protected header must have exactly alg,b64,crit,kid")
+    if header["alg"] not in {"EdDSA", "ES256"}:
+        raise ValueError("JWS alg must be EdDSA or ES256")
+    if header["b64"] is not False or header["crit"] != ["b64"]:
+        raise ValueError("JWS must use b64=false with crit=['b64']")
+    if not rappid_valid(header["kid"]):
+        raise ValueError("JWS kid must be a valid keyed RAPPID")
+    if header_octets != canonical(header).encode("utf-8"):
+        raise ValueError("JWS protected header is not canonical")
+    signature = _b64url_decode(parts[2])
+    if len(signature) != 64:
+        raise ValueError("JWS signature must be exactly 64 octets (§7.5 step 1, §10)")
+    return header, parts[0], signature
+
+
+def _uint53(value):
+    """§7.4 `uint53`: an int (never a bool or a float) from 0 to 2^53-1."""
+    return isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= 2**53 - 1
+
+
+def _hex64_or_null(value):
+    return value is None or (isinstance(value, str) and bool(_HEX64.fullmatch(value)))
+
+
+def _is_regenesis(kind):
+    """§12.1: a `*.re-genesis` kind, whose second label is exactly "re-genesis"."""
+    return isinstance(kind, str) and kind.partition(".")[2] == "re-genesis"
+
+
+def _regenesis_payload_error(payload):
+    """§12.1 step 2 (rev-17 E-22): None if `payload` is the one re-genesis shape, else the reason."""
+    if not isinstance(payload, dict) or set(payload) != {"migrated_from"}:
+        return 're-genesis payload must be exactly {"migrated_from": {...}} (§12.1 step 2)'
+    moved = payload["migrated_from"]
+    if not isinstance(moved, dict) or set(moved) != {"stream_id", "terminal_seal", "terminal_seq"}:
+        return "re-genesis migrated_from must be exactly stream_id, terminal_seal, terminal_seq (§12.1 step 2)"
+    if stream_form(moved["stream_id"]) is None:
+        return "re-genesis migrated_from.stream_id is not a §6.1.1 stream_id"
+    if not (isinstance(moved["terminal_seal"], str) and _HEX64.fullmatch(moved["terminal_seal"])):
+        return "re-genesis migrated_from.terminal_seal is not 64 lowercase hex"
+    if not _uint53(moved["terminal_seq"]):
+        return "re-genesis migrated_from.terminal_seq is not a uint53"
+    return None
+
+
+def _container_depth(value, limit=64):
+    """§4 (d) nesting depth: the root is depth 1, each nested object/array adds 1, scalars add
+    nothing. Stops counting once the depth passes `limit` (so a cyclic value terminates)."""
+    deepest, stack = 0, [(value, 1)]
+    while stack and deepest <= limit:
+        current, depth = stack.pop()
+        if isinstance(current, dict):
+            current = list(current.values())
+        if isinstance(current, list):
+            deepest = max(deepest, depth)
+            stack.extend((item, depth + 1) for item in current)
+    return deepest
+
+
 def build_frame(kind, stream_id, seq, utc, payload, prev, prev_wave=None, sig=None):
-    frame = {"spec": SPEC, "kind": kind, "stream_id": stream_id, "seq": seq, "utc": utc,
-             "payload": payload, "payload_hash": H("rapp/1:particle", payload),
-             "prev": prev, "prev_wave": prev_wave, "sig": sig}
+    """§11 Producer: construct an 11-key frame, computing particle then wave (§7.3).
+
+    Refuses (ValueError, never repairs) any frame that §4, §6.1.1, §7.1, §7.4, §8, §10 or
+    §12.1 forbids a producer to emit."""
+    if not isinstance(payload, dict):
+        raise ValueError("payload must be a JSON object (§7.1)")
+    if 1 + _container_depth(payload) > 64:              # the frame object is depth 1
+        raise ValueError("frame nesting depth exceeds 64 (§4 (d), §7.1)")
+    _names_ok(payload)
+    if not kind_valid(kind):
+        raise ValueError(f"kind {kind!r} does not match the §6.1.1 grammar (two lclabels of 1-64)")
+    form = stream_form(stream_id)
+    if form is None:
+        raise ValueError(f"stream_id {stream_id!r} is not a §6.1.1 stream_id (a provisional tail never is, §6.3)")
+    if not _uint53(seq):
+        raise ValueError("seq must be a uint53: an int from 0 to 2^53-1 (§7.4)")
+    if not utc_valid(utc):
+        raise ValueError("utc must be the fixed §7.4 form and a valid calendar time (second 00-59)")
+    for name, value in (("prev", prev), ("prev_wave", prev_wave)):
+        if not _hex64_or_null(value):
+            raise ValueError(f"{name} must be null or 64 lowercase hex (§7.1)")
+    if sig is not None:
+        try:
+            parse_detached_jws(sig)
+        except Exception as exc:
+            raise ValueError(f"sig is not null or a §10 detached JWS: {exc}") from exc
+    if (seq == 0) != (prev is None):
+        raise ValueError("the genesis has seq 0 and prev null; every later frame has seq > 0 and a prev (§7.4)")
+    if (prev_wave is not None) != (form == "swarm-stream" and seq > 0):
+        raise ValueError("prev_wave is non-null iff the stream is a swarm-stream and seq > 0 (§7.4)")
+    if form == "swarm-stream" and sig is None:
+        raise ValueError("a swarm-stream frame must be signed (§8)")
+    if _is_regenesis(kind):
+        if seq != 0 or prev is not None or sig is None:
+            raise ValueError("a re-genesis frame is an owner-signed genesis: seq 0, prev null, sig set (§12.1 step 2)")
+        why = _regenesis_payload_error(payload)
+        if why:
+            raise ValueError(why)
+    payload_hash = H("rapp/1:particle", payload)
+    frame = {
+        "spec": SPEC, "kind": kind, "stream_id": stream_id, "seq": seq, "utc": utc,
+        "payload": payload, "payload_hash": payload_hash,
+        "prev": prev, "prev_wave": prev_wave, "sig": sig,
+    }
     pre = {k: frame[k] for k in frame if k not in ("frame_hash", "sig")}
     frame["frame_hash"] = H("rapp/1:wave", pre)
+    # canonical key set / ordering is by JCS at hash time; store all 11:
+    frame = {**frame, "frame_hash": frame["frame_hash"]}
+    size = len(canonical(frame).encode("utf-8"))
+    if size > MAX_CANONICAL_BYTES:
+        raise ValueError(f"canonical frame is {size} octets, over the 1 MiB limit (§4 (d), §7.1)")
     return frame
 
 
-def verify_frame(frame, head=None, stream_id_of_record=None, signature_verifier=None):
+def verify_frame(
+    frame,
+    head=None,
+    stream_id_of_record=None,
+    signature_verifier=None,
+    *,
+    registry=None,
+):
+    """§7.5 consumer checklist. Returns (ok, failing_step_or_None, reason).
+
+    `registry` (optional) is a duck-typed §13 registry such as rapp_registry.Registry:
+    check_frame_binding(frame) -> (ok, reason) joins step 1, registered_genesis(stream_id)
+    -> entry or None joins step 4, and owner_at(utc) -> rappid names the step-6 signer a
+    `*.re-genesis` frame requires."""
+    # 1 shape & types
+    if not isinstance(frame, dict):
+        return False, "1", "frame is not a JSON object"
     if set(frame.keys()) != FRAME_KEYS:
         return False, "1", f"key set != 11 ({sorted(frame.keys())})"
     if frame["spec"] != SPEC:
         return False, "1", "spec != rapp/1"
-    if not (isinstance(frame["kind"], str) and re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*\.[a-z0-9]+(-[a-z0-9]+)*", frame["kind"])):
-        return False, "1", "kind grammar"
-    if not isinstance(frame["stream_id"], str):
-        return False, "1", "stream_id type"
-    if not (isinstance(frame["seq"], int) and not isinstance(frame["seq"], bool) and 0 <= frame["seq"] <= 2**53 - 1):
+    if not kind_valid(frame["kind"]):
+        return False, "1", "kind grammar (§6.1.1: two lclabels of 1-64 characters)"
+    form = stream_form(frame["stream_id"])
+    if form is None:
+        return False, "1", "stream_id grammar (§6.1.1; a provisional tail is never a stream_id, §6.3)"
+    if not _uint53(frame["seq"]):
         return False, "1", "seq not uint53"
     if not utc_valid(frame["utc"]):
         return False, "1", "utc not fixed form"
@@ -190,18 +414,49 @@ def verify_frame(frame, head=None, stream_id_of_record=None, signature_verifier=
         if not (isinstance(frame[k], str) and _HEX64.fullmatch(frame[k])):
             return False, "1", f"{k} not 64hex"
     for k in ("prev", "prev_wave"):
-        if not (frame[k] is None or (isinstance(frame[k], str) and _HEX64.fullmatch(frame[k]))):
+        if not _hex64_or_null(frame[k]):
             return False, "1", f"{k} not null|64hex"
+    if frame["sig"] is not None:
+        try:
+            parse_detached_jws(frame["sig"])
+        except Exception as exc:
+            return False, "1", f"sig is not null or a §10 detached JWS: {exc}"
+    regenesis = _is_regenesis(frame["kind"])
+    if regenesis:
+        why = _regenesis_payload_error(frame["payload"])
+        if why:
+            return False, "1", why
+    if registry is not None:
+        try:
+            bound, why = registry.check_frame_binding(frame)
+        except Exception as exc:
+            bound, why = False, f"binding check failed: {exc}"
+        if not bound:
+            return False, "1", f"registry binding: {why}"
+    # 1a stream binding
     if stream_id_of_record is not None and frame["stream_id"] != stream_id_of_record:
         return False, "1a", "stream_id mismatch (cross-stream replay)"
+    # 2 particle
     if frame["payload_hash"] != H("rapp/1:particle", frame["payload"]):
         return False, "2", "payload_hash mismatch"
+    # 3 wave
     pre = {k: frame[k] for k in frame if k not in ("frame_hash", "sig")}
     if frame["frame_hash"] != H("rapp/1:wave", pre):
         return False, "3", "frame_hash mismatch"
+    # 4 chain
+    if regenesis and (frame["seq"] != 0 or frame["prev"] is not None):
+        return False, "4", "a re-genesis frame must be a genesis: seq=0 prev=null (§12.1 step 2)"
     if head is None:
         if not (frame["seq"] == 0 and frame["prev"] is None):
             return False, "4", "genesis must be seq=0 prev=null"
+        if registry is not None:
+            try:
+                entry = registry.registered_genesis(frame["stream_id"])
+                registered = None if entry is None else entry["frame_hash"]
+            except Exception as exc:
+                return False, "4", f"registered genesis lookup failed: {exc}"
+            if registered is not None and registered != frame["frame_hash"]:
+                return False, "4", "genesis is not the stream's registered genesis (§7.5 step 4, §13.3)"
     else:
         if frame["seq"] != head["seq"] + 1:
             return False, "4", "seq not contiguous"
@@ -209,26 +464,44 @@ def verify_frame(frame, head=None, stream_id_of_record=None, signature_verifier=
             return False, "4", "prev != head payload_hash"
         if frame["utc"] < head["utc"]:
             return False, "4", "utc < head utc"
-    is_swarm = frame["stream_id"].startswith("net:")
+    # 5 wire
+    is_swarm = form == "swarm-stream"
     if is_swarm and frame["seq"] > 0:
         if head is not None and frame["prev_wave"] != head["frame_hash"]:
             return False, "5", "prev_wave != head frame_hash"
-    elif frame["prev_wave"] is not None:
-        return False, "5", "prev_wave must be null off swarm"
+    else:
+        if frame["prev_wave"] is not None:
+            return False, "5", "prev_wave must be null off swarm"
+    # 6 signature
     if is_swarm and frame["sig"] is None:
         return False, "6", "swarm frame must be signed"
+    if regenesis and frame["sig"] is None:
+        return False, "6", "a re-genesis frame must be owner-signed (§12.1 step 2)"
     if frame["sig"] is not None:
+        expected_signer = None
+        if regenesis and registry is not None:
+            try:
+                expected_signer = registry.owner_at(frame["utc"])
+            except Exception as exc:
+                return False, "6", f"owner in effect at utc is unresolvable: {exc}"
+            if expected_signer is None:
+                return False, "6", "no estate owner in effect at the re-genesis utc (§13.2)"
         if signature_verifier is None:
-            return False, "6", "signed frame requires a trusted signature verifier"
+            return False, "6", "trusted signature verifier is required"
         unsigned = {k: frame[k] for k in frame if k != "sig"}
         try:
-            result = signature_verifier(unsigned, frame["sig"])
+            if expected_signer is None:
+                result = signature_verifier(unsigned, frame["sig"])
+            else:
+                result = signature_verifier(unsigned, frame["sig"], expected_signer)
         except Exception as exc:
             return False, "6", f"signature verifier failed: {exc}"
-        ok = result[0] if isinstance(result, tuple) else bool(result)
-        why = result[1] if isinstance(result, tuple) and len(result) > 1 else "signature refused"
+        if isinstance(result, tuple):
+            ok, why = bool(result[0]), (str(result[1]) if len(result) > 1 else "")
+        else:
+            ok, why = bool(result), "signature refused"
         if not ok:
-            return False, "6", str(why)
+            return False, "6", why
     return True, None, "ok"
 
 
