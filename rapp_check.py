@@ -554,11 +554,9 @@ def check_repo(root, signature_verifier=None):
             ok, step, why = R.verify_egg(blob, signature_verifier=signature_verifier)
             if ok:
                 evidence.append({"artifact": rel, "ok": "egg conforms to §9 (rapp/1-egg)"})
-            elif (
-                step == "§10"
-                and signature_verifier is None
-                and R.verify_egg_static(blob)[0]
-            ):
+            elif signature_verifier is None and R.verify_egg_static(blob)[0]:
+                # Steps (0)-(2) pass, sub-eggs included, so what failed is §10 verification of a
+                # signature on the egg or on a sub-egg it packs, which needs a trusted verifier.
                 evidence.append(
                     {
                         "artifact": rel,

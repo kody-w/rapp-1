@@ -468,6 +468,20 @@ class TestCallSites(unittest.TestCase):
         verdict, findings, _ = self.check({"bad.egg": forge(organism(), lambda _m, files: files.update({"../x": b""}))})
         self.assertEqual((verdict, findings[0]["rule"], findings[0].get("status")), ("DRIFT", "§9 egg", None))
 
+    def test_rapp_check_nested_signed_sub_egg_is_unverified_not_drift(self):
+        """A neighborhood packing a signed organism passes steps (0)-(2); without a trusted verifier only §10 is
+        unchecked, so rapp_check reports it unverified, as it does the same organism at top level."""
+        signed = R.pack_egg("organism", BOB, UTC, files={"rappid.json": identity(BOB), "soul.md": b"# soul\n"},
+                            sig=jws(BOB))
+        hood = R.pack_egg("neighborhood", STREET, UTC, files={"bob--den.egg": signed}, payload={"members": [BOB]})
+        self.assertEqual(R.verify_egg_static(hood), (True, None, "ok"))
+        for name, blob in (("den.egg", signed), ("street.egg", hood)):
+            with self.subTest(egg=name):
+                verdict, findings, evidence = self.check({name: blob})
+                self.assertEqual(verdict, "DRIFT")
+                self.assertEqual({item.get("status") for item in findings + evidence}, {"unverified"})
+        self.assertEqual(self.check({"street.egg": hood}, signature_verifier=vouch)[0], "COMPLIANT")
+
     def test_egg_repack_migrates_what_it_can_and_refuses_the_rest(self):
         import io
         import zipfile

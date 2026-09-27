@@ -45,6 +45,33 @@ def normalized_defs(src, names):
     return out
 
 
+def module_defs(src):
+    """Every top-level function (docstring dropped) and single-name assignment, ast-normalized."""
+    out = dict(normalized_defs(src, {n.name for n in ast.parse(src).body if isinstance(n, ast.FunctionDef)}))
+    for node in ast.parse(src).body:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            out[node.targets[0].id] = ast.unparse(node)
+    return out
+
+
+def closure(src, roots):
+    """The top-level names of `src` that `roots` use, directly or through other top-level names."""
+    top = {}
+    for node in ast.parse(src).body:
+        if isinstance(node, ast.FunctionDef):
+            top[node.name] = node
+        elif isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            top[node.targets[0].id] = node
+    seen, todo = set(), list(roots)
+    while todo:
+        name = todo.pop()
+        if name in seen or name not in top:
+            continue
+        seen.add(name)
+        todo.extend(sub.id for sub in ast.walk(top[name]) if isinstance(sub, ast.Name) and sub.id in top)
+    return seen
+
+
 def main():
     R = load("rapp_ref", os.path.join(ROOT, "rapp.py"))
     A = load("rapp_agent", os.path.join(ROOT, "agents", "rapp_sdk_builder_agent.py"))
@@ -55,27 +82,23 @@ def main():
         if not ok:
             failures.append(label)
 
-    # 1. source parity for the address core (the agent's sync contract, offline)
-    prims = ("canonical", "H", "Hb")
+    # 1. source parity: every primitive the agent embeds, and everything it uses, is rapp.py's definition
+    #    verbatim (the agent's sync contract, offline). verify_frame alone keeps its own inline signature
+    #    check, so it is compared by behaviour below; the names it uses are still compared by source.
     with open(os.path.join(ROOT, "rapp.py"), encoding="utf-8") as f:
-        ref_defs = normalized_defs(f.read(), prims)
+        ref_src = f.read()
     with open(os.path.join(ROOT, "agents", "rapp_sdk_builder_agent.py"), encoding="utf-8") as f:
-        agent_defs = normalized_defs(f.read(), prims)
-    print("source parity (ast-normalized, no network):")
-    for p in prims:
-        check(f"source of {p}", ref_defs.get(p) == agent_defs.get(p))
-    # the rev-17 frame helpers and build_frame are embedded verbatim too (verify_frame keeps
-    # its inline signature check, so only its behaviour is compared below)
-    embedded = ("kind_valid", "stream_form", "_names_ok", "_b64url_decode", "_strict_json",
-                "parse_detached_jws", "_uint53", "_hex64_or_null", "_is_regenesis",
-                "_regenesis_payload_error", "_container_depth", "build_frame")
-    with open(os.path.join(ROOT, "rapp.py"), encoding="utf-8") as f:
-        ref_embedded = normalized_defs(f.read(), embedded)
-    with open(os.path.join(ROOT, "agents", "rapp_sdk_builder_agent.py"), encoding="utf-8") as f:
-        agent_embedded = normalized_defs(f.read(), embedded)
-    for p in embedded:
-        check(f"source of embedded {p}", p in ref_embedded and ref_embedded[p] == agent_embedded.get(p),
-              "copy rapp.py's definition verbatim into the agent's rev-17 helper block")
+        agent_src = f.read()
+    ref_all, agent_all = module_defs(ref_src), module_defs(agent_src)
+    behaviour_only = {"verify_frame"}
+    roots = ("canonical", "H", "Hb", "_strict_json", "build_frame", "mint_rappid", "utc_valid",
+             "rappid_valid", "parse_detached_jws")
+    required = closure(ref_src, roots) | (closure(agent_src, ("verify_frame",)) & set(ref_all))
+    compared = sorted((required | (set(ref_all) & set(agent_all))) - behaviour_only)
+    print(f"source parity (ast-normalized, no network): {len(compared)} shared definitions")
+    for name in compared:
+        check(f"source of {name}", name in ref_all and agent_all.get(name) == ref_all[name],
+              "copy rapp.py's definition verbatim into the agent")
 
     # 2. behavioral parity — canonicalization and addressing
     vectors = [
@@ -91,6 +114,33 @@ def main():
         check(f"H vector {i}", R.H("rapp/1:particle", v) == A.H("rapp/1:particle", v))
     for i, b in enumerate([b"", b"x", bytes(range(256))]):
         check(f"Hb vector {i}", R.Hb("rapp/1:egg", b) == A.Hb("rapp/1:egg", b))
+
+    def outcome(fn, *args):
+        try:
+            value = fn(*args)
+        except ValueError as exc:
+            return ("refused", str(exc))
+        return ("ok", repr(value), type(value).__name__)
+
+    print("behavioral parity — rev-17 numbers, text and tags:")
+    numbers = [0.1, 1e21, 1e-7, 1e-6, 5e-324, -0.0, 1.0, 1.5e300, 2**53, 10**21, 123456789012345680000.0,
+               {"x": [0.5, -1.5e300, 2**60]}]
+    for i, v in enumerate(numbers):
+        check(f"canonical number {i}", outcome(R.canonical, v) == outcome(A.canonical, v))
+    refused = ["\ufdd0", {"\uffff": 1}, "\U0010ffff", "\ud800", float("nan"), float("inf"), 2**53 + 1, {1: 2}]
+    for i, v in enumerate(refused):
+        r, a = outcome(R.canonical, v), outcome(A.canonical, v)
+        check(f"canonical refusal {i}", r == a and r[0] == "refused", f"ref={r} agent={a}")
+    for i, (fn, space, arg) in enumerate([("H", "rapp/1:egg", {}), ("H", "x", {}), ("Hb", "rapp/1:particle", b""),
+                                          ("Hb", "rapp/1:wave", b""), ("H", "rapp/1:sealed-aad", {"a": 1})]):
+        r, a = outcome(getattr(R, fn), space, arg), outcome(getattr(A, fn), space, arg)
+        check(f"tag table {i} ({fn} {space})", r == a, f"ref={r} agent={a}")
+    texts = [b'{"a":1E21}', b'{"a":-0}', b'{"a":9007199254740992}', b'{"a":9007199254740993}', b'{"a":1e999}',
+             b'{"a":0.10000000000000001}', b'\xef\xbb\xbf{}', "{}".encode("utf-16"), '{"a":NaN}'.encode(),
+             b'[' * 64 + b'1' + b']' * 64, b'[' * 65 + b']' * 65]
+    for i, t in enumerate(texts):
+        r, a = outcome(R._strict_json, t), outcome(A._strict_json, t)
+        check(f"_strict_json text {i}", r == a, f"ref={r} agent={a}")
 
     # 3. behavioral parity — the frame, byte for byte
     print("behavioral parity — build_frame / verify_frame:")

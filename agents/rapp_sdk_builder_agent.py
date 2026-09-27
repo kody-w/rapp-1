@@ -51,7 +51,7 @@ except Exception:                               # dropped in / run standalone
 __manifest__ = {
     "schema": "rapp-agent/1.0",
     "name": "@kody-w/rapp_sdk_builder",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "display_name": "RAPP SDK Builder",
     "description": "A hotloadable RAPP toolkit: mint compliant rappids, build/verify frames, "
                    "content-address values, scaffold organism seeds, discover additive profiles, "
@@ -897,24 +897,38 @@ class RappSdkBuilderAgent(BasicAgent):
         except Exception as e:
             return json.dumps({"status": "error", "action": "sync", "message": f"fetch failed: {e}"})
 
-        prims = ("canonical", "H", "Hb")
+        roots = ("canonical", "H", "Hb", "_strict_json", "build_frame")
 
         def _defs(src):
-            # Normalize each primitive to its executable form: strip a leading docstring,
-            # then ast.unparse (which also drops comments). What survives is exactly the
-            # code that computes addresses — so equality means identical computation, not
-            # identical formatting.
-            out = {}
+            # Normalize each top-level definition to its executable form: strip a function's
+            # leading docstring, then ast.unparse (which also drops comments). Constants and
+            # tables (single-name assignments) are compared too, because the primitives use them.
+            out, nodes = {}, {}
             for node in ast.parse(src).body:
-                if isinstance(node, ast.FunctionDef) and node.name in prims:
+                if isinstance(node, ast.FunctionDef):
                     body = list(node.body)
                     if (body and isinstance(body[0], ast.Expr)
                             and isinstance(getattr(body[0], "value", None), ast.Constant)
                             and isinstance(body[0].value.value, str)):
                         body = body[1:] or [ast.Pass()]
                     node.body = body
-                    out[node.name] = ast.unparse(node)
-            return out
+                    out[node.name], nodes[node.name] = ast.unparse(node), node
+                elif (isinstance(node, ast.Assign) and len(node.targets) == 1
+                        and isinstance(node.targets[0], ast.Name)):
+                    out[node.targets[0].id], nodes[node.targets[0].id] = ast.unparse(node), node
+            return out, nodes
+
+        def _closure(nodes):
+            # Everything the address and frame primitives use, directly or indirectly: equal
+            # definitions of this whole set mean identical computation, not just equal names.
+            seen, todo = set(), list(roots)
+            while todo:
+                name = todo.pop()
+                if name in seen or name not in nodes:
+                    continue
+                seen.add(name)
+                todo.extend(n.id for n in ast.walk(nodes[name]) if isinstance(n, ast.Name) and n.id in nodes)
+            return seen
 
         local_src = None
         for get in (lambda: inspect.getsource(sys.modules[__name__]),
@@ -926,17 +940,19 @@ class RappSdkBuilderAgent(BasicAgent):
         if local_src is None:
             return json.dumps({"status": "error", "action": "sync", "message": "cannot read local source"})
 
-        remote_defs, local_defs = _defs(remote_src), _defs(local_src)
-        per = {p: (p in remote_defs and local_defs.get(p) == remote_defs.get(p)) for p in prims}
-        match = all(per.values())
+        (remote_defs, remote_nodes), (local_defs, _local_nodes) = _defs(remote_src), _defs(local_src)
+        compared = sorted(_closure(remote_nodes))
+        per = {p: (p in remote_defs and local_defs.get(p) == remote_defs.get(p)) for p in compared}
+        match = bool(per) and all(per.values())
         return json.dumps({"status": "ok", "action": "sync",
                            "embedded_matches_public_reference": match,
                            "per_primitive": per,
                            "source": SRC,
                            "vector_particle": H("rapp/1:particle", {"b": 1, "a": [3, 2]}),
-                           "note": "The embedded canonical/H/Hb definitions were compared textually "
-                                   "(parsed with ast — no code executed) against the freshly-fetched public "
-                                   "reference. Equal ⇒ this agent computes canonical RAPP addresses byte-for-byte "
+                           "note": "The embedded canonical/H/Hb/_strict_json/build_frame definitions, and every "
+                                   "helper, table and constant they use, were compared textually (parsed with "
+                                   "ast — no code executed) against the freshly-fetched public reference. Equal "
+                                   "⇒ this agent parses, canonicalizes, addresses and builds frames byte-for-byte "
                                    "with rapp.py."}, indent=2)
 
 
