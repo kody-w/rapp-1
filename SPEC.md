@@ -597,8 +597,9 @@ unencoded payload** ([RFC 7515] App. F + [RFC 7797]):
 - the `sig` string is the detached compact form `BASE64URL(canonical(header)) || ".." || BASE64URL(signature)`;
 - JWS signing input = `BASE64URL(canonical(header)) || "." || canonical(frame \ {sig})`;
 - `alg`: `EdDSA`/Ed25519 [RFC 8037] or `ES256` [RFC 7518]; Ed25519 verification is [RFC 8032] §5.1.7 with
-  `S < L` required and the cofactorless check `encode([S]B - [k]A) == R`; public keys that decode (including
-  small-order points) are not refused for their order; ES256 signers **SHOULD** sign deterministically
+  `S < L` required and the cofactorless check `encode([S]B - [k]A) == R`, where `k` is SHA-512(`R` || `A` ||
+  message) read as a little-endian integer and reduced mod `L` (as in [RFC 8032]'s §6 reference code); public
+  keys that decode (including small-order points) are not refused for their order; ES256 signers **SHOULD** sign deterministically
   [RFC 6979] (Ed25519 is deterministic by construction) so signed frame files stay byte-reproducible.
 
 **Key discovery.** A keyed rappid's tail is one-way (`Hb("rapp/1:rappid",SPKI)`). A verifier resolves the
