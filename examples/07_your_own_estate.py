@@ -21,8 +21,13 @@ def show(label, ok, why=""):
     print(f"  [{'OK' if ok else '--'}] {label}" + (f" — {why}" if why else ""))
 
 # ── 1. Identities. Keyed rappids hash an SPKI; these bytes stand in for one. ──
-OWNER_SPKI = b"stand-in SPKI bytes: not a key, only its fingerprint matters here"
-OLD_SPKI = b"an earlier owner key, since rotated"
+# §6.2 refuses octets that are not a real DER SPKI, so the stand-ins are the RFC 8032 §7.1
+# TEST 1 and TEST 2 public keys under the RFC 8410 Ed25519 prefix. Nothing here signs:
+# only their fingerprint matters.
+OWNER_SPKI = bytes.fromhex("302a300506032b6570032100"
+                           "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a")
+OLD_SPKI = bytes.fromhex("302a300506032b6570032100"      # an earlier owner key, since rotated
+                         "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c")
 owner = R.mint_rappid("acme", "estate-owner", spki_der=OWNER_SPKI)
 old_owner = R.mint_rappid("acme", "estate-owner", spki_der=OLD_SPKI)
 factory = R.mint_rappid("acme", "widget-factory")          # keyless organism
