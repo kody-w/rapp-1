@@ -122,6 +122,9 @@ def hatch(iso_gz, expected_egg_hash, expected_gzip_hash):
         organism_root = (root / f"{parts['owner']}--{parts['slug']}").resolve()
         if root not in organism_root.parents:
             raise ValueError("organism path escaped the hatch root")
+        if not trusted_rapp._path_set_extractable(list(files)):
+            # §9.1: such paths are valid in the egg; this extraction is what is refused.
+            raise ValueError("egg paths fold together or nest under a file; extraction refused (§9.1)")
         for relative, octets in files.items():
             destination = organism_root.joinpath(*relative.split("/"))
             resolved = destination.resolve()
