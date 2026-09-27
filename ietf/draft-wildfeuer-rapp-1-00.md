@@ -29,8 +29,10 @@ normative:
   RFC7516:
   RFC7518:
   RFC7797:
+  RFC8032:
   RFC8037:
   RFC8174:
+  RFC8410:
   RFC8785:
   RFC9562:
 
@@ -48,8 +50,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-16, chain frame 6fddd2370220ca195fdbee3a7ae46a2686fc745d8e88debda26c5a6497e5756a, normative
-SHA-256 348e7d5baa94aaf2ce4c5354f3cb261f389298a04af65e271a686d3b62f7c384. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-17, chain frame 39936d8b027df010b57a8e9202408ebd72d5e44ca0de6b39f0a5809973ca6521, normative
+SHA-256 38f568ad615fc76a304f867751622efc51e5b1d65bffa3444f92d1d1d5d80684. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -114,22 +116,33 @@ the currently served release is immutable even while a separate candidate lineag
 `canonical(v)` is the UTF-8 byte string produced by **{{RFC8785}} JCS** for the value `v`, defined **only**
 over I-JSON {{RFC7493}}. JCS fixes member-name ordering (UTF-16 code-unit), string escaping, and number
 serialization (ECMAScript `Number::toString`, ECMA-262); there is no insignificant whitespace and no
-byte-order mark.
+byte-order mark. Input JSON text **MUST** be well-formed UTF-8 {{RFC7493}} §2.1; an implementation **MUST**
+refuse (not strip) a leading byte-order mark and **MUST NOT** transcode UTF-16 or UTF-32 input.
+(Insignificant whitespace in input text is accepted; it is absent only from the canonical form.)
 
 **RAPP input-domain profile (parse-side interoperability — this is a RAPP rule, not a JCS mandate).** An
 implementation **MUST** refuse (never repair) any JSON value that, at any depth, contains: (a) duplicate
-member names in one object; (b) an unpaired UTF-16 surrogate in any string; (c) a number token that does
+member names in one object; (b) an unpaired UTF-16 surrogate, or a Unicode noncharacter (U+FDD0-U+FDEF, or
+any code point whose low 16 bits are FFFE or FFFF) {{RFC7493}} §2.1, in any string or member name; (c) a number token that does
 not survive the binary64 round-trip — let `d` be the token's nearest binary64 value under `roundTiesToEven`
 (the IEEE-754 default; ±∞ are admissible results); the token is refused iff `d` is not finite, or the
 {{RFC8785}} serialization of `d` (ECMA-262 `Number::toString`) denotes a different mathematical value than
-the token (so `0.1` is accepted — it round-trips — while `9007199254740993` and `1e999` (→ +∞) are refused); (d) canonical form exceeding 1 MiB or JSON nesting depth
+the token (so `0.1` is accepted — it round-trips — while `9007199254740993` and `1e999` (→ +∞) are refused;
+field range and type rules, such as `uint53`, are not part of this domain: the rule that types the field
+applies them); (d) canonical form exceeding 1 MiB or JSON nesting depth
 exceeding 64 (the root value is depth 1; each nested object/array adds 1). Refusal is whole (§7.5-style),
 never partial.
 
 **No normalization.** RAPP applies **no** Unicode normalization when hashing, storing, or re-emitting an
 existing value; strings are code-point sequences preserved verbatim and equality everywhere is code-point
 equality (no canonical-equivalence matching). A producer creating a **new** human-or-identifier string
-(slug, kind, label, `payload` object key) **MUST** emit it in Unicode NFC.
+(slug, kind, label, `payload` object key) **MUST** emit it in Unicode NFC. A producer that builds a frame or
+packs an egg from given fields treats every `payload` object member name, at any depth, as new: it
+**MUST** refuse (never normalize) a name that is not in NFC. Consumers do not test frame contents for NFC
+(egg paths excepted, §9.1). NFC is Unicode Normalization Form C [UAX #15] in the Unicode version the
+producer implements. A producer **MUST** also refuse a name containing a code point that is unassigned
+(General_Category `Cn`) in that version. By the Unicode normalization stability policy, a name that passes
+this test for one producer then passes it for every producer on the same or a later Unicode version.
 
 > **Migration note (drift C4):** the `twin`/`rapp-body` `_frame.mjs::canonicalize()` (sorted-key
 > `JSON.stringify`) coincides with JCS only for string-only payloads; it **MUST** be replaced by the JCS
@@ -145,7 +158,9 @@ Hb(space, b) = lowercase_hex( SHA-256( utf8(space) || 0x0A || b ) )             
 `space` is an exact ASCII tag, none containing `0x0A`: `"rapp/1:particle"`, `"rapp/1:wave"`, `"rapp/1:egg"`,
 `"rapp/1:egg-manifest"`, `"rapp/1:rappid"`, `"rapp/1:grail"`, `"rapp/1:seal"`,
 `"rapp/1:sealed-aad"`, `"rapp/1:sealed-key-request"`. A tag is used by either `H` or `Hb`, never
-both. Output is always exactly 64 lowercase hex, **never truncated or uppercased**. Two values
+both: `H` uses `rapp/1:particle`, `rapp/1:wave`, `rapp/1:egg-manifest`, `rapp/1:sealed-aad` and
+`rapp/1:sealed-key-request`; `Hb` uses `rapp/1:egg`, `rapp/1:rappid`, `rapp/1:grail` and `rapp/1:seal`. An
+implementation **MUST** refuse to compute a hash under any other tag or with the other function. Output is always exactly 64 lowercase hex, **never truncated or uppercased**. Two values
 are treated as the same object iff their same-space hashes are equal; SHA-256 collision resistance
 FIPS 180-4 is a security assumption of this standard (§14). A `name/X.Y` label is never identity — only
 a hash is. A bare 64-hex is meaningful **only** within its space; an implementation **MUST NOT** dereference
@@ -186,6 +201,9 @@ The 64-hex tail is minted **exactly once** per identity, then immutable:
 - **keyless:** `tail = Hb("rapp/1:rappid", uuid4_octets)`, where `uuid4_octets` is the 16-octet binary
   UUIDv4 {{RFC9562}} §5.4 (field/byte order per §4 of that RFC).
 - **keyed:** `tail = Hb("rapp/1:rappid", SPKI_DER)`, the DER `SubjectPublicKeyInfo` {{RFC5280}} of the master key.
+  A minter **MUST** refuse octets that are not the DER SPKI of a §10 key (an id-Ed25519 key {{RFC8410}}, or an
+  id-ecPublicKey prime256v1 key with an uncompressed point); likewise a keyless mint **MUST** refuse 16 octets
+  whose {{RFC9562}} version is not 4 or whose variant is not 0b10.
 
 A producer **MUST NOT** derive the tail from owner/slug or any name (`sha256("owner/slug")` is prohibited —
 drift ID-01/C3). On read of an existing `rappid.json` an implementation **MUST** reuse the stored tail
@@ -269,12 +287,15 @@ Because `payload_hash` is in the wave pre-image, `frame_hash` attests the partic
 and non-circular. Both hashes are always present (never `null`).
 
 ## Chaining, time, and merge order
-- **`utc`** **MUST** be exactly the 24-byte form `YYYY-MM-DDTHH:MM:SS.mmmZ` — uppercase `T`/`Z`, exactly
-  three fractional digits, no numeric offset; the seconds field **MUST NOT** be `60` (a leap second clamps
+- **`utc`** **MUST** be exactly the 24-byte form `YYYY-MM-DDTHH:MM:SS.mmmZ` — every `Y`, `M`, `D`, `H`,
+  `S` and `m` is an ASCII digit (%x30-39; Unicode digits such as U+0660-0669 or U+FF10-FF19 are refused),
+  `YYYY` is any year 0000-9999, uppercase `T`/`Z`, exactly three fractional digits, no numeric offset; the
+  seconds field **MUST NOT** be `60` (a leap second clamps
   to `59.999`). All `utc` comparisons are **bytewise** over this fixed form (identical to chronological order).
 - **Worldline chain (particle):** the **genesis** frame has `seq`=0 and `prev`=null; every later frame has
-  `seq` = predecessor's `seq`+1 (contiguous) and `prev` = predecessor's `payload_hash`. `seq` is `uint53`
-  (JSON integer, 0 ≤ seq ≤ 2^53−1, no fraction/exponent; a stream nearing 2^53−1 converges by re-genesis).
+  `seq` = predecessor's `seq`+1 (contiguous) and `prev` = predecessor's `payload_hash`. `seq` is `uint53`: a
+  number token matching `0 / %x31-39 *DIGIT` (no sign, fraction or exponent, so `-0` is refused) whose value
+  is ≤ 2^53−1; a stream nearing 2^53−1 converges by re-genesis.
 - **Wire chain (wave):** `prev_wave` **MUST** be non-null **iff** `stream_id` is a swarm-stream **and**
   `seq` > 0, in which case it equals the predecessor's `frame_hash`; in every other frame (all memory/body
   streams, every genesis) it **MUST** be `null`. (Presence is a function of stream family, not transport.)
@@ -285,20 +306,33 @@ and non-circular. Both hashes are always present (never `null`).
 ## Verification (the complete consumer checklist)
 Before accepting a frame, a consumer **MUST**, in order, **refuse** (never repair/reparent) on any failure:
 1. **Shape & types:** exactly the eleven §7.1 keys; `spec`==`"rapp/1"`; `kind` a string matching §6.1.1
-   ABNF and registered (§13); `stream_id` a string matching §6.1.1; `seq` a `uint53`; `utc` matching the
+   ABNF, registered (§13), and bound to a family whose §7.2 column-3 form is the form of `stream_id` (a
+   family outside the §7.2 table fits no form); `stream_id` a string matching §6.1.1; `seq` a `uint53`
+   (§7.4); `utc` matching the
    §7.4 fixed form **and** a calendar-valid {{RFC3339}} `date-time` (so `2026-13-45T25:61:61.999Z` is
    refused); `payload` a JSON object; `payload_hash`/`frame_hash` `64HEXDIGLC`; `prev`/`prev_wave` each
-   `null` or `64HEXDIGLC`; `sig` `null` or a §10 JWS string.
+   `null` or `64HEXDIGLC`; `sig` `null` or a §10 JWS string: the detached compact form with strict unpadded
+   base64url parts, a protected header whose octets are `canonical(header)` and whose members are exactly
+   the §10 `alg`, `b64`, `crit` and `kid` (a §6.1 rappid) values, and a signature of exactly 64 octets.
+   A number token that passes §4 (c) but is not a `uint53` — `9007199254740992` (2^53), `0.0`, `1e0`, a
+   negative value — leaves the frame a §4 value, so it is refused here, at step 1, never before the
+   checklist; only a token that §4 (c) itself refuses (`9007199254740993`, `1e999`) makes the octets fail
+   before step 1.
 1a. **Stream binding:** `frame.stream_id` **MUST** byte-equal the identifier of the stream being extended
    or read (its declared `stream_id` at the head pointer / repo path of record). A genesis frame is
    accepted only for the stream it names. (Defeats cross-stream genesis/segment replay — §14.)
 2. **Particle:** `payload_hash` == `H("rapp/1:particle", payload)`.
 3. **Wave:** `frame_hash` == `H("rapp/1:wave", frame \ {frame_hash, sig})`.
 4. **Chain:** `seq`==head.`seq`+1 and `prev`==head.`payload_hash` (or `seq`==0 ∧ `prev`==null at genesis);
-   `utc` ≥ head.`utc` (bytewise).
+   `utc` ≥ head.`utc` (bytewise). With no head, a consumer holding the §13 registry **MUST** refuse a
+   `seq`=0 frame whose `frame_hash` differs from the stream's registered genesis (its sole non-deprecated
+   `genesis` entry) when the registry has one; a registry without a `genesis` entry for the stream does not
+   refuse on this ground. The comparison opens a chain: a later re-genesis resets the head (§7.6) and does
+   not revoke frames already verified.
 5. **Wire:** if `stream_id` is a swarm-stream and `seq`>0, `prev_wave`==head.`frame_hash`; else
    `prev_wave`==null.
-6. **Signature:** if `sig`≠null, verify per §10 (present-but-invalid is refusal); a swarm-stream frame with
+6. **Signature:** if `sig`≠null, discover the key and verify per §10 (registry key discovery, tail check,
+   key lifecycle, the signature equation; present-but-invalid is refusal); a swarm-stream frame with
    `sig`==null is refused (§8/§10).
 Steps 1–5 are **time-independent** (kind lookups only append, §13), so a frame passing them passes forever;
 step 6 alone may flip pass→fail when a §10 tombstone with `revoked_utc` ≤ the frame's `utc` is later
@@ -351,10 +385,15 @@ variants). The manifest is a §4 value with exactly these members:
 - `contents` **MUST** list every packed file **except `manifest.json` itself**, exactly once each, with
   `hash = Hb("rapp/1:egg", file_octets)` (§5) over the raw stored octets. `contents` is **always present**;
   for JSON (pointer/session) variants it **MUST** be exactly `[]`.
-- `path` **MUST** be a relative POSIX path: `/`-separated NFC UTF-8 segments, no `.`/`..` segment, no
-  leading `/`, no backslash, no Windows drive-qualified first segment (`ALPHA ":"`), no duplicate `path`
-  in one manifest. A segment **MUST NOT** end in a period/space, contain `:`, contain a C0 control, or have
-  a case-insensitive basename equal to `CON`, `PRN`, `AUX`, `NUL`, `COM1`–`COM9`, or `LPT1`–`LPT9`.
+- `path` **MUST** be a relative POSIX path: `/`-separated non-empty NFC UTF-8 segments, no `.`/`..`
+  segment, no leading `/`, no backslash, no Windows drive-qualified first segment (`ALPHA ":"`), not the
+  root path `manifest.json`, and no two `path` values in one manifest equal as code-point sequences. Paths
+  that differ only in case or normalization, or where one path is a directory prefix of another (`docs`,
+  `docs/a.md`), are distinct and valid; a consumer that extracts to a filesystem where they would collide
+  refuses the extraction, not the egg. A segment **MUST NOT** end in a period/space, contain `:`, contain a
+  C0 control (U+0000-U+001F), or have a basename (the segment up to its first `.`), compared ASCII
+  case-insensitively, equal to `CON`, `PRN`, `AUX`, `NUL`, `COM1`–`COM9`, or `LPT1`–`LPT9`. §9.3's 'no
+  `..`' means no `..` segment.
   `contents` **MUST** be sorted ascending
   by the UTF-8 bytes of `path`.
 - `payload` is a §4 object (variant-specific). `sig` is a §10 JWS over `canonical(manifest \ {sig})`, or
@@ -370,22 +409,37 @@ variants). The manifest is a §4 value with exactly these members:
 - **Container determinism.** A ZIP variant **MUST** use compression method `stored` (0) for **every** entry
   — no deflate in any variant (deflate is library-dependent, so it cannot be byte-reproducible; transport
   compression, if any, wraps the egg and is not the egg). Entries appear in `contents` order with
-  `manifest.json` first; the `manifest.json` entry's octets **MUST** be exactly `canonical(manifest)`; all
-  timestamps `1980-01-01 00:00:00`; no extra fields; UTF-8 filename flag set; `contents[].hash` is over the
-  file octets (identical to the archive octets under method 0). A JSON-variant egg's serialized form
-  **MUST** be exactly `canonical(manifest)`. Two conformant packers of the **same manifest value** thus emit
-  byte-identical eggs.
+  `manifest.json` first; the `manifest.json` entry's octets **MUST** be exactly `canonical(manifest)`.
+  Every local and central header carries: version needed to extract 20 (0x0014); general-purpose flags
+  exactly 0x0800 (UTF-8 filename; no data descriptor, no encryption); DOS time 0x0000 and date 0x0021
+  (`1980-01-01 00:00:00`); no extra field. Every central header also carries version made by 0x0014, no
+  file comment, disk number start 0, internal and external attributes 0. Every field present in both the
+  local and the central header holds the same value in both. The archive is the local records in entry
+  order with no gap, then the central directory, then an end-of-central-directory record with disk numbers
+  0, equal entry counts and no comment; no ZIP64 record, and no octet precedes the first local header or
+  follows the end record. `contents[].hash` is over the file octets (identical to the archive octets under
+  method 0). A JSON-variant egg's serialized form **MUST** be exactly `canonical(manifest)`. A producer
+  **MUST** write exactly these values, so two conformant packers of the same manifest value emit
+  byte-identical eggs. A consumer **MUST** refuse any other violation of this paragraph, but **MUST** accept
+  any value of version made by, version needed (when both headers agree) and the internal and external
+  attributes, and **MUST NOT** interpret them.
 
 ## Variants (the ratified set — closes EGG-01)
 | variant | container | packs | required members |
 |---|---|---|---|
-| `organism` | ZIP | a full brainstem instance | contents (sorted) MUST include `rappid.json`, `soul.md`; MAY include `agents/*`, `organs/*`, memory files |
-| `rapplication` | ZIP | one rapp | contents MUST include `rappid.json` and exactly one `agent.py` at the root (the agent of record); MAY include one `ui.html` and files under `state/` |
+| `organism` | ZIP | a full brainstem instance | contents (sorted) MUST include the root paths `rappid.json` and `soul.md`; MAY include `agents/*`, `organs/*`, memory files |
+| `rapplication` | ZIP | one rapp | contents MUST include `rappid.json` and exactly one `agent.py` at the root (the agent of record); MAY include one `ui.html`, files under `state/`, and other files: this MAY list, like the organism row's, is not exhaustive |
 | `session` | JSON | one runtime + transcript | `payload` = `{runtime:<string>, transcript:[<object>]}`; contents `[]` |
 | `invite` | JSON | a QR-sized pointer (**no packed files**) | `payload` = `{target_rappid:<rappid>, target_url:<string>, target_kind:("neighborhood" / "estate")}`; contents `[]`; `sig` REQUIRED |
 | `neighborhood` | ZIP | several organisms meant to live together | `payload` = `{members:[<rappid>,…]}`; contents = one sub-egg per member, named `<owner>--<slug>.egg` at the root, matched by the sub-egg manifest's `rappid` == the `payload.members[]` entry |
 | `estate` | ZIP | several neighborhoods | `payload` = `{neighborhoods:[<rappid>,…]}`; contents = one sub-egg per neighborhood, named `<owner>--<slug>.egg` at root, matched by sub-egg `rappid` |
 | `sealed` | ZIP | publicly mirrorable ciphertext with scoped key release | contents MUST be exactly `ciphertext.bin`; payload is the closed `rapp-sealed-artifact/1` profile in §9.2.1; `sig` REQUIRED |
+
+For `organism` and `rapplication` eggs, `rappid.json` **MUST** be a §4 object whose `rappid` member equals
+`manifest.rappid` (code points) and whose `schema`, when present, is `"rapp/1"`; a consumer refuses the egg
+at §9.3 step (2) otherwise (this is the §9.3 no-reparent rule applied to the packed identity).
+`payload.members` (neighborhood) and `payload.neighborhoods` (estate) are arrays of distinct §6.1 rappids,
+possibly empty; an empty list packs no files. "Several" describes use, not a minimum.
 
 The QR-sized invite that caused EGG-01 is the **`invite`** variant: a signed pointer object, not a
 member-packing `neighborhood` egg. The banned legacy stamps (`brainstem-egg/2.3-neighborhood`,
@@ -426,6 +480,11 @@ The manifest `payload` has exactly:
   "aad_hash": "<64hex>"
 }
 ```
+
+In this template `schema`, `cipher` and `access` are literals that a consumer **MUST** match exactly
+(`access` is always `scoped-key-release`); a `<…>` value is a placeholder of the stated form; the values
+shown for `plaintext_bytes`, `media_type`, `key_service_rappid` and `key_service_url` are examples, and only
+the member's type is fixed by the template (the rules below still bound each value).
 
 `plaintext_commitment` is a keyed commitment that cannot be tested without the DEK:
 
@@ -519,7 +578,10 @@ bounded server authority remain separate from cryptographic confidentiality.
 
 ## Conformance
 - **Producer** **MUST** emit only `schema:"rapp/1-egg"` with a variant from §9.2, a §6.1 rappid, and, for
-  ZIP variants, a `contents` list whose every hash verifies. It **MUST NOT** emit any legacy egg schema.
+  ZIP variants, a `contents` list whose every hash verifies. Every egg it emits, and every sub-egg it packs
+  into one, **MUST** pass consumer steps (0)-(2) below; a REQUIRED `sig` **MUST** be present and be a §10
+  JWS (a producer without the signer's key context need not verify it). Given input that cannot meet these
+  rules, a producer **MUST** refuse rather than emit or repair. It **MUST NOT** emit any legacy egg schema.
 - **Consumer** **MUST** read every §9.2 variant, dispatch on `variant`, verify **integrity then viability** —
   (0) the manifest is a §4 value satisfying **every §9.1 rule** — exact member set, `path` grammar (no `..`,
   no leading `/`, no backslash), no duplicate paths, sort order, and for ZIP variants the archive entry set
@@ -565,7 +627,9 @@ unencoded payload** ({{RFC7515}} App. F + {{RFC7797}}):
   (§4 — JCS orders them `alg`, `b64`, `crit`, `kid`, no whitespace);
 - the `sig` string is the detached compact form `BASE64URL(canonical(header)) || ".." || BASE64URL(signature)`;
 - JWS signing input = `BASE64URL(canonical(header)) || "." || canonical(frame \ {sig})`;
-- `alg`: `EdDSA`/Ed25519 {{RFC8037}} or `ES256` {{RFC7518}}; ES256 signers **SHOULD** sign deterministically
+- `alg`: `EdDSA`/Ed25519 {{RFC8037}} or `ES256` {{RFC7518}}; Ed25519 verification is {{RFC8032}} §5.1.7 with
+  `S < L` required and the cofactorless check `encode([S]B - [k]A) == R`; public keys that decode (including
+  small-order points) are not refused for their order; ES256 signers **SHOULD** sign deterministically
   {{RFC6979}} (Ed25519 is deterministic by construction) so signed frame files stay byte-reproducible.
 
 **Key discovery.** A keyed rappid's tail is one-way (`Hb("rapp/1:rappid",SPKI)`). A verifier resolves the
@@ -578,7 +642,9 @@ mismatch or registry absence.
 Hb("rapp/1:rappid", newSPKI)` and a §13.3 re-anchor record. A re-anchor **deprecates** the superseded
 rappid's §13 `spki` entry: a verifier **MUST** refuse a `sig` whose `kid` is a superseded rappid on any
 frame with `utc` ≥ the re-anchor record's `utc` (rotation gives forward security; earlier frames verify as
-before). Compromise is declared by an owner-signed **tombstone** in the §13 registry `{rappid, revoked_utc}`; a verifier **MUST** refuse any `sig` by a
+before). The `deprecated` flag of an `spki` entry does not by itself refuse a `sig`: the entry still
+resolves the key (entries are append-only, §13.3), and a `sig` by it is refused only by the re-anchor rule
+above or by a tombstone. To stop a key without rotating, the owner registers a tombstone. Compromise is declared by an owner-signed **tombstone** in the §13 registry `{rappid, revoked_utc}`; a verifier **MUST** refuse any `sig` by a
 tombstoned key on a frame whose `utc` ≥ `revoked_utc`, checking tombstones at verification time (§7.5 step
 6). "Owner-signed" means a `sig` verifying with `kid` == the registry's designated `estate_owner` rappid
 (§13). A consumer **MUST NOT** infer authorship from an unsigned frame (keyless rappids assert location,
@@ -719,7 +785,10 @@ producer **MUST NOT** emit the pointer-only revision profile after rev-13.
    here) so the frame satisfies §7.2 family↔stream compatibility for any stream — `sig`≠null owner-signed
    (§10, §13 `estate_owner`), `payload` = `{"migrated_from":{"stream_id":<old>,"terminal_seal":<seal>,
    "terminal_seq":<n>}}` and no other members. A consumer **MUST** treat any `*.re-genesis` kind as the sole
-   re-genesis marker for its family and refuse an unsigned/non-owner one.
+   re-genesis marker for its family and refuse an unsigned/non-owner one. A consumer **MUST** also refuse,
+   at §7.5 step 1, a `*.re-genesis` frame whose `payload` is not exactly this object: `migrated_from` with
+   exactly `stream_id` (a §6.1.1 stream_id), `terminal_seal` (64HEXDIGLC) and `terminal_seq` (a `uint53`);
+   and, at step 4, one with `seq`≠0 or `prev`≠null.
 3. **Register (the linearization point):** append a §13.3 `genesis` entry mapping the `stream_id` to the new
    genesis's `frame_hash`, **and flag every prior `genesis` entry for that `stream_id` `deprecated`** — the
    first convergence included (it deprecates the creation-time genesis), so exactly one non-deprecated entry
@@ -965,7 +1034,9 @@ The registry is an I-JSON document; every entry is append-only (never removed/re
   repository's anchor chain. A historical RAPP/1 pin may be retained only as `deprecated:true`; it does
   not override the current anchor. Other protocol entries are subordinate to their own canonical
   authorities and **MUST NOT** claim the `rapp/1` name or namespace.
-- **kind** `{type:"kind", kind, family, deprecated}` (incl. the three `*.re-genesis` kinds)
+- **kind** `{type:"kind", kind, family, deprecated}` (incl. the three `*.re-genesis` kinds). A
+  `deprecated:true` kind entry still registers `kind` and its `family` for §7.5 step 1 (steps 1–5 are
+  time-independent); deprecation only tells producers to stop emitting new frames of that kind.
 - **egg-variant** `{type:"egg-variant", variant, deprecated}` · **error-code** `{type:"error-code", code}`
   (both closed namespaces; unregistered value = not conformant)
 - **genesis** `{type:"genesis", stream_id, frame_hash, deprecated, old_stream_id?, new_stream_id?}` — **every**
