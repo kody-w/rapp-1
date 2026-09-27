@@ -67,7 +67,7 @@ __manifest__ = {
 SPEC = "rapp/1"
 SRC = "https://raw.githubusercontent.com/kody-w/rapp-1/main/rapp.py"
 _HEX64 = re.compile(r"[0-9a-f]{64}")
-_UTC = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z")
+_UTC = re.compile(r"([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})\.[0-9]{3}Z", re.ASCII)
 _LCLABEL = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 _RAPPID = re.compile(r"rappid:@([a-z0-9]+(?:-[a-z0-9]+)*)/([a-z0-9]+(?:-[a-z0-9]+)*):([0-9a-f]{64})")
 FRAME_KEYS = {"spec", "kind", "stream_id", "seq", "utc", "payload",
@@ -98,36 +98,155 @@ PROFILE_DISCOVERY = {
 
 
 # ── RAPP primitives (embedded verbatim from rapp.py; the `sync` action proves parity) ──
+# §4 (b), RFC 7493 §2.1: surrogate code points and the 66 noncharacters are outside I-JSON.
+_NOT_IJSON_CHAR = re.compile(
+    "[\ud800-\udfff\ufdd0-\ufdef"
+    + "".join(chr(plane << 16 | 0xFFFE) + chr(plane << 16 | 0xFFFF) for plane in range(17))
+    + "]"
+)
+
+
+def _ijson_string(s):
+    """A §4 string or member name in JCS form; refuses a surrogate or a noncharacter (§4 (b))."""
+    bad = _NOT_IJSON_CHAR.search(s)
+    if bad:
+        raise ValueError(
+            f"string holds U+{ord(bad.group()):04X}, a surrogate or noncharacter outside I-JSON (§4 (b))"
+        )
+    return json.dumps(s, ensure_ascii=False)
+
+
+def _number_to_string(x):
+    """ECMA-262 Number::toString of a finite binary64 value: the RFC 8785 §3.2.2.3 number form."""
+    if x != x or x in (float("inf"), float("-inf")):
+        raise ValueError("NaN and infinities are outside the §4 domain")
+    if x == 0:
+        return "0"                          # both zeros; -0 serializes as 0
+    # repr() is the shortest digit string that round-trips (nearest, ties to even), the
+    # digits Number::toString picks; only the layout differs, so re-lay it out here.
+    mantissa, _, exponent = repr(abs(x)).partition("e")
+    whole, _, fraction = mantissa.partition(".")
+    digits = (whole + fraction).lstrip("0")
+    n = len(whole) + int(exponent or 0) - (len(whole) + len(fraction) - len(digits))
+    digits = digits.rstrip("0")
+    k = len(digits)                         # value = 0.digits * 10**n
+    if k <= n <= 21:
+        text = digits + "0" * (n - k)
+    elif 0 < n <= 21:
+        text = digits[:n] + "." + digits[n:]
+    elif -6 < n <= 0:
+        text = "0." + "0" * -n + digits
+    else:
+        text = digits[0] + ("." + digits[1:] if k > 1 else "") + "e" + ("+" if n > 0 else "-") + str(abs(n - 1))
+    return ("-" if x < 0 else "") + text
+
+
+# §5 (rev-17 E-7): every tag belongs to exactly one function; any other tag is refused.
+_H_SPACES = frozenset({"rapp/1:particle", "rapp/1:wave", "rapp/1:egg-manifest",
+                       "rapp/1:sealed-aad", "rapp/1:sealed-key-request"})
+_HB_SPACES = frozenset({"rapp/1:egg", "rapp/1:rappid", "rapp/1:grail", "rapp/1:seal"})
+
+
+# §6.2 (rev-17 E-8): the only SPKI octets a keyed mint accepts. RFC 8410 id-Ed25519 with a 32-octet key;
+# RFC 5480 id-ecPublicKey prime256v1 with a 65-octet uncompressed point (04 || X || Y).
+_ED25519_SPKI_PREFIX = bytes.fromhex("302a300506032b6570032100")
+_P256_SPKI_PREFIX = bytes.fromhex("3059301306072a8648ce3d020106082a8648ce3d030107034200")
+_ED25519_P = 2**255 - 19
+_ED25519_D = -121665 * pow(121666, _ED25519_P - 2, _ED25519_P) % _ED25519_P
+_P256_P = 2**256 - 2**224 + 2**192 + 2**96 - 1
+_P256_B = 0x5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B
+
+
+def _ed25519_point_decodes(key):
+    """RFC 8032 §5.1.3: the 32 octets decode to a point (y < p, x recoverable, no x = 0 with sign 1)."""
+    p = _ED25519_P
+    y = int.from_bytes(key, "little") & (2**255 - 1)
+    sign = key[31] >> 7
+    if y >= p:
+        return False
+    u = (y * y - 1) % p
+    v = (_ED25519_D * y * y + 1) % p
+    x = u * pow(v, 3, p) * pow(u * pow(v, 7, p), (p - 5) // 8, p) % p
+    if (v * x * x - u) % p != 0:
+        if (v * x * x + u) % p != 0:
+            return False
+        x = x * pow(2, (p - 1) // 4, p) % p
+    return not (x == 0 and sign == 1)
+
+
+def _p256_point_on_curve(point):
+    """SEC 1 §3.2.2.1 for an uncompressed point: 0 <= X, Y < p and Y^2 = X^3 - 3X + b (mod p)."""
+    p = _P256_P
+    x = int.from_bytes(point[1:33], "big")
+    y = int.from_bytes(point[33:65], "big")
+    return x < p and y < p and (y * y - (x * x * x - 3 * x + _P256_B)) % p == 0
+
+
+def _spki_ok(spki_der):
+    """True iff the octets are exactly the DER SPKI of a §10 key (§6.2, rev-17 E-8).
+
+    The point must also decode (Ed25519) or lie on the curve (P-256). The five clean-room
+    implementations split 4-1 on this at mint (python D-11/D-C07, typescript D-27, go D-21 and
+    rust D-20 decode the point; swift D-06/D-32 checks the layout only); the reference follows
+    the majority, since a key that is not a point can never verify a §10 signature."""
+    if not isinstance(spki_der, (bytes, bytearray)):
+        return False
+    spki_der = bytes(spki_der)
+    if len(spki_der) == 44 and spki_der.startswith(_ED25519_SPKI_PREFIX):
+        return _ed25519_point_decodes(spki_der[12:])
+    if len(spki_der) == 91 and spki_der.startswith(_P256_SPKI_PREFIX) and spki_der[26] == 0x04:
+        return _p256_point_on_curve(spki_der[26:])
+    return False
+
+
 def canonical(v):
+    """RFC 8785 JCS over the §4 I-JSON domain. Returns the canonical form as a str (encode as UTF-8)."""
     if v is None or isinstance(v, bool):
         return json.dumps(v)
     if isinstance(v, int):
-        if abs(v) > 2**53 - 1:
-            raise ValueError("int outside interoperable range (|n| > 2^53-1); carry it as a string")
-        return json.dumps(v)
+        if abs(v) <= 2**53 - 1:
+            return json.dumps(v)
+        # §4 (c): a number is a binary64 value; an int outside +/-(2^53-1) is admitted only
+        # when it is one exactly (2**53 is, 2**53 + 1 is not), and then serializes as JCS does.
+        try:
+            as_binary64 = float(v)
+        except OverflowError:
+            as_binary64 = None
+        if as_binary64 != v:
+            raise ValueError("int is not exactly representable as binary64 (§4 (c)); carry it as a string")
+        return _number_to_string(as_binary64)
     if isinstance(v, float):
-        raise ValueError("floats require full-JCS number serialization; use ints/strings")
+        return _number_to_string(v)
     if isinstance(v, str):
-        return json.dumps(v, ensure_ascii=False)
+        return _ijson_string(v)
     if isinstance(v, list):
         return "[" + ",".join(canonical(x) for x in v) + "]"
     if isinstance(v, dict):
-        keys = sorted(v.keys(), key=lambda k: k.encode("utf-16-be"))
+        if not all(isinstance(k, str) for k in v):
+            raise ValueError("member names must be strings")
+        # RFC 8785 orders member names by UTF-16 code units; plain sorted()
+        # is code-POINT order and diverges for non-BMP keys.
+        keys = sorted(v.keys(), key=lambda k: k.encode("utf-16-be", "surrogatepass"))
         if len(keys) != len(set(keys)):
             raise ValueError("duplicate keys")
-        return "{" + ",".join(json.dumps(k, ensure_ascii=False) + ":" + canonical(v[k]) for k in keys) + "}"
+        return "{" + ",".join(_ijson_string(k) + ":" + canonical(v[k]) for k in keys) + "}"
     raise ValueError(f"non-I-JSON value: {type(v)}")
 
 
 def H(space, v):
+    if not (isinstance(space, str) and space in _H_SPACES):
+        raise ValueError(f"§5: H (a value hash) is used only with the tags {sorted(_H_SPACES)}; refused {space!r}")
     return hashlib.sha256(space.encode() + b"\x0a" + canonical(v).encode("utf-8")).hexdigest()
 
 
 def Hb(space, b):
+    if not (isinstance(space, str) and space in _HB_SPACES):
+        raise ValueError(f"§5: Hb (an octet hash) is used only with the tags {sorted(_HB_SPACES)}; refused {space!r}")
     return hashlib.sha256(space.encode() + b"\x0a" + b).hexdigest()
 
 
 def mint_rappid(owner, slug, spki_der=None):
+    """§6.2 mint-once. keyless = Hb(uuid4); keyed = Hb(SPKI). NEVER a name-hash."""
     if (
         not isinstance(owner, str)
         or not _LCLABEL.fullmatch(owner)
@@ -137,7 +256,18 @@ def mint_rappid(owner, slug, spki_der=None):
         or not 1 <= len(slug) <= 100
     ):
         raise ValueError("owner or slug violates the RAPPID grammar")
-    tail = Hb("rapp/1:rappid", spki_der) if spki_der is not None else Hb("rapp/1:rappid", uuid.uuid4().bytes)
+    if spki_der is not None:
+        if not _spki_ok(spki_der):
+            raise ValueError(
+                "§6.2: a keyed mint needs the exact DER SPKI of an Ed25519 key (RFC 8410) "
+                "or of a P-256 key with an uncompressed on-curve point"
+            )
+        tail = Hb("rapp/1:rappid", bytes(spki_der))
+    else:
+        octets = uuid.uuid4().bytes
+        if len(octets) != 16 or octets[6] >> 4 != 4 or octets[8] >> 6 != 0b10:
+            raise ValueError("§6.2: keyless mint octets are not a UUIDv4 (RFC 9562: version 4, variant 0b10)")
+        tail = Hb("rapp/1:rappid", octets)
     return f"rappid:@{owner}/{slug}:{tail}"
 
 
@@ -153,13 +283,17 @@ def rappid_valid(s):
 
 
 def utc_valid(value):
-    if not isinstance(value, str) or not _UTC.fullmatch(value):
+    """§7.4 (rev-17 E-1): exactly the 24-octet form YYYY-MM-DDTHH:MM:SS.mmmZ in ASCII digits,
+    calendar-valid on the proleptic Gregorian calendar for years 0000-9999, seconds 00-59."""
+    if not isinstance(value, str) or len(value) != 24 or not value.isascii():
         return False
-    try:
-        datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%fZ")
-    except ValueError:
+    match = _UTC.fullmatch(value)
+    if not match:
         return False
-    return True
+    year, month, day, hour, minute, second = (int(group) for group in match.groups())
+    leap = year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
+    days = (31, 29 if leap else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+    return 1 <= month <= 12 and 1 <= day <= days[month - 1] and hour <= 23 and minute <= 59 and second <= 59
 
 
 def build_frame(kind, stream_id, seq, utc, payload, prev, prev_wave=None, sig=None):
