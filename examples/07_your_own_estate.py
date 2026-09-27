@@ -76,6 +76,9 @@ ok, _, _ = R.verify_frame(stranger, head=None, stream_id_of_record=factory)
 bound, breason = reg.check_frame_binding(stranger)
 show("grammatical but unregistered kind: reference passes shape, registry refuses", ok and not bound, breason)
 assert ok and not bound
+ok, step, why = R.verify_frame(stranger, head=None, stream_id_of_record=factory, registry=reg)
+show("the same frame verified WITH the registry is refused at §7.5 step 1", not ok and step == "1", why)
+assert not ok and step == "1"
 
 # ── 5. Time-scoped authority (§10, §13.2). ──
 print("\nsigner and owner, scoped in time:")

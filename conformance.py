@@ -5,6 +5,7 @@ Run: python3 conformance.py
 Exit 0 = all controlled vectors pass. Mutable remote state never defines
 whether the protocol implementation conforms; use realcheck.py for that audit.
 """
+import base64
 import json
 import urllib.request
 import hashlib
@@ -94,19 +95,33 @@ check(
     (not ok) and step == "1" and (not calendar_ok) and calendar_step == "1",
 )
 
-# V9 swarm frame must be signed
-sw = R.build_frame("swarm.echo", "net:commons", 0, "2026-07-15T00:00:00.000Z", {"x": 1}, prev=None, prev_wave=None)
+# V9 swarm frame must be signed. A producer refuses to emit an unsigned swarm frame (§8), so
+# build a signed one and strip its sig: frame_hash excludes sig, so steps 1-5 still pass.
+well_formed_sig = (
+    base64.urlsafe_b64encode(
+        R.canonical({"alg": "EdDSA", "b64": False, "crit": ["b64"], "kid": "rappid:@kody/commons:" + "c" * 64}).encode("utf-8")
+    ).rstrip(b"=").decode("ascii")
+    + ".."
+    + base64.urlsafe_b64encode(bytes(64)).rstrip(b"=").decode("ascii")
+)
+sw = R.build_frame("swarm.echo", "net:commons", 0, "2026-07-15T00:00:00.000Z", {"x": 1},
+                   prev=None, prev_wave=None, sig=well_formed_sig)
+sw["sig"] = None
 ok, step, _ = R.verify_frame(sw, head=None, stream_id_of_record="net:commons")
 forged = dict(g)
-forged["sig"] = "not-a-jws"
+forged["sig"] = well_formed_sig          # a §10 form, but no trusted verifier: step 6
 forged_ok, forged_step, _ = R.verify_frame(
     forged,
     head=None,
     stream_id_of_record=sid,
 )
+malformed = dict(g)
+malformed["sig"] = "not-a-jws"           # not a §10 detached JWS at all: step 1 (rev-17 E-10)
+malformed_ok, malformed_step, _ = R.verify_frame(malformed, head=None, stream_id_of_record=sid)
 check(
-    "V9 unsigned swarm and unverified frame signatures are refused at step 6",
-    (not ok) and step == "6" and (not forged_ok) and forged_step == "6",
+    "V9 unsigned swarm and unverified frame signatures are refused at step 6 (a malformed sig at step 1)",
+    (not ok) and step == "6" and (not forged_ok) and forged_step == "6"
+    and (not malformed_ok) and malformed_step == "1",
 )
 
 # V10 sealed artifact: public ciphertext, signed manifest, scoped key release

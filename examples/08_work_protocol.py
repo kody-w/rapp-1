@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import sys
 from pathlib import Path
@@ -62,6 +63,16 @@ W.validate_observation(
     qualification_verifier=qualification_verifier,
 )
 
+# A stand-in for a real signature: a well-formed §10 detached JWS (the form is checked at
+# §7.5 step 1) whose 64 signature octets are zero. The example verifier accepts exactly it.
+EXAMPLE_SIGNATURE = (
+    base64.urlsafe_b64encode(
+        R.canonical({"alg": "EdDSA", "b64": False, "crit": ["b64"], "kid": organization["organization_rappid"]}).encode("utf-8")
+    ).rstrip(b"=").decode("ascii")
+    + ".."
+    + base64.urlsafe_b64encode(bytes(64)).rstrip(b"=").decode("ascii")
+)
+
 payloads = [
     ("work.organization", bundle["organization"]),
     ("work.catalog", bundle["catalog"]),
@@ -82,7 +93,7 @@ for sequence, (kind, payload) in enumerate(payloads):
         or payload.get("issued_utc"),
         payload,
         None if head is None else head["payload_hash"],
-        sig="example-signature",
+        sig=EXAMPLE_SIGNATURE,
     )
     W.authorize_frame(
         frame,
@@ -91,7 +102,7 @@ for sequence, (kind, payload) in enumerate(payloads):
         stream_id=organization["organization_rappid"],
         registered_kinds=set(W.WORK_KINDS),
         signature_verifier=lambda _unsigned, signature: (
-            signature == "example-signature",
+            signature == EXAMPLE_SIGNATURE,
             "bad example signature",
         ),
         authorization_verifier=lambda _frame, _purpose: True,

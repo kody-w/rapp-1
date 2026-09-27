@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import base64
 import copy
 import hashlib
 import json
@@ -650,6 +651,15 @@ check(
 )
 
 controller = "rappid:@kody-w/release-controller:" + "a" * 64
+# A syntactically valid §10 detached JWS (its form is checked at §7.5 step 1); no key is
+# involved, the fixture verifier accepts exactly these octets.
+FIXTURE_SIGNATURE = (
+    base64.urlsafe_b64encode(
+        R.canonical({"alg": "EdDSA", "b64": False, "crit": ["b64"], "kid": controller}).encode("utf-8")
+    ).rstrip(b"=").decode("ascii")
+    + ".."
+    + base64.urlsafe_b64encode(bytes(64)).rstrip(b"=").decode("ascii")
+)
 promotion_frame = R.build_frame(
     "body.pulse",
     controller,
@@ -657,9 +667,9 @@ promotion_frame = R.build_frame(
     promotion["decided_utc"],
     promotion,
     None,
-    sig="fixture-signature",
+    sig=FIXTURE_SIGNATURE,
 )
-signature_verifier = lambda _unsigned, signature: (signature == "fixture-signature", "bad fixture signature")
+signature_verifier = lambda _unsigned, signature: (signature == FIXTURE_SIGNATURE, "bad fixture signature")
 check(
     "O14 signed authorized promotion frame is accepted",
     C.authorize_promotion_frame(
@@ -769,7 +779,7 @@ plan_frame = R.build_frame(
     plan["created_utc"],
     plan,
     promotion_frame["payload_hash"],
-    sig="fixture-signature",
+    sig=FIXTURE_SIGNATURE,
 )
 check(
     "O19 signed deployment plan frame binds the qualified release",
@@ -947,7 +957,7 @@ shadow_decision_frame = R.build_frame(
     shadow_decision["decided_utc"],
     shadow_decision,
     plan_frame["payload_hash"],
-    sig="fixture-signature",
+    sig=FIXTURE_SIGNATURE,
 )
 check(
     "O25 signed shadow decision starts the rollout chain",
@@ -1294,7 +1304,7 @@ decision_frame = R.build_frame(
     decision["decided_utc"],
     decision,
     shadow_decision_frame["payload_hash"],
-    sig="fixture-signature",
+    sig=FIXTURE_SIGNATURE,
 )
 check(
     "O35 signed authorized deployment decision is accepted",
@@ -1348,7 +1358,7 @@ hold_frame = R.build_frame(
     hold_decision["decided_utc"],
     hold_decision,
     shadow_decision_frame["payload_hash"],
-    sig="fixture-signature",
+    sig=FIXTURE_SIGNATURE,
 )
 bypass_frame = R.build_frame(
     "body.pulse",
@@ -1357,7 +1367,7 @@ bypass_frame = R.build_frame(
     decision["decided_utc"],
     decision,
     hold_frame["payload_hash"],
-    sig="fixture-signature",
+    sig=FIXTURE_SIGNATURE,
 )
 refused(
     "O35c a later advance cannot bypass a hold in the frame ancestry",
