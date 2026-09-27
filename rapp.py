@@ -116,10 +116,20 @@ def canonical(v):
 
 
 # ---------- §5 domain-separated content addressing ----------
+# §5 (rev-17 E-7): every tag belongs to exactly one function; any other tag is refused.
+_H_SPACES = frozenset({"rapp/1:particle", "rapp/1:wave", "rapp/1:egg-manifest",
+                       "rapp/1:sealed-aad", "rapp/1:sealed-key-request"})
+_HB_SPACES = frozenset({"rapp/1:egg", "rapp/1:rappid", "rapp/1:grail", "rapp/1:seal"})
+
+
 def H(space, v):
+    if not (isinstance(space, str) and space in _H_SPACES):
+        raise ValueError(f"§5: H (a value hash) is used only with the tags {sorted(_H_SPACES)}; refused {space!r}")
     return hashlib.sha256(space.encode() + b"\x0a" + canonical(v).encode("utf-8")).hexdigest()
 
 def Hb(space, b):
+    if not (isinstance(space, str) and space in _HB_SPACES):
+        raise ValueError(f"§5: Hb (an octet hash) is used only with the tags {sorted(_HB_SPACES)}; refused {space!r}")
     return hashlib.sha256(space.encode() + b"\x0a" + b).hexdigest()
 
 
