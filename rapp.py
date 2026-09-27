@@ -25,7 +25,7 @@ from datetime import datetime
 
 SPEC = "rapp/1"
 _HEX64 = re.compile(r"[0-9a-f]{64}")
-_UTC = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z")
+_UTC = re.compile(r"([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})\.[0-9]{3}Z", re.ASCII)
 _LCLABEL = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 _RAPPID = re.compile(r"rappid:@([a-z0-9]+(?:-[a-z0-9]+)*)/([a-z0-9]+(?:-[a-z0-9]+)*):([0-9a-f]{64})")
 MAX_SEALED_PLAINTEXT_BYTES = 2**30
@@ -222,13 +222,17 @@ def _names_ok(value):
 
 
 def utc_valid(value):
-    if not isinstance(value, str) or not _UTC.fullmatch(value):
+    """§7.4 (rev-17 E-1): exactly the 24-octet form YYYY-MM-DDTHH:MM:SS.mmmZ in ASCII digits,
+    calendar-valid on the proleptic Gregorian calendar for years 0000-9999, seconds 00-59."""
+    if not isinstance(value, str) or len(value) != 24 or not value.isascii():
         return False
-    try:
-        datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%fZ")
-    except ValueError:
+    match = _UTC.fullmatch(value)
+    if not match:
         return False
-    return True
+    year, month, day, hour, minute, second = (int(group) for group in match.groups())
+    leap = year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
+    days = (31, 29 if leap else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+    return 1 <= month <= 12 and 1 <= day <= days[month - 1] and hour <= 23 and minute <= 59 and second <= 59
 
 
 def rappid_parts(value):
