@@ -520,13 +520,11 @@ def _zip_unpack(blob):
         raise ValueError("ZIP end record disk numbers MUST be 0")
     if disk_entries != entries_total:
         raise ValueError("ZIP end record entry counts MUST be equal")
-    if (
-        entries_total == 0xFFFF
-        or 0xFFFFFFFF in (directory_size, directory_offset)
-        or blob[end_at - 20:end_at - 16] == b"PK\x06\x07"
-    ):
+    if entries_total == 0xFFFF or 0xFFFFFFFF in (directory_size, directory_offset):
         raise ValueError("ZIP64 records are not a §9.1 container")
     if directory_offset + directory_size != end_at:
+        if end_at >= 20 and blob[end_at - 20:end_at - 16] == b"PK\x06\x07":
+            raise ValueError("ZIP64 records are not a §9.1 container")
         raise ValueError("ZIP central directory MUST end at the end record")
     entries, cursor, at = [], 0, directory_offset
     for _ in range(entries_total):
