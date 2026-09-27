@@ -5,13 +5,14 @@ spec claims are byte-for-byte interoperable, so the conformance suite can PROVE 
 standard is implementable and self-consistent — and so it can be run against real
 estate artifacts to see where reality conforms and where reality is the drift RAPP fixes.
 
-Scope note: §4 canonicalization here is JCS restricted to the string/int/bool/null/
-array/object domain (no floats) — exactly the profile RAPP §4 allows for payloads.
-Full IEEE-754 number serialization (RFC 8785) is the production requirement; the
+Scope note: §4 canonicalization here is full RFC 8785 JCS over the I-JSON domain:
+numbers are binary64 and serialize with ECMA-262 Number::toString (0.1 -> "0.1",
+1e21 -> "1e+21"), and integers up to 2^53-1 serialize as their digits. The
 reference vectors use exact-integer payloads so the hashes are reproducible anywhere.
 """
 import hashlib
 import base64
+import decimal
 import hmac
 import json
 import re
@@ -29,6 +30,7 @@ _LCLABEL = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 _RAPPID = re.compile(r"rappid:@([a-z0-9]+(?:-[a-z0-9]+)*)/([a-z0-9]+(?:-[a-z0-9]+)*):([0-9a-f]{64})")
 MAX_SEALED_PLAINTEXT_BYTES = 2**30
 MAX_CANONICAL_BYTES = 1024 * 1024
+MAX_JSON_INPUT_BYTES = 64 * 1024 * 1024   # a DoS guard on raw input only; §4 (d) bounds the canonical form
 _B64URL = re.compile(r"^[A-Za-z0-9_-]*$")
 
 FRAME_KEYS = {"spec", "kind", "stream_id", "seq", "utc", "payload",
@@ -36,31 +38,80 @@ FRAME_KEYS = {"spec", "kind", "stream_id", "seq", "utc", "payload",
 
 
 # ---------- §4 canonicalization ----------
+# §4 (b), RFC 7493 §2.1: surrogate code points and the 66 noncharacters are outside I-JSON.
+_NOT_IJSON_CHAR = re.compile(
+    "[\ud800-\udfff\ufdd0-\ufdef"
+    + "".join(chr(plane << 16 | 0xFFFE) + chr(plane << 16 | 0xFFFF) for plane in range(17))
+    + "]"
+)
+
+
+def _ijson_string(s):
+    """A §4 string or member name in JCS form; refuses a surrogate or a noncharacter (§4 (b))."""
+    bad = _NOT_IJSON_CHAR.search(s)
+    if bad:
+        raise ValueError(
+            f"string holds U+{ord(bad.group()):04X}, a surrogate or noncharacter outside I-JSON (§4 (b))"
+        )
+    return json.dumps(s, ensure_ascii=False)
+
+
+def _number_to_string(x):
+    """ECMA-262 Number::toString of a finite binary64 value: the RFC 8785 §3.2.2.3 number form."""
+    if x != x or x in (float("inf"), float("-inf")):
+        raise ValueError("NaN and infinities are outside the §4 domain")
+    if x == 0:
+        return "0"                          # both zeros; -0 serializes as 0
+    # repr() is the shortest digit string that round-trips (nearest, ties to even), the
+    # digits Number::toString picks; only the layout differs, so re-lay it out here.
+    mantissa, _, exponent = repr(abs(x)).partition("e")
+    whole, _, fraction = mantissa.partition(".")
+    digits = (whole + fraction).lstrip("0")
+    n = len(whole) + int(exponent or 0) - (len(whole) + len(fraction) - len(digits))
+    digits = digits.rstrip("0")
+    k = len(digits)                         # value = 0.digits * 10**n
+    if k <= n <= 21:
+        text = digits + "0" * (n - k)
+    elif 0 < n <= 21:
+        text = digits[:n] + "." + digits[n:]
+    elif -6 < n <= 0:
+        text = "0." + "0" * -n + digits
+    else:
+        text = digits[0] + ("." + digits[1:] if k > 1 else "") + "e" + ("+" if n > 0 else "-") + str(abs(n - 1))
+    return ("-" if x < 0 else "") + text
+
+
 def canonical(v):
-    """RFC 8785 JCS over the exact-value domain (no floats). Returns UTF-8 str."""
+    """RFC 8785 JCS over the §4 I-JSON domain. Returns the canonical form as a str (encode as UTF-8)."""
     if v is None or isinstance(v, bool):
         return json.dumps(v)
     if isinstance(v, int):
-        if abs(v) > 2**53 - 1:
-            # I-JSON (RFC 7493) interoperable domain, which SPEC.md adopts: a
-            # JS consumer's JSON.parse collapses larger ints (and >=1e21
-            # re-serializes as exponent notation), so a producer-side hash
-            # over such a value can NEVER be reproduced by a browser verifier.
-            raise ValueError("int outside interoperable range (|n| > 2^53-1); carry it as a string")
-        return json.dumps(v)               # exact integers only in this profile
+        if abs(v) <= 2**53 - 1:
+            return json.dumps(v)
+        # §4 (c): a number is a binary64 value; an int outside +/-(2^53-1) is admitted only
+        # when it is one exactly (2**53 is, 2**53 + 1 is not), and then serializes as JCS does.
+        try:
+            as_binary64 = float(v)
+        except OverflowError:
+            as_binary64 = None
+        if as_binary64 != v:
+            raise ValueError("int is not exactly representable as binary64 (§4 (c)); carry it as a string")
+        return _number_to_string(as_binary64)
     if isinstance(v, float):
-        raise ValueError("floats require full-JCS number serialization; use ints/strings")
+        return _number_to_string(v)
     if isinstance(v, str):
-        return json.dumps(v, ensure_ascii=False)
+        return _ijson_string(v)
     if isinstance(v, list):
         return "[" + ",".join(canonical(x) for x in v) + "]"
     if isinstance(v, dict):
+        if not all(isinstance(k, str) for k in v):
+            raise ValueError("member names must be strings")
         # RFC 8785 orders member names by UTF-16 code units; plain sorted()
         # is code-POINT order and diverges for non-BMP keys.
-        keys = sorted(v.keys(), key=lambda k: k.encode("utf-16-be"))
+        keys = sorted(v.keys(), key=lambda k: k.encode("utf-16-be", "surrogatepass"))
         if len(keys) != len(set(keys)):
             raise ValueError("duplicate keys")
-        return "{" + ",".join(json.dumps(k, ensure_ascii=False) + ":" + canonical(v[k]) for k in keys) + "}"
+        return "{" + ",".join(_ijson_string(k) + ":" + canonical(v[k]) for k in keys) + "}"
     raise ValueError(f"non-I-JSON value: {type(v)}")
 
 
@@ -413,10 +464,55 @@ def pack_egg(variant, rappid, created_utc, files=None, payload=None, sig=None):
     return buf.getvalue()
 
 
+def _json_number(token):
+    """§4 (c): parse a number token as its nearest binary64 d; refuse unless d is finite and
+    Number::toString(d) denotes exactly the token's value (so 0.1 passes, 0.10000000000000001 does not)."""
+    d = float(token)                                   # correctly rounded, ties to even; overlong -> +/-inf
+    if d != d or d in (float("inf"), float("-inf")):
+        raise ValueError(f"number token {token[:40]} is not a finite binary64 value (§4 (c))")
+    try:
+        same = decimal.Decimal(token) == decimal.Decimal(_number_to_string(d))
+    except ArithmeticError:
+        # An exponent beyond decimal's range. d is finite, so it is a zero, and the token
+        # denotes the same value iff every digit of its significand is zero.
+        same = not any(c in "123456789" for c in token.lower().partition("e")[0])
+    if not same:
+        raise ValueError(f"number token {token[:40]} does not survive the binary64 round trip (§4 (c))")
+    return d
+
+
+def _json_int(token):
+    if token == "-0":
+        return -0.0          # E-9: -0 is not an integer token a field rule may take for 0; canonical(-0.0) is "0"
+    d = _json_number(token)  # refuses 9007199254740993 and overlong tokens before int() runs
+    value = int(token)
+    # 10**23 passes §4 (c) (its d prints as "1e+23") but is not d; the value parsed is d itself.
+    return value if value == d else int(d)
+
+
+def _json_constant(token):
+    raise ValueError(f"{token} is not a JSON number (§4 (c))")
+
+
 def _strict_json(blob):
-    raw = blob.encode("utf-8") if isinstance(blob, str) else blob
-    if not isinstance(raw, bytes) or len(raw) > MAX_CANONICAL_BYTES:
-        raise ValueError("JSON exceeds the 1 MiB input ceiling")
+    """Parse one §4 JSON text (octets or str) and return its value, or raise ValueError."""
+    if isinstance(blob, (bytes, bytearray)):
+        if len(blob) > MAX_JSON_INPUT_BYTES:
+            raise ValueError("JSON text exceeds the 64 MiB input guard")
+        if blob.startswith(b"\xef\xbb\xbf"):
+            raise ValueError("JSON text starts with a byte-order mark; §4 refuses it (never strips it)")
+        try:
+            text = bytes(blob).decode("utf-8")        # strict: UTF-16/UTF-32 text is never transcoded
+        except UnicodeDecodeError as exc:
+            raise ValueError(f"JSON text is not well-formed UTF-8 (§4): {exc}") from None
+    elif isinstance(blob, str):
+        if len(blob) > MAX_JSON_INPUT_BYTES:          # a str is bounded by its code points
+            raise ValueError("JSON text exceeds the 64 MiB input guard")
+        text = blob
+    else:
+        raise ValueError("JSON text must be octets or a str")
+    if text.startswith("\ufeff"):
+        raise ValueError("JSON text starts with a byte-order mark; §4 refuses it (never strips it)")
 
     def pairs(values):
         result = {}
@@ -426,18 +522,28 @@ def _strict_json(blob):
             result[key] = value
         return result
 
-    value = json.loads(raw, object_pairs_hook=pairs)
+    try:
+        value = json.loads(
+            text,
+            object_pairs_hook=pairs,
+            parse_float=_json_number,
+            parse_int=_json_int,
+            parse_constant=_json_constant,
+        )
+    except RecursionError:
+        raise ValueError("JSON nesting depth exceeds 64 (§4 (d))") from None
+    # §4 (d): the root is depth 1 and only objects and arrays add a level; scalars never do.
     stack = [(value, 1)]
     while stack:
         current, depth = stack.pop()
-        if depth > 64:
-            raise ValueError("JSON nesting depth exceeds 64")
-        if isinstance(current, dict):
-            stack.extend((item, depth + 1) for item in current.values())
-        elif isinstance(current, list):
-            stack.extend((item, depth + 1) for item in current)
+        children = current.values() if isinstance(current, dict) else current if isinstance(current, list) else ()
+        for item in children:
+            if isinstance(item, (dict, list)):
+                if depth + 1 > 64:
+                    raise ValueError("JSON nesting depth exceeds 64 (§4 (d))")
+                stack.append((item, depth + 1))
     if len(canonical(value).encode("utf-8")) > MAX_CANONICAL_BYTES:
-        raise ValueError("canonical JSON exceeds the 1 MiB input ceiling")
+        raise ValueError("canonical JSON exceeds the 1 MiB ceiling (§4 (d))")
     return value
 
 

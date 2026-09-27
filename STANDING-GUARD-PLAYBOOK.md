@@ -108,7 +108,7 @@ Everything in RAPP is addressed through two functions with an exact newline-sepa
 def Hb(space, b):   # over raw octets
     return hashlib.sha256(space.encode() + b"\x0a" + b).hexdigest()
 
-def H(space, v):    # over a canonicalized JSON value (§4 JCS, no floats)
+def H(space, v):    # over a canonicalized JSON value (§4 JCS)
     return hashlib.sha256(space.encode() + b"\x0a" + canonical(v).encode("utf-8")).hexdigest()
 ```
 
@@ -123,7 +123,7 @@ The ratified spaces (each used by either `H` or `Hb`, never both):
 | `rapp/1:egg-manifest` | the egg's whole-address (via `H`) |
 | `rapp/1:seal` | seals |
 
-`canonical(v)` is RFC 8785 JCS restricted to strings/ints/bools/null/arrays/objects (no floats): sorted keys, no whitespace, `ensure_ascii=False`. Use the reference `rapp.canonical` — do not hand-roll.
+`canonical(v)` is RFC 8785 JCS over the §4 I-JSON domain (numbers serialize with ECMA-262 `Number::toString`): sorted keys, no whitespace, `ensure_ascii=False`. Use the reference `rapp.canonical` — do not hand-roll.
 
 ---
 

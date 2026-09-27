@@ -98,7 +98,7 @@ def _read_blob(path, maximum=None):
 
 
 def _strict_json(path):
-    return R._strict_json(_read_blob(path, R.MAX_CANONICAL_BYTES))
+    return R._strict_json(_read_blob(path, R.MAX_JSON_INPUT_BYTES))
 
 
 def _looks_like_frame(blob):
@@ -324,7 +324,7 @@ def check_repo(root, signature_verifier=None):
         rel = os.path.relpath(path, root)
         blob = None
         try:
-            blob = _read_blob(path, R.MAX_CANONICAL_BYTES)
+            blob = _read_blob(path, R.MAX_JSON_INPUT_BYTES)
             value = R._strict_json(blob)
         except Exception as exc:
             candidate = is_required or (
