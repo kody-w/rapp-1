@@ -544,15 +544,35 @@ def check_repo(root, signature_verifier=None):
                 }
             )
 
-    # Eggs retain existing behavior, but only regular, non-symlink files reach here.
+    # Eggs: §9.3 steps (0)-(2) always, §10 only with a trusted verifier (as for frames).
+    # Only regular, non-symlink files reach here.
     for path in egg_paths:
         has_artifact = True
         rel = os.path.relpath(path, root)
         try:
             blob = _read_blob(path)
-            ok, step, why = R.verify_egg(blob)
+            ok, step, why = R.verify_egg(blob, signature_verifier=signature_verifier)
             if ok:
                 evidence.append({"artifact": rel, "ok": "egg conforms to §9 (rapp/1-egg)"})
+            elif (
+                step == "§10"
+                and signature_verifier is None
+                and R.verify_egg_static(blob)[0]
+            ):
+                evidence.append(
+                    {
+                        "artifact": rel,
+                        "ok": "rapp/1-egg passes §9.3 steps (0)-(2)",
+                        "status": "unverified",
+                    }
+                )
+                finding(
+                    rel,
+                    "§10 signature verification unavailable",
+                    "egg signature was not checked because no trusted "
+                    "verifier/anchor was supplied",
+                    status="unverified",
+                )
             else:
                 try:
                     manifest, _ = R.read_egg(blob)

@@ -12,6 +12,9 @@ UNIFY + STEAMROLL: there is NO legacy. EVERY cartridge becomes a rapp/1-egg — 
 the rappterbook `.rappter`/`.rapp` data blobs (`_format`/`body`/`lineage`), which are
 wrapped as an `organism` egg holding their data as `organism.json`. No format is skipped,
 no legacy reader is retained; producers emit and consumers read only `rapp/1-egg`.
+rapp.pack_egg is a §9.3 producer, so legacy input that cannot become a conformant egg (an
+unsigned neighborhood pointer, a path §9.1 forbids, a member bundle whose sub-eggs do not
+verify) raises ValueError with the reason; nothing is repaired or emitted half-migrated.
 
 Usage:  python3 egg_repack.py <in.egg> <out.egg>   ·   or import repack(blob)->bytes
 """
@@ -115,13 +118,11 @@ def repack(blob, name_hint="thing"):
     if variant == "neighborhood":
         # tutorial/QR "neighborhood" pointers are invites; a member-bundle is a neighborhood.
         members = manifest.get("payload", {}).get("members") or manifest.get("members")
-        if not members:   # pointer → invite (sig required; unsigned tutorial invites get a placeholder note)
-            if canon is None: canon = f"rappid:@kody-w/{slug}:{rapp.Hb('rapp/1:rappid', slug.encode())}"
-            payload = {"target_rappid": canon,
-                       "target_url": manifest.get("url") or f"https://kody-w.github.io/{slug}/",
-                       "target_kind": "neighborhood"}
-            # unsigned legacy pointer — mark, since §9 invite requires a real estate-owner sig
-            return rapp.pack_egg("invite", canon, created, payload=payload, sig="MIGRATED-UNSIGNED-legacy-pointer")
+        if not members:   # a pointer is an invite, and §9.1 requires an estate-owner sig on it
+            raise ValueError(
+                "legacy neighborhood pointer is unsigned; a §9 invite egg requires an estate-owner "
+                "§10 sig (§9.1), so it cannot be migrated: re-issue it as an invite signed by the estate owner"
+            )
         variant = "neighborhood"
 
     # ZIP variants (organism / rapplication / neighborhood)
@@ -162,7 +163,10 @@ def repack(blob, name_hint="thing"):
 if __name__ == "__main__":
     inp, outp = sys.argv[1], sys.argv[2]
     blob = open(inp, "rb").read()
-    out = repack(blob, name_hint=re.sub(r"[^a-z0-9]+","-", os.path.basename(inp).split(".")[0].lower()).strip("-"))
+    try:
+        out = repack(blob, name_hint=re.sub(r"[^a-z0-9]+","-", os.path.basename(inp).split(".")[0].lower()).strip("-"))
+    except ValueError as exc:
+        raise SystemExit(f"{inp}: refused, not migrated: {exc}")
     open(outp, "wb").write(out)
     ok, step, why = rapp.verify_egg(out)
     print(f"{inp} → {outp}: verify={ok} ({step}: {why})")
