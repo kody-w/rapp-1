@@ -5,9 +5,11 @@ Run: python3 conformance.py
 Exit 0 = all controlled vectors pass. Mutable remote state never defines
 whether the protocol implementation conforms; use realcheck.py for that audit.
 """
+import base64
 import json
 import urllib.request
 import hashlib
+import base64
 import io
 import zipfile
 import rapp as R
@@ -47,7 +49,8 @@ check(
     ),
     rid,
 )
-spki = b"\x30\x2a fake-spki-der-bytes-for-the-vector\x00"
+# a structurally real Ed25519 SPKI: the RFC 8410 prefix + the RFC 8032 §7.1 TEST 1 public key (§6.2 refuses fakes)
+spki = bytes.fromhex("302a300506032b6570032100d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a")
 rid_k = R.mint_rappid("kody", "twin", spki_der=spki)
 check("V3 keyed tail == Hb('rapp/1:rappid', SPKI)", rid_k.rsplit(":", 1)[1] == R.Hb("rapp/1:rappid", spki))
 check("V3 mint-once determinism for keyed identity", R.mint_rappid("kody", "twin", spki) == rid_k)
@@ -94,19 +97,33 @@ check(
     (not ok) and step == "1" and (not calendar_ok) and calendar_step == "1",
 )
 
-# V9 swarm frame must be signed
-sw = R.build_frame("swarm.echo", "net:commons", 0, "2026-07-15T00:00:00.000Z", {"x": 1}, prev=None, prev_wave=None)
+# V9 swarm frame must be signed. A producer refuses to emit an unsigned swarm frame (§8), so
+# build a signed one and strip its sig: frame_hash excludes sig, so steps 1-5 still pass.
+well_formed_sig = (
+    base64.urlsafe_b64encode(
+        R.canonical({"alg": "EdDSA", "b64": False, "crit": ["b64"], "kid": "rappid:@kody/commons:" + "c" * 64}).encode("utf-8")
+    ).rstrip(b"=").decode("ascii")
+    + ".."
+    + base64.urlsafe_b64encode(bytes(64)).rstrip(b"=").decode("ascii")
+)
+sw = R.build_frame("swarm.echo", "net:commons", 0, "2026-07-15T00:00:00.000Z", {"x": 1},
+                   prev=None, prev_wave=None, sig=well_formed_sig)
+sw["sig"] = None
 ok, step, _ = R.verify_frame(sw, head=None, stream_id_of_record="net:commons")
 forged = dict(g)
-forged["sig"] = "not-a-jws"
+forged["sig"] = well_formed_sig          # a §10 form, but no trusted verifier: step 6
 forged_ok, forged_step, _ = R.verify_frame(
     forged,
     head=None,
     stream_id_of_record=sid,
 )
+malformed = dict(g)
+malformed["sig"] = "not-a-jws"           # not a §10 detached JWS at all: step 1 (rev-17 E-10)
+malformed_ok, malformed_step, _ = R.verify_frame(malformed, head=None, stream_id_of_record=sid)
 check(
-    "V9 unsigned swarm and unverified frame signatures are refused at step 6",
-    (not ok) and step == "6" and (not forged_ok) and forged_step == "6",
+    "V9 unsigned swarm and unverified frame signatures are refused at step 6 (a malformed sig at step 1)",
+    (not ok) and step == "6" and (not forged_ok) and forged_step == "6"
+    and (not malformed_ok) and malformed_step == "1",
 )
 
 # V10 sealed artifact: public ciphertext, signed manifest, scoped key release
@@ -136,7 +153,16 @@ sealed_payload = {
     "access": "scoped-key-release",
     "aad_hash": R.H("rapp/1:sealed-aad", descriptor),
 }
-test_signature = "test-detached-jws"
+def placeholder_jws(kid):
+    """A §10-form detached JWS (canonical header, 64-octet signature) for the trust-mode test verifiers."""
+    def b64url(octets):
+        return base64.urlsafe_b64encode(octets).rstrip(b"=").decode("ascii")
+
+    header = {"alg": "EdDSA", "b64": False, "crit": ["b64"], "kid": kid}
+    return b64url(R.canonical(header).encode("utf-8")) + ".." + b64url(bytes(64))
+
+
+test_signature = placeholder_jws(sealed_rappid)
 test_nonce = b"0123456789ab"
 test_aad = R.canonical(descriptor).encode("utf-8")
 known_ciphertext = bytes.fromhex(
@@ -163,6 +189,29 @@ def known_answer_decryptor(dek, nonce, aad, ciphertext):
     ):
         raise ValueError("AES-GCM known-answer authentication mismatch")
     return plaintext
+
+
+def forged_egg(blob, mutate):
+    """A deliberately refused egg: a valid egg re-packed by hand after mutate(manifest, files).
+
+    Contents hashes are recomputed so the intended rule is the one that fails; the
+    producer (R.pack_egg) refuses to emit any of these eggs."""
+    manifest, files = R.read_egg(blob)
+    manifest, files = json.loads(json.dumps(manifest)), dict(files)
+    mutate(manifest, files)
+    manifest["contents"] = R._egg_contents(files)
+    return R._zip_pack(
+        [("manifest.json", R.canonical(manifest).encode("utf-8"))]
+        + [(item["path"], files[item["path"]]) for item in manifest["contents"]]
+    )
+
+
+def producer_refuses(*args, **kwargs):
+    try:
+        R.pack_egg(*args, **kwargs)
+    except ValueError:
+        return True
+    return False
 
 
 sealed = R.pack_egg(
@@ -229,15 +278,11 @@ for blob in negative_open_blobs:
         )
     except ValueError:
         open_refusals += 1
-oversized_payload = dict(sealed_payload)
-oversized_payload["plaintext_bytes"] = R.MAX_SEALED_PLAINTEXT_BYTES + 1
-oversized = R.pack_egg(
-    "sealed",
-    sealed_rappid,
-    descriptor["created_utc"],
-    files={"ciphertext.bin": known_ciphertext},
-    payload=oversized_payload,
-    sig=test_signature,
+oversized = forged_egg(
+    sealed,
+    lambda manifest, _files: manifest["payload"].update(
+        plaintext_bytes=R.MAX_SEALED_PLAINTEXT_BYTES + 1
+    ),
 )
 oversized_ok, oversized_step, _ = R.verify_egg(
     oversized,
@@ -280,58 +325,48 @@ bad_variant_manifest = {
 bad_variant_ok, bad_variant_step, _ = R.verify_egg(
     R.canonical(bad_variant_manifest).encode("utf-8"),
 )
-nfc_egg = R.pack_egg(
+organism_files = {
+    "rappid.json": ('{"rappid":"' + sealed_rappid + '"}').encode(),
+    "soul.md": b"# soul\n",
+}
+organism = R.pack_egg(
     "organism",
     sealed_rappid,
     descriptor["created_utc"],
-    files={
-        "rappid.json": b"{}",
-        "soul.md": b"# soul\n",
-        "cafe\u0301.txt": b"x",
-    },
+    files=organism_files,
 )
+nfc_egg = forged_egg(organism, lambda _m, files: files.update({"cafe\u0301.txt": b"x"}))
 nfc_ok, nfc_step, _ = R.verify_egg(nfc_egg)
-windows_alias = R.pack_egg(
-    "organism",
-    sealed_rappid,
-    descriptor["created_utc"],
-    files={
-        "rappid.json": (
-            '{"rappid":"' + sealed_rappid + '"}'
-        ).encode(),
-        "rappid.json.": b"shadow",
-        "soul.md": b"# soul\n",
-    },
-)
+windows_alias = forged_egg(organism, lambda _m, files: files.update({"rappid.json.": b"shadow"}))
 alias_ok, alias_step, _ = R.verify_egg(windows_alias)
+unsafe_paths_unpackable = all(
+    producer_refuses(
+        "organism",
+        sealed_rappid,
+        descriptor["created_utc"],
+        files={**organism_files, path: b"x"},
+    )
+    for path in ("cafe\u0301.txt", "rappid.json.", "../x", "manifest.json")
+)
+# §9.1 (rev-17 E-14): paths equal only after folding, or a file beside a directory of the
+# same name, are distinct and valid; an extractor that cannot hold both refuses the extraction.
 prefix_conflict = R.pack_egg(
     "organism",
     sealed_rappid,
     descriptor["created_utc"],
-    files={
-        "rappid.json": (
-            '{"rappid":"' + sealed_rappid + '"}'
-        ).encode(),
-        "soul.md": b"# soul\n",
-        "a": b"file",
-        "a/b": b"child",
-    },
+    files={**organism_files, "a": b"file", "a/b": b"child"},
 )
 prefix_ok, prefix_step, _ = R.verify_egg(prefix_conflict)
 manifest_alias = R.pack_egg(
     "organism",
     sealed_rappid,
     descriptor["created_utc"],
-    files={
-        "rappid.json": (
-            '{"rappid":"' + sealed_rappid + '"}'
-        ).encode(),
-        "soul.md": b"# soul\n",
-        "MANIFEST.JSON": b"shadow",
-    },
+    files={**organism_files, "MANIFEST.JSON": b"shadow"},
 )
 manifest_alias_ok, manifest_alias_step, _ = R.verify_egg(manifest_alias)
-
+lookalikes_not_extractable = not R._path_set_extractable(
+    R.read_egg(prefix_conflict)[1]
+) and not R._path_set_extractable(["manifest.json", *R.read_egg(manifest_alias)[1]])
 
 class Utf8ZipInfo(zipfile.ZipInfo):
     def _encodeFilenameFlags(self):
@@ -351,7 +386,7 @@ with zipfile.ZipFile(malformed_buffer, "w", zipfile.ZIP_STORED) as archive:
         archive.writestr(info, octets)
 malformed_ok, malformed_step, _ = R.verify_egg(malformed_buffer.getvalue())
 check(
-    "V10c trailing bytes, malformed manifests, and non-NFC paths are refused",
+    "V10c trailing bytes, malformed manifests, and unsafe paths are refused; lookalike paths are valid",
     (
         not trailing_ok
         and trailing_step == "parse"
@@ -363,15 +398,16 @@ check(
         and malformed_step == "parse"
         and not alias_ok
         and alias_step == "§9.1"
-        and not prefix_ok
-        and prefix_step == "§9.1"
-        and not manifest_alias_ok
-        and manifest_alias_step == "§9.1"
+        and unsafe_paths_unpackable
+        and prefix_ok
+        and manifest_alias_ok
+        and lookalikes_not_extractable
     ),
 )
 
 estate_owner = "rappid:@kody/estate-owner:" + "9" * 64
 invite_rappid = "rappid:@kody/invite:" + "8" * 64
+invite_signature = placeholder_jws(estate_owner)
 invite = R.pack_egg(
     "invite",
     invite_rappid,
@@ -381,14 +417,14 @@ invite = R.pack_egg(
         "target_url": "https://example.test/estate.egg",
         "target_kind": "estate",
     },
-    sig=test_signature,
+    sig=invite_signature,
 )
 seen_expected = []
 
 
 def invite_signature_verifier(_unsigned, sig, expected_signer):
     seen_expected.append(expected_signer)
-    return sig == test_signature and expected_signer == estate_owner, "wrong owner"
+    return sig == invite_signature and expected_signer == estate_owner, "wrong owner"
 
 
 invite_ok, invite_step, invite_why = R.verify_egg(
@@ -416,15 +452,9 @@ check(
     ),
 )
 
-wrong_aad = dict(sealed_payload)
-wrong_aad["aad_hash"] = "f" * 64
-bad_aad = R.pack_egg(
-    "sealed",
-    sealed_rappid,
-    descriptor["created_utc"],
-    files={"ciphertext.bin": known_ciphertext},
-    payload=wrong_aad,
-    sig=test_signature,
+bad_aad = forged_egg(
+    sealed,
+    lambda manifest, _files: manifest["payload"].update(aad_hash="f" * 64),
 )
 ok, step, _ = R.verify_egg(
     bad_aad,
@@ -432,31 +462,19 @@ ok, step, _ = R.verify_egg(
 )
 check("V10e sealed authenticated-data mismatch is refused", (not ok) and step == "§9.2")
 
-extra_plaintext = R.pack_egg(
-    "sealed",
-    sealed_rappid,
-    descriptor["created_utc"],
-    files={
-        "ciphertext.bin": known_ciphertext,
-        "plaintext.wasm": plaintext,
-    },
-    payload=sealed_payload,
-    sig=test_signature,
+extra_plaintext = forged_egg(
+    sealed,
+    lambda _manifest, files: files.update({"plaintext.wasm": plaintext}),
 )
 ok, step, _ = R.verify_egg(
     extra_plaintext,
     signature_verifier=test_signature_verifier,
 )
-identity_mismatch = R.pack_egg(
-    "organism",
-    sealed_rappid,
-    descriptor["created_utc"],
-    files={
-        "rappid.json": (
-            '{"rappid":"rappid:@kody/other:' + "7" * 64 + '"}'
-        ).encode(),
-        "soul.md": b"# soul\n",
-    },
+identity_mismatch = forged_egg(
+    organism,
+    lambda _manifest, files: files.update(
+        {"rappid.json": ('{"rappid":"rappid:@kody/other:' + "7" * 64 + '"}').encode()}
+    ),
 )
 identity_ok, identity_step, _ = R.verify_egg(identity_mismatch)
 check(
@@ -467,6 +485,20 @@ check(
         and not identity_ok
         and identity_step == "§9.2"
     ),
+)
+
+# V11 rev-17 regression suites: the five-implementation erratum (E-1..E-23) and the reference fixes it
+# required. They are unittest modules at the repository root; CI runs them here.
+import unittest
+
+REV17_SUITES = ["test_rev17_l1", "test_rev17_frames", "test_rev17_eggs", "test_rev17_integration"]
+rev17_run = unittest.TextTestRunner(stream=io.StringIO(), verbosity=0).run(
+    unittest.defaultTestLoader.loadTestsFromNames(REV17_SUITES)
+)
+check(
+    f"V11 rev-17 regression suites pass ({rev17_run.testsRun} tests)",
+    rev17_run.wasSuccessful() and rev17_run.testsRun > 0,
+    "; ".join(str(test) for test, _ in rev17_run.failures + rev17_run.errors)[:600],
 )
 
 print()

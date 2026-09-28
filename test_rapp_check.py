@@ -85,9 +85,15 @@ class RappCheckDiscoveryTests(unittest.TestCase):
 
         verdict, findings, _ = C.check_repo(repository)
 
+        # rev-17 E-2: 0.0 passes §4 (c), so the octets are a §4 value and §7.5 step 1 refuses the seq.
         self.assertEqual(verdict, "DRIFT")
         self.assertTrue(
-            any("floats require full-JCS" in item["detail"] for item in findings)
+            any(
+                item["artifact"] == "rapp1/genesis-frame.json"
+                and item["rule"] == "§7 frame verification step 1"
+                and "uint53" in item["detail"]
+                for item in findings
+            )
         )
 
     def test_recognized_numeric_frame_directory_retains_behavior(self):

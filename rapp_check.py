@@ -98,7 +98,7 @@ def _read_blob(path, maximum=None):
 
 
 def _strict_json(path):
-    return R._strict_json(_read_blob(path, R.MAX_CANONICAL_BYTES))
+    return R._strict_json(_read_blob(path, R.MAX_JSON_INPUT_BYTES))
 
 
 def _looks_like_frame(blob):
@@ -152,11 +152,6 @@ def _safe_index_path(root, index_path, member):
 
 
 def _assess_frame(frame, head, signature_verifier):
-    if frame.get("sig") is not None:
-        try:
-            R.parse_detached_jws(frame["sig"])
-        except (TypeError, ValueError) as exc:
-            return "invalid", "6", str(exc)
     try:
         ok, step, why = R.verify_frame(
             frame,
@@ -324,7 +319,7 @@ def check_repo(root, signature_verifier=None):
         rel = os.path.relpath(path, root)
         blob = None
         try:
-            blob = _read_blob(path, R.MAX_CANONICAL_BYTES)
+            blob = _read_blob(path, R.MAX_JSON_INPUT_BYTES)
             value = R._strict_json(blob)
         except Exception as exc:
             candidate = is_required or (
@@ -549,15 +544,33 @@ def check_repo(root, signature_verifier=None):
                 }
             )
 
-    # Eggs retain existing behavior, but only regular, non-symlink files reach here.
+    # Eggs: §9.3 steps (0)-(2) always, §10 only with a trusted verifier (as for frames).
+    # Only regular, non-symlink files reach here.
     for path in egg_paths:
         has_artifact = True
         rel = os.path.relpath(path, root)
         try:
             blob = _read_blob(path)
-            ok, step, why = R.verify_egg(blob)
+            ok, step, why = R.verify_egg(blob, signature_verifier=signature_verifier)
             if ok:
                 evidence.append({"artifact": rel, "ok": "egg conforms to §9 (rapp/1-egg)"})
+            elif signature_verifier is None and R.verify_egg_static(blob)[0]:
+                # Steps (0)-(2) pass, sub-eggs included, so what failed is §10 verification of a
+                # signature on the egg or on a sub-egg it packs, which needs a trusted verifier.
+                evidence.append(
+                    {
+                        "artifact": rel,
+                        "ok": "rapp/1-egg passes §9.3 steps (0)-(2)",
+                        "status": "unverified",
+                    }
+                )
+                finding(
+                    rel,
+                    "§10 signature verification unavailable",
+                    "egg signature was not checked because no trusted "
+                    "verifier/anchor was supplied",
+                    status="unverified",
+                )
             else:
                 try:
                     manifest, _ = R.read_egg(blob)

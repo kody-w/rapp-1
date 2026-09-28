@@ -60,7 +60,7 @@ python3 realcheck.py       # the spec run against the REAL committed estate
 python3 examples/01_hello_frame.py   # build and verify your first frame
 ```
 
-`conformance.py` proves the reference implementation against 22 controlled checks. `realcheck.py`
+`conformance.py` proves the reference implementation against 23 controlled checks. `realcheck.py`
 synchronizes the public repos of a live estate and verifies every committed frame: the captured
 2026-08-20 run accepted **46/46 committed frames**, all chain links, and four canonical identity
 records with **0 drift findings**, and a 2026-08-26 re-observation of the grown estate accepted
@@ -76,7 +76,7 @@ in chapter 10.
 | **[`anchor/chain.jsonl`](anchor/chain.jsonl)** | append-only DOGG normative content; integrity is hash-proven and authority is selected by protected canonical-main acceptance |
 | **[`anchor/bootstrap/`](anchor/bootstrap/)** | frozen content-addressed bootstrap profile and exact verifier pin |
 | **[`anchor/frames/`](anchor/frames/)** | immutable-by-name revision frame objects, globally retrievable by durable frame hash |
-| **[`SPEC.md`](SPEC.md)** | byte-exact materialized human view of the current rev-15 chain head — 15 sections, RFC-grounded |
+| **[`SPEC.md`](SPEC.md)** | byte-exact materialized human view of the current rev-17 chain head — 15 sections, RFC-grounded |
 | **[`anchor/`](anchor/README.md)** | chain resolver/materializer, head beacon, kinds, vocabulary, and [DOGG discovery feed](https://github.com/kody-w/rapp-1/commits/main/anchor.atom) |
 | **[`CONSTITUTION.md`](CONSTITUTION.md)** | the rapp/1 Protocol Constitution — the law of change: how the standard, this repo, and its claims may lawfully evolve |
 | **[`FOUNDATION.json`](FOUNDATION.json)** | exact pointer to the canonical public RAPP foundation and philosophy |

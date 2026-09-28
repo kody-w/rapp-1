@@ -66,24 +66,13 @@ class RegistryError(ValueError):
 
 
 def kind_valid(kind):
-    """§6.1.1 `kind = lclabel "." lclabel`, each label 1–64."""
-    m = _KIND.fullmatch(kind) if isinstance(kind, str) else None
-    return bool(m and 1 <= len(m.group(1)) <= 64 and 1 <= len(m.group(2)) <= 64)
+    """§6.1.1 `kind = lclabel "." lclabel`, each label 1–64 (the grammar lives in rapp.py)."""
+    return R.kind_valid(kind)
 
 
 def stream_form(stream_id):
-    """§6.1.1: which stream form a stream_id is, or None if it is none of them."""
-    if not isinstance(stream_id, str):
-        return None
-    if stream_id.startswith("net:"):
-        label = stream_id[4:]
-        return "swarm-stream" if _LABEL.fullmatch(label) else None
-    if R.rappid_valid(stream_id):
-        return "body-stream"
-    head, sep, instance = stream_id.rpartition(":")
-    if sep and R.rappid_valid(head) and _LABEL.fullmatch(instance) and 1 <= len(instance) <= 64:
-        return "memory-stream"
-    return None
+    """§6.1.1: which stream form a stream_id is, or None if it is none of them (rapp.py)."""
+    return R.stream_form(stream_id)
 
 
 def _bool(entry, member, where):
@@ -314,16 +303,21 @@ class Registry:
 
     # ---- §7.2 / §6.1.1 kind binding ----
     def family(self, kind):
+        """The family a registered `kind` entry binds, deprecated or not, else None.
+
+        §13.3 (rev-17 E-23): a deprecated kind entry still registers the kind and its family
+        for §7.5 step 1, because steps 1-5 are time-independent; deprecation only tells
+        producers to stop emitting new frames of that kind."""
         e = self.kinds.get(kind)
-        return None if e is None or e["deprecated"] else e["family"]
+        return None if e is None else e["family"]
 
     def check_frame_binding(self, frame):
         """Registry-bound part of §7.5 step 1: kind registered here, family compatible with
-        the stream form. Returns (ok, reason). Run alongside rapp.verify_frame."""
+        the stream form. Returns (ok, reason). rapp.verify_frame(registry=...) runs it at step 1."""
         kind = frame.get("kind")
         fam = self.family(kind)
         if fam is None:
-            return False, f"kind {kind!r} is not a live registered kind of this estate"
+            return False, f"kind {kind!r} is not a registered kind of this estate"
         form = stream_form(frame.get("stream_id"))
         if form is None:
             return False, "stream_id is not a §6.1.1 stream form"
@@ -347,7 +341,10 @@ class Registry:
     # ---- §10 signer acceptability at a time ----
     def signer_acceptable(self, kid, utc):
         """Is a `sig` by `kid` on an artifact at `utc` acceptable: key discoverable, not
-        superseded by a re-anchor at or before utc, not tombstoned at or before utc."""
+        superseded by a re-anchor at or before utc, not tombstoned at or before utc.
+
+        §10 (rev-17 E-21): an spki entry's `deprecated` flag alone refuses nothing; the
+        entry still resolves the key, and only re-anchor supersession or a tombstone refuse."""
         return self._signer_acceptable(kid, utc)
 
     def _signer_acceptable(self, kid, utc, ignored_reanchor=None, match_key_aliases=False):
@@ -362,8 +359,6 @@ class Registry:
                 continue
             if matches(r["old_rappid"]) and utc >= r["utc"]:
                 return False, f"kid superseded by re-anchor ({r['case']}) at {r['utc']}"
-        if e["deprecated"] and not any(matches(r["old_rappid"]) for r in self.reanchors):
-            return False, "spki entry deprecated"
         revocations = [revoked for identity, revoked in self.tombstones.items() if matches(identity)]
         rv = min(revocations) if revocations else None
         if rv is not None and utc >= rv:

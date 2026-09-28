@@ -11,6 +11,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 import rapp as R
 
+# A structurally real Ed25519 SPKI (RFC 8410 prefix + the RFC 8032 §7.1 TEST 1 public key);
+# §6.2 refuses a keyed mint over octets that are not one.
+ED25519_SPKI = bytes.fromhex("302a300506032b6570032100"
+                             "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a")
+
 def vectors():
     v = {"schema": "rapp/1-conformance-vectors", "derived_from": "rapp.py", "sections": {}}
     # §4 canonical form — the bytes every implementation must produce
@@ -39,7 +44,7 @@ def vectors():
     v["sections"]["5_hash"] = {
         "value": val,
         "H": {space: R.H(space, val) for space in ["rapp/1:particle", "rapp/1:wave", "rapp/1:egg-manifest"]},
-        "Hb": {"rapp/1:egg": R.Hb("rapp/1:egg", b"raw octets\x00\xff"), "rapp/1:rappid": R.Hb("rapp/1:rappid", b"\x30\x2a fake-spki")},
+        "Hb": {"rapp/1:egg": R.Hb("rapp/1:egg", b"raw octets\x00\xff"), "rapp/1:rappid": R.Hb("rapp/1:rappid", ED25519_SPKI)},
         "rule": "H(space,v) = hex(sha256(utf8(space) || 0x0A || canonical(v))); Hb likewise over raw octets",
     }
     # §6.1 rappid grammar
@@ -51,8 +56,8 @@ def vectors():
         "rappid:v2:kody/x:" + "a" * 64, "rappid:x:" + "a" * 64, "a" * 64,
     ]
     v["sections"]["6_rappid"] = {"valid": [good], "invalid": bad,
-                                 "keyed_mint": {"spki_der_hex": b"\x30\x2a fake-spki".hex(),
-                                                "rappid": R.mint_rappid("kody", "twin", spki_der=b"\x30\x2a fake-spki")}}
+                                 "keyed_mint": {"spki_der_hex": ED25519_SPKI.hex(),
+                                                "rappid": R.mint_rappid("kody", "twin", spki_der=ED25519_SPKI)}}
     # §7 frames: a verified chain, then every single-field tamper with the step that must catch it
     sid = "rappid:@kody/twin:" + "a" * 64
     g = R.build_frame("body.pulse", sid, 0, "2026-07-15T00:00:00.000Z", {"hello": "world"}, prev=None)
@@ -84,9 +89,9 @@ def vectors():
                               "egg_address": R.egg_address(manifest),
                               "note": "a session egg is a JSON object; two conformant packers emit these exact octets"}
     v["reference_limits"] = [
-        "rapp.py refuses non-integer JSON numbers rather than implementing full JCS number serialization; "
-        "an implementation that does implement RFC 8785 numbers is more complete, not less conformant. "
-        "Vectors therefore use integers only."
+        "rapp.py implements RFC 8785 number serialization (ECMA-262 Number::toString) and the §4 (c) "
+        "binary64 round-trip test; these vectors still use integers only, so every hash is reproducible "
+        "by an implementation whose number support is narrower."
     ]
     return v
 

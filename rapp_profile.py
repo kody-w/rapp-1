@@ -66,6 +66,8 @@ def positive_int(value: object, where: str, *, allow_zero: bool = False) -> int:
     require(isinstance(value, int) and not isinstance(value, bool), f"{where}: expected integer")
     minimum = 0 if allow_zero else 1
     require(value >= minimum, f"{where}: expected integer >= {minimum}")
+    # §4 (c) admits 2**53 and larger exact binary64 integers, so the uint53 ceiling is checked here.
+    require(value <= 2**53 - 1, f"{where}: expected integer <= 2^53-1")
     return value
 
 
