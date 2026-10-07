@@ -22,9 +22,9 @@ Abstract
    normative text of record is the append-only specification chain
    published by the author; this document is a stable, archival
    rendering of it: revision rev-18, chain frame
-   a1473f18ecf056dd98c6dfb13e7b61efc36e0bbaeeb57b2ae69aaf00f84ca042,
+   83bec7762a04959dc91e252055d79f67690c605383018d23b26b99982916dd6a,
    normative SHA-256
-   f4d2b1d2d851dc1e4cf3999bf95a4c08302179cefce9a6a8b92405a8e9295504.
+   e81e20ba9402ee96422f73e9ef737eba100264155c8f77521600766be8fb21e9.
    Any later revision supersedes this rendering; the chain, not this
    document, says which is current.
 
@@ -577,28 +577,30 @@ Internet-Draft                   RAPP/1                     October 2026
    POST /chat, application/json both ways.  The Grail is the reference:*
    an endpoint conforms when it answers every scenario of the Grail
    conformance suite (conformance/grail/) the way the Grail pinned in
-   that suite does — same HTTP status, same members, same response,
-   error, and session_id values.  - Request: a JSON object. user_input
-   (string, REQUIRED; empty or whitespace-only counts as missing).
-   conversation_history (OPTIONAL array; each item an object with role
-   one of "user", "assistant", "tool" and content a string). session_id
-   (string, OPTIONAL).  Unrecognized members *MUST* be ignored, never
-   refused.  - Success: HTTP 200, a JSON object with at least response
-   (string), agent_logs (string: one line per agent call, newline-
-   separated, empty when no agent ran), and session_id (string).  An
-   endpoint *MAY* add other members (the Grail adds model,
-   requested_model, voice_mode); a consumer *MUST* ignore members it
-   does not recognize.  - Refusal of a malformed request: HTTP 400 with
-   exactly {"error": string}, a human-readable message.  The status and
-   the shape are fixed; the message text is not part of the frozen form
-   (a Grail bug-fix release may reword it).  - New capability is a new
-   agent behind /chat, never a sibling REST route.  GET /health is the
-   liveness probe (HTTP 200 JSON object with status); it carries no RAPP
-   semantics. 2. *Asynchronous — an append-only frame (§7) published to
-   a stream* (a repo path, an events/ log).  A frame on a *swarm-stream
-   MUST* carry sig≠null (§10); memory/body-stream frames *MAY* be
-   unsigned.  Any _history_ is safe to read given a trusted head (§14);
-   the hash chain (§5) makes tampering detectable.
+   that suite does — same HTTP status and members, the same response and
+   session_id values, and for a refusal the same status and members (the
+   error text is compared only against the same Grail version).  -
+   Request: a JSON object. user_input (string, REQUIRED; empty or
+   whitespace-only counts as missing).  conversation_history (OPTIONAL
+   array; each item an object with role one of "user", "assistant",
+   "tool" and content a string). session_id (string, OPTIONAL).
+   Unrecognized members *MUST* be ignored, never refused.  - Success:
+   HTTP 200, a JSON object with at least response (string), agent_logs
+   (string: one line per agent call, newline-separated, empty when no
+   agent ran), and session_id (string).  An endpoint *MAY* add other
+   members (the Grail adds model, requested_model, voice_mode); a
+   consumer *MUST* ignore members it does not recognize.  - Refusal of a
+   malformed request: HTTP 400 with exactly {"error": string}, a human-
+   readable message.  The status and the shape are fixed; the message
+   text is not part of the frozen form (a Grail bug-fix release may
+   reword it).  - New capability is a new agent behind /chat, never a
+   sibling REST route.  GET /health is the liveness probe (HTTP 200 JSON
+   object with status); it carries no RAPP semantics. 2. *Asynchronous —
+   an append-only frame (§7) published to a stream* (a repo path, an
+   events/ log).  A frame on a *swarm-stream MUST* carry sig≠null (§10);
+   memory/body-stream frames *MAY* be unsigned.  Any _history_ is safe
+   to read given a trusted head (§14); the hash chain (§5) makes
+   tampering detectable.
 
 9.  The Egg (L5) — the single egg spec of record
 
@@ -607,8 +609,6 @@ Internet-Draft                   RAPP/1                     October 2026
    NEIGHBORHOOD_EGG_SPEC.md, ESTATE_SPEC.md, rappterbook/EGG_SPEC.md,
    and the rest — drift C7).  No other document may re-specify eggs;
    they cite this section.
-
-
 
 
 

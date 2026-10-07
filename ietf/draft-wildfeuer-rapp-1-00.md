@@ -50,8 +50,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-18, chain frame a1473f18ecf056dd98c6dfb13e7b61efc36e0bbaeeb57b2ae69aaf00f84ca042, normative
-SHA-256 f4d2b1d2d851dc1e4cf3999bf95a4c08302179cefce9a6a8b92405a8e9295504. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-18, chain frame 83bec7762a04959dc91e252055d79f67690c605383018d23b26b99982916dd6a, normative
+SHA-256 e81e20ba9402ee96422f73e9ef737eba100264155c8f77521600766be8fb21e9. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -356,8 +356,9 @@ genesis authorizes a reset; any other lower-`seq` head remains a refused rollbac
 All interaction rides one of exactly two forms:
 1. **Synchronous — `POST /chat`, `application/json` both ways. The Grail is the reference:** an endpoint
    conforms when it answers every scenario of the Grail conformance suite (`conformance/grail/`) the way
-   the Grail pinned in that suite does — same HTTP status, same members, same `response`, `error`, and
-   `session_id` values.
+   the Grail pinned in that suite does — same HTTP status and members, the same `response` and `session_id`
+   values, and for a refusal the same status and members (the `error` text is compared only against the
+   same Grail version).
    - Request: a JSON object. `user_input` (string, REQUIRED; empty or whitespace-only counts as missing).
      `conversation_history` (OPTIONAL array; each item an object with `role` one of `"user"`, `"assistant"`,
      `"tool"` and `content` a string). `session_id` (string, OPTIONAL). Unrecognized members **MUST** be
