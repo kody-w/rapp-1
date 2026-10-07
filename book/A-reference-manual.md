@@ -84,14 +84,15 @@ current form citing the sealed head → old frames retained under `legacy/` (sea
 ## A.5 The Wire (§8)
 
 - `POST /chat` with `{user_input, session_id?, conversation_history?}` →
-  `{response, agent_logs, session_id}`. Only `user_input` is required.
-- Errors typed: `422` malformed request, `401` needs token; frame rejection returns the failing
-  verify step.
-- Idempotency key on frame-appending ops; replay returns the same result (natural from
-  content addressing).
+  at least `{response, agent_logs, session_id}`. Only `user_input` is required; `agent_logs` is a
+  newline-separated string, and consumers ignore unrecognized response members.
+- Malformed request: HTTP `400`, exactly `{"error": string}`. The message is human-readable but not
+  frozen across Grail bug-fix releases.
+- The pinned Grail and `conformance/grail/` are the executable reference: 25 full scenarios, with a
+  14-scenario no-model HTTP probe.
 - Streams: rappid = biography (`prev_wave` null, sig optional); `net:*` = swarm (`prev_wave`
   chains waves, sig REQUIRED).
-- Tiers (local / cloud / studio) share the identical shape; only `RAPP_BRAINSTEM_URL` differs.
+- Tiers (local / cloud / studio) share the same contract; only `RAPP_BRAINSTEM_URL` differs.
 
 ## A.6 The Egg (§9)
 

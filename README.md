@@ -76,13 +76,14 @@ in chapter 10.
 | **[`anchor/chain.jsonl`](anchor/chain.jsonl)** | append-only DOGG normative content; integrity is hash-proven and authority is selected by protected canonical-main acceptance |
 | **[`anchor/bootstrap/`](anchor/bootstrap/)** | frozen content-addressed bootstrap profile and exact verifier pin |
 | **[`anchor/frames/`](anchor/frames/)** | immutable-by-name revision frame objects, globally retrievable by durable frame hash |
-| **[`SPEC.md`](SPEC.md)** | byte-exact materialized human view of the current rev-17 chain head — 15 sections, RFC-grounded |
+| **[`SPEC.md`](SPEC.md)** | byte-exact materialized human view of the current rev-18 chain head — 15 sections, RFC-grounded |
 | **[`anchor/`](anchor/README.md)** | chain resolver/materializer, head beacon, kinds, vocabulary, and [DOGG discovery feed](https://github.com/kody-w/rapp-1/commits/main/anchor.atom) |
 | **[`CONSTITUTION.md`](CONSTITUTION.md)** | the rapp/1 Protocol Constitution — the law of change: how the standard, this repo, and its claims may lawfully evolve |
 | **[`FOUNDATION.json`](FOUNDATION.json)** | exact pointer to the canonical public RAPP foundation and philosophy |
 | **[`PHILOSOPHY.md`](PHILOSOPHY.md)** | byte-identical public mirror of the canonical foundation philosophy, never product authority |
 | **[`protocols/`](protocols/README.md)** | RAPP CI/CD, RAPP Deploy, and RAPP Work — immutable qualification, bounded rollout, signed Hive high-water, create-only migration, and custody |
 | **[`conformance/`](conformance/)** | language-neutral known-answer vectors derived from `rapp.py`; how a second implementation claims conformance |
+| **[`conformance/grail/`](conformance/grail/README.md)** | the pinned Grail `/chat` oracle: version-bump gate, in-process port check, and 14-scenario live hub-join probe |
 | **[`ietf/`](ietf/)** | `draft-wildfeuer-rapp-1-00` — the spec rendered as an Internet-Draft (CI refuses a copy that does not render the chain head); an RFC number outlives every platform |
 | **[`MIRRORS.md`](MIRRORS.md)** | where else the standard lives — Software Heritage, Wayback, git mirrors, paper |
 | **[`EXTENDING.md`](EXTENDING.md)** | how to extend RAPP without touching this repo — your own estate, your own signed registry, your own kinds; what still needs a revision |

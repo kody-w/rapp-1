@@ -192,7 +192,7 @@
 
 <!-- COVER -->
 <header class="cover"><div class="wrap">
-  <div class="kicker" data-rev>RAPP · The Visual Guide · RAPP rev-17</div>
+  <div class="kicker" data-rev>RAPP · The Visual Guide · RAPP rev-18</div>
   <h1>Design &amp; Build<br><em>Agents</em></h1>
   <p class="lede">RAPP — one protocol for agents that keep a verifiable memory and talk over one wire, taught in pictures.</p>
   <div class="chips">
@@ -438,7 +438,7 @@ tail = Hb(<span class="s">"rapp/1:rappid"</span>, SPKI_DER)
 { <span class="s">"response"</span>: <span class="s">"…"</span>,
   <span class="s">"agent_logs"</span>: <span class="s">"…"</span>,
   <span class="s">"session_id"</span>: <span class="s">"…"</span> }</div>
-      <p style="font-size:14px;color:var(--soft);margin-top:12px">Only <code>user_input</code> is required. Errors are <strong>typed</strong>, not prose: <code>422</code> malformed, <code>401</code> needs a token, and a bad frame comes back with the exact verify step that failed.</p>
+      <p style="font-size:14px;color:var(--soft);margin-top:12px">Only <code>user_input</code> is required. Malformed input is <code>400</code> with exactly one human-readable <code>error</code> string; exact prose is compared only at the same Grail version. The pinned Grail and its 25-scenario suite are the executable reference.</p>
     </div>
   </div>
   <div class="versus" style="margin-top:26px">
@@ -504,7 +504,7 @@ tail = Hb(<span class="s">"rapp/1:rappid"</span>, SPKI_DER)
   <h3>That's the whole protocol.</h3>
   <p style="color:#cfd0d8">Five primitives, one wire, a reference implementation that passes its own vectors and reproduces a real estate's hashes, and a gate that tells conformance from drift by computing, not asserting.</p>
   <p style="margin-top:18px"><a href="../">← back to rapp-1</a> &nbsp;·&nbsp; <a href="../book/">The RAPP Programming Language</a> &nbsp;·&nbsp; <a href="../anchor/chain.jsonl">the specification chain</a> &nbsp;·&nbsp; <a href="../SPEC.md">current spec view</a> &nbsp;·&nbsp; <a href="https://github.com/kody-w/rapp-1">source</a></p>
-  <p class="colophon"><span data-rev>RAPP rev-17</span> — <em>Design &amp; Build Agents</em>, the visual guide. One spec, one canonicalizer, one mint, one frame. Set in the system humanist sans; colour-coded by primitive in the tradition of the visual design books that taught a generation to build for the web. The protocol is meant to be implemented.</p>
+  <p class="colophon"><span data-rev>RAPP rev-18</span> — <em>Design &amp; Build Agents</em>, the visual guide. One spec, one canonicalizer, one mint, one frame. Set in the system humanist sans; colour-coded by primitive in the tradition of the visual design books that taught a generation to build for the web. The protocol is meant to be implemented.</p>
 </div></footer>
 
 <script>

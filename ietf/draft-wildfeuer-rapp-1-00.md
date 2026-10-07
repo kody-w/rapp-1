@@ -50,8 +50,8 @@ domain-separated hash, one mint-once identity, one eleven-key event envelope, on
 and one package format. Two independent implementations that follow this document
 produce byte-identical artifacts with no out-of-band agreement. The normative text of
 record is the append-only specification chain published by the author; this document
-is a stable, archival rendering of it: revision rev-17, chain frame 84f1975daf09010b8880b9da930841054700ee3f401ccedf0d333dc44453f7ed, normative
-SHA-256 768aeefbf779925b6c937bd497ff628a5061b1e20a82a29892f6cdd5481178e1. Any later revision supersedes this rendering; the chain, not
+is a stable, archival rendering of it: revision rev-18, chain frame 83bec7762a04959dc91e252055d79f67690c605383018d23b26b99982916dd6a, normative
+SHA-256 e81e20ba9402ee96422f73e9ef737eba100264155c8f77521600766be8fb21e9. Any later revision supersedes this rendering; the chain, not
 this document, says which is current.
 
 --- middle
@@ -354,16 +354,24 @@ genesis authorizes a reset; any other lower-`seq` head remains a refused rollbac
 
 # The Wire (L3)
 All interaction rides one of exactly two forms:
-1. **Synchronous — `POST /chat`, `application/json` both ways.** Request: `user_input` (string, REQUIRED);
-   `session_id` (string, OPTIONAL — omit to start a session); `idempotency_key` (string, OPTIONAL — a repeat
-   with the same key returns the original response, not a new turn or duplicate session; scoped to
-   `session_id` when present, else to the key alone so session-creation is also de-duplicated); unrecognized members **MUST** be
-   ignored, never refused. Success: HTTP 200 with **exactly** `{response:string, agent_logs:[string],
-   session_id:string}` (no extra members). An unknown `session_id`, a refusal, or a malformed request
-   **MUST** be HTTP 422, `{error:{code:string, step:string|null}}` where `code` is a §13-registered error
-   code (e.g. `"unknown-session"`) and `step` is the failing §7.5 step as a string — one of
-   `"1","1a","2","3","4","5","6"` — or `null`. No other shape is conformant. New capability is a new agent
-   behind `/chat`, never a sibling REST route.
+1. **Synchronous — `POST /chat`, `application/json` both ways. The Grail is the reference:** an endpoint
+   conforms when it answers every scenario of the Grail conformance suite (`conformance/grail/`) the way
+   the Grail pinned in that suite does — same HTTP status and members, the same `response` and `session_id`
+   values, and for a refusal the same status and members (the `error` text is compared only against the
+   same Grail version).
+   - Request: a JSON object. `user_input` (string, REQUIRED; empty or whitespace-only counts as missing).
+     `conversation_history` (OPTIONAL array; each item an object with `role` one of `"user"`, `"assistant"`,
+     `"tool"` and `content` a string). `session_id` (string, OPTIONAL). Unrecognized members **MUST** be
+     ignored, never refused.
+   - Success: HTTP 200, a JSON object with at least `response` (string), `agent_logs` (string: one line per
+     agent call, newline-separated, empty when no agent ran), and `session_id` (string). An endpoint
+     **MAY** add other members (the Grail adds `model`, `requested_model`, `voice_mode`); a consumer
+     **MUST** ignore members it does not recognize.
+   - Refusal of a malformed request: HTTP 400 with exactly `{"error": string}`, a human-readable message.
+     The status and the shape are fixed; the message text is not part of the frozen form (a Grail bug-fix
+     release may reword it).
+   - New capability is a new agent behind `/chat`, never a sibling REST route. `GET /health` is the
+     liveness probe (HTTP 200 JSON object with `status`); it carries no RAPP semantics.
 2. **Asynchronous — an append-only frame (§7) published to a stream** (a repo path, an `events/` log). A
    frame on a **swarm-stream MUST** carry `sig`≠null (§10); memory/body-stream frames **MAY** be unsigned.
    Any *history* is safe to read given a trusted head (§14); the hash chain (§5) makes tampering

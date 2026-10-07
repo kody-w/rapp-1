@@ -123,25 +123,25 @@ Do not pick the lexicographically smaller hash as current. Hash ordering is a de
 order across streams, not authority to resolve two branches of one stream. Surface the fork and
 require owner-authorized convergence.
 
-## C.6 Exercise 6-2 — Idempotent Chat Results
+## C.6 Exercise 6-2 — Hub Join Probe
 
-The stored value is the complete original result, not only a “seen” bit:
+Run only the scenarios that cannot reach a model:
 
-```python
-key = (session_id, idempotency_key) if session_id else (None, idempotency_key)
-if key in results:
-    return results[key]
+```bash
+GRAIL_DIR=/path/to/pinned/rapp_brainstem \
+python3 conformance/grail/run.py --candidate http:http://127.0.0.1:7071
 
-response = execute_once(request)
-results[key] = response
-return response
+python3 - <<'PY'
+import json
+report = json.load(open("conformance/grail/report.json"))
+assert report["total"] == 14
+assert report["unallowed_differences"] == 0
+assert all(not row["needs_model"] for row in report["scenarios"])
+PY
 ```
 
-Session creation must store the generated `session_id` in that response. If a retry created a new
-session before noticing the key, the operation was not idempotent.
-
-Production storage needs an atomic insert-if-absent. Two workers racing on an in-memory
-check-then-set can still execute twice.
+Use `--same-version` only when the live node is the pinned Grail release and exact error wording
+should match too.
 
 ## C.7 Exercise 7-2 — Safe Egg Paths
 

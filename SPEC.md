@@ -7,7 +7,7 @@
 > selects authority. Change the protocol by appending a successor frame, not by
 > treating this file as independent authority.
 
-**Status:** Owner-ratified RAPP/1 **rev-17 amendment**. It is effective iff the
+**Status:** Owner-ratified RAPP/1 **rev-18 erratum**. It is effective iff the
 prepared chain snapshot has been accepted onto canonical protected main under
 the transition in §12.2. **Obsoletes / consolidates:**
 `rapp-frame/2.0`, `rapp-frame/2.1`, `rapp-rappid-spec/2.0`, `rapp-protocol/1.0`, all scattered egg specs
@@ -323,16 +323,24 @@ genesis authorizes a reset; any other lower-`seq` head remains a refused rollbac
 
 ## 8. The Wire (L3)
 All interaction rides one of exactly two forms:
-1. **Synchronous — `POST /chat`, `application/json` both ways.** Request: `user_input` (string, REQUIRED);
-   `session_id` (string, OPTIONAL — omit to start a session); `idempotency_key` (string, OPTIONAL — a repeat
-   with the same key returns the original response, not a new turn or duplicate session; scoped to
-   `session_id` when present, else to the key alone so session-creation is also de-duplicated); unrecognized members **MUST** be
-   ignored, never refused. Success: HTTP 200 with **exactly** `{response:string, agent_logs:[string],
-   session_id:string}` (no extra members). An unknown `session_id`, a refusal, or a malformed request
-   **MUST** be HTTP 422, `{error:{code:string, step:string|null}}` where `code` is a §13-registered error
-   code (e.g. `"unknown-session"`) and `step` is the failing §7.5 step as a string — one of
-   `"1","1a","2","3","4","5","6"` — or `null`. No other shape is conformant. New capability is a new agent
-   behind `/chat`, never a sibling REST route.
+1. **Synchronous — `POST /chat`, `application/json` both ways. The Grail is the reference:** an endpoint
+   conforms when it answers every scenario of the Grail conformance suite (`conformance/grail/`) the way
+   the Grail pinned in that suite does — same HTTP status and members, the same `response` and `session_id`
+   values, and for a refusal the same status and members (the `error` text is compared only against the
+   same Grail version).
+   - Request: a JSON object. `user_input` (string, REQUIRED; empty or whitespace-only counts as missing).
+     `conversation_history` (OPTIONAL array; each item an object with `role` one of `"user"`, `"assistant"`,
+     `"tool"` and `content` a string). `session_id` (string, OPTIONAL). Unrecognized members **MUST** be
+     ignored, never refused.
+   - Success: HTTP 200, a JSON object with at least `response` (string), `agent_logs` (string: one line per
+     agent call, newline-separated, empty when no agent ran), and `session_id` (string). An endpoint
+     **MAY** add other members (the Grail adds `model`, `requested_model`, `voice_mode`); a consumer
+     **MUST** ignore members it does not recognize.
+   - Refusal of a malformed request: HTTP 400 with exactly `{"error": string}`, a human-readable message.
+     The status and the shape are fixed; the message text is not part of the frozen form (a Grail bug-fix
+     release may reword it).
+   - New capability is a new agent behind `/chat`, never a sibling REST route. `GET /health` is the
+     liveness probe (HTTP 200 JSON object with `status`); it carries no RAPP semantics.
 2. **Asynchronous — an append-only frame (§7) published to a stream** (a repo path, an `events/` log). A
    frame on a **swarm-stream MUST** carry `sig`≠null (§10); memory/body-stream frames **MAY** be unsigned.
    Any *history* is safe to read given a trusted head (§14); the hash chain (§5) makes tampering
@@ -1088,6 +1096,11 @@ tenure are time-scoped, and both are monotone given the §13.1 no-rollback rule.
 ---
 
 ### Revision log
+- **rev-18 (erratum, §8)** — §8 described a `/chat` shape no implementation served; the Grail, the
+  reference since rev-1, never did. §8 now states the Grail's wire and names the Grail conformance suite
+  as its test. This corrects the text to the form implementations were verified against; it does not move
+  the token (§12). Removed with it: the never-implemented HTTP 422 `{error:{code,step}}` envelope and
+  `idempotency_key`.
 - **rev-17 (the five-implementation erratum: 23 clarifications, no wire change)** — five clean-room
   implementations (Python, TypeScript, Go, Swift, Rust) built from this text alone, run against a
   434-vector suite and 20,000 differential fuzz probes, located every place the text let conformant

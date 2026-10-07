@@ -3,3 +3,4 @@ estate/
 __pycache__/
 *.pyc
 anchor/.update_anchor.lock
+conformance/grail/report.json

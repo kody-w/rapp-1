@@ -64,14 +64,16 @@ curl -s -X POST http://localhost:7071/chat \
 { "response": "…", "agent_logs": "…", "session_id": "…" }
 ```
 
-Three things come back. **`response`** is the assistant's text — what you show a human.
+At least three things come back. **`response`** is the assistant's text — what you show a human.
 **`agent_logs`** records which agents fired and what they returned — this is your window into the
 machinery, and we will read it constantly to *prove* the SDK agent actually ran rather than the
 model merely describing what it would do. **`session_id`** threads a multi-turn conversation; pass
-it back (with `conversation_history`) to keep memory coherent.
+it back (with `conversation_history`) to keep memory coherent. The Grail also returns model and
+voice metadata; clients ignore response members they do not recognize.
 
 One required key: `user_input`. The single most common integration mistake is sending `messages`
-instead — the brainstem answers that with a clear error rather than a guess.
+instead — the brainstem answers malformed input with HTTP 400 and exactly one human-readable
+`error` string rather than a guess.
 
 ## 1.4 Why one door matters for building
 

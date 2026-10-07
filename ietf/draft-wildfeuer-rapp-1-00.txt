@@ -4,8 +4,8 @@
 
 Network Working Group                                       K. Wildfeuer
 Internet-Draft                                       Wildhaven Homes LLC
-Intended status: Informational                          2 September 2026
-Expires: 6 March 2027
+Intended status: Informational                            7 October 2026
+Expires: 10 April 2027
 
 
                     RAPP/1: The RAPP Protocol Suite
@@ -21,10 +21,10 @@ Abstract
    produce byte-identical artifacts with no out-of-band agreement.  The
    normative text of record is the append-only specification chain
    published by the author; this document is a stable, archival
-   rendering of it: revision rev-15, chain frame
-   83ca275f35cca96e43d75c99d338326c1a39b2240eabf57eb7c29ac96cc90818,
+   rendering of it: revision rev-18, chain frame
+   83bec7762a04959dc91e252055d79f67690c605383018d23b26b99982916dd6a,
    normative SHA-256
-   348e7d5baa94aaf2ce4c5354f3cb261f389298a04af65e271a686d3b62f7c384.
+   e81e20ba9402ee96422f73e9ef737eba100264155c8f77521600766be8fb21e9.
    Any later revision supersedes this rendering; the chain, not this
    document, says which is current.
 
@@ -43,7 +43,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 6 March 2027.
+   This Internet-Draft will expire on 10 April 2027.
 
 Copyright Notice
 
@@ -53,9 +53,9 @@ Copyright Notice
 
 
 
-Wildfeuer                 Expires 6 March 2027                  [Page 1]
+Wildfeuer                 Expires 10 April 2027                 [Page 1]
 
-Internet-Draft                   RAPP/1                   September 2026
+Internet-Draft                   RAPP/1                     October 2026
 
 
    This document is subject to BCP 78 and the IETF Trust's Legal
@@ -72,56 +72,56 @@ Table of Contents
    3.  Terminology . . . . . . . . . . . . . . . . . . . . . . . . .   4
    4.  Canonicalization (L1) . . . . . . . . . . . . . . . . . . . .   4
    5.  Content addressing (L1) — domain-separated  . . . . . . . . .   5
-   6.  Identity — the rappid (L2)  . . . . . . . . . . . . . . . . .   5
+   6.  Identity — the rappid (L2)  . . . . . . . . . . . . . . . . .   6
      6.1.  stream_id and kind grammar  . . . . . . . . . . . . . . .   6
      6.2.  Minting (mint-once) . . . . . . . . . . . . . . . . . . .   6
-     6.3.  Canonicalization on read; provisional identifiers . . . .   6
-   7.  The Frame (L4)  . . . . . . . . . . . . . . . . . . . . . . .   7
+     6.3.  Canonicalization on read; provisional identifiers . . . .   7
+   7.  The Frame (L4)  . . . . . . . . . . . . . . . . . . . . . . .   8
      7.1.  Kind families (one envelope, registry-bound families) . .   8
      7.2.  Particle and wave (the unification) . . . . . . . . . . .   8
-     7.3.  Chaining, time, and merge order . . . . . . . . . . . . .   8
+     7.3.  Chaining, time, and merge order . . . . . . . . . . . . .   9
      7.4.  Verification (the complete consumer checklist)  . . . . .   9
-     7.5.  Heads and forks . . . . . . . . . . . . . . . . . . . . .   9
-   8.  The Wire (L3) . . . . . . . . . . . . . . . . . . . . . . . .  10
-   9.  The Egg (L5) — the single egg spec of record  . . . . . . . .  10
-     9.1.  Container, manifest, and egg address  . . . . . . . . . .  11
-     9.2.  Variants (the ratified set — closes EGG-01) . . . . . . .  12
-     9.3.  Sealed artifact profile . . . . . . . . . . . . . . . . .  12
-     9.4.  Conformance . . . . . . . . . . . . . . . . . . . . . . .  15
+     7.5.  Heads and forks . . . . . . . . . . . . . . . . . . . . .  10
+   8.  The Wire (L3) . . . . . . . . . . . . . . . . . . . . . . . .  11
+   9.  The Egg (L5) — the single egg spec of record  . . . . . . . .  11
+     9.1.  Container, manifest, and egg address  . . . . . . . . . .  12
+     9.2.  Variants (the ratified set — closes EGG-01) . . . . . . .  13
+     9.3.  Sealed artifact profile . . . . . . . . . . . . . . . . .  14
+     9.4.  Conformance . . . . . . . . . . . . . . . . . . . . . . .  17
      9.5.  Instantiation — instance identity and grown_from lineage
-           (rev-6; closes the hatch seam)  . . . . . . . . . . . . .  15
-   10. Trust and signatures (L2) . . . . . . . . . . . . . . . . . .  16
-   11. Conformance classes . . . . . . . . . . . . . . . . . . . . .  17
-     11.1.  Immutable Grail kernel conformance . . . . . . . . . . .  17
-     11.2.  Operational conformance profiles . . . . . . . . . . . .  19
-   12. Versioning, evolution, no-legacy  . . . . . . . . . . . . . .  20
+           (rev-6; closes the hatch seam)  . . . . . . . . . . . . .  17
+   10. Trust and signatures (L2) . . . . . . . . . . . . . . . . . .  18
+   11. Conformance classes . . . . . . . . . . . . . . . . . . . . .  19
+     11.1.  Immutable Grail kernel conformance . . . . . . . . . . .  20
+     11.2.  Operational conformance profiles . . . . . . . . . . . .  22
+   12. Versioning, evolution, no-legacy  . . . . . . . . . . . . . .  23
      12.1.  Re-genesis (converging an immutable chain — one
-            owner-authorized operation)  . . . . . . . . . . . . . .  21
-     12.2.  DOGG specification revision chain  . . . . . . . . . . .  22
-       12.2.1.  Immutable bootstrap boundary . . . . . . . . . . . .  23
-       12.2.2.  Revision payloads and historical exception . . . . .  23
-       12.2.3.  Content-addressed publication and resolution . . . .  24
-       12.2.4.  Rev-14 transition and draft replacement  . . . . . .  26
+            owner-authorized operation)  . . . . . . . . . . . . . .  24
+     12.2.  DOGG specification revision chain  . . . . . . . . . . .  25
+       12.2.1.  Immutable bootstrap boundary . . . . . . . . . . . .  25
+       12.2.2.  Revision payloads and historical exception . . . . .  26
+       12.2.3.  Content-addressed publication and resolution . . . .  27
+       12.2.4.  Rev-14 transition and draft replacement  . . . . . .  28
    13. The registry — an estate's signed root of trust
-           (append-only) . . . . . . . . . . . . . . . . . . . . . .  26
-     13.1.  Trust anchor and registry authentication . . . . . . . .  27
-     13.2.  Owner succession (time-scoped authority) . . . . . . . .  27
+           (append-only) . . . . . . . . . . . . . . . . . . . . . .  29
+     13.1.  Trust anchor and registry authentication . . . . . . . .  29
+     13.2.  Owner succession (time-scoped authority) . . . . . . . .  30
 
 
 
-Wildfeuer                 Expires 6 March 2027                  [Page 2]
+Wildfeuer                 Expires 10 April 2027                 [Page 2]
 
-Internet-Draft                   RAPP/1                   September 2026
+Internet-Draft                   RAPP/1                     October 2026
 
 
      13.3.  Entry types (each a §4 value; document
-            schema:"rapp/1-registry")  . . . . . . . . . . . . . . .  27
-   14. Security considerations . . . . . . . . . . . . . . . . . . .  29
-   15. References  . . . . . . . . . . . . . . . . . . . . . . . . .  30
-     15.1.  Normative References . . . . . . . . . . . . . . . . . .  30
-     15.2.  Informative References . . . . . . . . . . . . . . . . .  31
-   Appendix A.  Acknowledgements . . . . . . . . . . . . . . . . . .  32
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  32
+            schema:"rapp/1-registry")  . . . . . . . . . . . . . . .  30
+   14. Security considerations . . . . . . . . . . . . . . . . . . .  31
+   15. References  . . . . . . . . . . . . . . . . . . . . . . . . .  33
+     15.1.  Normative References . . . . . . . . . . . . . . . . . .  33
+     15.2.  Informative References . . . . . . . . . . . . . . . . .  34
+   Appendix A.  Acknowledgements . . . . . . . . . . . . . . . . . .  35
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  35
 
 1.  Introduction
 
@@ -165,9 +165,9 @@ Internet-Draft                   RAPP/1                   September 2026
 
 
 
-Wildfeuer                 Expires 6 March 2027                  [Page 3]
+Wildfeuer                 Expires 10 April 2027                 [Page 3]
 
-Internet-Draft                   RAPP/1                   September 2026
+Internet-Draft                   RAPP/1                     October 2026
 
 
 2.  Requirements language
@@ -207,37 +207,55 @@ Internet-Draft                   RAPP/1                   September 2026
    the value v, defined *only* over I-JSON [RFC7493].  JCS fixes member-
    name ordering (UTF-16 code-unit), string escaping, and number
    serialization (ECMAScript Number::toString, ECMA-262); there is no
-   insignificant whitespace and no byte-order mark.
+   insignificant whitespace and no byte-order mark.  Input JSON text
+   *MUST* be well-formed UTF-8 [RFC7493] §2.1; an implementation *MUST*
+   refuse (not strip) a leading byte-order mark and *MUST NOT* transcode
+   UTF-16 or UTF-32 input.  (Insignificant whitespace in input text is
+   accepted; it is absent only from the canonical form.)
 
    *RAPP input-domain profile (parse-side interoperability — this is a
    RAPP rule, not a JCS mandate).* An implementation *MUST* refuse
    (never repair) any JSON value that, at any depth, contains: (a)
    duplicate member names in one object; (b) an unpaired UTF-16
-   surrogate in any string; (c) a number token that does not survive the
+   surrogate, or a Unicode noncharacter (U+FDD0-U+FDEF, or any code
+
+
+
+Wildfeuer                 Expires 10 April 2027                 [Page 4]
+
+Internet-Draft                   RAPP/1                     October 2026
+
+
+   point whose low 16 bits are FFFE or FFFF) [RFC7493] §2.1, in any
+   string or member name; (c) a number token that does not survive the
    binary64 round-trip — let d be the token's nearest binary64 value
    under roundTiesToEven (the IEEE-754 default; ±∞ are admissible
    results); the token is refused iff d is not finite, or the [RFC8785]
    serialization of d (ECMA-262 Number::toString) denotes a different
-
-
-
-Wildfeuer                 Expires 6 March 2027                  [Page 4]
-
-Internet-Draft                   RAPP/1                   September 2026
-
-
    mathematical value than the token (so 0.1 is accepted — it round-
-   trips — while 9007199254740993 and 1e999 (→ +∞) are refused); (d)
-   canonical form exceeding 1 MiB or JSON nesting depth exceeding 64
-   (the root value is depth 1; each nested object/array adds 1).
-   Refusal is whole (§7.5-style), never partial.
+   trips — while 9007199254740993 and 1e999 (→ +∞) are refused; field
+   range and type rules, such as uint53, are not part of this domain:
+   the rule that types the field applies them); (d) canonical form
+   exceeding 1 MiB or JSON nesting depth exceeding 64 (the root value is
+   depth 1; each nested object/array adds 1).  Refusal is whole
+   (§7.5-style), never partial.
 
    *No normalization.* RAPP applies *no* Unicode normalization when
    hashing, storing, or re-emitting an existing value; strings are code-
    point sequences preserved verbatim and equality everywhere is code-
    point equality (no canonical-equivalence matching).  A producer
    creating a *new* human-or-identifier string (slug, kind, label,
-   payload object key) *MUST* emit it in Unicode NFC.
+   payload object key) *MUST* emit it in Unicode NFC.  A producer that
+   builds a frame or packs an egg from given fields treats every payload
+   object member name, at any depth, as new: it *MUST* refuse (never
+   normalize) a name that is not in NFC.  Consumers do not test frame
+   contents for NFC (egg paths excepted, §9.1).  NFC is Unicode
+   Normalization Form C [UAX #15] in the Unicode version the producer
+   implements.  A producer *MUST* also refuse a name containing a code
+   point that is unassigned (General_Category Cn) in that version.  By
+   the Unicode normalization stability policy, a name that passes this
+   test for one producer then passes it for every producer on the same
+   or a later Unicode version.
 
       *Migration note (drift C4):* the twin/rapp-body
       _frame.mjs::canonicalize() (sorted-key JSON.stringify) coincides
@@ -255,15 +273,27 @@ Internet-Draft                   RAPP/1                   September 2026
    tag, none containing 0x0A: "rapp/1:particle", "rapp/1:wave",
    "rapp/1:egg", "rapp/1:egg-manifest", "rapp/1:rappid", "rapp/1:grail",
    "rapp/1:seal", "rapp/1:sealed-aad", "rapp/1:sealed-key-request".  A
-   tag is used by either H or Hb, never both.  Output is always exactly
-   64 lowercase hex, *never truncated or uppercased*. Two values are
-   treated as the same object iff their same-space hashes are equal;
-   SHA-256 collision resistance FIPS 180-4 is a security assumption of
-   this standard (§14).  A name/X.Y label is never identity — only a
-   hash is.  A bare 64-hex is meaningful *only* within its space; an
-   implementation *MUST NOT* dereference a hash from one space as an
-   object of another, and content-addressed stores *MUST* key by (space,
-   hash).
+   tag is used by either H or Hb, never both: H uses rapp/1:particle,
+
+
+
+Wildfeuer                 Expires 10 April 2027                 [Page 5]
+
+Internet-Draft                   RAPP/1                     October 2026
+
+
+   rapp/1:wave, rapp/1:egg-manifest, rapp/1:sealed-aad and
+   rapp/1:sealed-key-request; Hb uses rapp/1:egg, rapp/1:rappid,
+   rapp/1:grail and rapp/1:seal.  An implementation *MUST* refuse to
+   compute a hash under any other tag or with the other function.
+   Output is always exactly 64 lowercase hex, *never truncated or
+   uppercased*. Two values are treated as the same object iff their
+   same-space hashes are equal; SHA-256 collision resistance FIPS 180-4
+   is a security assumption of this standard (§14).  A name/X.Y label is
+   never identity — only a hash is.  A bare 64-hex is meaningful *only*
+   within its space; an implementation *MUST NOT* dereference a hash
+   from one space as an object of another, and content-addressed stores
+   *MUST* key by (space, hash).
 
 6.  Identity — the rappid (L2)
 
@@ -274,14 +304,6 @@ Internet-Draft                   RAPP/1                   September 2026
    DIGIT LCALPHA = %x61-7A ; a-z hash = 64HEXDIGLC HEXDIGLC = DIGIT /
    %x61-66 ; 0-9 a-f owner *MUST* be the lowercase form of the GitHub
    login (logins are case-insensitive; display casing is presentation,
-
-
-
-Wildfeuer                 Expires 6 March 2027                  [Page 5]
-
-Internet-Draft                   RAPP/1                   September 2026
-
-
    never identity).  Lengths are normative: owner 1–39, slug 1–100; an
    implementation *MUST* refuse longer.  This self-locating form is the
    *only* conformant rappid; rappid:<slug>:<hash>, rappid:v2:…, bare
@@ -306,7 +328,19 @@ Internet-Draft                   RAPP/1                   September 2026
    where uuid4_octets is the 16-octet binary UUIDv4 [RFC9562] §5.4
    (field/byte order per §4 of that RFC). - *keyed:* tail =
    Hb("rapp/1:rappid", SPKI_DER), the DER SubjectPublicKeyInfo [RFC5280]
-   of the master key.
+   of the master key.  A minter *MUST* refuse octets that are not the
+   DER SPKI of a §10 key (an id-Ed25519 key [RFC8410], or an id-
+
+
+
+Wildfeuer                 Expires 10 April 2027                 [Page 6]
+
+Internet-Draft                   RAPP/1                     October 2026
+
+
+   ecPublicKey prime256v1 key with an uncompressed point); likewise a
+   keyless mint *MUST* refuse 16 octets whose [RFC9562] version is not 4
+   or whose variant is not 0b10.
 
    A producer *MUST NOT* derive the tail from owner/slug or any name
    (sha256("owner/slug") is prohibited — drift ID-01/C3).  On read of an
@@ -330,14 +364,6 @@ Internet-Draft                   RAPP/1                   September 2026
    or registry entry.  The one-time owner-authorized 128→256-bit re-
    anchor mints a fresh 64-hex, records the old id in _migrated_from,
    and is the only way a provisional identity becomes usable.  A
-
-
-
-Wildfeuer                 Expires 6 March 2027                  [Page 6]
-
-Internet-Draft                   RAPP/1                   September 2026
-
-
    provisional identifier found in a stored artifact is a drift finding
    (Art. III).  Re-anchor is the single re-mint mechanism (§6.2), lawful
    only in the enumerated cases: provisional 128→256-bit upgrade, §10
@@ -361,6 +387,13 @@ Internet-Draft                   RAPP/1                   September 2026
    outgoing estate_owner key (§13.2); root-key compromise is recovered
    only by out-of-band re-anchoring (§13.1).
 
+
+
+Wildfeuer                 Expires 10 April 2027                 [Page 7]
+
+Internet-Draft                   RAPP/1                     October 2026
+
+
 7.  The Frame (L4)
 
    ## The envelope — exactly eleven keys json { "spec": "rapp/1",
@@ -382,17 +415,6 @@ Internet-Draft                   RAPP/1                   September 2026
    {}); never null, array, string, number, or bool. - seq is uint53
    (§7.4).  A producer *MUST NOT* emit a frame whose canonical form
    exceeds 1 MiB or nesting depth 64 (§4).
-
-
-
-
-
-
-
-Wildfeuer                 Expires 6 March 2027                  [Page 7]
-
-Internet-Draft                   RAPP/1                   September 2026
-
 
 7.1.  Kind families (one envelope, registry-bound families)
 
@@ -420,6 +442,14 @@ Internet-Draft                   RAPP/1                   September 2026
    and sig keys removed, all nine remaining keys (including
    payload_hash) present.  Because payload_hash is in the wave pre-
    image, frame_hash attests the particle; because only frame_hash
+
+
+
+Wildfeuer                 Expires 10 April 2027                 [Page 8]
+
+Internet-Draft                   RAPP/1                     October 2026
+
+
    (cannot hash itself) and sig (signs the result) are removed, the pre-
    image is unambiguous and non-circular.  Both hashes are always
    present (never null).
@@ -427,28 +457,19 @@ Internet-Draft                   RAPP/1                   September 2026
 7.3.  Chaining, time, and merge order
 
    *  *utc* *MUST* be exactly the 24-byte form YYYY-MM-DDTHH:MM:SS.mmmZ
-      — uppercase T/Z, exactly three fractional digits, no numeric
-      offset; the seconds field *MUST NOT* be 60 (a leap second clamps
-      to 59.999).  All utc comparisons are *bytewise* over this fixed
-      form (identical to chronological order).
+      — every Y, M, D, H, S and m is an ASCII digit (%x30-39; Unicode
+      digits such as U+0660-0669 or U+FF10-FF19 are refused), YYYY is
+      any year 0000-9999, uppercase T/Z, exactly three fractional
+      digits, no numeric offset; the seconds field *MUST NOT* be 60 (a
+      leap second clamps to 59.999).  All utc comparisons are *bytewise*
+      over this fixed form (identical to chronological order).
 
    *  *Worldline chain (particle):* the *genesis* frame has seq=0 and
       prev=null; every later frame has seq = predecessor's seq+1
-      (contiguous) and prev = predecessor's payload_hash. seq is uint53
-      (JSON integer, 0 ≤ seq ≤ 2^53−1, no fraction/exponent; a stream
-      nearing 2^53−1 converges by re-genesis).
-
-
-
-
-
-
-
-
-Wildfeuer                 Expires 6 March 2027                  [Page 8]
-
-Internet-Draft                   RAPP/1                   September 2026
-
+      (contiguous) and prev = predecessor's payload_hash. seq is uint53:
+      a number token matching 0 / %x31-39 *DIGIT (no sign, fraction or
+      exponent, so -0 is refused) whose value is ≤ 2^53−1; a stream
+      nearing 2^53−1 converges by re-genesis.
 
    *  *Wire chain (wave):* prev_wave *MUST* be non-null *iff* stream_id
       is a swarm-stream *and* seq > 0, in which case it equals the
@@ -468,26 +489,52 @@ Internet-Draft                   RAPP/1                   September 2026
    Before accepting a frame, a consumer *MUST*, in order, *refuse*
    (never repair/reparent) on any failure: 1. *Shape & types:* exactly
    the eleven §7.1 keys; spec=="rapp/1"; kind a string matching §6.1.1
-   ABNF and registered (§13); stream_id a string matching §6.1.1; seq a
-   uint53; utc matching the §7.4 fixed form *and* a calendar-valid
-   [RFC3339] date-time (so 2026-13-45T25:61:61.999Z is refused); payload
-   a JSON object; payload_hash/frame_hash 64HEXDIGLC; prev/prev_wave
-   each null or 64HEXDIGLC; sig null or a §10 JWS string. 1a. *Stream
-   binding:* frame.stream_id *MUST* byte-equal the identifier of the
-   stream being extended or read (its declared stream_id at the head
+   ABNF, registered (§13), and bound to a family whose §7.2 column-3
+   form is the form of stream_id (a family outside the §7.2 table fits
+   no form); stream_id a string matching §6.1.1; seq a uint53 (§7.4);
+   utc matching the §7.4 fixed form *and* a calendar-valid [RFC3339]
+   date-time (so 2026-13-45T25:61:61.999Z is refused); payload a JSON
+   object; payload_hash/frame_hash 64HEXDIGLC; prev/prev_wave each null
+   or 64HEXDIGLC; sig null or a §10 JWS string: the detached compact
+   form with strict unpadded base64url parts, a protected header whose
+   octets are canonical(header) and whose members are exactly the §10
+
+
+
+Wildfeuer                 Expires 10 April 2027                 [Page 9]
+
+Internet-Draft                   RAPP/1                     October 2026
+
+
+   alg, b64, crit and kid (a §6.1 rappid) values, and a signature of
+   exactly 64 octets.  A number token that passes §4 (c) but is not a
+   uint53 — 9007199254740992 (2^53), 0.0, 1e0, a negative value — leaves
+   the frame a §4 value, so it is refused here, at step 1, never before
+   the checklist; only a token that §4 (c) itself refuses
+   (9007199254740993, 1e999) makes the octets fail before step 1. 1a.
+   *Stream binding:* frame.stream_id *MUST* byte-equal the identifier of
+   the stream being extended or read (its declared stream_id at the head
    pointer / repo path of record).  A genesis frame is accepted only for
    the stream it names.  (Defeats cross-stream genesis/segment replay —
    §14.) 2. *Particle:* payload_hash == H("rapp/1:particle", payload).
    3. *Wave:* frame_hash == H("rapp/1:wave", frame \ {frame_hash, sig}).
    4. *Chain:* seq==head.seq+1 and prev==head.payload_hash (or seq==0 ∧
-   prev==null at genesis); utc ≥ head.utc (bytewise). 5. *Wire:* if
-   stream_id is a swarm-stream and seq>0, prev_wave==head.frame_hash;
-   else prev_wave==null. 6. *Signature:* if sig≠null, verify per §10
-   (present-but-invalid is refusal); a swarm-stream frame with sig==null
-   is refused (§8/§10).  Steps 1–5 are *time-independent* (kind lookups
-   only append, §13), so a frame passing them passes forever; step 6
-   alone may flip pass→fail when a §10 tombstone with revoked_utc ≤ the
-   frame's utc is later registered — the one time-dependent check.
+   prev==null at genesis); utc ≥ head.utc (bytewise).  With no head, a
+   consumer holding the §13 registry *MUST* refuse a seq=0 frame whose
+   frame_hash differs from the stream's registered genesis (its sole
+   non-deprecated genesis entry) when the registry has one; a registry
+   without a genesis entry for the stream does not refuse on this
+   ground.  The comparison opens a chain: a later re-genesis resets the
+   head (§7.6) and does not revoke frames already verified. 5. *Wire:*
+   if stream_id is a swarm-stream and seq>0, prev_wave==head.frame_hash;
+   else prev_wave==null. 6. *Signature:* if sig≠null, discover the key
+   and verify per §10 (registry key discovery, tail check, key
+   lifecycle, the signature equation; present-but-invalid is refusal); a
+   swarm-stream frame with sig==null is refused (§8/§10).  Steps 1–5 are
+   *time-independent* (kind lookups only append, §13), so a frame
+   passing them passes forever; step 6 alone may flip pass→fail when a
+   §10 tombstone with revoked_utc ≤ the frame's utc is later registered
+   — the one time-dependent check.
 
 7.5.  Heads and forks
 
@@ -498,16 +545,22 @@ Internet-Draft                   RAPP/1                   September 2026
    frame_hash at an already-verified seq (no rollback, no silent reorg).
    Two distinct valid frames with equal stream_id, seq, and prev are a
    *fork*: a consumer *MUST* refuse both branches past the fork point
-
-
-
-Wildfeuer                 Expires 6 March 2027                  [Page 9]
-
-Internet-Draft                   RAPP/1                   September 2026
-
-
    and surface a drift finding; only the owner resolves a fork (Art. X),
    by re-genesis (§12.1) if needed.
+
+
+
+
+
+
+
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 10]
+
+Internet-Draft                   RAPP/1                     October 2026
+
 
    *Exception (re-genesis head reset).* The no-rollback rule above
    refuses a lower-seq head — but a legitimate §12.1 re-genesis presents
@@ -521,25 +574,33 @@ Internet-Draft                   RAPP/1                   September 2026
 8.  The Wire (L3)
 
    All interaction rides one of exactly two forms: 1. *Synchronous —
-   POST /chat, application/json both ways.* Request: user_input (string,
-   REQUIRED); session_id (string, OPTIONAL — omit to start a session);
-   idempotency_key (string, OPTIONAL — a repeat with the same key
-   returns the original response, not a new turn or duplicate session;
-   scoped to session_id when present, else to the key alone so session-
-   creation is also de-duplicated); unrecognized members *MUST* be
-   ignored, never refused.  Success: HTTP 200 with *exactly*
-   {response:string, agent_logs:[string], session_id:string} (no extra
-   members).  An unknown session_id, a refusal, or a malformed request
-   *MUST* be HTTP 422, {error:{code:string, step:string|null}} where
-   code is a §13-registered error code (e.g. "unknown-session") and step
-   is the failing §7.5 step as a string — one of
-   "1","1a","2","3","4","5","6" — or null.  No other shape is
-   conformant.  New capability is a new agent behind /chat, never a
-   sibling REST route. 2. *Asynchronous — an append-only frame (§7)
-   published to a stream* (a repo path, an events/ log).  A frame on a
-   *swarm-stream MUST* carry sig≠null (§10); memory/body-stream frames
-   *MAY* be unsigned.  Any _history_ is safe to read given a trusted
-   head (§14); the hash chain (§5) makes tampering detectable.
+   POST /chat, application/json both ways.  The Grail is the reference:*
+   an endpoint conforms when it answers every scenario of the Grail
+   conformance suite (conformance/grail/) the way the Grail pinned in
+   that suite does — same HTTP status and members, the same response and
+   session_id values, and for a refusal the same status and members (the
+   error text is compared only against the same Grail version).  -
+   Request: a JSON object. user_input (string, REQUIRED; empty or
+   whitespace-only counts as missing).  conversation_history (OPTIONAL
+   array; each item an object with role one of "user", "assistant",
+   "tool" and content a string). session_id (string, OPTIONAL).
+   Unrecognized members *MUST* be ignored, never refused.  - Success:
+   HTTP 200, a JSON object with at least response (string), agent_logs
+   (string: one line per agent call, newline-separated, empty when no
+   agent ran), and session_id (string).  An endpoint *MAY* add other
+   members (the Grail adds model, requested_model, voice_mode); a
+   consumer *MUST* ignore members it does not recognize.  - Refusal of a
+   malformed request: HTTP 400 with exactly {"error": string}, a human-
+   readable message.  The status and the shape are fixed; the message
+   text is not part of the frozen form (a Grail bug-fix release may
+   reword it).  - New capability is a new agent behind /chat, never a
+   sibling REST route.  GET /health is the liveness probe (HTTP 200 JSON
+   object with status); it carries no RAPP semantics. 2. *Asynchronous —
+   an append-only frame (§7) published to a stream* (a repo path, an
+   events/ log).  A frame on a *swarm-stream MUST* carry sig≠null (§10);
+   memory/body-stream frames *MAY* be unsigned.  Any _history_ is safe
+   to read given a trusted head (§14); the hash chain (§5) makes
+   tampering detectable.
 
 9.  The Egg (L5) — the single egg spec of record
 
@@ -552,14 +613,9 @@ Internet-Draft                   RAPP/1                   September 2026
 
 
 
-
-
-
-
-
-Wildfeuer                 Expires 6 March 2027                 [Page 10]
+Wildfeuer                 Expires 10 April 2027                [Page 11]
 
-Internet-Draft                   RAPP/1                   September 2026
+Internet-Draft                   RAPP/1                     October 2026
 
 
 9.1.  Container, manifest, and egg address
@@ -574,73 +630,114 @@ Internet-Draft                   RAPP/1                   September 2026
    hash = Hb("rapp/1:egg", file_octets) (§5) over the raw stored octets.
    contents is *always present*; for JSON (pointer/session) variants it
    *MUST* be exactly []. - path *MUST* be a relative POSIX path:
-   /-separated NFC UTF-8 segments, no ./.. segment, no leading /, no
-   backslash, no Windows drive-qualified first segment (ALPHA ":"), no
-   duplicate path in one manifest.  A segment *MUST NOT* end in a
-   period/space, contain :, contain a C0 control, or have a case-
-   insensitive basename equal to CON, PRN, AUX, NUL, COM1–COM9, or
-   LPT1–LPT9.  contents *MUST* be sorted ascending by the UTF-8 bytes of
-   path. - payload is a §4 object (variant-specific). sig is a §10 JWS
-   over canonical(manifest \ {sig}), or null.  For the invite variant
-   sig is REQUIRED and *MUST* verify with kid in the §13.2 estate-owner
-   succession (invites are estate-issued; a sig by any other key, even a
-   validly registered one, is refused — otherwise an attacker mints a
-   fresh rappid and forges invites).  For other variants a non-null sig
-   *MUST* verify per §10 with kid == a keyed rappid the consumer
-   resolves via §13; a consumer presented a signed egg *MUST* verify it.
-   - *The egg's one §5 address is* egg_hash = H("rapp/1:egg-manifest",
-   manifest \ {sig}) — the manifest with exactly the sig key removed
-   (mirroring §7.3's wave rule: sig authenticates the egg, egg_hash
-   names it, so re-signing never changes identity).  Stores key eggs by
-   ("rapp/1:egg-manifest", egg_hash).  ("rapp/1:egg" addresses file
-   octets; "rapp/1:egg-manifest" addresses the egg as a whole.) -
-   *Container determinism.* A ZIP variant *MUST* use compression method
-   stored (0) for *every* entry — no deflate in any variant (deflate is
-   library-dependent, so it cannot be byte-reproducible; transport
-   compression, if any, wraps the egg and is not the egg).  Entries
-   appear in contents order with manifest.json first; the manifest.json
-   entry's octets *MUST* be exactly canonical(manifest); all timestamps
-   1980-01-01 00:00:00; no extra fields; UTF-8 filename flag set;
-   contents[].hash is over the file octets (identical to the archive
-   octets under method 0).  A JSON-variant egg's serialized form *MUST*
-   be exactly canonical(manifest).  Two conformant packers of the *same
-   manifest value* thus emit byte-identical eggs.
+   /-separated non-empty NFC UTF-8 segments, no ./..  segment, no
+   leading /, no backslash, no Windows drive-qualified first segment
+   (ALPHA ":"), not the root path manifest.json, and no two path values
+   in one manifest equal as code-point sequences.  Paths that differ
+   only in case or normalization, or where one path is a directory
+   prefix of another (docs, docs/a.md), are distinct and valid; a
+   consumer that extracts to a filesystem where they would collide
+   refuses the extraction, not the egg.  A segment *MUST NOT* end in a
+   period/space, contain :, contain a C0 control (U+0000-U+001F), or
+   have a basename (the segment up to its first .), compared ASCII case-
+   insensitively, equal to CON, PRN, AUX, NUL, COM1–COM9, or LPT1–LPT9.
+   §9.3's 'no ..' means no .. segment.  contents *MUST* be sorted
+   ascending by the UTF-8 bytes of path. - payload is a §4 object
+   (variant-specific). sig is a §10 JWS over canonical(manifest \
+   {sig}), or null.  For the invite variant sig is REQUIRED and *MUST*
+   verify with kid in the §13.2 estate-owner succession (invites are
+   estate-issued; a sig by any other key, even a validly registered one,
+   is refused — otherwise an attacker mints a fresh rappid and forges
+   invites).  For other variants a non-null sig *MUST* verify per §10
+   with kid == a keyed rappid the consumer resolves via §13; a consumer
+   presented a signed egg *MUST* verify it. - *The egg's one §5 address
+   is* egg_hash = H("rapp/1:egg-manifest", manifest \ {sig}) — the
+   manifest with exactly the sig key removed (mirroring §7.3's wave
+   rule: sig authenticates the egg, egg_hash names it, so re-signing
+   never changes identity).  Stores key eggs by ("rapp/1:egg-manifest",
+   egg_hash).  ("rapp/1:egg" addresses file octets; "rapp/1:egg-
+   manifest" addresses the egg as a whole.) - *Container determinism.* A
+   ZIP variant *MUST* use compression method stored (0) for *every*
+   entry — no deflate in any variant (deflate is library-dependent, so
+   it cannot be byte-reproducible; transport compression, if any, wraps
+   the egg and is not the egg).  Entries appear in contents order with
+   manifest.json first; the manifest.json entry's octets *MUST* be
+   exactly canonical(manifest).  Every local and central header carries:
+   version needed to extract 20 (0x0014); general-purpose flags exactly
+   0x0800 (UTF-8 filename; no data descriptor, no encryption); DOS time
+   0x0000 and date 0x0021 (1980-01-01 00:00:00); no extra field.  Every
 
 
 
-
-
-
-
-
-Wildfeuer                 Expires 6 March 2027                 [Page 11]
+Wildfeuer                 Expires 10 April 2027                [Page 12]
 
-Internet-Draft                   RAPP/1                   September 2026
+Internet-Draft                   RAPP/1                     October 2026
 
+
+   central header also carries version made by 0x0014, no file comment,
+   disk number start 0, internal and external attributes 0.  Every field
+   present in both the local and the central header holds the same value
+   in both.  The archive is the local records in entry order with no
+   gap, then the central directory, then an end-of-central-directory
+   record with disk numbers 0, equal entry counts and no comment; no
+   ZIP64 record, and no octet precedes the first local header or follows
+   the end record. contents[].hash is over the file octets (identical to
+   the archive octets under method 0).  A JSON-variant egg's serialized
+   form *MUST* be exactly canonical(manifest).  A producer *MUST* write
+   exactly these values, so two conformant packers of the same manifest
+   value emit byte-identical eggs.  A consumer *MUST* refuse any other
+   violation of this paragraph, but *MUST* accept any value of version
+   made by, version needed (when both headers agree) and the internal
+   and external attributes, and *MUST NOT* interpret them.
 
 9.2.  Variants (the ratified set — closes EGG-01)
 
    | variant | container | packs | required
    members | |---|---|---|---| | organism | ZIP | a full brainstem
-   instance | contents (sorted) MUST include rappid.json, soul.md; MAY
-   include agents/*, organs/*, memory files | | rapplication | ZIP | one
-   rapp | contents MUST include rappid.json and exactly one agent.py at
-   the root (the agent of record); MAY include one ui.html and files
-   under state/ | | session | JSON | one runtime + transcript | payload
-   = {runtime:<string>, transcript:[<object>]}; contents [] | | invite |
-   JSON | a QR-sized pointer (*no packed files*) | payload =
-   {target_rappid:<rappid>, target_url:<string>,
-   target_kind:("neighborhood" / "estate")}; contents []; sig
-   REQUIRED | | neighborhood | ZIP | several organisms meant to live
-   together | payload = {members:[<rappid>,…]}; contents = one sub-egg
-   per member, named <owner>--<slug>.egg at the root, matched by the
-   sub-egg manifest's rappid == the payload.members[] entry | | estate |
-   ZIP | several neighborhoods | payload = {neighborhoods:[<rappid>,…]};
-   contents = one sub-egg per neighborhood, named <owner>--<slug>.egg at
-   root, matched by sub-egg rappid | | sealed | ZIP | publicly
-   mirrorable ciphertext with scoped key release | contents MUST be
-   exactly ciphertext.bin; payload is the closed rapp-sealed-artifact/1
-   profile in §9.2.1; sig REQUIRED |
+   instance | contents (sorted) MUST include the root paths rappid.json
+   and soul.md; MAY include agents/*, organs/*, memory files | |
+   rapplication | ZIP | one rapp | contents MUST include rappid.json and
+   exactly one agent.py at the root (the agent of record); MAY include
+   one ui.html, files under state/, and other files: this MAY list, like
+   the organism row's, is not exhaustive | | session | JSON | one
+   runtime + transcript | payload = {runtime:<string>,
+   transcript:[<object>]}; contents [] | | invite | JSON | a QR-sized
+   pointer (*no packed files*) | payload = {target_rappid:<rappid>,
+   target_url:<string>, target_kind:("neighborhood" / "estate")};
+   contents []; sig REQUIRED | | neighborhood | ZIP | several organisms
+   meant to live together | payload = {members:[<rappid>,…]}; contents =
+   one sub-egg per member, named <owner>--<slug>.egg at the root,
+   matched by the sub-egg manifest's rappid == the payload.members[]
+   entry | | estate | ZIP | several neighborhoods | payload =
+   {neighborhoods:[<rappid>,…]}; contents = one sub-egg per
+   neighborhood, named <owner>--<slug>.egg at root, matched by sub-egg
+   rappid | | sealed | ZIP | publicly mirrorable ciphertext with scoped
+   key release | contents MUST be exactly ciphertext.bin; payload is the
+   closed rapp-sealed-artifact/1 profile in §9.2.1; sig REQUIRED |
+
+
+
+
+
+
+
+
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 13]
+
+Internet-Draft                   RAPP/1                     October 2026
+
+
+   For organism and rapplication eggs, rappid.json *MUST* be a §4 object
+   whose rappid member equals manifest.rappid (code points) and whose
+   schema, when present, is "rapp/1"; a consumer refuses the egg at §9.3
+   step (2) otherwise (this is the §9.3 no-reparent rule applied to the
+   packed identity). payload.members (neighborhood) and
+   payload.neighborhoods (estate) are arrays of distinct §6.1 rappids,
+   possibly empty; an empty list packs no files.  "Several" describes
+   use, not a minimum.
 
    The QR-sized invite that caused EGG-01 is the *invite* variant: a
    signed pointer object, not a member-packing neighborhood egg.  The
@@ -667,13 +764,6 @@ Internet-Draft                   RAPP/1                   September 2026
    text ciphertext.bin = AES-256-GCM ciphertext || 16-byte
    authentication tag
 
-
-
-Wildfeuer                 Expires 6 March 2027                 [Page 12]
-
-Internet-Draft                   RAPP/1                   September 2026
-
-
    The manifest payload has exactly:
 
    json { "schema": "rapp-sealed-artifact/1", "cipher": "A256GCM",
@@ -682,6 +772,26 @@ Internet-Draft                   RAPP/1                   September 2026
    "key_id": "<64hex>", "key_service_rappid": "rappid:@owner/key-
    service:64hex", "key_service_url": "https://keys.example.com/chat",
    "access": "scoped-key-release", "aad_hash": "<64hex>" }
+
+
+
+
+
+
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 14]
+
+Internet-Draft                   RAPP/1                     October 2026
+
+
+   In this template schema, cipher and access are literals that a
+   consumer *MUST* match exactly (access is always scoped-key-release);
+   a <…> value is a placeholder of the stated form; the values shown for
+   plaintext_bytes, media_type, key_service_rappid and key_service_url
+   are examples, and only the member's type is fixed by the template
+   (the rules below still bound each value).
 
    plaintext_commitment is a keyed commitment that cannot be tested
    without the DEK:
@@ -722,16 +832,15 @@ Internet-Draft                   RAPP/1                   September 2026
    response is accepted only when its signatures and identifiers bind to
    key_service_rappid.
 
-
-
-
-Wildfeuer                 Expires 6 March 2027                 [Page 13]
-
-Internet-Draft                   RAPP/1                   September 2026
-
-
    The caller sends the following canonical JSON object as the
    user_input string:
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 15]
+
+Internet-Draft                   RAPP/1                     October 2026
+
 
    json { "schema": "rapp-sealed-key-request/1", "egg_hash": "<64hex>",
    "key_id": "<64hex>", "recipient_rappid": "rappid:@owner/
@@ -781,17 +890,24 @@ Internet-Draft                   RAPP/1                   September 2026
 
 
 
-Wildfeuer                 Expires 6 March 2027                 [Page 14]
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 16]
 
-Internet-Draft                   RAPP/1                   September 2026
+Internet-Draft                   RAPP/1                     October 2026
 
 
 9.4.  Conformance
 
    *  *Producer* *MUST* emit only schema:"rapp/1-egg" with a variant
       from §9.2, a §6.1 rappid, and, for ZIP variants, a contents list
-      whose every hash verifies.  It *MUST NOT* emit any legacy egg
-      schema.
+      whose every hash verifies.  Every egg it emits, and every sub-egg
+      it packs into one, *MUST* pass consumer steps (0)-(2) below; a
+      REQUIRED sig *MUST* be present and be a §10 JWS (a producer
+      without the signer's key context need not verify it).  Given input
+      that cannot meet these rules, a producer *MUST* refuse rather than
+      emit or repair.  It *MUST NOT* emit any legacy egg schema.
 
    *  *Consumer* *MUST* read every §9.2 variant, dispatch on variant,
       verify *integrity then viability* — (0) the manifest is a §4 value
@@ -824,6 +940,20 @@ Internet-Draft                   RAPP/1                   September 2026
       share the artifact identity and *MUST NOT* share an instance
       identity.
 
+
+
+
+
+
+
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 17]
+
+Internet-Draft                   RAPP/1                     October 2026
+
+
    *  The instance's identity document *SHOULD* record *grown_from*: the
       §9.1 egg address (64 lowercase hex) of the egg it was instantiated
       from. grown_from is written at mint time and is *immutable*
@@ -831,16 +961,6 @@ Internet-Draft                   RAPP/1                   September 2026
       *MUST NOT* fabricate it — lineage is a fact about a birth, never a
       claim to invent.  An instance that cannot say where it came from
       says null.
-
-
-
-
-
-
-Wildfeuer                 Expires 6 March 2027                 [Page 15]
-
-Internet-Draft                   RAPP/1                   September 2026
-
 
    *  grown_from is *lineage, not inheritance*: it confers no authority,
       no trust, and no §10 key material.  A reader *MUST* treat it as an
@@ -872,9 +992,23 @@ Internet-Draft                   RAPP/1                   September 2026
    compact form BASE64URL(canonical(header)) || ".." ||
    BASE64URL(signature); - JWS signing input =
    BASE64URL(canonical(header)) || "." || canonical(frame \ {sig}); -
-   alg: EdDSA/Ed25519 [RFC8037] or ES256 [RFC7518]; ES256 signers
-   *SHOULD* sign deterministically [RFC6979] (Ed25519 is deterministic
-   by construction) so signed frame files stay byte-reproducible.
+   alg: EdDSA/Ed25519 [RFC8037] or ES256 [RFC7518]; Ed25519 verification
+   is [RFC8032] §5.1.7 with S < L required and the cofactorless check
+   encode([S]B - [k]A) == R, where k is SHA-512(R || A || message) read
+   as a little-endian integer and reduced mod L (as in [RFC8032]'s §6
+   reference code); public keys that decode (including small-order
+   points) are not refused for their order; ES256 signers *SHOULD* sign
+   deterministically [RFC6979] (Ed25519 is deterministic by
+   construction) so signed frame files stay byte-reproducible.
+
+
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 18]
+
+Internet-Draft                   RAPP/1                     October 2026
+
 
    *Key discovery.* A keyed rappid's tail is one-way
    (Hb("rapp/1:rappid",SPKI)).  A verifier resolves the signer's SPKI
@@ -890,17 +1024,13 @@ Internet-Draft                   RAPP/1                   September 2026
    §13 spki entry: a verifier *MUST* refuse a sig whose kid is a
    superseded rappid on any frame with utc ≥ the re-anchor record's utc
    (rotation gives forward security; earlier frames verify as before).
-
-
-
-Wildfeuer                 Expires 6 March 2027                 [Page 16]
-
-Internet-Draft                   RAPP/1                   September 2026
-
-
-   Compromise is declared by an owner-signed *tombstone* in the §13
-   registry {rappid, revoked_utc}; a verifier *MUST* refuse any sig by a
-   tombstoned key on a frame whose utc ≥ revoked_utc, checking
+   The deprecated flag of an spki entry does not by itself refuse a sig:
+   the entry still resolves the key (entries are append-only, §13.3),
+   and a sig by it is refused only by the re-anchor rule above or by a
+   tombstone.  To stop a key without rotating, the owner registers a
+   tombstone.  Compromise is declared by an owner-signed *tombstone* in
+   the §13 registry {rappid, revoked_utc}; a verifier *MUST* refuse any
+   sig by a tombstoned key on a frame whose utc ≥ revoked_utc, checking
    tombstones at verification time (§7.5 step 6).  "Owner-signed" means
    a sig verifying with kid == the registry's designated estate_owner
    rappid (§13).  A consumer *MUST NOT* infer authorship from an
@@ -922,6 +1052,19 @@ Internet-Draft                   RAPP/1                   September 2026
       provenance-stamped hash-matching mirrors.  Estate-specific product
       scope is resolved separately through that estate's signed registry
       and master plan.
+
+
+
+
+
+
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 19]
+
+Internet-Draft                   RAPP/1                     October 2026
+
 
 11.1.  Immutable Grail kernel conformance
 
@@ -946,14 +1089,6 @@ Internet-Draft                   RAPP/1                   September 2026
        persisted §13.3 binding.  If the policy repeats grail_id, that
        value is only a consistency assertion and *MUST* byte-equal the
        registry result; it cannot select or rebind the pin.  Every ring
-
-
-
-Wildfeuer                 Expires 6 March 2027                 [Page 17]
-
-Internet-Draft                   RAPP/1                   September 2026
-
-
        and release/deployment stage, including development,
        qualification, Preprod, installation, and production
        verification, *MUST* compare the candidate's Grail path to that
@@ -976,6 +1111,16 @@ Internet-Draft                   RAPP/1                   September 2026
        and bind the release digest, resolved entry-point path,
        release_scope, grail_id, raw SHA-256, and byte length into its
        evidence.
+
+
+
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 20]
+
+Internet-Draft                   RAPP/1                     October 2026
+
 
    5.  Every gate that executes the kernel *MUST* bind verification
        atomically to execution from a sealed immutable object or
@@ -1000,16 +1145,6 @@ Internet-Draft                   RAPP/1                   September 2026
        semantic except through the registration and evolution rules of
        §§7, 9, 12, and 13.
 
-
-
-
-
-
-Wildfeuer                 Expires 6 March 2027                 [Page 18]
-
-Internet-Draft                   RAPP/1                   September 2026
-
-
    7.  If required behavior cannot be expressed outside the pin, the
        implementation *MUST* report an incompatibility.  It *MUST NOT*
        edit the Grail and continue under the same identity.
@@ -1032,6 +1167,16 @@ Internet-Draft                   RAPP/1                   September 2026
    This rule governs release topology rather than the §8 wire shape, so
    it does not add a frame member, endpoint, compatibility shim, or
    alternate rapp/1 encoding.
+
+
+
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 21]
+
+Internet-Draft                   RAPP/1                     October 2026
+
 
 11.2.  Operational conformance profiles
 
@@ -1058,14 +1203,6 @@ Internet-Draft                   RAPP/1                   September 2026
        are drafts, fixtures, or caches and cannot authorize promotion or
        traffic.
 
-
-
-
-Wildfeuer                 Expires 6 March 2027                 [Page 19]
-
-Internet-Draft                   RAPP/1                   September 2026
-
-
    3.  They *MUST NOT* add a transport endpoint beside §8 POST /chat,
        redefine any RAPP/1 primitive, or weaken §11.1.
 
@@ -1085,6 +1222,17 @@ Internet-Draft                   RAPP/1                   September 2026
    7.  A consumer *MUST* refuse unknown required policy semantics.  It
        may preserve and relay unknown optional evidence, but may not
        treat it as satisfying a requirement it does not implement.
+
+
+
+
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 22]
+
+Internet-Draft                   RAPP/1                     October 2026
+
 
    The executable reference validators are rapp_cicd.py and
    rapp_deploy.py; controlled profile vectors are in
@@ -1114,14 +1262,6 @@ Internet-Draft                   RAPP/1                   September 2026
    the token to rapp/2, specified beside this document, and rapp/1
    artifacts keep verifying under this document forever.  A consumer
    *MUST NOT* refuse a rapp/1 artifact because a later token exists.
-
-
-
-Wildfeuer                 Expires 6 March 2027                 [Page 20]
-
-Internet-Draft                   RAPP/1                   September 2026
-
-
    Everything Art. IV names still grows under rapp/1: registered kinds,
    egg variants, error codes, registry entry types, vocabulary,
    subordinate profiles, and the registry itself.  The frozen forms are
@@ -1135,6 +1275,20 @@ Internet-Draft                   RAPP/1                   September 2026
    resolvable.  They are historical authority records, not accepted live
    legacy protocol forms.  A producer *MUST NOT* emit the pointer-only
    revision profile after rev-13.
+
+
+
+
+
+
+
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 23]
+
+Internet-Draft                   RAPP/1                     October 2026
+
 
 12.1.  Re-genesis (converging an immutable chain — one owner-authorized
        operation)
@@ -1160,23 +1314,11 @@ Internet-Draft                   RAPP/1                   September 2026
        {"migrated_from":{"stream_id":<old>,"terminal_seal":<seal>,
        "terminal_seq":<n>}} and no other members.  A consumer *MUST*
        treat any *.re-genesis kind as the sole re-genesis marker for its
-       family and refuse an unsigned/non-owner one.
-
-
-
-
-
-
-
-
-
-
-
-
-Wildfeuer                 Expires 6 March 2027                 [Page 21]
-
-Internet-Draft                   RAPP/1                   September 2026
-
+       family and refuse an unsigned/non-owner one.  A consumer *MUST*
+       also refuse, at §7.5 step 1, a *.re-genesis frame whose payload
+       is not exactly this object: migrated_from with exactly stream_id
+       (a §6.1.1 stream_id), terminal_seal (64HEXDIGLC) and terminal_seq
+       (a uint53); and, at step 4, one with seq≠0 or prev≠null.
 
    3.  *Register (the linearization point):* append a §13.3 genesis
        entry mapping the stream_id to the new genesis's frame_hash, *and
@@ -1193,6 +1335,16 @@ Internet-Draft                   RAPP/1                   September 2026
        sealed history, never served as current, never extended, never
        read as live chain.  No live frame may set prev/prev_wave to a
        retired hash (a dangling ref is a drift finding).
+
+
+
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 24]
+
+Internet-Draft                   RAPP/1                     October 2026
+
 
    5.  Keep the old stream_id unless the identity itself re-anchored
        (§6.3), in which case the registry entry also records
@@ -1226,14 +1378,6 @@ Internet-Draft                   RAPP/1                   September 2026
       does not create a new kind or alter canonicalization, hashing, or
       registered-kind semantics;
 
-
-
-
-Wildfeuer                 Expires 6 March 2027                 [Page 22]
-
-Internet-Draft                   RAPP/1                   September 2026
-
-
    *  stream_id remains the bootstrap-pinned anchor stream, seq is
       contiguous, prev names the predecessor's payload_hash, prev_wave
       and sig are null, and the applicable §7.5 integrity checks hold;
@@ -1250,6 +1394,14 @@ Internet-Draft                   RAPP/1                   September 2026
    exact stdlib verifier at anchor/bootstrap_verify.py by raw SHA-256
    and byte length.  The profile fixes the exact-integer JCS subset and
    limits, particle/wave domains, eleven frame keys, timestamp/sequence/
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 25]
+
+Internet-Draft                   RAPP/1                     October 2026
+
+
    predecessor rules, canonical repository and protected ref, anchor
    stream ID, genesis frame and payload hashes, body.pulse anchor
    profile, null signature/wave fields, and byte/depth limits needed to
@@ -1282,14 +1434,6 @@ Internet-Draft                   RAPP/1                   September 2026
    are immutable governance history under Article 3's narrow exception;
    they *MUST NOT* be emitted for rev-14 or later.
 
-
-
-
-Wildfeuer                 Expires 6 March 2027                 [Page 23]
-
-Internet-Draft                   RAPP/1                   September 2026
-
-
    Rev-14 and each successor using this profile carries all normative
    text inside the chain frame.  Its payload *MUST* include
    schema:"rapp-spec-revision/1", a unique revision, and both
@@ -1306,6 +1450,14 @@ Internet-Draft                   RAPP/1                   September 2026
    normative.sha256 and normative.bytes *MUST* match those exact octets
    and the corresponding legacy normative_sha256 and normative_bytes.
    The complete canonical frame remains subject to §4's 1 MiB limit.
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 26]
+
+Internet-Draft                   RAPP/1                     October 2026
+
+
    Inline revisions require only the selected, verified chain bytes once
    fetched; their commit/path fields are immutable provenance, not a
    second source for normative text.
@@ -1336,16 +1488,6 @@ Internet-Draft                   RAPP/1                   September 2026
    https://raw.githubusercontent.com/kody-w/rapp-1/C/anchor/frames/
    F.json.  Wrong content at the correct hash-derived path is refusal.
 
-
-
-
-
-
-Wildfeuer                 Expires 6 March 2027                 [Page 24]
-
-Internet-Draft                   RAPP/1                   September 2026
-
-
    anchor/index.json is a deterministic generated index from seq,
    revision label, frame hash, and payload hash to those objects.  It
    carries no independent authority: a consumer *MUST* verify each
@@ -1364,6 +1506,13 @@ Internet-Draft                   RAPP/1                   September 2026
    an unsupported schema; a legacy pointer-only frame after rev-13;
    malformed UTF-8; normative hash/length drift; bootstrap/index/object
    drift; or an object absent from the selected chain.
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 27]
+
+Internet-Draft                   RAPP/1                     October 2026
+
 
    orient.json is only a beacon to the head.  Its sequence, frame hash,
    payload hash, bootstrap/index pins, authority-selection metadata, and
@@ -1391,17 +1540,6 @@ Internet-Draft                   RAPP/1                   September 2026
    orient.json https://raw.githubusercontent.com/kody-w/rapp-1/C/anchor/
    index.json
 
-
-
-
-
-
-
-Wildfeuer                 Expires 6 March 2027                 [Page 25]
-
-Internet-Draft                   RAPP/1                   September 2026
-
-
    The authority linearization point is the owner-ratified acceptance of
    C onto protected canonical main, not creation of a local frame, a
    feed event, or a hash alone.  A stale competing append *MUST* rebase
@@ -1424,6 +1562,14 @@ Internet-Draft                   RAPP/1                   September 2026
    lock across read, verification, generation, comparison, and
    publication.  Immediately before replacing chain.jsonl it *MUST* re-
    read and verify the on-disk head and compare the complete expected
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 28]
+
+Internet-Draft                   RAPP/1                     October 2026
+
+
    prefix; a stale writer or changed prefix is refused.  Supporting
    content-addressed artifacts are published first, the authority chain
    is compare-and-swap replaced next, and the beacon is replaced last,
@@ -1450,14 +1596,6 @@ Internet-Draft                   RAPP/1                   September 2026
    unsigned mutable file at the root of the trust graph would forge that
    estate).
 
-
-
-
-Wildfeuer                 Expires 6 March 2027                 [Page 26]
-
-Internet-Draft                   RAPP/1                   September 2026
-
-
 13.1.  Trust anchor and registry authentication
 
    *  The one bootstrap axiom is the *estate_owner rappid string*
@@ -1473,6 +1611,20 @@ Internet-Draft                   RAPP/1                   September 2026
       SPKI_DER) equals the anchor rappid's tail (the SPKI may travel
       alongside the registry — the tail check authenticates it) and
       *MUST* refuse an unsigned or non-verifying registry.
+
+
+
+
+
+
+
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 29]
+
+Internet-Draft                   RAPP/1                     October 2026
+
 
    *  *No rollback:* a consumer persists the highest registry_seq it
       verified and refuses any registry with a lower one (mirrors §7.6).
@@ -1506,27 +1658,30 @@ Internet-Draft                   RAPP/1                   September 2026
    spec_repo:"https://github.com/kody-w/rapp-1", spec_path:"SPEC.md",
    and spec_hash to a normative SHA-256 published by a verified frame in
    this repository's anchor chain.  A historical RAPP/1 pin may be
-
-
-
-Wildfeuer                 Expires 6 March 2027                 [Page 27]
-
-Internet-Draft                   RAPP/1                   September 2026
-
-
    retained only as deprecated:true; it does not override the current
    anchor.  Other protocol entries are subordinate to their own
    canonical authorities and *MUST NOT* claim the rapp/1 name or
    namespace. - *kind* {type:"kind", kind, family, deprecated} (incl.
-   the three *.re-genesis kinds) - *egg-variant* {type:"egg-variant",
-   variant, deprecated} · *error-code* {type:"error-code", code} (both
-   closed namespaces; unregistered value = not conformant) - *genesis*
+   the three *.re-genesis kinds).  A deprecated:true kind entry still
+   registers kind and its family for §7.5 step 1 (steps 1–5 are time-
+   independent); deprecation only tells producers to stop emitting new
+   frames of that kind. - *egg-variant* {type:"egg-variant", variant,
+   deprecated} · *error-code* {type:"error-code", code} (both closed
+   namespaces; unregistered value = not conformant) - *genesis*
    {type:"genesis", stream_id, frame_hash, deprecated, old_stream_id?,
    new_stream_id?} — *every* stream registers its creation genesis; re-
    genesis appends a new one and deprecates all prior (§12.1 step 3);
    §7.6's "registered genesis" is the sole non-deprecated genesis for a
    stream_id. - *spki* {type:"spki", rappid, spki_der_b64, deprecated} —
    the §10 key-discovery source. - *tombstone* {type:"tombstone",
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 30]
+
+Internet-Draft                   RAPP/1                     October 2026
+
+
    rappid, revoked_utc, sig}, sig owner-signed over canonical(entry \
    {sig}). - *re-anchor* {type:"re-anchor", old_rappid, new_rappid,
    case:("upgrade"|"rotation"|"compromise"|"tag-migrate"), utc, sig,
@@ -1563,13 +1718,6 @@ Internet-Draft                   RAPP/1                   September 2026
    step 6 (tombstones) and §13.2 owner tenure are time-scoped, and both
    are monotone given the §13.1 no-rollback rule.
 
-
-
-Wildfeuer                 Expires 6 March 2027                 [Page 28]
-
-Internet-Draft                   RAPP/1                   September 2026
-
-
 14.  Security considerations
 
    *  *Integrity:* every object is domain-separated content-addressed
@@ -1580,6 +1728,15 @@ Internet-Draft                   RAPP/1                   September 2026
       history, not which head is current; a hostile mirror may serve a
       stale/forked head.  Consumers counter with the §7.6 monotonic-head
       rule; swarm heads *SHOULD* be owner-signed.
+
+
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 31]
+
+Internet-Draft                   RAPP/1                     October 2026
+
 
    *  *Cross-stream replay:* without §7.5 step 1a, any genesis/segment
       of stream A replays as stream B (seq=0, prev=null always pass).
@@ -1616,16 +1773,6 @@ Internet-Draft                   RAPP/1                   September 2026
       *SHOULD* rank by min(utc, first-seen); a bricked stream converges
       by re-genesis (§12.1).
 
-
-
-
-
-
-Wildfeuer                 Expires 6 March 2027                 [Page 29]
-
-Internet-Draft                   RAPP/1                   September 2026
-
-
    *  *Sealed-artifact limits:* a public mirror sees ciphertext and
       metadata.  AES-GCM protects confidentiality only while the DEK
       remains secret; a recipient that has lawfully decrypted plaintext
@@ -1634,6 +1781,18 @@ Internet-Draft                   RAPP/1                   September 2026
       branch URLs, nonce reuse under one DEK, and claims that bytecode
       cannot be inspected after decryption are non-conformant security
       postures (§9.2.1).
+
+
+
+
+
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 32]
+
+Internet-Draft                   RAPP/1                     October 2026
+
 
    *  *Kernel substitution:* testing mutable ring bytes and restoring
       the Grail only after approval creates an untested release. §11.1
@@ -1671,17 +1830,6 @@ Internet-Draft                   RAPP/1                   September 2026
               DOI 10.17487/RFC5869, May 2010,
               <https://www.rfc-editor.org/rfc/rfc5869>.
 
-
-
-
-
-
-
-Wildfeuer                 Expires 6 March 2027                 [Page 30]
-
-Internet-Draft                   RAPP/1                   September 2026
-
-
    [RFC6979]  Pornin, T., "Deterministic Usage of the Digital Signature
               Algorithm (DSA) and Elliptic Curve Digital Signature
               Algorithm (ECDSA)", RFC 6979, DOI 10.17487/RFC6979, August
@@ -1694,6 +1842,13 @@ Internet-Draft                   RAPP/1                   September 2026
    [RFC7493]  Bray, T., Ed., "The I-JSON Message Format", RFC 7493,
               DOI 10.17487/RFC7493, March 2015,
               <https://www.rfc-editor.org/rfc/rfc7493>.
+
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 33]
+
+Internet-Draft                   RAPP/1                     October 2026
+
 
    [RFC7515]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web
               Signature (JWS)", RFC 7515, DOI 10.17487/RFC7515, May
@@ -1711,6 +1866,11 @@ Internet-Draft                   RAPP/1                   September 2026
               Option", RFC 7797, DOI 10.17487/RFC7797, February 2016,
               <https://www.rfc-editor.org/rfc/rfc7797>.
 
+   [RFC8032]  Josefsson, S. and I. Liusvaara, "Edwards-Curve Digital
+              Signature Algorithm (EdDSA)", RFC 8032,
+              DOI 10.17487/RFC8032, January 2017,
+              <https://www.rfc-editor.org/rfc/rfc8032>.
+
    [RFC8037]  Liusvaara, I., "CFRG Elliptic Curve Diffie-Hellman (ECDH)
               and Signatures in JSON Object Signing and Encryption
               (JOSE)", RFC 8037, DOI 10.17487/RFC8037, January 2017,
@@ -1719,6 +1879,12 @@ Internet-Draft                   RAPP/1                   September 2026
    [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/rfc/rfc8174>.
+
+   [RFC8410]  Josefsson, S. and J. Schaad, "Algorithm Identifiers for
+              Ed25519, Ed448, X25519, and X448 for Use in the Internet
+              X.509 Public Key Infrastructure", RFC 8410,
+              DOI 10.17487/RFC8410, August 2018,
+              <https://www.rfc-editor.org/rfc/rfc8410>.
 
    [RFC8785]  Rundgren, A., Jordan, B., and S. Erdtman, "JSON
               Canonicalization Scheme (JCS)", RFC 8785,
@@ -1733,9 +1899,11 @@ Internet-Draft                   RAPP/1                   September 2026
 
 
 
-Wildfeuer                 Expires 6 March 2027                 [Page 31]
+
+
+Wildfeuer                 Expires 10 April 2027                [Page 34]
 
-Internet-Draft                   RAPP/1                   September 2026
+Internet-Draft                   RAPP/1                     October 2026
 
 
    [RAPP1-ANCHOR]
@@ -1789,4 +1957,4 @@ Author's Address
 
 
 
-Wildfeuer                 Expires 6 March 2027                 [Page 32]
+Wildfeuer                 Expires 10 April 2027                [Page 35]
