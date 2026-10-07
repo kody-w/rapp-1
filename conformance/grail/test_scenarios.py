@@ -43,11 +43,12 @@ class ScenarioTests(unittest.TestCase):
         self.assertEqual(
             pin,
             {
-                "repo": "kody-w/rapp-installer",
-                "commit": "0e43ee580e78c150b1c59002456822d2e779388e",
-                "path": "rapp_brainstem/brainstem.py",
-                "blob": "3f7102ff508c813bb6494511fc32a421a633e418",
+                "kernel": "kody-w/rapp-installer",
+                "sha": "0e43ee580e78c150b1c59002456822d2e779388e",
                 "version": "0.6.16",
+                "path": "rapp_brainstem/brainstem.py",
+                "kernel_blob": "3f7102ff508c813bb6494511fc32a421a633e418",
+                "pinned": "2026-10-07",
             },
         )
 

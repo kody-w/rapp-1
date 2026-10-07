@@ -21,11 +21,11 @@ jobs:
       - name: Read the one Grail pin
         id: kernel
         run: |
-          echo "commit=$(python3 -c 'import json; print(json.load(open("conformance/grail/kernel.json"))["commit"])')" >> "$GITHUB_OUTPUT"
+          echo "sha=$(python3 -c 'import json; print(json.load(open("conformance/grail/kernel.json"))["sha"])')" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: kody-w/rapp-installer
-          ref: ${{ steps.kernel.outputs.commit }}
+          ref: ${{ steps.kernel.outputs.sha }}
           path: grail-source
       - name: Install pinned Grail requirements
         run: python3 -m pip install -r grail-source/rapp_brainstem/requirements.txt

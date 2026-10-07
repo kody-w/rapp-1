@@ -30,6 +30,9 @@ SPEC = ROOT / "SPEC.md"
 REPLACED_DRAFT_FRAME_HASH = (
     "aa9af1c34eefab67d08c6fe814206d635d6a20f48a3ebbe30d0724b218d0afd9"
 )
+REPLACED_REV18_DRAFT_FRAME_HASH = (
+    "a1473f18ecf056dd98c6dfb13e7b61efc36e0bbaeeb57b2ae69aaf00f84ca042"
+)
 HISTORICAL_LINE_SHA256 = (
     "dd11f0775259cb92a2d1f02034c8dc076510b4470a9e9720cb5225802fa8dd4b",
     "a3fdef2b31d2168396ddf534ff87b7578842354e5232a2b95a77cef5cbd23ced",
@@ -121,18 +124,22 @@ class SpecChainTests(unittest.TestCase):
                 ROOT / "anchor" / "frames" / f"{frame['frame_hash']}.json"
             )
             self.assertEqual(object_path.read_bytes(), line[:-1])
-        self.assertNotIn(
+        for replaced in (
             REPLACED_DRAFT_FRAME_HASH,
-            {frame["frame_hash"] for frame in self.frames},
-        )
-        self.assertFalse(
-            (
-                ROOT
-                / "anchor"
-                / "frames"
-                / f"{REPLACED_DRAFT_FRAME_HASH}.json"
-            ).exists()
-        )
+            REPLACED_REV18_DRAFT_FRAME_HASH,
+        ):
+            self.assertNotIn(
+                replaced,
+                {frame["frame_hash"] for frame in self.frames},
+            )
+            self.assertFalse(
+                (
+                    ROOT
+                    / "anchor"
+                    / "frames"
+                    / f"{replaced}.json"
+                ).exists()
+            )
 
     def test_full_chain_head_and_beacon_verify(self) -> None:
         self.assertEqual(self.head["seq"], 18)

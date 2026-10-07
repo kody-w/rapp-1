@@ -325,8 +325,9 @@ genesis authorizes a reset; any other lower-`seq` head remains a refused rollbac
 All interaction rides one of exactly two forms:
 1. **Synchronous — `POST /chat`, `application/json` both ways. The Grail is the reference:** an endpoint
    conforms when it answers every scenario of the Grail conformance suite (`conformance/grail/`) the way
-   the Grail pinned in that suite does — same HTTP status, same members, same `response`, `error`, and
-   `session_id` values.
+   the Grail pinned in that suite does — same HTTP status and members, the same `response` and `session_id`
+   values, and for a refusal the same status and members (the `error` text is compared only against the
+   same Grail version).
    - Request: a JSON object. `user_input` (string, REQUIRED; empty or whitespace-only counts as missing).
      `conversation_history` (OPTIONAL array; each item an object with `role` one of `"user"`, `"assistant"`,
      `"tool"` and `content` a string). `session_id` (string, OPTIONAL). Unrecognized members **MUST** be

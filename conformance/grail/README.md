@@ -1,8 +1,9 @@
 # Grail conformance
 
 This is the one shared test of the Grail `/chat` wire. The oracle is the
-`kody-w/rapp-installer` kernel pinned in `kernel.json`. Every run writes the
-ignored `report.json`.
+`kody-w/rapp-installer` kernel pinned in `kernel.json`, using the estate pin
+keys `kernel`, `sha`, `version`, `path`, `kernel_blob`, and `pinned`. Every run
+writes the ignored `report.json`.
 
 ## Three uses
 
@@ -34,7 +35,9 @@ python3 conformance/grail/run.py --candidate http:https://node.example
 ```
 
 HTTP errors always compare status and member names. Add `--same-version` to
-compare the exact human-readable `error` text too.
+compare the exact human-readable `error` text too. For `/health`, the live
+probe compares only the HTTP status, the `status` value, and that `agents` is a
+list of strings; a node's own agent names are not expected to match the oracle.
 
 Use `--allow file.json` for declared bug fixes:
 

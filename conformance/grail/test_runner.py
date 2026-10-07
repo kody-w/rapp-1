@@ -16,6 +16,60 @@ from scenarios import SCENARIOS  # noqa: E402
 
 
 class RunnerTests(unittest.TestCase):
+    def test_http_health_ignores_agent_inventory_but_checks_string_list(self):
+        scenario = SCENARIOS[0]
+        oracle = runner.contract_view(
+            scenario,
+            200,
+            {"status": "ok", "agents": ["Echo", "WordStats"]},
+            compare_error_text=False,
+            compare_health_agents=False,
+        )
+        live_node = runner.contract_view(
+            scenario,
+            200,
+            {"status": "ok", "agents": ["Echo", "Extra", "WordStats"]},
+            compare_error_text=False,
+            compare_health_agents=False,
+        )
+        invalid_node = runner.contract_view(
+            scenario,
+            200,
+            {"status": "ok", "agents": ["Echo", 5]},
+            compare_error_text=False,
+            compare_health_agents=False,
+        )
+        exact_fixture = runner.contract_view(
+            scenario,
+            200,
+            {"status": "ok", "agents": ["Echo", "Extra", "WordStats"]},
+            compare_error_text=False,
+            compare_health_agents=True,
+        )
+        exact_oracle = runner.contract_view(
+            scenario,
+            200,
+            {"status": "ok", "agents": ["Echo", "WordStats"]},
+            compare_error_text=False,
+            compare_health_agents=True,
+        )
+
+        self.assertEqual(oracle, live_node)
+        self.assertNotEqual(oracle, invalid_node)
+        self.assertNotEqual(exact_oracle, exact_fixture)
+        self.assertEqual(
+            live_node,
+            {
+                "code": 200,
+                "status": "ok",
+                "agents_are_strings": True,
+            },
+        )
+        self.assertEqual(
+            exact_fixture["agents"],
+            ["Echo", "Extra", "WordStats"],
+        )
+
     def test_module_factory_receives_context_and_returns_callable(self):
         module = types.ModuleType("grail_test_adapter")
         seen = {}

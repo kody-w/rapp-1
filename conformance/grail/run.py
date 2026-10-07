@@ -29,7 +29,7 @@ from scenarios import MODEL, SCENARIOS, Scenario  # noqa: E402
 
 PIN_PATH = HERE / "kernel.json"
 REPORT_PATH = HERE / "report.json"
-PIN_KEYS = {"repo", "commit", "path", "blob", "version"}
+PIN_KEYS = {"kernel", "sha", "version", "path", "kernel_blob", "pinned"}
 DEFAULT_GRAIL_PYTHON = Path("~/.airaptr/venv/bin/python").expanduser()
 
 
@@ -73,9 +73,10 @@ def verify_oracle(value: str, pin: dict) -> Tuple[Path, str]:
     grail = resolve_grail_dir(value, pin)
     source = (grail / "brainstem.py").read_bytes()
     blob = git_blob(source)
-    if blob != pin["blob"]:
+    if blob != pin["kernel_blob"]:
         raise ConformanceError(
-            f"oracle brainstem.py blob {blob} != pinned {pin['blob']}; refusing mismatch"
+            f"oracle brainstem.py blob {blob} != pinned "
+            f"{pin['kernel_blob']}; refusing mismatch"
         )
     version_path = grail / "VERSION"
     if not version_path.is_file():
@@ -146,13 +147,23 @@ def contract_view(
     body: dict,
     *,
     compare_error_text: bool,
+    compare_health_agents: bool,
 ) -> dict:
     if scenario.name == "health agents":
         agents = body.get("agents", [])
+        agents_are_strings = isinstance(agents, list) and all(
+            isinstance(agent, str) for agent in agents
+        )
+        if not compare_health_agents:
+            return {
+                "code": code,
+                "status": body.get("status"),
+                "agents_are_strings": agents_are_strings,
+            }
         return {
             "code": code,
             "status": body.get("status"),
-            "agents": sorted(agents) if isinstance(agents, list) else agents,
+            "agents": sorted(agents) if agents_are_strings else agents,
         }
     if scenario.name == "version":
         return {
@@ -480,16 +491,19 @@ def run(args: argparse.Namespace) -> int:
         allowed_differences = 0
         unallowed_differences = 0
         compare_error_text = mode != "http" or args.same_version
+        compare_health_agents = mode != "http"
         for scenario in scenarios:
             oracle = contract_view(
                 scenario,
                 *call_http(oracle_url, scenario),
                 compare_error_text=True,
+                compare_health_agents=compare_health_agents,
             )
             candidate = contract_view(
                 scenario,
                 *candidate_call(scenario),
                 compare_error_text=compare_error_text,
+                compare_health_agents=compare_health_agents,
             )
             if not compare_error_text and oracle["code"] != 200:
                 oracle.pop("error", None)
@@ -528,7 +542,7 @@ def run(args: argparse.Namespace) -> int:
             "oracle": {
                 "directory": str(oracle_dir),
                 "kernel": pin,
-                "blob": oracle_blob,
+                "kernel_blob": oracle_blob,
             },
             "candidate": {"mode": mode, "value": candidate_value},
             "same_version": args.same_version,
