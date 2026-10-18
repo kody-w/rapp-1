@@ -170,7 +170,8 @@ first divergence if any vector ever differs; identical bytes are the whole point
 ```text
 Clone https://github.com/kody-w/rapp-1 and read conformance/grail/vectors.json: 25 plain
 JSON vectors in lesson order, 1 to 25, that define what a Brainstem answers on /health,
-/version and /chat, with the fake model in conformance/grail/fake_model.py. Build a
+/version and /chat; conformance/grail/expected.json holds the exact expected answer for each,
+and conformance/grail/fake_model.py is the model. Build a
 Brainstem in <LANGUAGE> that serves those three doors, loads the agents in $AGENTS_PATH
 as tools (a *_agent.py file is a tool; so is any executable that answers describe and
 perform), and talks to the model at $FAKE_TOKEN_URL / $FAKE_MODEL_URL exactly as the

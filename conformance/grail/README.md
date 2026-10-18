@@ -29,7 +29,9 @@ HTTP-response-like object with `status_code` and `get_body()`.
 **Any language, full suite:** start your own implementation from a shell command. The
 suite passes it `PORT` to listen on, `FAKE_TOKEN_URL` and `FAKE_MODEL_URL` for the
 deterministic model, `AGENTS_PATH` holding the fixture agents, and `GITHUB_MODEL`.
-Answer `/health` on that port and all 25 scenarios run.
+Answer `/health` on that port and all 25 scenarios run. Give the command as an **absolute path**: the
+suite starts it from a temporary working directory. `expected.json` shows the pinned oracle's exact answer
+for every scenario, so you never have to learn wording from a DIFF (`make_expected.py --check` keeps it current).
 
 ```bash
 GRAIL_DIR=/path/to/pinned/rapp_brainstem \
@@ -101,3 +103,4 @@ Known conformant implementations (each run yourself, numbers as observed):
 |---|---|---|---|
 | Pinned Grail, Python (oracle vs itself) | 2026-10-17 | 25 of 25 | this suite, macOS |
 | `airaptr/star_agent`, Rust (private) | 2026-10-17 | 25 of 25 | its `conformance/grail_adapter.py` |
+| [`kody-w/brainstem-go`](https://github.com/kody-w/brainstem-go), Go, built by an AI from the vectors alone | 2026-10-17 | 25 of 25 | `cmd:` candidate |

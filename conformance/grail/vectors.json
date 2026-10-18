@@ -10,6 +10,7 @@
   "model": "gpt-4o",
   "session_id": "grail-conformance-session",
   "fake_model": "fake_model.py (deterministic; see its source for the replies)",
+  "expected": "expected.json holds the pinned oracle's exact answer for every vector",
   "compare": "run.py contract_view(): for 200 answers the keys, response, session_id, agent_logs, voice_mode, model, requested_model; for errors the status and keys and error text",
   "count": 25,
   "vectors": [
@@ -209,7 +210,7 @@
     },
     {
       "id": "word stats agent",
-      "lesson": "18. A compiled agent in agents/ is a tool the model can call.",
+      "lesson": "18. Each agent in agents/ is a tool the model can call (here: WordStats).",
       "method": "POST",
       "path": "/chat",
       "body": {
@@ -220,7 +221,7 @@
     },
     {
       "id": "python agent",
-      "lesson": "19. A *_agent.py file in agents/ is a tool the model can call.",
+      "lesson": "19. One *_agent.py file can hold several agents; each is its own tool (here: Echo).",
       "method": "POST",
       "path": "/chat",
       "body": {
