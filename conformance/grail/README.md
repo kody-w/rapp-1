@@ -26,6 +26,16 @@ agents, and a work directory. It returns a callable
 `call(method, path, body)`. That callable returns `(status, body)` or an
 HTTP-response-like object with `status_code` and `get_body()`.
 
+**Any language, full suite:** start your own implementation from a shell command. The
+suite passes it `PORT` to listen on, `FAKE_TOKEN_URL` and `FAKE_MODEL_URL` for the
+deterministic model, `AGENTS_PATH` holding the fixture agents, and `GITHUB_MODEL`.
+Answer `/health` on that port and all 25 scenarios run.
+
+```bash
+GRAIL_DIR=/path/to/pinned/rapp_brainstem \
+python3 conformance/grail/run.py --candidate 'cmd:./my_brainstem serve'
+```
+
 **Hub join probe:** compare a live node without making model calls. This runs the
 14 health, validation, version, and not-found scenarios.
 

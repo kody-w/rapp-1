@@ -165,6 +165,26 @@ first divergence if any vector ever differs; identical bytes are the whole point
 
 **Expect:** a growing implementation where every step ends in a byte-parity proof.
 
+## 8.1 · Build me a Brainstem in my language and prove it
+
+```text
+Clone https://github.com/kody-w/rapp-1 and read conformance/grail/vectors.json: 25 plain
+JSON vectors in lesson order, 1 to 25, that define what a Brainstem answers on /health,
+/version and /chat, with the fake model in conformance/grail/fake_model.py. Build a
+Brainstem in <LANGUAGE> that serves those three doors, loads the agents in $AGENTS_PATH
+as tools (a *_agent.py file is a tool; so is any executable that answers describe and
+perform), and talks to the model at $FAKE_TOKEN_URL / $FAKE_MODEL_URL exactly as the
+pinned kernel does. Then prove it: check out kody-w/rapp-installer at the sha in
+conformance/grail/kernel.json and run
+  GRAIL_DIR=<that>/rapp_brainstem python3 conformance/grail/run.py --candidate 'cmd:<how to start mine>'
+I expect 25 of 25 identical. Show me the first DIFF if there is one and fix my code,
+never the kernel. Do not read the kernel's source until the suite tells you where you
+differ; the vectors are the contract.
+```
+
+**Expect:** a Brainstem in your language whose only proof is the shared suite, and a
+report that says `25 of 25 scenarios identical` or names the exact scenario that does not.
+
 ## 9 · Something's red and I want to understand it
 
 ```text
