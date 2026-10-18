@@ -1,0 +1,293 @@
+{
+  "kernel": {
+    "kernel": "kody-w/rapp-installer",
+    "kernel_blob": "3f7102ff508c813bb6494511fc32a421a633e418",
+    "path": "rapp_brainstem/brainstem.py",
+    "pinned": "2026-10-07",
+    "sha": "0e43ee580e78c150b1c59002456822d2e779388e",
+    "version": "0.6.16"
+  },
+  "note": "The pinned oracle's answer per scenario, in the exact view run.py compares.",
+  "scenarios": {
+    "agent raises": {
+      "agent_logs": "[Boom] ERROR: it blew up",
+      "code": 200,
+      "keys": [
+        "agent_logs",
+        "model",
+        "requested_model",
+        "response",
+        "session_id",
+        "voice_mode"
+      ],
+      "model": "gpt-4o",
+      "requested_model": "gpt-4o",
+      "response": "RESULT: Error: it blew up",
+      "session_id": "grail-conformance-session",
+      "voice_mode": false
+    },
+    "bad tool args": {
+      "agent_logs": "[Echo] Error: Tool arguments must be a valid JSON object.",
+      "code": 200,
+      "keys": [
+        "agent_logs",
+        "model",
+        "requested_model",
+        "response",
+        "session_id",
+        "voice_mode"
+      ],
+      "model": "gpt-4o",
+      "requested_model": "gpt-4o",
+      "response": "RESULT: Error: Tool arguments must be a valid JSON object.",
+      "session_id": "grail-conformance-session",
+      "voice_mode": false
+    },
+    "blank input": {
+      "code": 400,
+      "error": "user_input is required",
+      "keys": [
+        "error"
+      ]
+    },
+    "body not an object": {
+      "code": 400,
+      "error": "Request body must be a JSON object",
+      "keys": [
+        "error"
+      ]
+    },
+    "body not json": {
+      "code": 400,
+      "error": "Request body must be a JSON object",
+      "keys": [
+        "error"
+      ]
+    },
+    "echo": {
+      "agent_logs": "",
+      "code": 200,
+      "keys": [
+        "agent_logs",
+        "model",
+        "requested_model",
+        "response",
+        "session_id",
+        "voice_mode"
+      ],
+      "model": "gpt-4o",
+      "requested_model": "gpt-4o",
+      "response": "ECHO(0): hello there",
+      "session_id": "grail-conformance-session",
+      "voice_mode": false
+    },
+    "health agents": {
+      "agents": [
+        "Boom",
+        "Echo",
+        "WordStats"
+      ],
+      "code": 200,
+      "status": "ok"
+    },
+    "history bad content": {
+      "code": 400,
+      "error": "conversation_history[0].content must be a string",
+      "keys": [
+        "error"
+      ]
+    },
+    "history bad role": {
+      "code": 400,
+      "error": "conversation_history[0].role is invalid",
+      "keys": [
+        "error"
+      ]
+    },
+    "history checked before blank": {
+      "code": 400,
+      "error": "conversation_history must be an array",
+      "keys": [
+        "error"
+      ]
+    },
+    "history counts": {
+      "agent_logs": "",
+      "code": 200,
+      "keys": [
+        "agent_logs",
+        "model",
+        "requested_model",
+        "response",
+        "session_id",
+        "voice_mode"
+      ],
+      "model": "gpt-4o",
+      "requested_model": "gpt-4o",
+      "response": "ECHO(2): third",
+      "session_id": "grail-conformance-session",
+      "voice_mode": false
+    },
+    "history item not an object": {
+      "code": 400,
+      "error": "conversation_history[0] must be an object",
+      "keys": [
+        "error"
+      ]
+    },
+    "history not a list": {
+      "code": 400,
+      "error": "conversation_history must be an array",
+      "keys": [
+        "error"
+      ]
+    },
+    "input not a string": {
+      "code": 400,
+      "error": "user_input must be a string",
+      "keys": [
+        "error"
+      ]
+    },
+    "input type checked first": {
+      "code": 400,
+      "error": "user_input must be a string",
+      "keys": [
+        "error"
+      ]
+    },
+    "missing input": {
+      "code": 400,
+      "error": "user_input is required",
+      "keys": [
+        "error"
+      ]
+    },
+    "multiple tool calls": {
+      "agent_logs": "[Echo] FIRST\n[WordStats] words=2 characters=7",
+      "code": 200,
+      "keys": [
+        "agent_logs",
+        "model",
+        "requested_model",
+        "response",
+        "session_id",
+        "voice_mode"
+      ],
+      "model": "gpt-4o",
+      "requested_model": "gpt-4o",
+      "response": "RESULT: words=2 characters=7",
+      "session_id": "grail-conformance-session",
+      "voice_mode": false
+    },
+    "not found": {
+      "code": 404
+    },
+    "python agent": {
+      "agent_logs": "[Echo] LOUD",
+      "code": 200,
+      "keys": [
+        "agent_logs",
+        "model",
+        "requested_model",
+        "response",
+        "session_id",
+        "voice_mode"
+      ],
+      "model": "gpt-4o",
+      "requested_model": "gpt-4o",
+      "response": "RESULT: LOUD",
+      "session_id": "grail-conformance-session",
+      "voice_mode": false
+    },
+    "tool fallback": {
+      "agent_logs": "[Echo] AGAIN\n[Echo] AGAIN\n[Echo] AGAIN",
+      "code": 200,
+      "keys": [
+        "agent_logs",
+        "model",
+        "requested_model",
+        "response",
+        "session_id",
+        "voice_mode"
+      ],
+      "model": "gpt-4o",
+      "requested_model": "gpt-4o",
+      "response": "I couldn't finish that within the available tool steps. Try rephrasing, or breaking it into smaller steps.",
+      "session_id": "grail-conformance-session",
+      "voice_mode": false
+    },
+    "tool rounds run out": {
+      "agent_logs": "[Echo] AGAIN\n[Echo] AGAIN\n[Echo] AGAIN",
+      "code": 200,
+      "keys": [
+        "agent_logs",
+        "model",
+        "requested_model",
+        "response",
+        "session_id",
+        "voice_mode"
+      ],
+      "model": "gpt-4o",
+      "requested_model": "gpt-4o",
+      "response": "RESULT: AGAIN",
+      "session_id": "grail-conformance-session",
+      "voice_mode": false
+    },
+    "trims input": {
+      "agent_logs": "",
+      "code": 200,
+      "keys": [
+        "agent_logs",
+        "model",
+        "requested_model",
+        "response",
+        "session_id",
+        "voice_mode"
+      ],
+      "model": "gpt-4o",
+      "requested_model": "gpt-4o",
+      "response": "ECHO(0): padded",
+      "session_id": "grail-conformance-session",
+      "voice_mode": false
+    },
+    "unknown agent": {
+      "agent_logs": "Agent 'Nobody' not found.",
+      "code": 200,
+      "keys": [
+        "agent_logs",
+        "model",
+        "requested_model",
+        "response",
+        "session_id",
+        "voice_mode"
+      ],
+      "model": "gpt-4o",
+      "requested_model": "gpt-4o",
+      "response": "RESULT: Agent 'Nobody' not found.",
+      "session_id": "grail-conformance-session",
+      "voice_mode": false
+    },
+    "version": {
+      "code": 200,
+      "has_version": true
+    },
+    "word stats agent": {
+      "agent_logs": "[WordStats] words=3 characters=14",
+      "code": 200,
+      "keys": [
+        "agent_logs",
+        "model",
+        "requested_model",
+        "response",
+        "session_id",
+        "voice_mode"
+      ],
+      "model": "gpt-4o",
+      "requested_model": "gpt-4o",
+      "response": "RESULT: words=3 characters=14",
+      "session_id": "grail-conformance-session",
+      "voice_mode": false
+    }
+  }
+}

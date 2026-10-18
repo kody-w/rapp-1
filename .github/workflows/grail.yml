@@ -39,6 +39,10 @@ jobs:
         run: |
           python3 conformance/grail/run.py \
             --candidate "grail:${{ github.workspace }}/grail-source/rapp_brainstem"
+      - name: Expected answers match the oracle
+        env:
+          GRAIL_DIR: ${{ github.workspace }}/grail-source/rapp_brainstem
+        run: python3 conformance/grail/make_expected.py --check
       - name: Suite has teeth (mutants)
         env:
           GRAIL_DIR: ${{ github.workspace }}/grail-source/rapp_brainstem
