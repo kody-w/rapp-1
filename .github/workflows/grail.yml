@@ -28,12 +28,22 @@ jobs:
           ref: ${{ steps.kernel.outputs.sha }}
           path: grail-source
       - name: Install pinned Grail requirements
-        run: python3 -m pip install -r grail-source/rapp_brainstem/requirements.txt
+        run: python3 -m pip install -r grail-source/rapp_brainstem/requirements.txt coverage
       - name: Scenario inventory
         run: python3 -m unittest discover -s conformance/grail -p 'test_*.py'
+      - name: Vectors match the scenarios
+        run: python3 conformance/grail/export_vectors.py --check
       - name: Pinned Grail matches itself
         env:
           GRAIL_DIR: ${{ github.workspace }}/grail-source/rapp_brainstem
         run: |
           python3 conformance/grail/run.py \
             --candidate "grail:${{ github.workspace }}/grail-source/rapp_brainstem"
+      - name: Suite has teeth (mutants)
+        env:
+          GRAIL_DIR: ${{ github.workspace }}/grail-source/rapp_brainstem
+        run: python3 conformance/grail/mutants.py
+      - name: What the suite does not reach (coverage)
+        env:
+          GRAIL_DIR: ${{ github.workspace }}/grail-source/rapp_brainstem
+        run: python3 conformance/grail/coverage_run.py

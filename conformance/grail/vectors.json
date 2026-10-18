@@ -1,0 +1,299 @@
+{
+  "kernel": {
+    "kernel": "kody-w/rapp-installer",
+    "sha": "0e43ee580e78c150b1c59002456822d2e779388e",
+    "version": "0.6.16",
+    "path": "rapp_brainstem/brainstem.py",
+    "kernel_blob": "3f7102ff508c813bb6494511fc32a421a633e418",
+    "pinned": "2026-10-07"
+  },
+  "model": "gpt-4o",
+  "session_id": "grail-conformance-session",
+  "fake_model": "fake_model.py (deterministic; see its source for the replies)",
+  "compare": "run.py contract_view(): for 200 answers the keys, response, session_id, agent_logs, voice_mode, model, requested_model; for errors the status and keys and error text",
+  "count": 25,
+  "vectors": [
+    {
+      "id": "health agents",
+      "lesson": "1. A Brainstem answers GET /health with status and its agent names.",
+      "method": "GET",
+      "path": "/health",
+      "body": null,
+      "needs_model": false
+    },
+    {
+      "id": "version",
+      "lesson": "2. GET /version names the kernel version.",
+      "method": "GET",
+      "path": "/version",
+      "body": null,
+      "needs_model": false
+    },
+    {
+      "id": "not found",
+      "lesson": "3. An unknown path is a 404.",
+      "method": "GET",
+      "path": "/nope",
+      "body": null,
+      "needs_model": false
+    },
+    {
+      "id": "echo",
+      "lesson": "4. POST /chat with user_input and session_id answers in the field `response`.",
+      "method": "POST",
+      "path": "/chat",
+      "body": {
+        "user_input": "hello there",
+        "session_id": "grail-conformance-session"
+      },
+      "needs_model": true
+    },
+    {
+      "id": "trims input",
+      "lesson": "5. Spaces around the question are trimmed before the model sees it.",
+      "method": "POST",
+      "path": "/chat",
+      "body": {
+        "user_input": "   padded   ",
+        "session_id": "grail-conformance-session"
+      },
+      "needs_model": true
+    },
+    {
+      "id": "history counts",
+      "lesson": "6. conversation_history turns are sent to the model in order.",
+      "method": "POST",
+      "path": "/chat",
+      "body": {
+        "user_input": "third",
+        "session_id": "grail-conformance-session",
+        "conversation_history": [
+          {
+            "role": "user",
+            "content": "first"
+          },
+          {
+            "role": "assistant",
+            "content": "second"
+          }
+        ]
+      },
+      "needs_model": true
+    },
+    {
+      "id": "missing input",
+      "lesson": "7. No user_input is a 400 with an error sentence.",
+      "method": "POST",
+      "path": "/chat",
+      "body": {},
+      "needs_model": false
+    },
+    {
+      "id": "blank input",
+      "lesson": "8. A blank user_input is the same 400.",
+      "method": "POST",
+      "path": "/chat",
+      "body": {
+        "user_input": "   "
+      },
+      "needs_model": false
+    },
+    {
+      "id": "input not a string",
+      "lesson": "9. user_input must be a string.",
+      "method": "POST",
+      "path": "/chat",
+      "body": {
+        "user_input": 5
+      },
+      "needs_model": false
+    },
+    {
+      "id": "body not an object",
+      "lesson": "10. The body must be a JSON object.",
+      "method": "POST",
+      "path": "/chat",
+      "body": [
+        1,
+        2
+      ],
+      "needs_model": false
+    },
+    {
+      "id": "body not json",
+      "lesson": "11. A body that is not JSON is a clean JSON 400, never HTML.",
+      "method": "POST",
+      "path": "/chat",
+      "body": {
+        "raw": "not json"
+      },
+      "needs_model": false
+    },
+    {
+      "id": "history not a list",
+      "lesson": "12. conversation_history must be a list.",
+      "method": "POST",
+      "path": "/chat",
+      "body": {
+        "user_input": "x",
+        "conversation_history": "nope"
+      },
+      "needs_model": false
+    },
+    {
+      "id": "history item not an object",
+      "lesson": "13. Every history turn is an object.",
+      "method": "POST",
+      "path": "/chat",
+      "body": {
+        "user_input": "x",
+        "conversation_history": [
+          "nope"
+        ]
+      },
+      "needs_model": false
+    },
+    {
+      "id": "history bad role",
+      "lesson": "14. A history role is user or assistant.",
+      "method": "POST",
+      "path": "/chat",
+      "body": {
+        "user_input": "x",
+        "conversation_history": [
+          {
+            "role": "system",
+            "content": "x"
+          }
+        ]
+      },
+      "needs_model": false
+    },
+    {
+      "id": "history bad content",
+      "lesson": "15. History content is a string.",
+      "method": "POST",
+      "path": "/chat",
+      "body": {
+        "user_input": "x",
+        "conversation_history": [
+          {
+            "role": "user",
+            "content": 5
+          }
+        ]
+      },
+      "needs_model": false
+    },
+    {
+      "id": "input type checked first",
+      "lesson": "16. Checks run in a fixed order: input type before history.",
+      "method": "POST",
+      "path": "/chat",
+      "body": {
+        "user_input": 5,
+        "conversation_history": "nope"
+      },
+      "needs_model": false
+    },
+    {
+      "id": "history checked before blank",
+      "lesson": "17. History shape is checked before blank input.",
+      "method": "POST",
+      "path": "/chat",
+      "body": {
+        "user_input": "   ",
+        "conversation_history": "nope"
+      },
+      "needs_model": false
+    },
+    {
+      "id": "word stats agent",
+      "lesson": "18. A compiled agent in agents/ is a tool the model can call.",
+      "method": "POST",
+      "path": "/chat",
+      "body": {
+        "user_input": "CALL WordStats {\"text\": \"one two three.\"}",
+        "session_id": "grail-conformance-session"
+      },
+      "needs_model": true
+    },
+    {
+      "id": "python agent",
+      "lesson": "19. A *_agent.py file in agents/ is a tool the model can call.",
+      "method": "POST",
+      "path": "/chat",
+      "body": {
+        "user_input": "CALL Echo {\"text\": \"loud\"}",
+        "session_id": "grail-conformance-session"
+      },
+      "needs_model": true
+    },
+    {
+      "id": "multiple tool calls",
+      "lesson": "20. Several tool calls in one turn all run and all log.",
+      "method": "POST",
+      "path": "/chat",
+      "body": {
+        "user_input": "MULTI tools",
+        "session_id": "grail-conformance-session"
+      },
+      "needs_model": true
+    },
+    {
+      "id": "agent raises",
+      "lesson": "21. An agent that crashes becomes a tool error, not a 500.",
+      "method": "POST",
+      "path": "/chat",
+      "body": {
+        "user_input": "CALL Boom {}",
+        "session_id": "grail-conformance-session"
+      },
+      "needs_model": true
+    },
+    {
+      "id": "unknown agent",
+      "lesson": "22. A tool call to a missing agent becomes a tool error.",
+      "method": "POST",
+      "path": "/chat",
+      "body": {
+        "user_input": "CALL Nobody {}",
+        "session_id": "grail-conformance-session"
+      },
+      "needs_model": true
+    },
+    {
+      "id": "bad tool args",
+      "lesson": "23. Malformed tool arguments become a tool error.",
+      "method": "POST",
+      "path": "/chat",
+      "body": {
+        "user_input": "CALL Echo [1,2]",
+        "session_id": "grail-conformance-session"
+      },
+      "needs_model": true
+    },
+    {
+      "id": "tool rounds run out",
+      "lesson": "24. Three tool rounds, then one final no-tools answer.",
+      "method": "POST",
+      "path": "/chat",
+      "body": {
+        "user_input": "LOOP forever",
+        "session_id": "grail-conformance-session"
+      },
+      "needs_model": true
+    },
+    {
+      "id": "tool fallback",
+      "lesson": "25. An empty final answer becomes the fixed fallback sentence.",
+      "method": "POST",
+      "path": "/chat",
+      "body": {
+        "user_input": "FALLBACK empty",
+        "session_id": "grail-conformance-session"
+      },
+      "needs_model": true
+    }
+  ]
+}
