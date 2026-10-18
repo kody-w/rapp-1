@@ -395,8 +395,13 @@ def run(args: argparse.Namespace) -> int:
     elif args.candidate.startswith("module:"):
         mode = "module"
         candidate_value = args.candidate[len("module:") :]
+    elif args.candidate.startswith("cmd:"):
+        mode = "cmd"
+        candidate_value = args.candidate[len("cmd:") :]
     else:
-        raise ConformanceError("candidate must start with grail:, http:, or module:")
+        raise ConformanceError(
+            "candidate must start with grail:, http:, module:, or cmd:"
+        )
     if not candidate_value:
         raise ConformanceError("candidate value is empty")
     if args.same_version and mode != "http":
@@ -470,6 +475,53 @@ def run(args: argparse.Namespace) -> int:
             )
         elif mode == "http":
             candidate_call = lambda scenario: call_http(candidate_value, scenario)
+        elif mode == "cmd":
+            candidate_port = free_port()
+            candidate_work = work / "cmd"
+            candidate_work.mkdir()
+            candidate_agents = candidate_work / "agents"
+            shutil.copytree(
+                HERE / "agents",
+                candidate_agents,
+                ignore=shutil.ignore_patterns("__pycache__"),
+            )
+            shutil.copy2(
+                oracle_dir / "agents" / "basic_agent.py",
+                candidate_agents / "basic_agent.py",
+            )
+            candidate_home = candidate_work / "home"
+            candidate_home.mkdir()
+            candidate_log = candidate_work / "candidate.log"
+            candidate_handle = candidate_log.open("w")
+            handles.append(candidate_handle)
+            candidate_process = subprocess.Popen(
+                candidate_value,
+                shell=True,
+                cwd=str(candidate_work),
+                env=dict(
+                    os.environ,
+                    HOME=str(candidate_home),
+                    PORT=str(candidate_port),
+                    GITHUB_TOKEN="ghu_fake",
+                    GITHUB_MODEL=MODEL,
+                    AGENTS_PATH=str(candidate_agents),
+                    FAKE_MODEL_URL=f"http://127.0.0.1:{fake_port}/v1",
+                    FAKE_TOKEN_URL=f"http://127.0.0.1:{fake_port}/token",
+                    COPILOT_TOKEN_URL=f"http://127.0.0.1:{fake_port}/token",
+                    VOICE_MODE="false",
+                ),
+                stdout=candidate_handle,
+                stderr=subprocess.STDOUT,
+            )
+            processes.append(candidate_process)
+            if not wait_for_url(f"http://127.0.0.1:{candidate_port}/health"):
+                raise ConformanceError(
+                    "cmd candidate did not answer /health on $PORT:\n"
+                    + read_log(candidate_log)
+                )
+            candidate_call = lambda scenario: call_http(
+                f"http://127.0.0.1:{candidate_port}", scenario
+            )
         else:
             context = ModuleContext(
                 fake_model_url=f"http://127.0.0.1:{fake_port}/v1",
@@ -580,7 +632,11 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument(
         "--candidate",
         required=True,
-        help="grail:<dir>, http:<base-url>, or module:<import-path>:<factory>",
+        help=(
+            "grail:<dir>, http:<base-url>, module:<import-path>:<factory>, or "
+            "cmd:<shell command that serves on $PORT using $FAKE_TOKEN_URL, "
+            "$FAKE_MODEL_URL, $AGENTS_PATH and $GITHUB_MODEL>"
+        ),
     )
     parser.add_argument(
         "--grail",
