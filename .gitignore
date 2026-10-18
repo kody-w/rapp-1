@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 anchor/.update_anchor.lock
 conformance/grail/report.json
+conformance/grail/mutants-report.json
+conformance/grail/coverage-report.json
