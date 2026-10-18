@@ -43,6 +43,10 @@ jobs:
         env:
           GRAIL_DIR: ${{ github.workspace }}/grail-source/rapp_brainstem
         run: python3 conformance/grail/make_expected.py --check
+      - name: The memory promise survives a restart
+        env:
+          GRAIL_DIR: ${{ github.workspace }}/grail-source/rapp_brainstem
+        run: python3 conformance/grail/promise_memory.py
       - name: Suite has teeth (mutants)
         env:
           GRAIL_DIR: ${{ github.workspace }}/grail-source/rapp_brainstem

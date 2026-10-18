@@ -104,3 +104,17 @@ Known conformant implementations (each run yourself, numbers as observed):
 | Pinned Grail, Python (oracle vs itself) | 2026-10-17 | 25 of 25 | this suite, macOS |
 | `airaptr/star_agent`, Rust (private) | 2026-10-17 | 25 of 25 | its `conformance/grail_adapter.py` |
 | [`kody-w/brainstem-go`](https://github.com/kody-w/brainstem-go), Go, built by an AI from the vectors alone | 2026-10-17 | 25 of 25 | `cmd:` candidate |
+
+## The memory promise
+
+Every lesson says: tell it something, and tomorrow it still remembers. `promise_memory.py` checks
+that against the pinned Grail, unchanged. It saves one memory through the Grail's own ManageMemory
+agent, stops the program, starts it again with an empty conversation, and passes only if the memory
+reaches the model. CI runs it on every change. Removing the ContextMemory agent makes it fail.
+
+```
+GRAIL_DIR=/path/to/pinned/rapp_brainstem python3 conformance/grail/promise_memory.py
+```
+
+It checks the Brainstem's side of the promise. Whether a real model chooses to save a memory is not
+something a scripted model can show.
