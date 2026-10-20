@@ -36,3 +36,4 @@ Start at the beacon, verify the chain, then read the materialized spec. Names li
 - The chain is unsigned on purpose; authority is owner-ratified acceptance onto protected main.
 - Pin by frame hash or full commit SHA, never by branch name; raw main is discovery only.
 - Poll the Atom feed for change detection, not the GitHub REST API.
+- Voice-first names: a doubled letter marks the RAPP meaning when spoken. RAPP (two p's) is the platform, DOGG (two g's) the public projection, GODD (two d's) the on-device projection; DOG = DOGG and GOD = GODD. rap, dog and god stay everyday words.

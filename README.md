@@ -261,6 +261,15 @@ paper-styled GitHub Pages edition. **[Open the interactive edition →](https://
 - **[Appendix B — Glossary and Failure Atlas](book/B-glossary-and-failure-atlas.md)** — terms and refusal steps
 - **[Appendix C — Selected Exercise Solutions](book/C-selected-exercise-solutions.md)** — worked solutions from every chapter
 
+## Voice-first names (non-normative)
+
+RAPP is built to be spoken, and a listener cannot hear capital letters, so a doubled letter carries the meaning:
+"RAPP, with two p's" is this platform and "rap" stays music; "DOGG, with two g's" is the public projection
+(Distributed Object, Global) and "GODD, with two d's" is the projection living on a device (Grail Object on
+Device), while "dog" and "god" stay everyday words. DOG and GOD in older text are the same objects as DOGG and
+GODD. Saying the doubled name locks that meaning for the rest of a conversation. This note names nothing new in
+the protocol: no schema id, kind, field or byte changes; the specification chain stays the authority.
+
 ## The one idea
 
 The RAPP ecosystem is real and it drifted: the same concept — "a frame," "a rappid" — got built
