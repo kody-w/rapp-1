@@ -1,6 +1,6 @@
 {
   "schema": "rapp/1-operational-profile-index",
-  "generated_utc": "2026-09-18T14:59:21.114Z",
+  "generated_utc": "2026-11-03T19:24:05.411Z",
   "canonical_repository": "https://github.com/kody-w/rapp-1",
   "profiles": [
     {
@@ -32,6 +32,16 @@
       "schema_path": "protocols/rapp-work/1/schema.json",
       "schema_sha256": "ff30f9878f12fa4ad7d93c4c205eb1cb580137a7dee87aa9d23c88a93466d19e",
       "conformance": "work_conformance.py"
+    },
+    {
+      "name": "rapp-layer/1",
+      "human_name": "RAPP Layer",
+      "parent": "rapp/1",
+      "spec_path": "protocols/rapp-layer/1/SPEC.md",
+      "spec_sha256": "231c6970cb7a9cf43e5ad35a546abd08ee953bc41245fd1eed4458aa4a087241",
+      "schema_path": "protocols/rapp-layer/1/schema.json",
+      "schema_sha256": "1eb7400125f1ff3870be32bcd9f8a6404475a55afd1280db6edf5f7ecdd1e7af",
+      "conformance": "layer_conformance.py"
     }
   ]
 }

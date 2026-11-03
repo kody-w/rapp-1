@@ -43,6 +43,25 @@ jobs:
         env:
           GRAIL_DIR: ${{ github.workspace }}/grail-source/rapp_brainstem
         run: python3 conformance/grail/make_expected.py --check
+      - name: Grail layers keep the wire identical
+        env:
+          GRAIL_DIR: ${{ github.workspace }}/grail-source/rapp_brainstem
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          layers_dir=$(mktemp -d)
+          trap 'rm -f "$layers_dir/grail_layers.py" "$layers_dir/hologram.py" "$layers_dir/shape_lens.py" "$layers_dir/rapp.py" "$layers_dir/responses_models.py"; rmdir "$layers_dir"' EXIT
+          for module in grail_layers hologram shape_lens; do
+            curl --fail --silent --show-error --retry 3 \
+              "https://kody-w.github.io/grail-layers/$module.py" \
+              --output "$layers_dir/$module.py"
+          done
+          cp rapp.py "$layers_dir/rapp.py"
+          curl --fail --silent --show-error --retry 3 \
+            https://kody-w.github.io/RAR/stacks/grail-layers/responses_models.py \
+            --output "$layers_dir/responses_models.py"
+          GRAIL_LAYERS_SUPERVISOR="$layers_dir/grail_layers.py" \
+            GRAIL_LAYERS_DIR="$layers_dir" \
+            python3 conformance/grail/run.py --candidate layers:responses_models
       - name: The memory promise survives a restart
         env:
           GRAIL_DIR: ${{ github.workspace }}/grail-source/rapp_brainstem

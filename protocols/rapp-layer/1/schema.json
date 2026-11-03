@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/kody-w/rapp-1/main/protocols/rapp-layer/1/schema.json",
+  "title": "RAPP Layer device shape, tile, and gate payloads",
+  "description": "Closed payload structures. Parameter and evidence data are open as in the runtime. Chain authorisation, derivation, source possession, and replay require separate checks.",
+  "oneOf": [
+    {"$ref": "#/$defs/shape"},
+    {"$ref": "#/$defs/tile"},
+    {"$ref": "#/$defs/gate"}
+  ],
+  "$defs": {
+    "hex64": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "part": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "point", "file", "sha256", "locator"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^@[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9_]+(?:[-.][a-z0-9_]+)*$"},
+        "kind": {"enum": ["layer", "kernel"]},
+        "point": {"enum": ["provider", "auth", "storage", "agents", "transport", "kernel"]},
+        "file": {"type": "string", "pattern": "^[A-Za-z0-9_][A-Za-z0-9_.-]*\\.py$"},
+        "sha256": {"$ref": "#/$defs/hex64"},
+        "locator": {"type": "string", "pattern": "^https://"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"kind": {"const": "kernel"}}},
+          "then": {"properties": {"point": {"const": "kernel"}}},
+          "else": {"properties": {"point": {"not": {"const": "kernel"}}}}
+        }
+      ]
+    },
+    "parts": {"type": "array", "maxItems": 64, "uniqueItems": true, "items": {"$ref": "#/$defs/part"}},
+    "grail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256", "bytes"],
+      "properties": {
+        "sha256": {"$ref": "#/$defs/hex64"},
+        "bytes": {"type": "integer", "minimum": 1}
+      }
+    },
+    "shape": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "grail", "safe_mode", "parts"],
+      "properties": {
+        "schema": {"const": "brainstem-shape/1"},
+        "grail": {"$ref": "#/$defs/grail"},
+        "safe_mode": {"type": "boolean"},
+        "parts": {"$ref": "#/$defs/parts"}
+      }
+    },
+    "params": {
+      "type": "object",
+      "required": ["action"],
+      "properties": {
+        "action": {"enum": ["add", "remove", "safe_mode", "set"]}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"action": {"const": "add"}}},
+          "then": {"required": ["part"], "properties": {"part": {"$ref": "#/$defs/part"}}}
+        },
+        {
+          "if": {"properties": {"action": {"const": "remove"}}},
+          "then": {"required": ["id"], "properties": {"id": {"type": "string"}}}
+        },
+        {
+          "if": {"properties": {"action": {"const": "safe_mode"}}},
+          "then": {"required": ["on"], "properties": {"on": {"type": "boolean"}}}
+        },
+        {
+          "if": {"properties": {"action": {"const": "set"}}},
+          "then": {"required": ["parts"], "properties": {"parts": {"$ref": "#/$defs/parts"}, "safe_mode": {"type": "boolean"}}}
+        }
+      ]
+    },
+    "lens": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "sha256"],
+      "properties": {
+        "name": {"const": "shape_lens"},
+        "sha256": {"$ref": "#/$defs/hex64"}
+      }
+    },
+    "caller": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "name"],
+      "properties": {
+        "kind": {"enum": ["person", "process"]},
+        "name": {"type": "string", "minLength": 1}
+      }
+    },
+    "tile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["object", "derived_from", "lens", "params", "params_hash", "slush_in", "caller", "lease"],
+      "properties": {
+        "object": {"$ref": "#/$defs/shape"},
+        "derived_from": {"$ref": "#/$defs/hex64"},
+        "lens": {"$ref": "#/$defs/lens"},
+        "params": {"$ref": "#/$defs/params"},
+        "params_hash": {"$ref": "#/$defs/hex64"},
+        "slush_in": {"type": "null"},
+        "caller": {"$ref": "#/$defs/caller"},
+        "lease": {"type": "null"}
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tile", "gate", "passed", "evidence"],
+      "properties": {
+        "tile": {"$ref": "#/$defs/hex64"},
+        "gate": {"enum": ["lab", "live"]},
+        "passed": {"type": "boolean"},
+        "evidence": {"type": "object"}
+      }
+    }
+  }
+}

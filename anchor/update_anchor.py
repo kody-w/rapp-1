@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Append the deterministic rev-18 RAPP/1 specification-chain frame."""
+"""Append the deterministic rev-19 RAPP/1 specification-chain frame."""
 
 from __future__ import annotations
 
@@ -32,8 +32,8 @@ INDEX = ANCHOR / "index.json"
 FRAMES = ANCHOR / "frames"
 BOOTSTRAP = ANCHOR / "bootstrap"
 LOCK = ANCHOR / ".update_anchor.lock"
-REVISION = "rev-18"
-PREVIOUS_REVISION = "rev-17"
+REVISION = "rev-19"
+PREVIOUS_REVISION = "rev-18"
 INPUT_PATHS = [
     "SPEC.md",
     "CONSTITUTION.md",
@@ -47,6 +47,9 @@ INPUT_PATHS = [
     "protocols/rapp-deploy/1/schema.json",
     "protocols/rapp-work/1/SPEC.md",
     "protocols/rapp-work/1/schema.json",
+    "protocols/rapp-layer/1/SPEC.md",
+    "protocols/rapp-layer/1/schema.json",
+    "protocols/lispy/1/SPEC.md",
     "anchor/materialize_spec.py",
     "anchor/bootstrap_verify.py",
     "anchor/update_anchor.py",
@@ -639,6 +642,10 @@ def revision_payload(
         "status": "live",
         "where": "protocols/rapp-work/1/SPEC.md — additive organization, Hive high-water, migration, custody, and rollback",
     }
+    payload["vocabulary"]["rapp-layer"] = {
+        "status": "live",
+        "where": "protocols/rapp-layer/1/SPEC.md — device-local shape chains, pure lens replay, and host gates",
+    }
     payload["vocabulary"]["offspring"] = {
         "status": "live",
         "where": "§9.4 typed lineage and PHILOSOPHY.md",
@@ -652,6 +659,14 @@ def revision_payload(
         "where": "§12 and Constitution Article 18 — the rapp/1 verified forms never change; a change is rapp/2",
     }
     rules = [
+        {
+            "t": "fact",
+            "c": (
+                "RAPP Layer proposes three memory kinds on the unchanged frame; "
+                "the device chain carries its shape, pure lens tiles derive from the "
+                "authorised shape, and only the newest passing host gate authorises a tile."
+            ),
+        },
         {
             "t": "gotcha",
             "c": (
