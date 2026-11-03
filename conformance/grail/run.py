@@ -268,16 +268,19 @@ def start_grail(
     python: str,
     expected_blob: Optional[str],
     log_path: Path,
+    runner: str = "run_grail.py",
+    extra_args: Tuple[str, ...] = (),
 ) -> Tuple[subprocess.Popen, Any]:
     grail = prepare_grail(source, target)
     handle = log_path.open("w")
     process = subprocess.Popen(
         [
             python,
-            str(HERE / "run_grail.py"),
+            str(HERE / runner),
             str(grail),
             str(port),
             str(fake_port),
+            *extra_args,
         ],
         env=grail_environment(
             target.parent / f"{target.name}-home",
@@ -398,9 +401,12 @@ def run(args: argparse.Namespace) -> int:
     elif args.candidate.startswith("cmd:"):
         mode = "cmd"
         candidate_value = args.candidate[len("cmd:") :]
+    elif args.candidate.startswith("layers:"):
+        mode = "layers"
+        candidate_value = args.candidate[len("layers:") :]
     else:
         raise ConformanceError(
-            "candidate must start with grail:, http:, module:, or cmd:"
+            "candidate must start with grail:, http:, module:, cmd:, or layers:"
         )
     if not candidate_value:
         raise ConformanceError("candidate value is empty")
@@ -467,6 +473,33 @@ def run(args: argparse.Namespace) -> int:
                 python=grail_python,
                 expected_blob=None,
                 log_path=work / "candidate.log",
+            )
+            processes.append(candidate_process)
+            handles.append(candidate_handle)
+            candidate_call = lambda scenario: call_http(
+                f"http://127.0.0.1:{candidate_port}", scenario
+            )
+        elif mode == "layers":
+            # layers:<name,name> -- the ORACLE grail with grail layers applied in-process
+            # (supervisor from $GRAIL_LAYERS_SUPERVISOR, layer files from $GRAIL_LAYERS_DIR).
+            supervisor = os.environ.get("GRAIL_LAYERS_SUPERVISOR")
+            layers_dir = os.environ.get("GRAIL_LAYERS_DIR")
+            if not supervisor or not layers_dir:
+                raise ConformanceError(
+                    "layers: candidate needs GRAIL_LAYERS_SUPERVISOR (grail_layers.py) "
+                    "and GRAIL_LAYERS_DIR (directory of <name>.py layers)"
+                )
+            candidate_port = free_port()
+            candidate_process, candidate_handle = start_grail(
+                oracle_dir,
+                work / "candidate",
+                port=candidate_port,
+                fake_port=fake_port,
+                python=grail_python,
+                expected_blob=oracle_blob,
+                log_path=work / "candidate.log",
+                runner="run_layered.py",
+                extra_args=(supervisor, layers_dir, candidate_value),
             )
             processes.append(candidate_process)
             handles.append(candidate_handle)
@@ -633,9 +666,11 @@ def parse_args(argv=None) -> argparse.Namespace:
         "--candidate",
         required=True,
         help=(
-            "grail:<dir>, http:<base-url>, module:<import-path>:<factory>, or "
+            "grail:<dir>, http:<base-url>, module:<import-path>:<factory>, "
             "cmd:<shell command that serves on $PORT using $FAKE_TOKEN_URL, "
-            "$FAKE_MODEL_URL, $AGENTS_PATH and $GITHUB_MODEL>"
+            "$FAKE_MODEL_URL, $AGENTS_PATH and $GITHUB_MODEL>, or "
+            "layers:<name,name> (the pinned grail with grail layers applied; needs "
+            "$GRAIL_LAYERS_SUPERVISOR and $GRAIL_LAYERS_DIR)"
         ),
     )
     parser.add_argument(
