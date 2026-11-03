@@ -49,6 +49,8 @@ INPUT_PATHS = [
     "protocols/rapp-work/1/schema.json",
     "protocols/rapp-layer/1/SPEC.md",
     "protocols/rapp-layer/1/schema.json",
+    "protocols/rapp-succession/1/SPEC.md",
+    "protocols/rapp-succession/1/schema.json",
     "protocols/lispy/1/SPEC.md",
     "anchor/materialize_spec.py",
     "anchor/bootstrap_verify.py",
@@ -645,6 +647,10 @@ def revision_payload(
     payload["vocabulary"]["rapp-layer"] = {
         "status": "live",
         "where": "protocols/rapp-layer/1/SPEC.md — device-local shape chains, pure lens replay, and host gates",
+    }
+    payload["vocabulary"]["rapp-succession"] = {
+        "status": "live",
+        "where": "protocols/rapp-succession/1/SPEC.md — device-local owner keys, signs of life, and signed succession windows",
     }
     payload["vocabulary"]["offspring"] = {
         "status": "live",

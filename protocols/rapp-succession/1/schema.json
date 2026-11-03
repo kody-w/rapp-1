@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/kody-w/rapp-1/main/protocols/rapp-succession/1/schema.json",
+  "title": "RAPP Succession nomination, pulse, and handoff payloads",
+  "description": "Closed payload structures. Real signatures, key tails, frame links, authority transitions, and windows require chain verification.",
+  "oneOf": [
+    {"$ref": "#/$defs/name"},
+    {"$ref": "#/$defs/pulse"},
+    {"$ref": "#/$defs/handoff"}
+  ],
+  "$defs": {
+    "rappid": {
+      "type": "string",
+      "pattern": "^rappid:@(?=[a-z0-9-]{1,39}/)[a-z0-9]+(?:-[a-z0-9]+)*/(?=[a-z0-9-]{1,100}:)[a-z0-9]+(?:-[a-z0-9]+)*:[0-9a-f]{64}$"
+    },
+    "spki": {
+      "type": "string",
+      "contentEncoding": "base64",
+      "minLength": 60,
+      "maxLength": 60,
+      "pattern": "^MCowBQYDK2VwAyEA[A-Za-z0-9+/]{42}[AEIMQUYcgkosw048]=$"
+    },
+    "utc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+    },
+    "hex64": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rappid", "spki_der_b64"],
+      "properties": {
+        "rappid": {"$ref": "#/$defs/rappid"},
+        "spki_der_b64": {"$ref": "#/$defs/spki"}
+      }
+    },
+    "successor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "rappid", "spki_der_b64"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1, "maxLength": 120},
+        "rappid": {"$ref": "#/$defs/rappid"},
+        "spki_der_b64": {"$ref": "#/$defs/spki"}
+      }
+    },
+    "window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["silence_days", "confirm_days"],
+      "properties": {
+        "silence_days": {"type": "integer", "minimum": 1, "maximum": 3650},
+        "confirm_days": {"type": "integer", "minimum": 0, "maximum": 365}
+      }
+    },
+    "name": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "owner", "successor", "window"],
+      "properties": {
+        "schema": {"const": "rapp-succession/1"},
+        "owner": {"$ref": "#/$defs/owner"},
+        "successor": {"$ref": "#/$defs/successor"},
+        "window": {"$ref": "#/$defs/window"}
+      }
+    },
+    "pulse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "head"],
+      "properties": {
+        "schema": {"const": "rapp-succession/1"},
+        "head": {"$ref": "#/$defs/hex64"}
+      }
+    },
+    "handoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "from_head", "reason", "at"],
+      "properties": {
+        "schema": {"const": "rapp-succession/1"},
+        "from_head": {"$ref": "#/$defs/hex64"},
+        "reason": {"enum": ["owner", "silence"]},
+        "at": {"$ref": "#/$defs/utc"}
+      }
+    }
+  }
+}

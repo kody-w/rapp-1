@@ -162,13 +162,22 @@ class ShapeChain:
     def __init__(self, frames: Sequence[dict], *, supported_lenses=SUPPORTED_LENSES):
         require(bool(frames), "chain: genesis is required")
         self.frames = copy.deepcopy(list(frames))
+        succession = None
+        if any(isinstance(frame, dict)
+               and isinstance(frame.get("kind"), str)
+               and frame["kind"].startswith("succession.") for frame in self.frames):
+            from rapp_succession import SuccessionChain
+
+            succession = SuccessionChain(self.frames)
         tiles = {}
         head = None
         authorised_frame = None
         for position, frame in enumerate(self.frames):
             canonical_object(frame, f"frame {position}")
             ok, step, why = R.verify_frame(frame, head=head,
-                                          stream_id_of_record=self.frames[0].get("stream_id"))
+                                          stream_id_of_record=self.frames[0].get("stream_id"),
+                                          signature_verifier=(succession.verify_signature
+                                                              if succession else None))
             require(ok, f"frame {position}: RAPP refusal at step {step}: {why}")
             kind, payload = frame["kind"], frame["payload"]
             if position == 0:
@@ -190,6 +199,8 @@ class ShapeChain:
                 require(payload["tile"] in tiles, f"gate {position}: must name an earlier tile")
                 if payload["passed"]:
                     authorised_frame = tiles[payload["tile"]]
+            elif succession is not None and kind.startswith("succession."):
+                pass
             else:
                 raise ValueError(f"frame {position}: unexpected kind {kind!r}")
             head = frame

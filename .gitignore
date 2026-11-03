@@ -2,6 +2,7 @@ estate/
 .book-build/
 __pycache__/
 *.pyc
+.venv/
 anchor/.update_anchor.lock
 conformance/grail/report.json
 conformance/grail/mutants-report.json

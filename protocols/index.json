@@ -1,6 +1,6 @@
 {
   "schema": "rapp/1-operational-profile-index",
-  "generated_utc": "2026-11-03T19:24:05.411Z",
+  "generated_utc": "2026-11-03T21:04:35.765Z",
   "canonical_repository": "https://github.com/kody-w/rapp-1",
   "profiles": [
     {
@@ -38,10 +38,20 @@
       "human_name": "RAPP Layer",
       "parent": "rapp/1",
       "spec_path": "protocols/rapp-layer/1/SPEC.md",
-      "spec_sha256": "231c6970cb7a9cf43e5ad35a546abd08ee953bc41245fd1eed4458aa4a087241",
+      "spec_sha256": "623a02ea7547b65dac8b11c2b89771103b26ae4d0c623960696fc561de4f74d3",
       "schema_path": "protocols/rapp-layer/1/schema.json",
       "schema_sha256": "1eb7400125f1ff3870be32bcd9f8a6404475a55afd1280db6edf5f7ecdd1e7af",
       "conformance": "layer_conformance.py"
+    },
+    {
+      "name": "rapp-succession/1",
+      "human_name": "RAPP Succession",
+      "parent": "rapp/1",
+      "spec_path": "protocols/rapp-succession/1/SPEC.md",
+      "spec_sha256": "44cbe3b91b341a84888d4ef93f17f1fdac7ba7054f2b5753fd4debccd39384c9",
+      "schema_path": "protocols/rapp-succession/1/schema.json",
+      "schema_sha256": "5639531d8e0f96f1af7922ad5f0b1ba11cd11d45e91ba59fb64072370c1001af",
+      "conformance": "succession_conformance.py"
     }
   ]
 }
