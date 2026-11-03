@@ -48,7 +48,7 @@
       "human_name": "RAPP Succession",
       "parent": "rapp/1",
       "spec_path": "protocols/rapp-succession/1/SPEC.md",
-      "spec_sha256": "44cbe3b91b341a84888d4ef93f17f1fdac7ba7054f2b5753fd4debccd39384c9",
+      "spec_sha256": "47c2acb1054ee3df7cc81b8b66244e65be30e5f593a63a4cdf8d433ed5f40018",
       "schema_path": "protocols/rapp-succession/1/schema.json",
       "schema_sha256": "5639531d8e0f96f1af7922ad5f0b1ba11cd11d45e91ba59fb64072370c1001af",
       "conformance": "succession_conformance.py"

@@ -8,6 +8,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519
@@ -469,6 +470,26 @@ class RappSuccessionTests(unittest.TestCase):
             path.write_text('{"kind":"succession.name","kind":"succession.pulse"}\n')
             with self.assertRaises(ValueError):
                 S.load_chain(path)
+
+    def test_anchor_profile_snapshots_preserve_history_and_validate_current_inputs(self):
+        from anchor import update_anchor as U
+
+        current = U.operational_profiles()
+        self.assertIn(S.PROFILE, current)
+        accepted = U.operational_profiles("origin/main")
+        chain = [R._strict_json(line) for line in
+                 U._git_blob("origin/main", "anchor/chain.jsonl").splitlines()]
+        self.assertEqual(accepted, chain[-1]["payload"]["operational_profiles"])
+        original_read = Path.read_bytes
+
+        def changed_schema(path):
+            octets = original_read(path)
+            return octets + b" " if path == ROOT / "protocols/rapp-succession/1/schema.json" else octets
+
+        with patch.object(Path, "read_bytes", changed_schema):
+            with self.assertRaisesRegex(SystemExit, "profile schema hash drift"):
+                U.operational_profiles()
+            self.assertEqual(U.operational_profiles("origin/main"), accepted)
 
 
 if __name__ == "__main__":

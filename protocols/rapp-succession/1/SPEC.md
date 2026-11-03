@@ -80,6 +80,10 @@ discovery for an exported estate-authoritative artifact. A consumer **MUST**
 protect/pin its accepted root and head out of band. An attacker able to
 replace the entire unpinned local history can forge another local root.
 The profile does not detect rollback or competing copies by itself.
+Timestamps are signed claims, not an independent clock or proof of death.
+A host enforcing real elapsed inactivity **MUST** also protect its clock
+and append policy; a successor's future-dated frame alone proves only the
+declared timestamp inequalities, not that wall-clock time has elapsed.
 
 ## 3. Signs of life
 
@@ -212,6 +216,10 @@ generated for authoring; only public SPKIs and signatures are retained.
 An early handoff is a refused negative vector, never part of that chain.
 Schema checks structure only; signatures, tail binding, deadlines,
 authorization, and links require the reader.
+The anchor generator validates current committed profile inputs, but
+replays an already accepted revision against that revision's accepted
+profile snapshot. Adding this proposal does not rewrite the protected
+anchor; its profile metadata is available to the next authorized revision.
 
 ## 6. Who paid
 
