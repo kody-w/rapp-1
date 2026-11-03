@@ -3,14 +3,14 @@
  "generated_utc": "2026-10-07T21:19:01.000Z",
  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
  "head": {
-  "seq": 18,
-  "frame_hash": "83bec7762a04959dc91e252055d79f67690c605383018d23b26b99982916dd6a",
-  "payload_hash": "a4856862f73571853561e8c812be537bb1a04ee6f462b7ffbe01db74bf7c0a66"
+  "seq": 19,
+  "frame_hash": "a81e61325a2e25546220d965da6c99356da26b8a0aceeaed7ddee4267f33a9c9",
+  "payload_hash": "78199d286e9f2790a21b19015e0bd65b89b935f377b5ef478e2f34a936e83dd7"
  },
  "spec": {
-  "revision": "rev-18",
-  "revision_frame_hash": "83bec7762a04959dc91e252055d79f67690c605383018d23b26b99982916dd6a",
-  "revision_payload_hash": "a4856862f73571853561e8c812be537bb1a04ee6f462b7ffbe01db74bf7c0a66",
+  "revision": "rev-19",
+  "revision_frame_hash": "a81e61325a2e25546220d965da6c99356da26b8a0aceeaed7ddee4267f33a9c9",
+  "revision_payload_hash": "78199d286e9f2790a21b19015e0bd65b89b935f377b5ef478e2f34a936e83dd7",
   "schema": "rapp-spec-revision/1",
   "materialized_path": "SPEC.md",
   "normative_path": "SPEC.md",
@@ -136,6 +136,10 @@
   "rapp-work": {
    "status": "live",
    "where": "protocols/rapp-work/1/SPEC.md — additive organization, Hive high-water, migration, custody, and rollback"
+  },
+  "rapp-layer": {
+   "status": "live",
+   "where": "protocols/rapp-layer/1/SPEC.md — device-local shape chains, pure lens replay, and host gates"
   }
  },
  "operational_profiles": {
@@ -159,6 +163,13 @@
    "spec_sha256": "283359355c3fe2858e28744368255683af3ed28a68e290e56c231e7d4b13c08e",
    "schema_path": "protocols/rapp-work/1/schema.json",
    "schema_sha256": "ff30f9878f12fa4ad7d93c4c205eb1cb580137a7dee87aa9d23c88a93466d19e"
+  },
+  "rapp-layer/1": {
+   "status": "live",
+   "spec_path": "protocols/rapp-layer/1/SPEC.md",
+   "spec_sha256": "231c6970cb7a9cf43e5ad35a546abd08ee953bc41245fd1eed4458aa4a087241",
+   "schema_path": "protocols/rapp-layer/1/schema.json",
+   "schema_sha256": "1eb7400125f1ff3870be32bcd9f8a6404475a55afd1280db6edf5f7ecdd1e7af"
   }
  },
  "philosophy": {
@@ -204,7 +215,7 @@
  },
  "index": {
   "path": "anchor/index.json",
-  "sha256": "fe6a6de9fa62a1d10f04f1c1e7a96515644c80ae321123ce2872d46dce47f0a9",
-  "bytes": 8858
+  "sha256": "59fe8ea140ced80f02f2bc4c1f7701db0a9055186dab3c9fed67a4b489b95757",
+  "bytes": 9228
  }
 }

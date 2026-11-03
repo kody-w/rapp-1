@@ -1,0 +1,341 @@
+[
+  {
+    "frame_hash": "0f21610a316ce9e7a42f5dd6d1226cbb145cf074c1c6fb7b7331f25d58b5cdb9",
+    "kind": "shape.genesis",
+    "payload": {
+      "grail": {
+        "bytes": 154479,
+        "sha256": "35618683ebc3d1c2bfaff47f60182fd756f3a8de53c53dd907ec1099d631930a"
+      },
+      "parts": [],
+      "safe_mode": false,
+      "schema": "brainstem-shape/1"
+    },
+    "payload_hash": "02393d700ee7fdd59cbe31d5145350886e9eb63c70560bc19ea579b8abef07ca",
+    "prev": null,
+    "prev_wave": null,
+    "seq": 0,
+    "sig": null,
+    "spec": "rapp/1",
+    "stream_id": "rappid:@kody-w/brainstem:883cff22dd5cf1248797f674d861c54658b79f9c07f305410bc668f94714d99d:mac",
+    "utc": "2026-11-03T19:20:06.902Z"
+  },
+  {
+    "frame_hash": "bcf5d6cb1b18e81864307d6552a4ac04b06b81a27f0834d3a8f5d81026ae20cd",
+    "kind": "shape.tile",
+    "payload": {
+      "caller": {
+        "kind": "person",
+        "name": "kody"
+      },
+      "derived_from": "0f21610a316ce9e7a42f5dd6d1226cbb145cf074c1c6fb7b7331f25d58b5cdb9",
+      "lease": null,
+      "lens": {
+        "name": "shape_lens",
+        "sha256": "91279ca0cc6f7bab461f96f8123046d3952e292d9cc7611c409d2d0d325a3a22"
+      },
+      "object": {
+        "grail": {
+          "bytes": 154479,
+          "sha256": "35618683ebc3d1c2bfaff47f60182fd756f3a8de53c53dd907ec1099d631930a"
+        },
+        "parts": [
+          {
+            "file": "responses_models.py",
+            "id": "@kody-w/responses_models",
+            "kind": "layer",
+            "locator": "https://kody-w.github.io/RAR/stacks/grail-layers/responses_models.py",
+            "point": "provider",
+            "sha256": "77343ad7f8edfdf42ecddc2727ccb2919f15bd75f944ec7b260d439ed1f06e60"
+          }
+        ],
+        "safe_mode": false,
+        "schema": "brainstem-shape/1"
+      },
+      "params": {
+        "action": "add",
+        "part": {
+          "file": "responses_models.py",
+          "id": "@kody-w/responses_models",
+          "kind": "layer",
+          "locator": "https://kody-w.github.io/RAR/stacks/grail-layers/responses_models.py",
+          "point": "provider",
+          "sha256": "77343ad7f8edfdf42ecddc2727ccb2919f15bd75f944ec7b260d439ed1f06e60"
+        }
+      },
+      "params_hash": "cae7ad8e331b0f607d0f4a27105feb2de094b4b863bc2a9a6e0f66713db16198",
+      "slush_in": null
+    },
+    "payload_hash": "6fb0df1c21d778f25784073dd5805274c95383c33e75036e764daec34f5a6742",
+    "prev": "02393d700ee7fdd59cbe31d5145350886e9eb63c70560bc19ea579b8abef07ca",
+    "prev_wave": null,
+    "seq": 1,
+    "sig": null,
+    "spec": "rapp/1",
+    "stream_id": "rappid:@kody-w/brainstem:883cff22dd5cf1248797f674d861c54658b79f9c07f305410bc668f94714d99d:mac",
+    "utc": "2026-11-03T19:20:06.906Z"
+  },
+  {
+    "frame_hash": "48704a0522e10af54d5626792775e29b0d3dfd56a55812b36a6d7a9ecc54f8b7",
+    "kind": "shape.gate",
+    "payload": {
+      "evidence": {
+        "applied": [
+          "responses_models"
+        ],
+        "grail": "35618683ebc3",
+        "skipped": {},
+        "why": "health ok; /chat probe answered"
+      },
+      "gate": "lab",
+      "passed": true,
+      "tile": "bcf5d6cb1b18e81864307d6552a4ac04b06b81a27f0834d3a8f5d81026ae20cd"
+    },
+    "payload_hash": "4e1717263ceb9720b4e2219e1268544f38294f07fe85cc06b25ce2ae7d3f1973",
+    "prev": "6fb0df1c21d778f25784073dd5805274c95383c33e75036e764daec34f5a6742",
+    "prev_wave": null,
+    "seq": 2,
+    "sig": null,
+    "spec": "rapp/1",
+    "stream_id": "rappid:@kody-w/brainstem:883cff22dd5cf1248797f674d861c54658b79f9c07f305410bc668f94714d99d:mac",
+    "utc": "2026-11-03T19:20:12.943Z"
+  },
+  {
+    "frame_hash": "8ab2960b920d7b9d268b9ea0accf8727a184a710fc8c6d40fba1db87a61616d5",
+    "kind": "shape.tile",
+    "payload": {
+      "caller": {
+        "kind": "process",
+        "name": "grail_layers --apply"
+      },
+      "derived_from": "bcf5d6cb1b18e81864307d6552a4ac04b06b81a27f0834d3a8f5d81026ae20cd",
+      "lease": null,
+      "lens": {
+        "name": "shape_lens",
+        "sha256": "91279ca0cc6f7bab461f96f8123046d3952e292d9cc7611c409d2d0d325a3a22"
+      },
+      "object": {
+        "grail": {
+          "bytes": 154479,
+          "sha256": "35618683ebc3d1c2bfaff47f60182fd756f3a8de53c53dd907ec1099d631930a"
+        },
+        "parts": [
+          {
+            "file": "responses_models.py",
+            "id": "@kody-w/responses_models",
+            "kind": "layer",
+            "locator": "https://kody-w.github.io/RAR/stacks/grail-layers/responses_models.py",
+            "point": "provider",
+            "sha256": "77343ad7f8edfdf42ecddc2727ccb2919f15bd75f944ec7b260d439ed1f06e60"
+          },
+          {
+            "file": "broken.py",
+            "id": "@kody-w/broken",
+            "kind": "layer",
+            "locator": "https://kody-w.github.io/grail-layers/README.md",
+            "point": "auth",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        ],
+        "safe_mode": false,
+        "schema": "brainstem-shape/1"
+      },
+      "params": {
+        "action": "add",
+        "part": {
+          "file": "broken.py",
+          "id": "@kody-w/broken",
+          "kind": "layer",
+          "locator": "https://kody-w.github.io/grail-layers/README.md",
+          "point": "auth",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      },
+      "params_hash": "e73d003e082f7c5a4070c7c2ee6854de1aee813c3e315e905b519beabd459580",
+      "slush_in": null
+    },
+    "payload_hash": "fa89800d6af98076a4865e7604d2719ad1bb07881f7861f11c4b17d28b9ff5b1",
+    "prev": "4e1717263ceb9720b4e2219e1268544f38294f07fe85cc06b25ce2ae7d3f1973",
+    "prev_wave": null,
+    "seq": 3,
+    "sig": null,
+    "spec": "rapp/1",
+    "stream_id": "rappid:@kody-w/brainstem:883cff22dd5cf1248797f674d861c54658b79f9c07f305410bc668f94714d99d:mac",
+    "utc": "2026-11-03T19:20:13.329Z"
+  },
+  {
+    "frame_hash": "ad30312caf4b80a7d778b828cdc32b94ff06714810fe3dc1760fc0bb454ab721",
+    "kind": "shape.gate",
+    "payload": {
+      "evidence": {
+        "why": "part not available: @kody-w/broken: fetched bytes do not match the pinned sha256; refusing"
+      },
+      "gate": "lab",
+      "passed": false,
+      "tile": "8ab2960b920d7b9d268b9ea0accf8727a184a710fc8c6d40fba1db87a61616d5"
+    },
+    "payload_hash": "37c7aae6eadad3cdfef4b69980e8f3ed6c98143b6aa001ba16e9e457842d41e0",
+    "prev": "fa89800d6af98076a4865e7604d2719ad1bb07881f7861f11c4b17d28b9ff5b1",
+    "prev_wave": null,
+    "seq": 4,
+    "sig": null,
+    "spec": "rapp/1",
+    "stream_id": "rappid:@kody-w/brainstem:883cff22dd5cf1248797f674d861c54658b79f9c07f305410bc668f94714d99d:mac",
+    "utc": "2026-11-03T19:20:13.388Z"
+  },
+  {
+    "frame_hash": "87f4fa900acf4fdeec001160e0645aab9adb8dc45cb9c35002d9d97d99c1430e",
+    "kind": "shape.tile",
+    "payload": {
+      "caller": {
+        "kind": "process",
+        "name": "grail_layers --apply"
+      },
+      "derived_from": "bcf5d6cb1b18e81864307d6552a4ac04b06b81a27f0834d3a8f5d81026ae20cd",
+      "lease": null,
+      "lens": {
+        "name": "shape_lens",
+        "sha256": "91279ca0cc6f7bab461f96f8123046d3952e292d9cc7611c409d2d0d325a3a22"
+      },
+      "object": {
+        "grail": {
+          "bytes": 154479,
+          "sha256": "35618683ebc3d1c2bfaff47f60182fd756f3a8de53c53dd907ec1099d631930a"
+        },
+        "parts": [
+          {
+            "file": "responses_models.py",
+            "id": "@kody-w/responses_models",
+            "kind": "layer",
+            "locator": "https://kody-w.github.io/RAR/stacks/grail-layers/responses_models.py",
+            "point": "provider",
+            "sha256": "77343ad7f8edfdf42ecddc2727ccb2919f15bd75f944ec7b260d439ed1f06e60"
+          }
+        ],
+        "safe_mode": true,
+        "schema": "brainstem-shape/1"
+      },
+      "params": {
+        "action": "safe_mode",
+        "on": true
+      },
+      "params_hash": "2795210f3ab406da3bc5026f89fd6a06f974869c55de4f8450c384328a71aa4e",
+      "slush_in": null
+    },
+    "payload_hash": "c213ac93719c5c6ea90e106a16881d9bc4bcd4a9ecf1f296a13bf25de58e122f",
+    "prev": "37c7aae6eadad3cdfef4b69980e8f3ed6c98143b6aa001ba16e9e457842d41e0",
+    "prev_wave": null,
+    "seq": 5,
+    "sig": null,
+    "spec": "rapp/1",
+    "stream_id": "rappid:@kody-w/brainstem:883cff22dd5cf1248797f674d861c54658b79f9c07f305410bc668f94714d99d:mac",
+    "utc": "2026-11-03T19:20:13.719Z"
+  },
+  {
+    "frame_hash": "8b9954505b8126b7870d6fab252a09de599f85a6a8482328edc043e3794a1028",
+    "kind": "shape.gate",
+    "payload": {
+      "evidence": {
+        "applied": [
+          "responses_models"
+        ],
+        "grail": "35618683ebc3",
+        "skipped": {},
+        "why": "health ok (probe skipped)"
+      },
+      "gate": "lab",
+      "passed": true,
+      "tile": "87f4fa900acf4fdeec001160e0645aab9adb8dc45cb9c35002d9d97d99c1430e"
+    },
+    "payload_hash": "cabc0ba92b5e13d014a105e23948efff0edf8529b0e35f5008986089367e3066",
+    "prev": "c213ac93719c5c6ea90e106a16881d9bc4bcd4a9ecf1f296a13bf25de58e122f",
+    "prev_wave": null,
+    "seq": 6,
+    "sig": null,
+    "spec": "rapp/1",
+    "stream_id": "rappid:@kody-w/brainstem:883cff22dd5cf1248797f674d861c54658b79f9c07f305410bc668f94714d99d:mac",
+    "utc": "2026-11-03T19:20:14.750Z"
+  },
+  {
+    "frame_hash": "c63df51a6501c9bdad78e986baef68eef8cbc868e91671a14ef70ab6eff8df80",
+    "kind": "shape.tile",
+    "payload": {
+      "caller": {
+        "kind": "process",
+        "name": "grail_layers --apply"
+      },
+      "derived_from": "87f4fa900acf4fdeec001160e0645aab9adb8dc45cb9c35002d9d97d99c1430e",
+      "lease": null,
+      "lens": {
+        "name": "shape_lens",
+        "sha256": "91279ca0cc6f7bab461f96f8123046d3952e292d9cc7611c409d2d0d325a3a22"
+      },
+      "object": {
+        "grail": {
+          "bytes": 154479,
+          "sha256": "35618683ebc3d1c2bfaff47f60182fd756f3a8de53c53dd907ec1099d631930a"
+        },
+        "parts": [
+          {
+            "file": "responses_models.py",
+            "id": "@kody-w/responses_models",
+            "kind": "layer",
+            "locator": "https://kody-w.github.io/RAR/stacks/grail-layers/responses_models.py",
+            "point": "provider",
+            "sha256": "77343ad7f8edfdf42ecddc2727ccb2919f15bd75f944ec7b260d439ed1f06e60"
+          }
+        ],
+        "safe_mode": true,
+        "schema": "brainstem-shape/1"
+      },
+      "params": {
+        "action": "set",
+        "parts": [
+          {
+            "file": "responses_models.py",
+            "id": "@kody-w/responses_models",
+            "kind": "layer",
+            "locator": "https://kody-w.github.io/RAR/stacks/grail-layers/responses_models.py",
+            "point": "provider",
+            "sha256": "77343ad7f8edfdf42ecddc2727ccb2919f15bd75f944ec7b260d439ed1f06e60"
+          }
+        ]
+      },
+      "params_hash": "6162791c6c75eb53e4a20ab85c6a3f99b64f33009ec7d2670deae64356b8cb43",
+      "slush_in": null
+    },
+    "payload_hash": "f307e7fb12b6ba619163b6361218bbc53a63d14485201c57f9a7606c9db95f7a",
+    "prev": "cabc0ba92b5e13d014a105e23948efff0edf8529b0e35f5008986089367e3066",
+    "prev_wave": null,
+    "seq": 7,
+    "sig": null,
+    "spec": "rapp/1",
+    "stream_id": "rappid:@kody-w/brainstem:883cff22dd5cf1248797f674d861c54658b79f9c07f305410bc668f94714d99d:mac",
+    "utc": "2026-11-03T19:20:14.928Z"
+  },
+  {
+    "frame_hash": "5d02cc432b148ab02bf78f5d2778afab2bab2d8fe0796037a41f07e3d240abc9",
+    "kind": "shape.gate",
+    "payload": {
+      "evidence": {
+        "applied": [
+          "responses_models"
+        ],
+        "grail": "35618683ebc3",
+        "skipped": {},
+        "why": "health ok (probe skipped)"
+      },
+      "gate": "lab",
+      "passed": true,
+      "tile": "c63df51a6501c9bdad78e986baef68eef8cbc868e91671a14ef70ab6eff8df80"
+    },
+    "payload_hash": "24a16864f018affd556ecf88039a4e00d3e7ebacb318f0d12dd1300eb8a83c23",
+    "prev": "f307e7fb12b6ba619163b6361218bbc53a63d14485201c57f9a7606c9db95f7a",
+    "prev_wave": null,
+    "seq": 8,
+    "sig": null,
+    "spec": "rapp/1",
+    "stream_id": "rappid:@kody-w/brainstem:883cff22dd5cf1248797f674d861c54658b79f9c07f305410bc668f94714d99d:mac",
+    "utc": "2026-11-03T19:20:16.996Z"
+  }
+]
