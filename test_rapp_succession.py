@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import copy
+import hashlib
 import json
 import tempfile
 import unittest
@@ -476,20 +477,34 @@ class RappSuccessionTests(unittest.TestCase):
 
         current = U.operational_profiles()
         self.assertIn(S.PROFILE, current)
-        accepted = U.operational_profiles("origin/main")
-        chain = [R._strict_json(line) for line in
-                 U._git_blob("origin/main", "anchor/chain.jsonl").splitlines()]
-        self.assertEqual(accepted, chain[-1]["payload"]["operational_profiles"])
+        historical_spec, historical_schema = b"Historical profile\n", b"{}\n"
+        index = json.loads((ROOT / "protocols/index.json").read_text())
+        profile = next(p for p in index["profiles"] if p["name"] == S.PROFILE)
+        profile["spec_sha256"] = hashlib.sha256(historical_spec).hexdigest()
+        profile["schema_sha256"] = hashlib.sha256(historical_schema).hexdigest()
+        index["profiles"] = [profile]
+        blobs = {"protocols/index.json": R.canonical(index).encode(),
+                 profile["spec_path"]: historical_spec,
+                 profile["schema_path"]: historical_schema}
+        ref = "a" * 40
         original_read = Path.read_bytes
 
         def changed_schema(path):
             octets = original_read(path)
             return octets + b" " if path == ROOT / "protocols/rapp-succession/1/schema.json" else octets
 
-        with patch.object(Path, "read_bytes", changed_schema):
-            with self.assertRaisesRegex(SystemExit, "profile schema hash drift"):
-                U.operational_profiles()
-            self.assertEqual(U.operational_profiles("origin/main"), accepted)
+        with patch.object(U, "_git_blob", side_effect=lambda source, path:
+                          blobs.get(path) if source == ref else None):
+            accepted = U.operational_profiles(ref)
+            self.assertEqual(accepted[S.PROFILE]["spec_sha256"], profile["spec_sha256"])
+            self.assertNotEqual(accepted[S.PROFILE]["spec_sha256"], current[S.PROFILE]["spec_sha256"])
+            with patch.object(Path, "read_bytes", changed_schema):
+                with self.assertRaisesRegex(SystemExit, "profile schema hash drift"):
+                    U.operational_profiles()
+                self.assertEqual(U.operational_profiles(ref), accepted)
+            del blobs[profile["schema_path"]]
+            with self.assertRaisesRegex(SystemExit, "accepted profile input is missing"):
+                U.operational_profiles(ref)
 
 
 if __name__ == "__main__":
