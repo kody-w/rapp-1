@@ -501,6 +501,44 @@ check(
     "; ".join(str(test) for test, _ in rev17_run.failures + rev17_run.errors)[:600],
 )
 
+# V12 signed device-local succession: independent controlled checks, not live state.
+import rapp_succession as S
+from pathlib import Path
+from test_rapp_succession import RappSuccessionTests
+
+succession_fixture = S.load_chain(
+    Path(__file__).resolve().parent / "protocols/examples/succession-lifecycle.json")
+try:
+    S.validate_chain(succession_fixture)
+    succession_valid, succession_why = True, ""
+except ValueError as error:
+    succession_valid, succession_why = False, str(error)
+check("V12 real succession lifecycle signatures verify", succession_valid, succession_why)
+
+for label, names in [
+    ("V12b silence windows and early handoff refusals", [
+        "test_early_silence_handoff_is_refused",
+        "test_frame_utc_must_reach_claimed_handoff_at",
+        "test_status_boundaries_are_inclusive_to_the_millisecond",
+        "test_zero_confirmation_days_opens_without_silent_interval",
+        "test_pulse_resets_both_windows_even_after_window_opened"]),
+    ("V12c owner authority, supersession, and wrong signers", [
+        "test_wrong_signers_are_refused_for_every_kind",
+        "test_previous_owner_is_refused_at_and_after_handoff_utc",
+        "test_new_owner_names_next_successor_and_can_transfer_again",
+        "test_no_nomination_no_pulse_or_handoff",
+        "test_replacing_successor_withdraws_old_nomination"]),
+    ("V12d signature forgery, key tails, and cross-profile interleaving", [
+        "test_fake_signature_and_cryptographically_wrong_key_are_refused",
+        "test_rehashed_payload_and_envelope_tamper_cannot_reuse_signature",
+        "test_both_key_tails_and_real_spki_are_checked",
+        "test_interleaving_both_readers_ignore_other_payload_semantics"]),
+]:
+    suite = unittest.TestSuite(RappSuccessionTests(name) for name in names)
+    run = unittest.TextTestRunner(stream=io.StringIO(), verbosity=0).run(suite)
+    check(label, run.wasSuccessful() and run.testsRun == len(names),
+          "; ".join(message for _, message in run.failures + run.errors)[:600])
+
 print()
 vector_count = len(results)
 vector_ok = sum(results)

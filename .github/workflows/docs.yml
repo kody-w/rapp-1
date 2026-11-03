@@ -23,7 +23,9 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Protocol conformance (spec floor is stdlib-only, any modern Python)
+      - name: Install signature verification dependency
+        run: python3 -m pip install cryptography
+      - name: Protocol conformance (core floor is stdlib-only; signed profiles use cryptography)
         run: python3 conformance.py
       - name: Registry lifecycle authorization boundaries (stdlib-only)
         run: python3 -m unittest test_registry_lifecycle
@@ -38,6 +40,7 @@ jobs:
           python3 operations_conformance.py
           python3 work_conformance.py
           python3 layer_conformance.py protocols/examples/layer-lifecycle.json
+          python3 succession_conformance.py protocols/examples/succession-lifecycle.json
       - name: Committed RAPP artifacts pass the repo's own linter (red oracle)
         run: python3 rapp_check.py .
       - name: Front doors name the chain head (index.html and guide must not outlive the anchor)
@@ -94,6 +97,8 @@ jobs:
           sudo apt-get install --yes --no-install-recommends poppler-utils
       - name: Validate generated HTML, DOM, print render, and PDF
         run: ./book/test-docs.sh
+      - name: Install signature verification dependency
+        run: python3 -m pip install cryptography
       - name: Run protocol conformance
         run: python3 conformance.py
       - name: Upload print regression evidence

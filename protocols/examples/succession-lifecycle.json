@@ -1,0 +1,113 @@
+[
+  {
+    "spec": "rapp/1",
+    "kind": "shape.genesis",
+    "stream_id": "rappid:@succession/fixture-owner:2c32a95965edf2fe0ef756f3f3be7d5e8c9c12ac8f132509f252d6f09cbf676d:device",
+    "seq": 0,
+    "utc": "2026-01-01T00:00:00.000Z",
+    "payload": {
+      "grail": {
+        "bytes": 154479,
+        "sha256": "35618683ebc3d1c2bfaff47f60182fd756f3a8de53c53dd907ec1099d631930a"
+      },
+      "parts": [],
+      "safe_mode": false,
+      "schema": "brainstem-shape/1"
+    },
+    "payload_hash": "02393d700ee7fdd59cbe31d5145350886e9eb63c70560bc19ea579b8abef07ca",
+    "prev": null,
+    "prev_wave": null,
+    "sig": null,
+    "frame_hash": "9a316e76cdd2c1380020f754ad1dc79cc4d51108d095b22ecc4b2b545d763979"
+  },
+  {
+    "spec": "rapp/1",
+    "kind": "succession.name",
+    "stream_id": "rappid:@succession/fixture-owner:2c32a95965edf2fe0ef756f3f3be7d5e8c9c12ac8f132509f252d6f09cbf676d:device",
+    "seq": 1,
+    "utc": "2026-01-01T00:00:00.000Z",
+    "payload": {
+      "schema": "rapp-succession/1",
+      "owner": {
+        "rappid": "rappid:@succession/fixture-owner:2c32a95965edf2fe0ef756f3f3be7d5e8c9c12ac8f132509f252d6f09cbf676d",
+        "spki_der_b64": "MCowBQYDK2VwAyEARu1QGVhCvLBoxKa3JJoOkvn6bVf1/d9GUNaR7v3bcx0="
+      },
+      "successor": {
+        "rappid": "rappid:@succession/fixture-heir:1ca7c128af2de9168c154c8de586559ab19a4778df9f78e9a32346cc708764d5",
+        "spki_der_b64": "MCowBQYDK2VwAyEAdfLbeE3/38eYmhe72Gg1PX0fkiwTPNROdlhtENYyG14=",
+        "name": "Test heir"
+      },
+      "window": {
+        "silence_days": 2,
+        "confirm_days": 1
+      }
+    },
+    "payload_hash": "c516d992177e78b5212069b7327e7483d4613d584611100803e2f4bf574c4b81",
+    "prev": "02393d700ee7fdd59cbe31d5145350886e9eb63c70560bc19ea579b8abef07ca",
+    "prev_wave": null,
+    "sig": "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il0sImtpZCI6InJhcHBpZDpAc3VjY2Vzc2lvbi9maXh0dXJlLW93bmVyOjJjMzJhOTU5NjVlZGYyZmUwZWY3NTZmM2YzYmU3ZDVlOGM5YzEyYWM4ZjEzMjUwOWYyNTJkNmYwOWNiZjY3NmQifQ..CVEQpNGv9Bqsdh2FF6AmeZR9PwpwqJUeqDhVocMGLlOd2yOncQc6AHQBA4t5lppZk4mhheGS5TThQ1vb_eDPBw",
+    "frame_hash": "b2153ec65966502a04a989d73626482d4ecdbbfe3c2ab4d06fecce17bc4a304f"
+  },
+  {
+    "spec": "rapp/1",
+    "kind": "succession.pulse",
+    "stream_id": "rappid:@succession/fixture-owner:2c32a95965edf2fe0ef756f3f3be7d5e8c9c12ac8f132509f252d6f09cbf676d:device",
+    "seq": 2,
+    "utc": "2026-01-02T00:00:00.000Z",
+    "payload": {
+      "schema": "rapp-succession/1",
+      "head": "b2153ec65966502a04a989d73626482d4ecdbbfe3c2ab4d06fecce17bc4a304f"
+    },
+    "payload_hash": "fcc42361f8bd18671d7fb83643aa8a3ffb1e450853bd10386595b4645e1a6887",
+    "prev": "c516d992177e78b5212069b7327e7483d4613d584611100803e2f4bf574c4b81",
+    "prev_wave": null,
+    "sig": "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il0sImtpZCI6InJhcHBpZDpAc3VjY2Vzc2lvbi9maXh0dXJlLW93bmVyOjJjMzJhOTU5NjVlZGYyZmUwZWY3NTZmM2YzYmU3ZDVlOGM5YzEyYWM4ZjEzMjUwOWYyNTJkNmYwOWNiZjY3NmQifQ..R93XmG1XdKHmoCvDBU6eIkX7CcZVlHj0gIYNWbX60Ax4Lxub9awiNd1nBXjhYeg2AUqlP7CWtRr4Jpqfv4i8Cw",
+    "frame_hash": "2911c5948e1a2cf23d777fd9ff6c3fdbda94d1501ee125b265583b85a800cd27"
+  },
+  {
+    "spec": "rapp/1",
+    "kind": "succession.handoff",
+    "stream_id": "rappid:@succession/fixture-owner:2c32a95965edf2fe0ef756f3f3be7d5e8c9c12ac8f132509f252d6f09cbf676d:device",
+    "seq": 3,
+    "utc": "2026-01-05T00:00:00.001Z",
+    "payload": {
+      "schema": "rapp-succession/1",
+      "from_head": "2911c5948e1a2cf23d777fd9ff6c3fdbda94d1501ee125b265583b85a800cd27",
+      "reason": "silence",
+      "at": "2026-01-05T00:00:00.001Z"
+    },
+    "payload_hash": "f83d8ccca98030d481dae1dc5499ff0e77fa6f208f3aa1a1a2a740b0063081e4",
+    "prev": "fcc42361f8bd18671d7fb83643aa8a3ffb1e450853bd10386595b4645e1a6887",
+    "prev_wave": null,
+    "sig": "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il0sImtpZCI6InJhcHBpZDpAc3VjY2Vzc2lvbi9maXh0dXJlLWhlaXI6MWNhN2MxMjhhZjJkZTkxNjhjMTU0YzhkZTU4NjU1OWFiMTlhNDc3OGRmOWY3OGU5YTMyMzQ2Y2M3MDg3NjRkNSJ9..orDEyYQ8Rf9lsYMXUSAjw1pmxNaXC1yYnNEhs5T21tpJdM6jK2tkzfjct87BE0I-Mzkw9Ssk6Gbxy5iewv0OAA",
+    "frame_hash": "ba6fa071fd96a59aa551f25faa177b39c88a2eba928e3d809d5311629f7b60cc"
+  },
+  {
+    "spec": "rapp/1",
+    "kind": "succession.name",
+    "stream_id": "rappid:@succession/fixture-owner:2c32a95965edf2fe0ef756f3f3be7d5e8c9c12ac8f132509f252d6f09cbf676d:device",
+    "seq": 4,
+    "utc": "2026-01-05T00:00:01.000Z",
+    "payload": {
+      "schema": "rapp-succession/1",
+      "owner": {
+        "rappid": "rappid:@succession/fixture-heir:1ca7c128af2de9168c154c8de586559ab19a4778df9f78e9a32346cc708764d5",
+        "spki_der_b64": "MCowBQYDK2VwAyEAdfLbeE3/38eYmhe72Gg1PX0fkiwTPNROdlhtENYyG14="
+      },
+      "successor": {
+        "rappid": "rappid:@succession/fixture-next-heir:2a6df68a7c9e0e0922a89788407fe8b0969241c126ed280320ceb064ae576263",
+        "spki_der_b64": "MCowBQYDK2VwAyEAbyOUDpkbJ/moI1XhtT4xhATE60sxd4d/IWt31V2ZJbQ=",
+        "name": "Test heir"
+      },
+      "window": {
+        "silence_days": 2,
+        "confirm_days": 1
+      }
+    },
+    "payload_hash": "49ff18e3ee8343419bab889714d91b1ed677b6975cee2c3b24dc44bc10bae750",
+    "prev": "f83d8ccca98030d481dae1dc5499ff0e77fa6f208f3aa1a1a2a740b0063081e4",
+    "prev_wave": null,
+    "sig": "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il0sImtpZCI6InJhcHBpZDpAc3VjY2Vzc2lvbi9maXh0dXJlLWhlaXI6MWNhN2MxMjhhZjJkZTkxNjhjMTU0YzhkZTU4NjU1OWFiMTlhNDc3OGRmOWY3OGU5YTMyMzQ2Y2M3MDg3NjRkNSJ9..806YzHtrMAfS_T7hIyxi726yswOHUUJT9bSNvODW5pcHYCqMRyzdITVWJK5PBg-sQ1qmpi8fNsUfqvt_FB-xAQ",
+    "frame_hash": "1f07e13fff3c3950db6e6467d938536c6cc15d996e80e2241641189ec9d0eb23"
+  }
+]

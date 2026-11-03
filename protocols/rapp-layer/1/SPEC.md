@@ -98,8 +98,13 @@ fallback, and satisfy section 11.1's separate-identity and release rules.
 Frame zero **MUST** be `shape.genesis`, carrying the shape directly:
 no parts and `safe_mode:false`. The existing device stream id is retained
 exactly; a new fixture, cache or checkout does not mint a replacement.
-All later frames are `shape.tile` or `shape.gate`. A second genesis is refused.
+All later shape frames are `shape.tile` or `shape.gate`. A second genesis is refused.
 The genesis object is the authorised plain-Grail state until a gate passes.
+`rapp-succession/1` frames **MAY** interleave in the same device chain;
+they do not change shape, authorisation, or gate failure counts. Shape
+readers ignore their payload semantics but retain ordinary chain checks.
+The reference delegates their signatures and ownership rules to the
+succession reader; a present invalid signature is never ignored.
 
 The one lens is `shape_lens.perform(object, params)`.
 It **MUST** be pure: no model, clock, randomness, network, filesystem,

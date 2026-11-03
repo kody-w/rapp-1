@@ -29,6 +29,10 @@ jobs:
           path: grail-source
       - name: Install pinned Grail requirements
         run: python3 -m pip install -r grail-source/rapp_brainstem/requirements.txt coverage
+      - name: Install signature verification dependency
+        run: python3 -m pip install cryptography
+      - name: Device-local succession conformance
+        run: python3 succession_conformance.py protocols/examples/succession-lifecycle.json
       - name: Scenario inventory
         run: python3 -m unittest discover -s conformance/grail -p 'test_*.py'
       - name: Vectors match the scenarios

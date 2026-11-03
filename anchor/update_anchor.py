@@ -49,6 +49,8 @@ INPUT_PATHS = [
     "protocols/rapp-work/1/schema.json",
     "protocols/rapp-layer/1/SPEC.md",
     "protocols/rapp-layer/1/schema.json",
+    "protocols/rapp-succession/1/SPEC.md",
+    "protocols/rapp-succession/1/schema.json",
     "protocols/lispy/1/SPEC.md",
     "anchor/materialize_spec.py",
     "anchor/bootstrap_verify.py",
@@ -206,8 +208,16 @@ def foundation_metadata(verify_remote: bool) -> tuple[dict, dict]:
     return foundation, philosophy
 
 
-def operational_profiles() -> Dict[str, dict]:
-    profile_index = R._strict_json((ROOT / "protocols" / "index.json").read_bytes())
+def operational_profiles(source_ref: Optional[str] = None) -> Dict[str, dict]:
+    def read(path: str) -> bytes:
+        if source_ref is None:
+            return (ROOT / path).read_bytes()
+        octets = _git_blob(source_ref, path)
+        if octets is None:
+            raise SystemExit(f"accepted profile input is missing: {source_ref}:{path}")
+        return octets
+
+    profile_index = R._strict_json(read("protocols/index.json"))
     if set(profile_index) != {
         "schema",
         "generated_utc",
@@ -246,11 +256,9 @@ def operational_profiles() -> Dict[str, dict]:
                 or not str(candidate).startswith("protocols/")
             ):
                 raise SystemExit(f"unsafe protocol profile path: {profile[key]}")
-        spec_path = ROOT / profile["spec_path"]
-        schema_path = ROOT / profile["schema_path"]
-        if sha256(spec_path.read_bytes()) != profile["spec_sha256"]:
+        if sha256(read(profile["spec_path"])) != profile["spec_sha256"]:
             raise SystemExit(f"profile spec hash drift: {profile['name']}")
-        if sha256(schema_path.read_bytes()) != profile["schema_sha256"]:
+        if sha256(read(profile["schema_path"])) != profile["schema_sha256"]:
             raise SystemExit(f"profile schema hash drift: {profile['name']}")
         result[profile["name"]] = {
             "status": "live",
@@ -587,6 +595,7 @@ def revision_payload(
     observed_utc: str,
     *,
     verify_foundation: bool,
+    profiles_ref: Optional[str] = None,
 ) -> dict:
     try:
         spec_text = spec_octets.decode("utf-8")
@@ -625,7 +634,7 @@ def revision_payload(
     foundation, philosophy = foundation_metadata(verify_foundation)
     payload["foundation"] = foundation
     payload["philosophy"] = philosophy
-    payload["operational_profiles"] = operational_profiles()
+    payload["operational_profiles"] = operational_profiles(profiles_ref)
     payload["vocabulary"]["sealed"] = {
         "status": "live",
         "where": "§9.2 sealed egg variant and §9.2.1 profile",
@@ -646,6 +655,11 @@ def revision_payload(
         "status": "live",
         "where": "protocols/rapp-layer/1/SPEC.md — device-local shape chains, pure lens replay, and host gates",
     }
+    if "rapp-succession/1" in payload["operational_profiles"]:
+        payload["vocabulary"]["rapp-succession"] = {
+            "status": "live",
+            "where": "protocols/rapp-succession/1/SPEC.md — device-local owner keys, signs of life, and signed succession windows",
+        }
     payload["vocabulary"]["offspring"] = {
         "status": "live",
         "where": "§9.4 typed lineage and PHILOSOPHY.md",
@@ -914,6 +928,7 @@ def publish_chain_and_beacon(
 
 def _main_locked(accepted_ref: str) -> None:
     ensure_committed_inputs()
+    operational_profiles()
     bootstrap_profile, profile_octets, bootstrap_index, bootstrap_index_octets = (
         bootstrap_bundle()
     )
@@ -968,6 +983,8 @@ def _main_locked(accepted_ref: str) -> None:
         commit_utc,
         observed_utc,
         verify_foundation=False,
+        # An accepted revision pins its profile snapshot, not future proposals.
+        profiles_ref=accepted_ref if accepted_frame is not None else None,
     )
     frame = R.build_frame(
         "body.pulse",
