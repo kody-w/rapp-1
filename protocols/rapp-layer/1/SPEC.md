@@ -217,3 +217,57 @@ The stdlib reference is [`rapp_layer.py`](../../../rapp_layer.py).
 Schema validates structure; replay and host execution remain separate checks.
 Passing these vectors does not certify local file security, gate independence,
 process liveness, source possession, or production Grail conformance.
+
+## 8. Part files, proof and handover
+
+This section states the part-file contract that section 2 refers to as an
+execution check. It adds no frame, payload member, endpoint or kind. The
+part file is the single source of these facts; catalogs and packs that repeat
+them (for example RAR `pack.json` `proven_grail`) **MUST** be generated from
+the file and **MUST** fail a drift check when they disagree.
+
+### 8.1 The part file
+
+A layer part is one Python file with a module-level `apply()` that wraps
+existing callables in memory. It **MUST** wrap, never replace: the wrapped
+callable still runs, and removing the part restores plain Grail behavior.
+It declares, as module-level literals readable without importing the file:
+
+- `TOUCHES`: the set of dotted callables it hooks exclusively. Two parts in
+  one shape that touch the same callable are a refusal.
+- `WRAPS` (optional): dotted callables it hooks composably. Any number of parts
+  **MAY** wrap the same callable; their order is the shape's part order.
+- `PROVEN_GRAIL`: the set of `grail.sha256` values this exact file was proven
+  against. A part whose set lacks the running Grail **MUST NOT** execute; the
+  runtime skips it, records why in gate evidence, and boots the rest.
+
+A part is **proven** on a Grail only after a real `POST /chat` and a real
+`POST /chat/stream` were answered through it on that Grail, plus a request to
+every surface it adds. Adding a sha to `PROVEN_GRAIL` without that run is a
+false claim. A changed file is a new part (new `sha256`) and starts unproven.
+
+### 8.2 Gate before sign-in
+
+The section 5 probe is a health check followed by a real `/chat`. A freshly
+installed Brainstem with no signed-in model provider cannot chat at all; when
+`/health` passes and `/chat` reports only that the user is not authenticated,
+the gate **MAY** pass on health alone and **MUST** say so in `evidence.why`.
+Any other `/chat` failure fails the gate.
+
+### 8.3 Never break the conversation
+
+Changing the running shape **MUST NOT** cut a request in flight. A conforming
+runtime starts the new shape beside the old one on the same port, gates it,
+moves new connections to it, lets the old process finish every open reply
+(including streams), and only then stops it. If the new shape fails its gate,
+it is stopped and the old one keeps serving. Agents, senses and pages
+hot-load from their folders and need no shape change.
+
+### 8.4 One fact, one home
+
+| Fact | Canonical home | Copies (generated or linked) |
+| --- | --- | --- |
+| Frame, tile, gate and replay rules | this profile | runtime, conformance vectors |
+| Part file contract (8.1–8.3) | this profile | `grail-layers` README, RAR `LAYERS.md` |
+| A part's `TOUCHES`, `WRAPS`, `PROVEN_GRAIL`, bytes | the part file | RAR `pack.json`, RAR layer pages |
+| Runtime behavior | `kody-w/grail-layers` code | this profile's reference notes |
