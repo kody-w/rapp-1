@@ -13,7 +13,8 @@ them (packs, starters, distros). It does not change the wire (§8), the frame (�
   distro are packs (a distro also pins the kernel sha). These are labels, not formats.
 - Part kinds: `layer` (applied in memory over the unchanged kernel), `agent` (`*_agent.py`; factories are
   `*_factory_agent.py`), `sense` (`*_sense.py`: one extra reply field), `page` (`*_page.py`: routes at
-  `/api/<name>/`). **`organ` is an alias of `page`**; the §9.2 organism row's `organs/*` reads as pages.
+  `/api/<name>/`; a local convenience that carries no RAPP semantics, like `GET /health`: §8 still holds, so any
+  capability a page offers MUST also be reachable as an agent behind `/chat`). **`organ` is an alias of `page`**; the §9.2 organism row's `organs/*` reads as pages.
 - **A pack is an egg without your data; an egg is a pack plus your data.** Proposed: a `pack` variant in §9.2
   (ZIP; payload `{includes:[<name>], parts:[{id, kind, point, file}], kernel:<64hex|null>}`; contents = the
   part files). Until ratified, packs stay `rapp-rar-stack/1.2` JSON in RAR.
