@@ -38,7 +38,7 @@
       "human_name": "RAPP Layer",
       "parent": "rapp/1",
       "spec_path": "protocols/rapp-layer/1/SPEC.md",
-      "spec_sha256": "231c6970cb7a9cf43e5ad35a546abd08ee953bc41245fd1eed4458aa4a087241",
+      "spec_sha256": "124676895db903513ba99654f4d5f6370cc8d30c29e04166033d61c2977bf2cd",
       "schema_path": "protocols/rapp-layer/1/schema.json",
       "schema_sha256": "1eb7400125f1ff3870be32bcd9f8a6404475a55afd1280db6edf5f7ecdd1e7af",
       "conformance": "layer_conformance.py"
