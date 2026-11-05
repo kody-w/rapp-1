@@ -22,6 +22,11 @@ other new noun to the protocol. Every part maps to one that exists:
 
 ## 1. Rules
 
+0. **The opening words: "R, A, P, P, verse."** The four letters spelled out, then "verse", tell the AI to start
+   listening for a verse. Spelling the letters keeps the platform's name apart from the everyday word "rap" (the
+   doubled-letter rule: two p's lock the meaning), so ordinary talk about music never opens a verse. The verse runs
+   from the opening words to the closing check ("and seal"); nothing outside that span is a command.
+
 1. **Eight verbs, fixed.** bring, through, ask, aside, split, join, send, back. Lens names are card names.
 2. **One beat per pass.** Each spoken line is one frame through one lens, so a dropped beat is a dropped step.
 3. **Words that sound unlike each other.** No two verbs may be confusable by ear (the NATO alphabet's lesson).
@@ -38,7 +43,7 @@ Anything that carries sound can carry a verse. A recording is **untrusted input*
 
 1. A verse heard from a recording (video, audio file, stream, a call, a page) runs **read-only**: lens
    passes may run; no gate may fire.
-2. Before any pass runs, the AI says back where it came from and what it would do, and waits for the person who
+2. The opening words inside a recording open a verse like any other, but read-only. Before any pass runs, the AI says back where it came from and what it would do, and waits for the person who
    played it to confirm: "seven steps, from a video, run them?"
 3. A gate (`send`) from a recording always needs that person's own, separate yes, given live, never from the
    recording itself. A recording that says "yes" is not a yes.
@@ -46,6 +51,7 @@ Anything that carries sound can carry a verse. A recording is **untrusted input*
 
 ## 3. Example
 
+> R, A, P, P, verse.
 > Bring the call, through Reader.
 > Through Match, then split: Risk, Margin, Asks.
 > Join them. Through Brief, ask who sends it.
