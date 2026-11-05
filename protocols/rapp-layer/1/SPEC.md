@@ -268,6 +268,27 @@ hot-load from their folders and need no shape change.
 | Fact | Canonical home | Copies (generated or linked) |
 | --- | --- | --- |
 | Frame, tile, gate and replay rules | this profile | runtime, conformance vectors |
-| Part file contract (8.1–8.3) | this profile | `grail-layers` README, RAR `LAYERS.md` |
+| Part file contract (8.1–8.5) | this profile | RAR `LAYERS.md` (links here) |
 | A part's `TOUCHES`, `WRAPS`, `PROVEN_GRAIL`, bytes | the part file | RAR `pack.json`, RAR layer pages |
-| Runtime behavior | `kody-w/grail-layers` code | this profile's reference notes |
+| Part files, packs, installer, supervisor, install skills | RAR (`stacks/`) | a device's local install (8.5) |
+| Runtime behavior | the supervisor code in RAR | this profile's reference notes |
+
+### 8.5 Where layers and packs live, and local drift
+
+The profile is the only home of the rules; RAR is the only home of the files.
+Layer parts, packs, the installer, the supervisor and install skills are
+published in RAR, each with its `sha256` in RAR's generated catalog. No other
+repository is a second home. An address that served these files before this
+section (for example `kody-w.github.io/grail-layers/...`) **MUST** keep
+working as an alias that serves the RAR bytes or points to them, and a drift
+check **MUST** fail when an alias serves bytes RAR does not list.
+
+A local install is a copy, never a fork. It **MUST** record, for every part
+and pack it holds, the RAR address and `sha256` it was installed from. A
+conforming runtime **MUST** be able to compare the local copy to RAR and
+report each file as `same`, `newer in RAR`, `changed locally` or `retired`
+without changing anything. A file changed locally is a new part (8.1): it is
+unproven and **MUST NOT** be reported as the RAR file. Updating a local copy
+is an ordinary shape change (8.3). When RAR is unreachable, the runtime keeps
+serving the recorded copy and reports drift as `unknown`, never as `same`.
+
