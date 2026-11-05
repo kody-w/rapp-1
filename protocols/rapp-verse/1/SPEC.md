@@ -3,6 +3,12 @@
 Status: **proposal, not a registration.** For Kody to accept or reject. Per the proven-winner rule it would start
 in the distro layer (a RAR stack marked `staging`) and only move into rapp/1 once it has won on more than one install.
 
+## The kid test (Kody, 2026-11-05)
+
+Every word in a verse must pass one test: a kid can hold it in their head, remember it, and say it to someone
+else, or to an AI, the way they would talk to anyone. When two words do the same job, the one a kid would
+say wins. That is why choice is a question answered "if yes / if no", not "otherwise" or "unless".
+
 ## 0. What it is, in existing nouns
 
 A **verse** is a spoken command for a chain of lens passes: one line, one pass. The name is business-neutral
@@ -41,8 +47,7 @@ other new noun to the protocol. Every part maps to one that exists:
 
 ## 1b. A question, then if yes / if no (Kody, 2026-11-05, A384; words A385)
 
-"Is the risk high? If yes, through Escalate. If no, seal." Call-and-response, the way people already talk; no
-"otherwise" or "else" to learn. The condition is a lens pass over the last tile whose tile
+"Is the risk high? If yes, through Escalate. If no, seal." Call-and-response, the way people already talk. The condition is a lens pass over the last tile whose tile
 answers yes or no, with its citation; never a word match. Only the chosen path runs; the tile records which path
 and why, so replay takes the same path. With *through* (sequence), frames (memory) and *keep … until* (an unbounded
 repeat), a verse can express any procedure; *if* makes choice speakable instead of hiding it in a router lens.
