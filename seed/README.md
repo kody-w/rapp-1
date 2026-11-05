@@ -34,8 +34,14 @@ repository, pin, path, and SHA-256 approach without claiming either schema.
 - `layers/`: the installer, supervisor, pack manager, their local Python helpers,
   the easy-mode skill, and RAR's `stacks/grail-layers/` files.
 
-The manifest lists every exclusion individually. Environment files (even
-examples), credential files, credential-pattern matches, caches, dependency
+The manifest lists every exclusion individually. Environment files are excluded
+except files named exactly `.env.example`: these must contain valid assignments
+and every key matching `TOKEN|PASSWORD|SECRET|KEY` (case-insensitive) must have
+an empty value. Empty quoted values may have trailing comments; an unquoted
+`#` value is not empty and is refused.
+A nonempty credential or unparseable template is excluded with a loud error;
+refresh stops before writing any copies. Other defaults remain unchanged.
+Credential files, credential-pattern matches, caches, dependency
 environments, and files over 5,000,000 bytes are not admitted. Refresh refuses
 to omit a required runtime or builder file silently. Source code is copied
 unchanged, including its upstream documentation and metadata.
@@ -51,7 +57,8 @@ when `SOURCE_DATE_EPOCH` is set.
 
 Run these commands from the rapp-1 repository root. Do not run the copied
 installers or `start.sh` offline: they download dependencies or source files.
-The `.env` example is intentionally excluded; direct startup does not need it.
+The verified `.env.example` is included unchanged for the bundled tests and
+configuration reference; direct startup does not need it.
 
 ### 1. Verify and make working copies
 

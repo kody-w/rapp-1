@@ -19,7 +19,7 @@ HERE = Path(__file__).resolve().parent
 SCHEMA = "rapp-seed/1"
 MAX_BYTES = 5_000_000
 ENGINE_SHA256 = "bd55a7f0bcf5efd3f7966ca39bb146da3c25fda9a0b1ce5ba587919d3c3775f4"
-PINNED_INVENTORY_SHA256 = "c2c69ad14a98779cd2bfaddb351383b220cfad82c671fc0dbdaf0383b1b0c087"
+PINNED_INVENTORY_SHA256 = "39301f701dff660031b806eedecc3715cb53af4348eec324619b7b5841f74e4f"
 SOURCES = {
     "brainstem": {
         "repo": "kody-w/rapp-installer",
@@ -103,8 +103,28 @@ def exclusion(path: str, body: bytes) -> str | None:
     if any(p in {".git", "__pycache__", ".pytest_cache", ".venv", "venv", "node_modules"}
            for p in parts) or path.endswith((".pyc", ".pyo")):
         return "cache or dependency environment"
-    if any(p == ".env" or p.startswith(".env.") for p in parts):
-        return "environment file (including examples)"
+    if any(p == ".env" or p.startswith(".env.") for p in parts[:-1]):
+        return "environment directory"
+    if parts[-1] == ".env.example":
+        try:
+            lines = body.decode("utf-8").splitlines()
+        except UnicodeDecodeError as error:
+            raise ValueError(f"{path}: excluded unsafe .env.example: invalid UTF-8") from error
+        for number, line in enumerate(lines, 1):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            assignment = re.fullmatch(r"(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)", line)
+            if assignment is None:
+                raise ValueError(f"{path}:{number}: excluded unsafe .env.example: invalid assignment")
+            key, value = assignment.groups()
+            if re.search(r"TOKEN|PASSWORD|SECRET|KEY", key, re.IGNORECASE):
+                if not re.fullmatch(r"""(?:(?:''|"")\s*(?:#.*)?)?""", value):
+                    raise ValueError(
+                        f"{path}:{number}: excluded unsafe .env.example: {key} must be empty"
+                    )
+    elif parts[-1] == ".env" or parts[-1].startswith(".env."):
+        return "environment file"
     if any(p in {".copilot_token", ".copilot_session", ".brainstem_secret", "credentials.json"}
            or p.endswith((".pem", ".key", ".p8", ".p12", ".pfx")) for p in parts):
         return "credential file"

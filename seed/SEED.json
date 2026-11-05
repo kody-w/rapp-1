@@ -19,6 +19,14 @@
   },
   "files": [
     {
+      "path": "brainstem/.env.example",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/.env.example",
+      "sha256": "2c43b8d99b823c3e865cc8d9ee6e2ed55016e742378aac30201a915947530607",
+      "bytes": 1148
+    },
+    {
       "path": "brainstem/.gitignore",
       "source_repo": "kody-w/rapp-installer",
       "source_ref": "brainstem-v0.6.16",
@@ -531,14 +539,7 @@
       "bytes": 16626
     }
   ],
-  "exclusions": [
-    {
-      "source_repo": "kody-w/rapp-installer",
-      "source_ref": "brainstem-v0.6.16",
-      "source_path": "rapp_brainstem/.env.example",
-      "reason": "environment file (including examples)"
-    }
-  ],
+  "exclusions": [],
   "executables": [
     "brainstem/install.sh",
     "brainstem/start.sh",

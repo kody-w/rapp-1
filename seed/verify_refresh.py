@@ -151,10 +151,63 @@ class SeedChecks(unittest.TestCase):
             self.assertEqual(self.check(), 1)
 
     def test_exclusion_policy(self):
-        for name in (".env", ".env.example", "a/.copilot_token", "a/__pycache__/x.pyc", "a/venv/x", "key.pem"):
+        for name in (".env", ".env.local", ".env.example.bak", "a/.env.production",
+                     ".env.example/nested", "a/.copilot_token", "a/__pycache__/x.pyc", "a/venv/x", "key.pem"):
             self.assertIsNotNone(refresh.exclusion(name, b""))
         self.assertIsNotNone(refresh.exclusion("large.bin", b"x" * (refresh.MAX_BYTES + 1)))
         self.assertIsNone(refresh.exclusion("source.py", b"os.environ.get('API_KEY')"))
+
+    def test_env_example_admits_only_empty_credentials(self):
+        body = (
+            b"# Local defaults\nGITHUB_TOKEN=\nVOICE_ZIP_PASSWORD=\n"
+            b"export api_key = ''\nCLIENT_SECRET=\"\" # left empty\n"
+            b"BRAINSTEM_ALLOWED_HOSTS=\nPORT=7071\nGITHUB_MODEL=auto\n"
+        )
+        for name in (".env.example", "brainstem/.env.example"):
+            with self.subTest(path=name):
+                self.assertIsNone(refresh.exclusion(name, body))
+
+    def test_env_example_refuses_nonempty_credentials_loudly(self):
+        for key in ("GITHUB_TOKEN", "VOICE_ZIP_PASSWORD", "CLIENT_SECRET", "api_key", "MONKEY"):
+            for value in ("not-a-real-credential", "'value'", '"value"', "${OTHER}", "' '",
+                          "#not-empty", " #not-empty"):
+                with self.subTest(key=key, value=value):
+                    with self.assertRaisesRegex(ValueError, "excluded unsafe .env.example.*must be empty") as error:
+                        refresh.exclusion("brainstem/.env.example", f"{key}={value}\n".encode())
+                    self.assertNotIn(value, str(error.exception))
+        for body in (b"GITHUB_TOKEN\n", b"PASSWORD=''\nnot an assignment\n", b"\xff"):
+            with self.subTest(body=body):
+                with self.assertRaisesRegex(ValueError, "excluded unsafe .env.example"):
+                    refresh.exclusion(".env.example", body)
+
+    def test_env_example_policy_applies_even_with_matching_fingerprints(self):
+        path = "brainstem/.env.example"
+        body = b"GITHUB_TOKEN=not-a-real-credential\n"
+        (self.seed / path).write_bytes(body)
+        entry = next(e for e in self.manifest["files"] if e["path"] == path)
+        entry.update(sha256=refresh.digest(body), bytes=len(body))
+        self.write_manifest()
+        with patch.object(refresh, "PINNED_INVENTORY_SHA256", refresh.inventory_fingerprint(self.manifest)):
+            with self.assertRaisesRegex(ValueError, "must be empty"):
+                self.check()
+
+    def test_refresh_refuses_unsafe_env_example_before_writing(self):
+        source = self.seed.parent / "upstream/rapp_brainstem"
+        source.mkdir(parents=True)
+        (source / "brainstem.py").write_bytes(self.target.read_bytes())
+        (source / ".env.example").write_text("GITHUB_TOKEN=not-a-real-credential\n")
+        before = {p.relative_to(self.seed): p.read_bytes() for p in self.seed.rglob("*") if p.is_file()}
+        original_plan = refresh.plan
+        with patch.object(refresh, "fetch"), patch.object(
+            refresh, "tracked", return_value=["rapp_brainstem/.env.example"]
+        ), patch.object(
+            refresh, "plan", side_effect=lambda _: original_plan({"brainstem": source.parent})
+        ):
+            with self.assertRaisesRegex(ValueError, "excluded unsafe .env.example.*must be empty"):
+                refresh.refresh(self.seed)
+        self.assertEqual(
+            before, {p.relative_to(self.seed): p.read_bytes() for p in self.seed.rglob("*") if p.is_file()}
+        )
 
     def test_reviewed_fixture_does_not_hide_other_credentials(self):
         body = b'RAW_SECRET_MARKER = "raw-403-internal-detail-should-never-leak"\n'
