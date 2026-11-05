@@ -9,6 +9,7 @@ healthy there without mutating the serving system underneath its users.
 | RAPP CI/CD | `rapp-cicd/1` | [`rapp-cicd/1/SPEC.md`](rapp-cicd/1/SPEC.md) |
 | RAPP Deploy | `rapp-deploy/1` | [`rapp-deploy/1/SPEC.md`](rapp-deploy/1/SPEC.md) |
 | RAPP Work | `rapp-work/1` | [`rapp-work/1/SPEC.md`](rapp-work/1/SPEC.md) |
+| RAR (draft structure profile) | `rar/1` | [`rar/1/SPEC.md`](rar/1/SPEC.md) |
 
 The profiles are subordinate to RAPP/1:
 
