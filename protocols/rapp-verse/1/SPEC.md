@@ -19,6 +19,7 @@ other new noun to the protocol. Every part maps to one that exists:
 | **join** | two hands | `⟩Join⟨` | a lens whose parameters are the branch tiles |
 | **send** | stamp | `⊣Gate` | a gate: the only effect in the world, with a receipt |
 | **go back** to n, with p | rewind | `↺Fn+p` | re-genesis naming the old head, plus a new particle |
+| **if** c … **otherwise** … | fork in the road | `c ? […] : […]` | a lens pass answers yes or no about the last tile; one path runs |
 | **keep** … **until** d | circle arrow | `⟳[…]⇥d` | the same lines re-run on their own last tile, until a lens's tile says d (or a person says stop) |
 
 ## 1. Rules
@@ -28,7 +29,7 @@ other new noun to the protocol. Every part maps to one that exists:
    doubled-letter rule: two p's lock the meaning), so ordinary talk about music never opens a verse. The verse runs
    from the opening words to the closing check ("and seal"); nothing outside that span is a command.
 
-1. **Nine verbs, fixed.** bring, through, ask, aside, split, join, send, back, keep (with *until*). Lens names are card names.
+1. **Ten verbs, fixed.** bring, through, ask, aside, split, join, send, back, if (with *otherwise*), keep (with *until*). Lens names are card names.
 2. **One beat per pass.** Each spoken line is one frame through one lens, so a dropped beat is a dropped step.
 3. **Words that sound unlike each other.** No two verbs may be confusable by ear (the NATO alphabet's lesson).
 4. **A closing check.** A verse ends with "and seal". The AI says back the step count and the chain before
@@ -37,6 +38,13 @@ other new noun to the protocol. Every part maps to one that exists:
    fill every described parameter from the frame and **ask** the person only for what the frame lacks.
 6. **Same governance as any pass.** A verse only proposes a chain. Lenses shape and check; nothing acts in
    the world except through a gate.
+
+## 1b. If … otherwise (Kody, 2026-11-05, A384)
+
+"If the risk is high, through Escalate, otherwise seal." The condition is a lens pass over the last tile whose tile
+answers yes or no, with its citation; never a word match. Only the chosen path runs; the tile records which path
+and why, so replay takes the same path. With *through* (sequence), frames (memory) and *keep … until* (an unbounded
+repeat), a verse can express any procedure; *if* makes choice speakable instead of hiding it in a router lens.
 
 ## 1a. Keep … until (Kody, 2026-11-05; name picked A383)
 
