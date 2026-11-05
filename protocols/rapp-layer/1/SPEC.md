@@ -278,10 +278,7 @@ hot-load from their folders and need no shape change.
 The profile is the only home of the rules; RAR is the only home of the files.
 Layer parts, packs, the installer, the supervisor and install skills are
 published in RAR, each with its `sha256` in RAR's generated catalog. No other
-repository is a second home. An address that served these files before this
-section (for example `kody-w.github.io/grail-layers/...`) **MUST** keep
-working as an alias that serves the RAR bytes or points to them, and a drift
-check **MUST** fail when an alias serves bytes RAR does not list.
+repository is a second home.
 
 A local install is a copy, never a fork. It **MUST** record, for every part
 and pack it holds, the RAR address and `sha256` it was installed from. A
