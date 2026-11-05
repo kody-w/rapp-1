@@ -59,13 +59,21 @@ Anything that carries sound can carry a verse. A recording is **untrusted input*
 
 `F0 ▷ Reader ▷ Match ▷ ⟨Risk, Margin, Asks⟩ ⟩Join⟨ ▷ Brief?who_sends ⇢ side:quotes`
 
-## 4. Free tuition
+## 4. Why it is cheap: fewer tokens
+
+A verse says in a few words what a prose prompt says in paragraphs. The model already knows the eight verbs and the
+lens names (from their descriptions), so "through Risk, ask who sends it" replaces a long instruction: fewer
+characters in, fewer tokens spent, less room to misread. The same holds for the chain it runs: each lens returns only
+what the next pass needs and sets the rest aside by reference, so the transcript stays short at every step. Short
+commands plus lean frames means the model spends its tokens on the work, not on reading instructions.
+
+## 5. Free tuition
 
 Mongol courier songs (rhythm and set forms kept long messages intact); BIP39 (words, not hex, with a checksum
 word); the NATO alphabet (words chosen for a noisy line); Scratch and Logo (children compose with picture blocks,
 not syntax); prompt injection (any carried text can command a model, so a recording is never the speaker).
 
-## 5. Open questions for the owner
+## 6. Open questions for the owner
 
 - Owner ruled the name on 2026-11-05: verse (A379). Open: should "spell" be an informal alias?
 - Should the multi-parent join tile name all branch heads (one stream) or should each branch be its own stream?
