@@ -3,14 +3,14 @@
  "generated_utc": "2026-10-07T21:19:01.000Z",
  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
  "head": {
-  "seq": 19,
-  "frame_hash": "a81e61325a2e25546220d965da6c99356da26b8a0aceeaed7ddee4267f33a9c9",
-  "payload_hash": "78199d286e9f2790a21b19015e0bd65b89b935f377b5ef478e2f34a936e83dd7"
+  "seq": 20,
+  "frame_hash": "fb4d15e1d4866ade1cfcf629bfaf02fa2f532f5a6ae57cd3f9121f56016a1b78",
+  "payload_hash": "03e58f9127e7ce03ceb1fb6b6b50b815a7c42549469c549fcea1d8a576f64d22"
  },
  "spec": {
-  "revision": "rev-19",
-  "revision_frame_hash": "a81e61325a2e25546220d965da6c99356da26b8a0aceeaed7ddee4267f33a9c9",
-  "revision_payload_hash": "78199d286e9f2790a21b19015e0bd65b89b935f377b5ef478e2f34a936e83dd7",
+  "revision": "rev-20",
+  "revision_frame_hash": "fb4d15e1d4866ade1cfcf629bfaf02fa2f532f5a6ae57cd3f9121f56016a1b78",
+  "revision_payload_hash": "03e58f9127e7ce03ceb1fb6b6b50b815a7c42549469c549fcea1d8a576f64d22",
   "schema": "rapp-spec-revision/1",
   "materialized_path": "SPEC.md",
   "normative_path": "SPEC.md",
@@ -167,7 +167,7 @@
   "rapp-layer/1": {
    "status": "live",
    "spec_path": "protocols/rapp-layer/1/SPEC.md",
-   "spec_sha256": "231c6970cb7a9cf43e5ad35a546abd08ee953bc41245fd1eed4458aa4a087241",
+   "spec_sha256": "124676895db903513ba99654f4d5f6370cc8d30c29e04166033d61c2977bf2cd",
    "schema_path": "protocols/rapp-layer/1/schema.json",
    "schema_sha256": "1eb7400125f1ff3870be32bcd9f8a6404475a55afd1280db6edf5f7ecdd1e7af"
   }
@@ -215,7 +215,7 @@
  },
  "index": {
   "path": "anchor/index.json",
-  "sha256": "59fe8ea140ced80f02f2bc4c1f7701db0a9055186dab3c9fed67a4b489b95757",
-  "bytes": 9228
+  "sha256": "7d6a464424010706593a3f3b3c2f045da5148ea1a7d142deaa366acb65dec445",
+  "bytes": 9598
  }
 }
