@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Append the deterministic rev-19 RAPP/1 specification-chain frame."""
+"""Append the deterministic rev-20 RAPP/1 specification-chain frame."""
 
 from __future__ import annotations
 
@@ -32,8 +32,8 @@ INDEX = ANCHOR / "index.json"
 FRAMES = ANCHOR / "frames"
 BOOTSTRAP = ANCHOR / "bootstrap"
 LOCK = ANCHOR / ".update_anchor.lock"
-REVISION = "rev-19"
-PREVIOUS_REVISION = "rev-18"
+REVISION = "rev-20"
+PREVIOUS_REVISION = "rev-19"
 INPUT_PATHS = [
     "SPEC.md",
     "CONSTITUTION.md",

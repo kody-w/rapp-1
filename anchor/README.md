@@ -91,6 +91,18 @@ chain, bootstrap, index, objects, and beacon; preserves accepted history;
 appends at most one deterministic frame; and refuses dirty, stale, competing,
 or inconsistent inputs. A repeat run is an idempotent no-op.
 
+A profile-spec change also requires a new revision, even when the root
+`SPEC.md` bytes are unchanged. Update its hash in `protocols/index.json`,
+advance `REVISION` and `PREVIOUS_REVISION` in `update_anchor.py`, and update
+the revision-aware tests while retaining every accepted historical line pin.
+Commit these inputs before generating against the accepted `origin/main`;
+never select an older accepted ref to replace an already accepted revision.
+Include the generated append, frame object, index, and beacon in the PR.
+Materialize `SPEC.md`, update the front-door revision labels, and regenerate
+the Internet-Draft with `python3 ietf/make_draft.py 00`. Preparing this unsigned
+snapshot is not ratification; owner acceptance onto protected main remains
+the authority selection.
+
 The generator holds a cross-process exclusive lock for the full operation and
 re-verifies the on-disk chain immediately before compare-and-swap publication.
 It publishes supporting objects/index first, the authority chain next, and the
