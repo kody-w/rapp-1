@@ -1,11 +1,12 @@
 # The rebuild seed
 
-This folder holds exact source bytes for the Brainstem, the RAR catalog builder,
-and the layer runtime. It lets you rebuild those pieces without their source
+This folder holds exact source bytes for the grail Brainstem and the RAR catalog
+builder. Together with rapp/1 itself, these are the trinity. It lets you rebuild
+those pieces without their source
 repositories. It is not a copy of every published agent, a package mirror, or a
 ready-made operating system.
 
-**The three source trees and `SEED.json` are generated. Never edit them.**
+**The two source trees and `SEED.json` are generated. Never edit them.**
 Change the source in its own repository, deliberately update the pins in
 `refresh.py`, and regenerate. Work on disposable copies when building or running;
 the seed itself should stay unchanged.
@@ -15,7 +16,9 @@ the seed itself should stay unchanged.
 `SEED.json` records each copied file's relative path, source repository, exact
 source ref and path, SHA-256, and byte count. The Brainstem uses the
 `brainstem-v0.6.16` tag and also checks its resolved commit and required engine
-hash. RAR and the layer runtime use full commit hashes captured from main.
+hash. RAR uses full commit hashes captured from main. The agent ticket-page
+helper is pinned separately to `2f4a5ce5bee98310808132bea099b08c74276960`,
+retaining its self-contained setup instructions as exact upstream bytes.
 The source refs are also held in `refresh.py`; no branch is fetched implicitly.
 An independent inventory fingerprint in `refresh.py` pins the complete file
 list, provenance, fingerprints, exclusions, and executable-script list.
@@ -29,10 +32,8 @@ repository, pin, path, and SHA-256 approach without claiming either schema.
 - `brainstem/`: the tracked `rapp_brainstem/` tree, flattened one level, plus
   the three root installers.
 - `rar-builder/`: the requested Python entry points and their transitive local
-  imports. `marketplaces.json` is a required static API input; `LAYERS.md` is
-  the required input to `tools/sync_layers.py`. No full registry or site is copied.
-- `layers/`: the installer, supervisor, pack manager, their local Python helpers,
-  the easy-mode skill, and RAR's `stacks/grail-layers/` files.
+  imports. `marketplaces.json` is a required static API input.
+  No full registry or site is copied.
 
 The manifest lists every exclusion individually. Environment files are excluded
 except files named exactly `.env.example`: these must contain valid assignments
@@ -68,7 +69,6 @@ export WORK="$(mktemp -d)"
 export PYTHON="$(command -v python3)"
 cp -R seed/brainstem "$WORK/brainstem"
 cp -R seed/rar-builder "$WORK/rar"
-cp -R seed/layers "$WORK/layers"
 mkdir -p "$WORK/home" "$WORK/empty-bin"
 ```
 
@@ -139,85 +139,6 @@ Use `--registry-only`: the bare upstream registry command also launches other
 site generators outside this seed's catalog-building scope. The static API's
 own `--check` computes a dry run, not a byte-for-byte drift check.
 
-### 4. Apply layers from local, fingerprint-checked files
-
-Stage the pack's default parts in the exact layout the unchanged supervisor
-expects. Keep the published locators as provenance; with the pinned files
-already present, the supervisor need not fetch them.
-
-```sh
-"$PYTHON" - <<'PY'
-import hashlib
-import json
-import os
-import shutil
-from pathlib import Path
-work = Path(os.environ["WORK"])
-layers = work / "layers"
-stack = layers / "stacks/grail-layers"
-pack = json.loads((stack / "pack.json").read_bytes())
-keys = ("id", "kind", "point", "file", "sha256", "locator")
-parts = []
-for entry in pack["install"]["parts"]:
-    if entry["id"] not in pack["install"]["seed"]:
-        continue
-    part = {key: entry[key] for key in keys}
-    body = (stack / part["file"]).read_bytes()
-    if hashlib.sha256(body).hexdigest() != part["sha256"]:
-        raise SystemExit("Part fingerprint mismatch: " + part["id"])
-    publisher, name = part["id"][1:].split("/")
-    target = layers / "parts" / publisher / name / part["file"]
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_bytes(body)
-    parts.append(part)
-(layers / "parts.json").write_text(json.dumps(parts) + "\n")
-for name in ("journal_recall_agent.py", "fragments_agent.py"):
-    shutil.copyfile(stack / name, work / "brainstem/agents" / name)
-shutil.copyfile(layers / "brainstem_shape_agent.py",
-                work / "brainstem/agents/brainstem_shape_agent.py")
-PY
-env -i HOME="$WORK/home" PATH="$WORK/empty-bin" \
-  PORT=17771 GITHUB_MODEL=gpt-4o BRAINSTEM_LAN_MODE=false \
-  BRAINSTEM_HOME="$WORK" GRAIL_LAYERS_HOME="$WORK/layers" \
-  PYTHONDONTWRITEBYTECODE=1 \
-  "$PYTHON" "$WORK/layers/grail_layers.py" \
-  --kernel "$WORK/brainstem/brainstem.py" --python "$PYTHON" \
-  --port 17771 --lab-port 17772 >"$WORK/supervisor.log" 2>&1 &
-SUPERVISOR_PID=$!
-echo "Layer supervisor PID: $SUPERVISOR_PID"
-curl --fail http://127.0.0.1:17771/health
-cat "$WORK/layers/applied.json"
-cat "$WORK/layers/last-boot.json"
-```
-
-Wait for startup and the boot record before reading them. Expect
-`providers_1_1`, `journal_tap`, and `senses_and_pages` in `applied`,
-an empty `skipped` object, and `fallback: false`. Health alone is not proof
-that layers loaded. Without sign-in the supervisor explicitly skips its
-authenticated chat probe; this proves local startup, not remote inference.
-
-```sh
-GRAIL_LAYERS_HOME="$WORK/layers" "$PYTHON" "$WORK/layers/grail_layers.py" \
-  --kernel "$WORK/brainstem/brainstem.py" --replay
-kill "$SUPERVISOR_PID"
-wait "$SUPERVISOR_PID"
-```
-
-The supervisor stops its own child. Do not kill by process name or stop an
-existing service. `packs.py` is also preserved, but its normal catalog commands
-use published endpoints; the local staging above is the offline path.
-
-To regenerate layer facts and ticket pages in your working catalog:
-
-```sh
-cp -R "$WORK/layers/stacks" "$WORK/rar/stacks"
-(
-  cd "$WORK/rar"
-  "$PYTHON" tools/sync_layers.py --write
-  "$PYTHON" tools/sync_layers.py --check
-)
-```
-
 Keep the generated output you need, then remove only this specific temporary
 working directory when finished.
 
@@ -231,7 +152,7 @@ python3 seed/verify_refresh.py
 
 `--check` never fetches or writes. It checks every manifest fingerprint and byte
 count, the fixed Brainstem hash, safe regular-file paths, prohibited files, and
-missing or unlisted files in the three generated trees. It also checks the
+missing or unlisted files in the two generated trees. It also checks the
 independently pinned complete inventory and, on POSIX, executable modes.
 `--scan` prints the
 credential-pattern scan, without printing matched values. Patterns cover private

@@ -19,7 +19,7 @@ HERE = Path(__file__).resolve().parent
 SCHEMA = "rapp-seed/1"
 MAX_BYTES = 5_000_000
 ENGINE_SHA256 = "bd55a7f0bcf5efd3f7966ca39bb146da3c25fda9a0b1ce5ba587919d3c3775f4"
-PINNED_INVENTORY_SHA256 = "39301f701dff660031b806eedecc3715cb53af4348eec324619b7b5841f74e4f"
+PINNED_INVENTORY_SHA256 = "146170f44f28275deecfa12bb5665f0ac13e5d0df22097bcb47c00a00185bde2"
 SOURCES = {
     "brainstem": {
         "repo": "kody-w/rapp-installer",
@@ -31,34 +31,20 @@ SOURCES = {
         "ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
         "commit": "4fa988a479828b177de3ef13838328d6190ff5d2",
     },
-    "layers": {
-        "repo": "kody-w/grail-layers",
-        "ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
-        "commit": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
+    "rar-pages": {
+        "repo": "kody-w/RAR",
+        "ref": "2f4a5ce5bee98310808132bea099b08c74276960",
+        "commit": "2f4a5ce5bee98310808132bea099b08c74276960",
     },
 }
-ROOTS = ("brainstem", "rar-builder", "layers")
+ROOTS = ("brainstem", "rar-builder")
 RAR_ENTRYPOINTS = (
     "build_registry.py",
     "scripts/build_static_api.py",
     "tools/build_agent_pages.py",
-    "tools/sync_layers.py",
     "template_agent.py",
 )
-RAR_INPUTS = ("marketplaces.json", "LAYERS.md")
-LAYER_ENTRYPOINTS = (
-    "install.sh",
-    "grail_layers.py",
-    "packs.py",
-    "hologram.py",
-    "shape_lens.py",
-    "rapp.py",
-    "brainstem_shape_agent.py",
-    "chaos.py",
-    "succession.py",
-    "succession_drill.py",
-    "skills/rar-easy-mode/SKILL.md",
-)
+RAR_INPUTS = ("marketplaces.json",)
 SECRET_PATTERNS = {
     "private key": rb"-----BEGIN (?:RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY-----",
     "GitHub token": rb"\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,})\b",
@@ -221,17 +207,12 @@ def plan(repositories: dict[str, Path]) -> tuple[dict[str, bytes], dict]:
         add("brainstem", name, "brainstem/" + name)
     rar_files = sorted(set(import_closure(repositories["rar"], RAR_ENTRYPOINTS)) | set(RAR_INPUTS))
     for name in rar_files:
-        add("rar", name, "rar-builder/" + name)
-    for name in import_closure(repositories["layers"], LAYER_ENTRYPOINTS):
-        add("layers", name, "layers/" + name)
-    for name in tracked(repositories["rar"], "stacks/grail-layers/"):
-        add("rar", name, "layers/" + name)
+        source = "rar-pages" if name == "tools/build_agent_pages.py" else "rar"
+        add(source, name, "rar-builder/" + name)
     if "brainstem/brainstem.py" not in files:
         raise ValueError("required Brainstem was excluded")
     required = {
         *("rar-builder/" + p for p in rar_files),
-        *("layers/" + p for p in import_closure(repositories["layers"], LAYER_ENTRYPOINTS)),
-        *("layers/" + p for p in tracked(repositories["rar"], "stacks/grail-layers/")),
         "brainstem/install.sh", "brainstem/install.ps1", "brainstem/install.cmd",
     }
     if required - files.keys():

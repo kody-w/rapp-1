@@ -48,6 +48,17 @@ class SeedChecks(unittest.TestCase):
             before, {p.relative_to(self.seed): p.read_bytes() for p in self.seed.rglob("*") if p.is_file()}
         )
 
+    def test_seed_contains_only_the_two_rebuild_trees(self):
+        self.assertEqual(refresh.ROOTS, ("brainstem", "rar-builder"))
+        self.assertEqual(
+            {entry["path"].split("/")[0] for entry in self.manifest["files"]},
+            {"brainstem", "rar-builder"},
+        )
+        self.assertEqual(
+            {source["repo"] for source in refresh.SOURCES.values()},
+            {"kody-w/rapp-installer", "kody-w/RAR"},
+        )
+
     def test_changed_bytes_fail(self):
         self.target.write_bytes(self.target.read_bytes().replace(b"import os", b"import re", 1))
         self.assertEqual(self.check(), 1)

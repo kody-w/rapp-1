@@ -11,10 +11,10 @@
       "ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
       "commit": "4fa988a479828b177de3ef13838328d6190ff5d2"
     },
-    "layers": {
-      "repo": "kody-w/grail-layers",
-      "ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
-      "commit": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18"
+    "rar-pages": {
+      "repo": "kody-w/RAR",
+      "ref": "2f4a5ce5bee98310808132bea099b08c74276960",
+      "commit": "2f4a5ce5bee98310808132bea099b08c74276960"
     }
   },
   "files": [
@@ -283,190 +283,6 @@
       "bytes": 21412
     },
     {
-      "path": "layers/brainstem_shape_agent.py",
-      "source_repo": "kody-w/grail-layers",
-      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
-      "source_path": "brainstem_shape_agent.py",
-      "sha256": "b98576d6bc20f55e4a4f4c809b2d92972a8c3351f54107780fdd039b6bc5508d",
-      "bytes": 8769
-    },
-    {
-      "path": "layers/chaos.py",
-      "source_repo": "kody-w/grail-layers",
-      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
-      "source_path": "chaos.py",
-      "sha256": "f7986c0a5334662754806f45c6c3761a4e0de29593d57f2c7106e8aad16ab7e8",
-      "bytes": 10167
-    },
-    {
-      "path": "layers/grail_layers.py",
-      "source_repo": "kody-w/grail-layers",
-      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
-      "source_path": "grail_layers.py",
-      "sha256": "6de3508dc8d5d715be421173ded013d814b864c2d1374246aff096a1bb77b41d",
-      "bytes": 35216
-    },
-    {
-      "path": "layers/hologram.py",
-      "source_repo": "kody-w/grail-layers",
-      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
-      "source_path": "hologram.py",
-      "sha256": "3d6a21ffc948f2710a54509fbada76cbacba550eab44f3e5dc10b0df37c93473",
-      "bytes": 12677
-    },
-    {
-      "path": "layers/install.sh",
-      "source_repo": "kody-w/grail-layers",
-      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
-      "source_path": "install.sh",
-      "sha256": "4d17c435d8e9fc3eda900e93b73e44739ae48bba735cd3b1951a4086b7776ba2",
-      "bytes": 10274
-    },
-    {
-      "path": "layers/packs.py",
-      "source_repo": "kody-w/grail-layers",
-      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
-      "source_path": "packs.py",
-      "sha256": "15918ed431a639ecfc653dd947d32c068ca00f836c4f5634d24181bbaff54d0c",
-      "bytes": 30769
-    },
-    {
-      "path": "layers/rapp.py",
-      "source_repo": "kody-w/grail-layers",
-      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
-      "source_path": "rapp.py",
-      "sha256": "76154a2b2e0a71cceda92c2c1b50a1cd8f7878b1892d0d093d523c4e5256eb87",
-      "bytes": 63199
-    },
-    {
-      "path": "layers/shape_lens.py",
-      "source_repo": "kody-w/grail-layers",
-      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
-      "source_path": "shape_lens.py",
-      "sha256": "e404727c61a9d3e2afeeb4967a7283ecdcacc8ece36d5f23cb15a48b10ac8160",
-      "bytes": 6852
-    },
-    {
-      "path": "layers/skills/rar-easy-mode/SKILL.md",
-      "source_repo": "kody-w/grail-layers",
-      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
-      "source_path": "skills/rar-easy-mode/SKILL.md",
-      "sha256": "3391f2e26df451102dd1e7aece623cfc9fdc21a527e8edcaa44e8349a9babae5",
-      "bytes": 4665
-    },
-    {
-      "path": "layers/stacks/grail-layers/README.md",
-      "source_repo": "kody-w/RAR",
-      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
-      "source_path": "stacks/grail-layers/README.md",
-      "sha256": "a62b222a7e3a372ebe9632ce3b1073f9fd156dcd122f76fc1f0382a969f89c3c",
-      "bytes": 2319
-    },
-    {
-      "path": "layers/stacks/grail-layers/fragments_agent.py",
-      "source_repo": "kody-w/RAR",
-      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
-      "source_path": "stacks/grail-layers/fragments_agent.py",
-      "sha256": "4d13906d0277d672c4b54489527e7fc8042c54ae6a32c2024fec407b0ee6d381",
-      "bytes": 8071
-    },
-    {
-      "path": "layers/stacks/grail-layers/journal_recall_agent.py",
-      "source_repo": "kody-w/RAR",
-      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
-      "source_path": "stacks/grail-layers/journal_recall_agent.py",
-      "sha256": "f6358978b97b93606c74b987803dfc099f42e3ff143825040616102d5f8201bf",
-      "bytes": 6341
-    },
-    {
-      "path": "layers/stacks/grail-layers/journal_tap.py",
-      "source_repo": "kody-w/RAR",
-      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
-      "source_path": "stacks/grail-layers/journal_tap.py",
-      "sha256": "1fb33db6b6dbab0bea2abe6733f941942a2eb3a5ef1a3cf3c82799f3f96863cc",
-      "bytes": 7219
-    },
-    {
-      "path": "layers/stacks/grail-layers/lispy_brainstem.py",
-      "source_repo": "kody-w/RAR",
-      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
-      "source_path": "stacks/grail-layers/lispy_brainstem.py",
-      "sha256": "311e2162e397f7df5fe9262684f737178acdc0306b0a3a5b9cbd4df6b420a50b",
-      "bytes": 50358
-    },
-    {
-      "path": "layers/stacks/grail-layers/local_models.py",
-      "source_repo": "kody-w/RAR",
-      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
-      "source_path": "stacks/grail-layers/local_models.py",
-      "sha256": "ea95cdc10ce7b274ae8bb579bcb52b5a7e7164d70dc2d9dcfa7bc135ca1aef13",
-      "bytes": 4653
-    },
-    {
-      "path": "layers/stacks/grail-layers/pack.json",
-      "source_repo": "kody-w/RAR",
-      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
-      "source_path": "stacks/grail-layers/pack.json",
-      "sha256": "6de5088403f94c73d1ac1fe47b61e32678590d2bea0d7ae8f0131fc72cf1c265",
-      "bytes": 8273
-    },
-    {
-      "path": "layers/stacks/grail-layers/providers.py",
-      "source_repo": "kody-w/RAR",
-      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
-      "source_path": "stacks/grail-layers/providers.py",
-      "sha256": "90bb46c6b82383378e83ba8669327d02dfc1df9aab5dcca764b4d7850c657bea",
-      "bytes": 8885
-    },
-    {
-      "path": "layers/stacks/grail-layers/providers_1_1.py",
-      "source_repo": "kody-w/RAR",
-      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
-      "source_path": "stacks/grail-layers/providers_1_1.py",
-      "sha256": "2c1bd4d3453a2ae1259e81b51f86daeee9e4a04f68bf37d5e5a4cb5f637936b9",
-      "bytes": 12371
-    },
-    {
-      "path": "layers/stacks/grail-layers/responses_models.py",
-      "source_repo": "kody-w/RAR",
-      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
-      "source_path": "stacks/grail-layers/responses_models.py",
-      "sha256": "edb0eee0313372a3aa51c8c513694f43885d305455872b90b7c589d921db0a8d",
-      "bytes": 6943
-    },
-    {
-      "path": "layers/stacks/grail-layers/senses_and_pages.py",
-      "source_repo": "kody-w/RAR",
-      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
-      "source_path": "stacks/grail-layers/senses_and_pages.py",
-      "sha256": "c7af54d392156cb65bd3d6a2886f7fbf526e2edad0b09729c377ebcccefb016b",
-      "bytes": 7784
-    },
-    {
-      "path": "layers/succession.py",
-      "source_repo": "kody-w/grail-layers",
-      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
-      "source_path": "succession.py",
-      "sha256": "140b0d5ed394a31bc2a74c3dbcbc53b8f4b26224b9d22d5b2bef9f810396c074",
-      "bytes": 12204
-    },
-    {
-      "path": "layers/succession_drill.py",
-      "source_repo": "kody-w/grail-layers",
-      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
-      "source_path": "succession_drill.py",
-      "sha256": "7932bed7e907411216b9b8e9ed764344ceb732628eb4f075e31c32bead5b8657",
-      "bytes": 8106
-    },
-    {
-      "path": "rar-builder/LAYERS.md",
-      "source_repo": "kody-w/RAR",
-      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
-      "source_path": "LAYERS.md",
-      "sha256": "16c655ea4db3300b683c9cf904930ed6288f40dbd4b217d3ae48ecbb174f2506",
-      "bytes": 6986
-    },
-    {
       "path": "rar-builder/build_registry.py",
       "source_repo": "kody-w/RAR",
       "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
@@ -517,10 +333,10 @@
     {
       "path": "rar-builder/tools/build_agent_pages.py",
       "source_repo": "kody-w/RAR",
-      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_ref": "2f4a5ce5bee98310808132bea099b08c74276960",
       "source_path": "tools/build_agent_pages.py",
-      "sha256": "ee649310bb82e7a588c2605150f471730c6b44949cbc1d2244750c74c5d46346",
-      "bytes": 11536
+      "sha256": "e5432e3be9e9de12d1a3ece9aaef521603c4f6a52355e86f1a24b2ada400b114",
+      "bytes": 4810
     },
     {
       "path": "rar-builder/tools/stamp_ticket.py",
@@ -529,20 +345,11 @@
       "source_path": "tools/stamp_ticket.py",
       "sha256": "ff1c054779fde140d7061e73f8104fc0bc197be2ca63418f8354bab2a0c4b8fa",
       "bytes": 5276
-    },
-    {
-      "path": "rar-builder/tools/sync_layers.py",
-      "source_repo": "kody-w/RAR",
-      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
-      "source_path": "tools/sync_layers.py",
-      "sha256": "9411c7576ec3777be1d0f3edfe50fc2e68eed22f245bd63c9d2d71b4900eca99",
-      "bytes": 16626
     }
   ],
   "exclusions": [],
   "executables": [
     "brainstem/install.sh",
-    "brainstem/start.sh",
-    "layers/install.sh"
+    "brainstem/start.sh"
   ]
 }
