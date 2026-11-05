@@ -70,6 +70,7 @@ drifts. The historical red report and the captured green report form the before/
 in chapter 10.
 
 ## What's here
+Offline rebuild sources: [the fingerprint-checked seed](seed/README.md).
 
 | file | what it is |
 |------|-----------|
