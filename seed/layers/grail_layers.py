@@ -1,0 +1,653 @@
+#!/usr/bin/env python3
+"""grail_layers: run the UNCHANGED grail as a living hologram, and fall back to plain grail.
+
+Kody, 2026-11-03: "grail should still be the base and updates should be layered over it so if
+something breaks when layering over it doesnt break grail and they still have grail"; and the same
+day: the Brainstem is a living hologram (kody-w.github.io/living-holograms over rapp/1).
+
+Precedents: Linux livepatch/kpatch (patch a running kernel in memory, the image on disk unchanged,
+revertible), Fedora Silverblue/ostree (immutable base + layered packages + one-step rollback),
+ChromeOS A/B (a bad update boots back into the known-good slot), Kubernetes (desired state +
+reconcile), Git (append-only, content-addressed history).
+
+How it works
+  1. The grail file (brainstem.py) is never edited. Its sha256 is the genesis of this device's chain.
+  2. The shape (which parts run over the grail, or which kernel replaces it) changes only through
+     shape_lens (pure) as a tile on the chain; a tile takes effect only after a passing gate frame.
+  3. Boot: read the chain, take the shape the newest passing gate authorises, start it, probe /chat,
+     append a live gate frame. Two live failures in a row = fall back to the previous passing shape,
+     then to plain grail. The user always ends up with a Brainstem.
+  4. `--apply` (the agent's path): lens -> tile -> lab boot on a spare port -> probe -> gate frame.
+     Nothing goes live from the lab; the next boot (or a restart) takes the authorised shape.
+
+Usage
+  python3 grail_layers.py --kernel /path/to/brainstem.py [--port 7071] [--no-probe]
+  python3 grail_layers.py --kernel ... --plain                 # safe mode: grail, no parts
+  python3 grail_layers.py --kernel ... --apply '{"action":"add","part":{...}}' [--by "kody"]
+  python3 grail_layers.py --kernel ... --status | --replay | --since 2026-11-03T00:00:00.000Z | --undo
+"""
+import argparse
+import json
+import os
+import signal
+import subprocess
+import sys
+import time
+import urllib.request
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+HOME = Path(os.environ.get("GRAIL_LAYERS_HOME") or HERE)   # chain.jsonl, parts/, logs live here
+LOG = HOME / "layers.log"
+SCHEMA_PLAIN = "brainstem-shape/1"
+sys.path.insert(0, str(HERE))
+import hologram  # noqa: E402  (rapp/1 chain + the one lens)
+try:
+    import succession  # noqa: E402  (whose Brainstem this is, who inherits)
+except ImportError:  # the three-module wire (grail_layers, hologram, shape_lens) still boots; succession is optional
+    succession = None
+
+
+def apply_layers(kernel_bytes, layers_dir, names, report_dir=None):
+    """Apply layers in THIS process before the kernel runs. Returns (grail_sha, applied, skipped).
+    `names` are layer names in `layers_dir` or explicit file paths (hologram parts). Importable so a
+    conformance harness (rapp/1 conformance/grail) runs the exact same code path."""
+    import ast, hashlib, importlib.util, traceback
+    grail_sha = hashlib.sha256(kernel_bytes).hexdigest()
+    unpinned = os.environ.get("GRAIL_LAYERS_UNPINNED") == "1"
+    applied, skipped, taken = [], {}, set()
+    for n in names:
+        path = n if os.sep in n else os.path.join(layers_dir, n + ".py")
+        label = os.path.basename(path)[:-3]
+        try:
+            proven, touches, wraps = set(), set(), set()
+            for node in ast.parse(open(path).read()).body:  # the layer's own sets, read without running it
+                if isinstance(node, ast.Assign):
+                    ids = {getattr(t, "id", "") for t in node.targets}
+                    if "PROVEN_GRAIL" in ids:
+                        proven = set(ast.literal_eval(node.value))
+                    if "TOUCHES" in ids:
+                        touches = set(ast.literal_eval(node.value))
+                    if "WRAPS" in ids:  # composes: calls through to whatever an earlier layer left at the point
+                        wraps = set(ast.literal_eval(node.value))
+            if grail_sha not in proven and not unpinned:
+                skipped[label] = "unproven for this grail"
+                print(f"[grail-layers] layer {label} is not proven for this grail ({grail_sha[:12]}); skipped", flush=True)
+                continue
+            clash = touches & taken
+            if clash:  # D365 lesson: never silent last-wins; the shape's order decides and the loser is logged
+                skipped[label] = "conflict on " + ",".join(sorted(clash))
+                print(f"[grail-layers] layer {label} conflicts on {sorted(clash)} with an earlier layer; skipped", flush=True)
+                continue
+            taken |= touches | wraps  # a WRAPS point is composable (this layer chains to the earlier one) but a
+            # later TOUCHES on it would silently replace the chain, so it is still taken
+            spec = importlib.util.spec_from_file_location("grail_layer_" + label, path)
+            m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+            m.apply()
+            applied.append(label)
+        except Exception:
+            skipped[label] = "failed to apply"
+            print(f"[grail-layers] layer {label} failed to apply, skipped:\n{traceback.format_exc()}", flush=True)
+    os.environ["GRAIL_LAYERS_APPLIED"] = ",".join(applied)
+    os.environ["GRAIL_LAYERS_SKIPPED"] = ",".join(skipped)
+    report_dir = report_dir or os.environ.get("GRAIL_LAYERS_REPORT_DIR") or os.path.dirname(str(layers_dir).rstrip("/"))
+    try:
+        with open(os.path.join(report_dir, "applied.json"), "w") as f:
+            f.write(json.dumps({"grail_sha256": grail_sha, "applied": applied, "skipped": skipped}))
+    except Exception:
+        pass
+    print(f"[grail-layers] grail {grail_sha[:12]}; applied: {applied or 'none'}; skipped: {skipped or 'none'}", flush=True)
+    return grail_sha, applied, skipped
+
+
+
+def _handover_hooks():
+    """Child side of the overlapping handover (never break the conversation). The server shares its port with the
+    next copy (SO_REUSEPORT: on macOS the newest bound socket takes every new call), counts replies in flight
+    (a stream counts until its last chunk), and on SIGUSR1 finishes those replies, then exits. Grail bytes untouched."""
+    import threading
+    try:
+        import flask
+        import werkzeug.serving as ws
+    except Exception as e:
+        print(f"[grail-layers] handover hooks not installed ({e})", flush=True)
+        return
+    ws.BaseWSGIServer.allow_reuse_port = True
+    orig_bind = ws.BaseWSGIServer.server_bind
+
+    def server_bind(self):
+        orig_bind(self)
+        marker = os.environ.get("GRAIL_LAYERS_BOUND")
+        if marker:
+            Path(marker).write_text(str(os.getpid()))
+    ws.BaseWSGIServer.server_bind = server_bind
+    live = {"n": 0}
+    mu = threading.Lock()
+
+    def bump(d):
+        with mu:
+            live["n"] += d
+
+    class Counted:
+        def __init__(self, it):
+            self.it, self.done = it, False
+
+        def __iter__(self):
+            return iter(self.it)
+
+        def close(self):
+            try:
+                getattr(self.it, "close", lambda: None)()
+            finally:
+                if not self.done:
+                    self.done = True
+                    bump(-1)
+    orig_call = flask.Flask.__call__
+
+    def __call__(self, environ, start_response):
+        bump(1)
+        try:
+            return Counted(orig_call(self, environ, start_response))
+        except BaseException:
+            bump(-1)
+            raise
+    flask.Flask.__call__ = __call__
+
+    def drain(*_):
+        def wait():
+            deadline, quiet = time.time() + float(os.environ.get("GRAIL_LAYERS_DRAIN_MAX", 900)), 0
+            while time.time() < deadline:
+                quiet = quiet + 1 if live["n"] == 0 else 0
+                if quiet >= 4:  # one quiet second: every reply that came here has finished
+                    break
+                time.sleep(0.25)
+            print(f"[grail-layers] handed over; {live['n']} replies were still open at exit", flush=True)
+            os._exit(0)
+        threading.Thread(target=wait, daemon=True).start()
+    signal.signal(signal.SIGUSR1, drain)
+
+
+def boot(kernel, layers_dir, names):
+    """Child entry: apply layers, then run the VERIFIED kernel bytes as __main__ (rapp/1 §11.1.5)."""
+    import types
+    kernel_bytes = open(kernel, "rb").read()  # read ONCE: the bytes we hash are the bytes we run
+    apply_layers(kernel_bytes, layers_dir, names)
+    _handover_hooks()
+    sys.argv = [kernel]
+    sys.path.insert(0, os.path.dirname(kernel))
+    os.chdir(os.path.dirname(kernel))
+    g = types.ModuleType("__main__"); g.__file__ = kernel; g.__builtins__ = __builtins__
+    sys.modules["__main__"] = g
+    exec(compile(kernel_bytes, kernel, "exec"), g.__dict__)  # the verified bytes, never a re-opened path
+
+
+def log(msg):
+    line = time.strftime("%Y-%m-%d %H:%M:%S ") + msg
+    print("[grail-layers] " + msg, flush=True)
+    HOME.mkdir(parents=True, exist_ok=True)
+    with open(LOG, "a") as f:
+        f.write(line + "\n")
+
+
+LAST_BOOT = HOME / "last-boot.json"
+
+
+def last_boot(**fields):
+    """What the owner should hear about this boot, written once per boot; the chat agent says it once (told=false->true).
+    Boot messages nobody reads are not messages (journald lesson): this file is the one place the owner's chat looks."""
+    rec = {"utc": hologram.utc_now(), "told": False, **fields}
+    HOME.mkdir(parents=True, exist_ok=True)
+    tmp = LAST_BOOT.with_suffix(".tmp")
+    tmp.write_text(json.dumps(rec, indent=1)); os.replace(tmp, LAST_BOOT)
+    return rec
+
+
+def http(url, body=None, timeout=10):
+    req = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None,
+                                 headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.status, json.loads(r.read() or b"{}")
+
+
+def start(kernel, shape, port, py, report_dir, extra=None):
+    """Start the Brainstem the shape describes: plain grail, grail + layer parts, or a kernel part."""
+    env = dict(os.environ, PORT=str(port), GRAIL_LAYERS_REPORT_DIR=str(report_dir), **(extra or {}))
+    parts = [] if shape["safe_mode"] else shape["parts"]
+    kernels = [p for p in parts if p["kind"] == "kernel"]
+    layers = [str(hologram.part_path(HOME / "parts", p)) for p in parts if p["kind"] == "layer"]
+    if kernels and layers:  # layers wrap brainstem.py; a kernel part replaces it, so they do not apply (said, never silent)
+        log("kernel part present: layer parts " + ",".join(p["id"] for p in parts if p["kind"] == "layer") + " do not apply to it")
+    if kernels:  # a kernel part replaces brainstem.py; the user's agents and soul (GODD data) follow every shape
+        entry = hologram.part_path(HOME / "parts", kernels[0])
+        env.setdefault("AGENTS_PATH", os.path.join(os.path.dirname(kernel), "agents"))
+        env.setdefault("SOUL_PATH", os.path.join(os.path.dirname(kernel), "soul.md"))
+        env.setdefault("BRAINSTEM_DATA_DIR", os.path.join(os.path.dirname(kernel), ".brainstem_data"))  # GODD data follows
+        cmd, cwd = [py, str(entry)], str(entry.parent)
+    elif layers:
+        cmd, cwd = [py, str(HERE / "grail_layers.py"), "--boot", kernel, str(HOME / "parts"), ",".join(layers)], os.path.dirname(kernel)
+    else:  # plain grail runs through the same child entry, so it too can hand over without a gap
+        cmd, cwd = [py, str(HERE / "grail_layers.py"), "--boot", kernel, str(HOME / "parts"), ""], os.path.dirname(kernel)
+    out = open(HOME / f"brainstem-{port}.log", "a")
+    return subprocess.Popen(cmd, cwd=cwd, env=env, stdout=out, stderr=subprocess.STDOUT, start_new_session=True)
+
+
+def healthy(p, port, probe, wait=60):
+    base = f"http://127.0.0.1:{port}"
+    for _ in range(wait):
+        if p.poll() is not None:
+            return False, f"exited with code {p.returncode}"
+        try:
+            if http(base + "/health", timeout=3)[0] == 200:
+                break
+        except Exception:
+            time.sleep(1)
+    else:
+        return False, "no /health within %ds" % wait
+    if not probe:
+        return True, "health ok (probe skipped)"
+    try:
+        code, d = http(base + "/chat", {"user_input": "Reply with the single word OK."}, timeout=180)
+        if code == 200 and str(d.get("response", "")).strip():
+            return True, "health ok; /chat probe answered"
+        return False, f"/chat probe gave {code} with no response"
+    except Exception as e:
+        # A fresh Brainstem nobody has signed in to yet cannot chat at all; that says nothing about the layers.
+        body = ""
+        try:
+            body = e.read().decode(errors="replace") if hasattr(e, "read") else ""
+        except Exception:
+            pass
+        if "Not authenticated" in body:
+            return True, "health ok; not signed in to GitHub yet, so the /chat probe is skipped"
+        return False, f"/chat probe failed: {e}"
+
+
+def stop(p):
+    if p and p.poll() is None:
+        try:
+            os.killpg(p.pid, signal.SIGTERM)
+            p.wait(15)
+        except Exception:
+            os.killpg(p.pid, signal.SIGKILL)
+
+
+def evidence(report_dir, why):
+    ev = {"why": why}
+    try:
+        rep = json.loads((Path(report_dir) / "applied.json").read_text())
+        ev.update(applied=rep.get("applied", []), skipped=rep.get("skipped", {}), grail=rep.get("grail_sha256", "")[:12])
+    except Exception:
+        pass
+    return ev
+
+
+def open_chain(kernel):
+    """The device's chain; genesis on first boot; migrate a legacy `enabled` list into the first tile."""
+    HOME.mkdir(parents=True, exist_ok=True)
+    chain = hologram.genesis(HOME / "chain.jsonl", kernel)
+    seeded = HOME / "parts.json"  # written by the installer from the pack's publisher-scoped parts (pack >= 1.2)
+    if len(chain.frames) == 1 and seeded.is_file():
+        parts = [p for p in json.loads(seeded.read_text())
+                 if hologram.part_path(HOME / "parts", p).is_file()
+                 and hologram.sha256_file(hologram.part_path(HOME / "parts", p)) == p["sha256"]]
+        if parts:
+            t = hologram.tile(chain, {"action": "set", "parts": parts}, {"kind": "process", "name": "install-from-pack"})
+            hologram.gate(chain, t, "lab", True, {"why": "seeded from the pack by the installer: every part's bytes match its "
+                                                         "sha256; the live gate at this boot is the real proof"})
+            log(f"seeded the chain from the installed pack into tile #{t['seq']}")
+        return chain
+    enabled = HOME / "enabled"
+    if len(chain.frames) == 1 and enabled.is_file():
+        import hashlib, shutil
+        parts = []
+        for n in [l.strip() for l in enabled.read_text().splitlines() if l.strip()]:
+            src = HOME / "layers" / f"{n}.py"
+            if not src.is_file():
+                continue
+            part = {"id": f"@kody-w/{n}", "kind": "layer", "point": "provider", "file": f"{n}.py",
+                    "sha256": hashlib.sha256(src.read_bytes()).hexdigest(),
+                    "locator": f"https://kody-w.github.io/RAR/stacks/grail-layers/{n}.py"}
+            dst = hologram.part_path(HOME / "parts", part); dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src, dst)
+            parts.append(part)
+        if parts:
+            t = hologram.tile(chain, {"action": "set", "parts": parts}, {"kind": "process", "name": "migrate-enabled"})
+            hologram.gate(chain, t, "lab", True, {"why": "migrated from the legacy enabled list (already proven on this device)"})
+            log(f"migrated legacy enabled list into tile #{t['seq']}")
+    return chain
+
+
+def run_live(a, kernel):
+    notices = []  # plain sentences for the owner; empty = nothing worth saying
+    try:
+        chain = open_chain(kernel)
+    except Exception as e:  # a broken or tampered chain must never leave the owner without a Brainstem
+        log(f"chain refused ({e}); starting plain grail; the chain file is kept untouched for inspection")
+        notices.append("I could not read my own change history, so I started as plain grail with no parts; "
+                       "the history file was left untouched for inspection.")
+        last_boot(what="plain grail", why="chain refused: " + str(e), port=a.port, fallback=True, notices=notices)
+        p = start(kernel, {"schema": SCHEMA_PLAIN, "safe_mode": True, "parts": []}, a.port, a.python, HOME)
+        signal.signal(signal.SIGTERM, lambda *_: (stop(p), sys.exit(0)))
+        sys.exit(p.wait())
+    safe = a.plain or os.environ.get("GRAIL_SAFE_MODE") == "1"
+    shape, tile_frame = chain.authorised()
+    try:
+        if succession is None:
+            raise SystemExit("succession.py is not installed beside the supervisor")
+        sx = succession.state(chain.frames)
+        if sx["status"] == "refused":
+            log("succession record refused: " + sx["why"]); notices.append("My ownership record has a problem: " + sx["why"])
+        elif sx["status"] in ("silent", "handoff-open"):
+            notices.append(succession.describe(sx))
+    except SystemExit as e:  # no cryptography in this interpreter: say so once, keep booting
+        log(f"succession not checked: {e}")
+    if safe:
+        shape = {**shape, "safe_mode": True}
+        log("safe mode: starting plain grail, no parts")
+    bad = hologram.check_parts(HOME / "parts", shape) if not shape["safe_mode"] else {}
+    if bad:  # boot-time integrity (D365 lesson, hand-edit detection): never run a part whose bytes moved
+        log("parts refused: " + "; ".join(f"{k} ({v})" for k, v in bad.items()) + " — starting plain grail")
+        notices.append("I started as plain grail because " + "; ".join(f"{k} {v}" for k, v in bad.items())
+                       + ". Say 'undo' or re-add the part to put it back.")
+        shape, tile_frame = {**shape, "safe_mode": True}, None  # a device condition, not the tile's failure: no gate recorded
+    if tile_frame and chain.live_failures_since_pass() >= 2:  # flap guard
+        log(f"tile #{tile_frame['seq']} failed live twice; falling back to the previous authorised shape")
+        notices.append(f"My latest shape (tile #{tile_frame['seq']}) failed to start twice in a row, so I went back to the one before it.")
+        prev = [f for f in chain.frames if f["kind"] == "shape.gate" and f["payload"]["passed"]
+                and f["payload"]["tile"] != tile_frame["frame_hash"]]
+        tiles = {f["frame_hash"]: f for f in chain.frames if f["kind"] == "shape.tile"}
+        if prev and prev[-1]["payload"]["tile"] in tiles:
+            tile_frame = tiles[prev[-1]["payload"]["tile"]]  # the live gate below is recorded against what actually boots
+            shape = tile_frame["payload"]["object"]
+        else:
+            tile_frame, shape = None, chain.genesis_object()
+    p = start(kernel, shape, a.port, a.python, HOME)
+    ok, why = healthy(p, a.port, not a.no_probe)
+    if tile_frame and not safe:
+        hologram.gate(chain, tile_frame, "live", ok, evidence(HOME, why))
+    if not ok and (shape["parts"] and not shape["safe_mode"]):
+        log(f"shape failed live ({why}); falling back to plain grail")
+        notices.append(f"My parts failed to start ({why}), so I am running as plain grail until the next change passes.")
+        stop(p)
+        shape = {**shape, "safe_mode": True}
+        p = start(kernel, shape, a.port, a.python, HOME)
+        ok, why = healthy(p, a.port, False)
+    what = "plain grail" if (shape["safe_mode"] or not shape["parts"]) else "grail + " + ",".join(x["id"] for x in shape["parts"])
+    log(f"running {what} on port {a.port}: {why}")
+    ev = evidence(HOME, why)
+    if ev.get("skipped"):
+        notices.append("Skipped parts this boot: " + "; ".join(f"{k} ({v})" for k, v in ev["skipped"].items()) + ".")
+    last_boot(what=what, why=why, port=a.port, fallback=bool(notices), notices=notices, skipped=ev.get("skipped", {}))
+    supervise(a, kernel, p)
+
+
+class Adopted:
+    """The serving child, re-adopted after the supervisor replaced its own code with os.execv (same pid, same child)."""
+    def __init__(self, pid):
+        self.pid, self.returncode = pid, None
+
+    def poll(self):
+        if self.returncode is None:
+            try:
+                pid, status = os.waitpid(self.pid, os.WNOHANG)
+            except ChildProcessError:
+                self.returncode = 0
+                return 0
+            if pid:
+                self.returncode = os.waitstatus_to_exitcode(status)
+        return self.returncode
+
+    def wait(self, timeout=None):
+        end = time.time() + (timeout if timeout is not None else 1e9)
+        while self.poll() is None:
+            if time.time() > end:
+                raise subprocess.TimeoutExpired(str(self.pid), timeout)
+            time.sleep(0.2)
+        return self.returncode
+
+
+SELF_SHA = None
+
+
+def _self_sha():
+    import hashlib
+    return hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+
+
+def supervise(a, kernel, p):
+    """The supervisor's steady state: watch the child; on SIGHUP hand over to the verified head (and, if this
+    supervisor's own code was updated, re-exec into it while the new child keeps serving: no stop, no gap)."""
+    global SELF_SHA
+    SELF_SHA = SELF_SHA or _self_sha()
+    want = {"handover": False}
+    signal.signal(signal.SIGHUP, lambda *_: want.__setitem__("handover", True))
+    signal.signal(signal.SIGTERM, lambda *_: (stop(p), sys.exit(0)))
+    (HOME / "supervisor.pid").write_text(str(os.getpid()))
+    try:
+        while True:
+            if want["handover"]:
+                want["handover"] = False
+                p = handover(a, kernel, p)
+                signal.signal(signal.SIGTERM, lambda *_, _p=p: (stop(_p), sys.exit(0)))
+                if _self_sha() != SELF_SHA:
+                    args = [x for x in sys.argv if not x.startswith("--adopt")]
+                    log(f"supervisor code updated; re-executing it, child {p.pid} keeps serving")
+                    os.execv(sys.executable, [sys.executable] + args + [f"--adopt={p.pid}"])
+            rc = p.poll()
+            if rc is not None:
+                sys.exit(rc)
+            time.sleep(0.5)
+    except KeyboardInterrupt:
+        stop(p)
+
+
+def handover(a, kernel, p):
+    """Never break the conversation: start the verified head beside the running copy on the same port, gate it with
+    real calls, then let the old copy finish its replies and leave. A failing new copy is stopped; the old one never
+    stopped serving. Returns the process that now serves."""
+    chain = open_chain(kernel)
+    shape, tile = chain.authorised()
+    parts = [] if shape["safe_mode"] else shape["parts"]
+    if any(x["kind"] == "kernel" for x in parts):
+        log("handover: a kernel part needs a full start; it will apply at the next start")
+        return p
+    bad = hologram.check_parts(HOME / "parts", shape)
+    if bad:
+        log("handover refused: " + "; ".join(f"{k} ({v})" for k, v in bad.items()))
+        return p
+    marker = HOME / f"bound-{os.getpid()}-{int(time.time() * 1000)}.pid"
+    q = start(kernel, shape, a.port, a.python, HOME, extra={"GRAIL_LAYERS_BOUND": str(marker)})
+    for _ in range(120):  # the new copy owns the port only once it has bound; before that, /health is the old copy's
+        if q.poll() is not None or (marker.is_file() and marker.read_text().strip() == str(q.pid)):
+            break
+        time.sleep(0.5)
+    bound = marker.is_file()
+    ok, why = healthy(q, a.port, not a.no_probe) if bound and q.poll() is None else (False, "the new copy could not take the port")
+    marker.unlink(missing_ok=True)
+    if tile:
+        hologram.gate(chain, tile, "live", ok, {**evidence(HOME, why), "how": "overlapping handover"})
+    what = "plain grail" if not parts else "grail + " + ",".join(x["id"] for x in parts)
+    if not ok:
+        stop(q)
+        log(f"handover to {what} failed ({why}); the running copy kept serving")
+        last_boot(what="unchanged", why=why, port=a.port, fallback=True,
+                  notices=[f"I tried to switch to {what} but it failed its check ({why}), so nothing changed."])
+        return p
+    try:
+        os.kill(p.pid, signal.SIGUSR1)  # the old copy finishes its replies, then exits
+    except ProcessLookupError:
+        pass
+    import threading
+    threading.Thread(target=p.wait, daemon=True).start()  # reap the old copy when it leaves
+    log(f"handed over to {what} on port {a.port}: {why}")
+    last_boot(what=what, why=why, port=a.port, fallback=False, notices=[f"Now running {what}; nothing was interrupted."])
+    return q
+
+
+def run_apply(a, kernel):
+    """lens -> tile -> lab boot -> probe -> gate. Prints one JSON line for the agent; never touches live."""
+    chain = open_chain(kernel)
+    params = json.loads(a.apply)
+    caller = {"kind": "person" if a.by else "process", "name": a.by or "grail_layers --apply"}
+    try:
+        t = hologram.tile(chain, params, caller)
+    except ValueError as e:
+        print(json.dumps({"ok": False, "refused": str(e)})); return 2
+    shape = t["payload"]["object"]
+    try:
+        for part in shape["parts"]:  # every kind: a kernel part is fetched and pinned exactly like a layer
+            hologram.fetch_part(HOME / "parts", part)
+    except Exception as e:
+        hologram.gate(chain, t, "lab", False, {"why": f"part not available: {e}"})
+        print(json.dumps({"ok": False, "tile": t["seq"], "refused": f"part not available: {e}"})); return 2
+    bad = hologram.check_parts(HOME / "parts", shape)
+    if bad:
+        hologram.gate(chain, t, "lab", False, {"why": "parts missing", "parts": bad})
+        print(json.dumps({"ok": False, "tile": t["seq"], "refused": bad})); return 2
+    lab = HOME / "lab"; lab.mkdir(exist_ok=True)
+    p = start(kernel, shape, a.lab_port, a.python, lab)
+    ok, why = healthy(p, a.lab_port, not a.no_probe)
+    stop(p)
+    g = hologram.gate(chain, t, "lab", ok, evidence(lab, why))
+    log(f"--apply tile #{t['seq']} gate #{g['seq']}: {'PASSED' if ok else 'FAILED'} ({why})")
+    print(json.dumps({"ok": ok, "tile": t["seq"], "gate": g["seq"], "why": why,
+                      "next": "it goes live at the next handover (packs.py and the installer trigger one; nothing is interrupted)" if ok else "nothing changed; the live Brainstem is untouched"}))
+    return 0 if ok else 1
+
+
+def _owner(a):
+    """The owner's key record; minted on first use (the private key stays in the file, mode 600)."""
+    priv = Path(a.owner_key).expanduser()
+    slug = "".join(c if c.isalnum() else "-" for c in a.owner_name.lower()).strip("-")[:39] or "owner"
+    if not priv.is_file():
+        rec = succession.mint_key(priv, slug, "owner", a.owner_name)
+        log(f"minted the owner key at {priv} (keep a copy somewhere safe; it is the only one)")
+    else:
+        rec = succession.load_public_record(str(priv) + ".pub.json")
+    return priv, rec
+
+
+def run_succession(a, kernel):
+    chain = open_chain(kernel)
+    if a.mint_key:
+        label = "".join(c if c.isalnum() else "-" for c in a.mint_key.lower()).strip("-")[:39]
+        path = HOME / "keys" / f"{label}.pem"
+        rec = succession.mint_key(path, label, "successor", a.mint_key)
+        print(json.dumps({"ok": True, "private_key": str(path), "public_record": str(path) + ".pub.json",
+                          "rappid": rec["rappid"], "next": f"give the private key to {a.mint_key} out of band; only the public record enters the chain"}))
+        return 0
+    if a.who:
+        st = succession.state(chain.frames)
+        print(succession.describe(st)); return 0 if st["status"] != "refused" else 1
+    try:
+        if a.name_successor:
+            if not a.successor_pub:
+                print(json.dumps({"ok": False, "refused": "I need the successor's public record (--successor-pub <key>.pub.json); mint one with --mint-key NAME"})); return 2
+            priv, rec = _owner(a)
+            succ = succession.load_public_record(a.successor_pub); succ["name"] = a.name_successor
+            rec = {"name": a.owner_name, **{k: rec[k] for k in ("rappid", "spki_der_b64")}}
+            f = succession.name_successor(chain, priv, rec, succ, {"silence_days": a.silence_days, "confirm_days": a.confirm_days})
+            log(f"named successor {a.name_successor} in frame #{f['seq']}")
+        elif a.pulse:
+            priv, rec = _owner(a); f = succession.pulse(chain, priv, rec)
+        elif a.handoff:
+            priv, rec = _owner(a); f = succession.handoff(chain, priv, rec, "owner")
+            log(f"owner handed over in frame #{f['seq']}")
+        else:
+            priv = Path(a.handoff_as_successor).expanduser()
+            rec = succession.load_public_record(str(priv) + ".pub.json")
+            f = succession.handoff(chain, priv, rec, "silence", at=a.at)
+            log(f"successor {rec['name']} took over in frame #{f['seq']}")
+    except (ValueError, FileNotFoundError, PermissionError) as e:
+        print(json.dumps({"ok": False, "refused": str(e)})); return 2
+    st = succession.state(chain.frames)
+    print(json.dumps({"ok": st["status"] != "refused", "frame": f["seq"], "status": st["status"], "says": succession.describe(st)}))
+    return 0 if st["status"] != "refused" else 1
+
+
+def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "--boot":  # child process: --boot <kernel> <layers_dir> <names-or-paths>
+        boot(sys.argv[2], sys.argv[3], [n for n in sys.argv[4].split(",") if n])
+        return
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--kernel", required=True)
+    ap.add_argument("--port", type=int, default=int(os.environ.get("PORT", 7071)))
+    ap.add_argument("--lab-port", type=int, default=int(os.environ.get("GRAIL_LAB_PORT", 17071)))
+    ap.add_argument("--python", default=None, help="interpreter for the Brainstem (default: the venv beside the kernel, else this one)")
+    ap.add_argument("--plain", action="store_true")
+    ap.add_argument("--no-probe", action="store_true")
+    ap.add_argument("--adopt", type=int, help=argparse.SUPPRESS)  # internal: re-exec after a supervisor update
+    ap.add_argument("--apply", help="JSON params for shape_lens (add/remove/safe_mode/set)")
+    ap.add_argument("--by", help="who asked (a person's name) for the tile's caller field")
+    ap.add_argument("--status", action="store_true")
+    ap.add_argument("--replay", action="store_true")
+    ap.add_argument("--since", help="UTC like 2026-11-03T00:00:00.000Z: frames since then")
+    ap.add_argument("--undo", action="store_true", help="tile back to the previously authorised shape (then gate it)")
+    sx = ap.add_argument_group("succession (whose Brainstem this is, who inherits; keys stay in files you control)")
+    sx.add_argument("--owner-key", default=os.environ.get("GRAIL_OWNER_KEY") or str(HOME / "keys" / "owner.pem"),
+                    help="the owner's private Ed25519 PEM (minted on first use; mode 600; never leaves this machine)")
+    sx.add_argument("--owner-name", default=os.environ.get("GRAIL_OWNER_NAME") or os.environ.get("USER", "owner"))
+    sx.add_argument("--mint-key", metavar="LABEL", help="mint a key pair for LABEL under keys/ (e.g. a successor); prints the public record path")
+    sx.add_argument("--name-successor", metavar="NAME", help="name who inherits (with --successor-pub)")
+    sx.add_argument("--successor-pub", metavar="PUB_JSON", help="the successor's public record (<key>.pub.json)")
+    sx.add_argument("--silence-days", type=int, default=30)
+    sx.add_argument("--confirm-days", type=int, default=7)
+    sx.add_argument("--pulse", action="store_true", help="sign a sign-of-life frame as the owner")
+    sx.add_argument("--handoff", action="store_true", help="hand over to the named successor now, signed by the owner")
+    sx.add_argument("--handoff-as-successor", metavar="PRIV_PEM", help="the successor takes over after the window, signing with their key")
+    sx.add_argument("--at", help="UTC the successor claims the window closed (default now)")
+    sx.add_argument("--who", action="store_true", help="who owns this Brainstem and who inherits, in plain words")
+    a = ap.parse_args()
+    kernel = str(Path(a.kernel).expanduser().resolve())
+    if not a.python:  # the grail's own venv (~/.brainstem/venv) is where its dependencies live
+        venv = Path(kernel).parent.parent.parent / "venv" / "bin" / "python"
+        a.python = str(venv) if venv.is_file() else sys.executable
+    if a.mint_key or a.name_successor or a.pulse or a.handoff or a.handoff_as_successor or a.who:
+        if succession is None:
+            sys.exit("succession.py is not installed beside the supervisor (re-run the grail-layers install.sh)")
+        sys.exit(run_succession(a, kernel))
+    if a.status:
+        chain = open_chain(kernel)
+        print(hologram.describe(chain, HOME / "parts"))
+        if succession is not None:
+            print("  " + succession.describe(succession.state(chain.frames)))
+        if LAST_BOOT.is_file():
+            lb = json.loads(LAST_BOOT.read_text())
+            print(f"  last boot {lb['utc']}: {lb['what']} ({lb['why']})" + ("".join("\n  ! " + n for n in lb.get("notices", []))))
+        latest = HOME / "chaos" / "latest.json"
+        if latest.is_file():
+            c = json.loads(latest.read_text())
+            print(f"  last chaos drill {c['finished']}: survived {c['passed']}/{c['total']}"
+                  + "".join(f"\n  ! did not survive: {r['scenario']}" for r in c["results"] if not r["passed"]))
+        return
+    if a.replay:
+        ok, why = hologram.replay(open_chain(kernel)); print(("replay ok: " if ok else "REPLAY FAILED: ") + why); sys.exit(0 if ok else 1)
+    if a.since:
+        for f in open_chain(kernel).since(a.since):
+            print(f"#{f['seq']} {f['utc']} {f['kind']} " + (json.dumps(f['payload'].get('params')) if f['kind'] == 'shape.tile'
+                  else ("PASSED" if f['payload'].get('passed') else "failed") + f" ({f['payload'].get('gate')})" if f['kind'] == 'shape.gate'
+                  else (f['payload'].get('reason') or f['payload'].get('successor', {}).get('name') or '') if f['kind'].startswith('succession.') else "genesis"))
+        return
+    if a.undo:
+        chain = open_chain(kernel)
+        passing = [f for f in chain.frames if f["kind"] == "shape.gate" and f["payload"]["passed"]]
+        tiles = {f["frame_hash"]: f for f in chain.frames if f["kind"] == "shape.tile"}
+        seen, prev = set(), None
+        for g in reversed(passing):  # the previous DISTINCT authorised tile
+            seen.add(g["payload"]["tile"])
+            if len(seen) == 2:
+                prev = tiles.get(g["payload"]["tile"]); break
+        obj = prev["payload"]["object"] if prev else chain.genesis_object()
+        a.apply = json.dumps({"action": "set", "parts": obj["parts"], "safe_mode": obj["safe_mode"]})
+    if a.apply:
+        sys.exit(run_apply(a, kernel))
+    if a.adopt:  # this supervisor just replaced its own code; the child it started keeps serving
+        a.python = a.python or sys.executable
+        log(f"supervisor restarted in place; adopted child {a.adopt}")
+        supervise(a, kernel, Adopted(a.adopt))
+        return
+    run_live(a, kernel)
+
+
+if __name__ == "__main__":
+    main()

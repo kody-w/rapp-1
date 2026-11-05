@@ -1,0 +1,547 @@
+{
+  "schema": "rapp-seed/1",
+  "sources": {
+    "brainstem": {
+      "repo": "kody-w/rapp-installer",
+      "ref": "brainstem-v0.6.16",
+      "commit": "5fbde1776a72715935c3d597a9ddfce28a04032b"
+    },
+    "rar": {
+      "repo": "kody-w/RAR",
+      "ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "commit": "4fa988a479828b177de3ef13838328d6190ff5d2"
+    },
+    "layers": {
+      "repo": "kody-w/grail-layers",
+      "ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
+      "commit": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18"
+    }
+  },
+  "files": [
+    {
+      "path": "brainstem/.gitignore",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/.gitignore",
+      "sha256": "8199ac2d7eb258f8360c64db4ddd9ff43c41740126dc414c1a2d99aeb337b94d",
+      "bytes": 250
+    },
+    {
+      "path": "brainstem/.vscode/settings.json",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/.vscode/settings.json",
+      "sha256": "820314864617b3f3be1f9e343d8e8f003042e13e20ea3309880384250cef368a",
+      "bytes": 123
+    },
+    {
+      "path": "brainstem/CLAUDE.md",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/CLAUDE.md",
+      "sha256": "3d09e24d4b2640f37037b86f03ab3f006b39963d8f17d9f7676e4ac1c7dd93e1",
+      "bytes": 3905
+    },
+    {
+      "path": "brainstem/CONSTITUTION.md",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/CONSTITUTION.md",
+      "sha256": "258d73e6a4c1305da2f0ce296b39acf102ca0a5b3ca661d28ce41446e8f12f8f",
+      "bytes": 7211
+    },
+    {
+      "path": "brainstem/README.md",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/README.md",
+      "sha256": "6a537d9537c9ecbcecb8f50eb46b5b2b11dc5de536dbeb4cb98f4cea1ed606ae",
+      "bytes": 14615
+    },
+    {
+      "path": "brainstem/VERSION",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/VERSION",
+      "sha256": "e94a7f87af28a51ae948939b0fc6f3d7b9853add0d06a4ffb6df7c67c68ffcc5",
+      "bytes": 7
+    },
+    {
+      "path": "brainstem/agents/basic_agent.py",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/agents/basic_agent.py",
+      "sha256": "701488bc00d536a7b23295e7da99c62f24e9b00f233daa325886430c736b78eb",
+      "bytes": 1303
+    },
+    {
+      "path": "brainstem/agents/context_memory_agent.py",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/agents/context_memory_agent.py",
+      "sha256": "83563b7836cd6c79c78eb70369ccbf0ad7eba02d6adc562b1e9dc41a77617769",
+      "bytes": 7600
+    },
+    {
+      "path": "brainstem/agents/experimental/copilot_research_agent.py",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/agents/experimental/copilot_research_agent.py",
+      "sha256": "2e78b27fb642eed0a5f4dcbdb889111d7b31589af08356a25cb1b11557bdc749",
+      "bytes": 2647
+    },
+    {
+      "path": "brainstem/agents/hacker_news_agent.py",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/agents/hacker_news_agent.py",
+      "sha256": "314cb08b0dc1167e3fc6799160fd178c54dfb0edc13d83c656b07b56a56620e9",
+      "bytes": 4691
+    },
+    {
+      "path": "brainstem/agents/manage_memory_agent.py",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/agents/manage_memory_agent.py",
+      "sha256": "fe30c952f1ddd0507d05f7a84bc0406c2b5d5c82da5ad28f5380b050acb23f4f",
+      "bytes": 3934
+    },
+    {
+      "path": "brainstem/brainstem.py",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/brainstem.py",
+      "sha256": "bd55a7f0bcf5efd3f7966ca39bb146da3c25fda9a0b1ce5ba587919d3c3775f4",
+      "bytes": 154059
+    },
+    {
+      "path": "brainstem/index.html",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/index.html",
+      "sha256": "12a0019479dfbf4fa7e23607c66c7bd3e51c6255258a318bfb3fc4ce1c24c61b",
+      "bytes": 202423
+    },
+    {
+      "path": "brainstem/install.cmd",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "install.cmd",
+      "sha256": "9d4695f8ef7401d8098f2f0ed3bafddd916098d73892f0310f19c7729b514940",
+      "bytes": 588
+    },
+    {
+      "path": "brainstem/install.ps1",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "install.ps1",
+      "sha256": "747a5a8b2e6a41292a4b8b1a719fea588bdd21c523e3a3edb474dd651a8a2fda",
+      "bytes": 48273
+    },
+    {
+      "path": "brainstem/install.sh",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "install.sh",
+      "sha256": "cc586dd1752520d05fbff99a637eef308bb7051ffae457b7d037aa0574341794",
+      "bytes": 36434
+    },
+    {
+      "path": "brainstem/local_storage.py",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/local_storage.py",
+      "sha256": "c38667c1f65a703174c1d4a8c42cbf36d499178ead41534d0086763e681b7ccb",
+      "bytes": 9814
+    },
+    {
+      "path": "brainstem/requirements-dev.txt",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/requirements-dev.txt",
+      "sha256": "c6c11b974838aee8671a6f5bedd7cb8144d6d53e518e16b554424e25fcfb9b1d",
+      "bytes": 33
+    },
+    {
+      "path": "brainstem/requirements.txt",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/requirements.txt",
+      "sha256": "6bc9a8d661873b4cfd6681f8c94b0a347cfcf6fb3a463b19c45bdc4a9cb165ef",
+      "bytes": 85
+    },
+    {
+      "path": "brainstem/soul.md",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/soul.md",
+      "sha256": "37d8138afdecebaa0d6216eaa3278637fe4cd2df5b946f402dcff5bc0b011d96",
+      "bytes": 4827
+    },
+    {
+      "path": "brainstem/start.ps1",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/start.ps1",
+      "sha256": "9895335f9f5e905b1712dfd1fe0d94bbd45ad53f404f1d4588b5e11318228008",
+      "bytes": 5224
+    },
+    {
+      "path": "brainstem/start.sh",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/start.sh",
+      "sha256": "fdb6683d0f630a82dfeb0427b70692d95ccf958c81325195055f3cc8a1fedfd5",
+      "bytes": 2193
+    },
+    {
+      "path": "brainstem/tests/conftest.py",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/tests/conftest.py",
+      "sha256": "943141aca68c09c55479c02743bf552bd48ee0d30053e61f37faa3100eb8e901",
+      "bytes": 529
+    },
+    {
+      "path": "brainstem/tests/soul_defaults.sha256",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/tests/soul_defaults.sha256",
+      "sha256": "1c7a740b4cfd4ee798f9999ce27702fd6a5cbf0494fd4c44347ae4b130f712df",
+      "bytes": 2872
+    },
+    {
+      "path": "brainstem/tests/soul_hash.py",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/tests/soul_hash.py",
+      "sha256": "da1ba645304add89a6b5f69dc81db162f087ebe9fd5f5ee8bcc90d7bddacc647",
+      "bytes": 2859
+    },
+    {
+      "path": "brainstem/tests/stream_matrix.py",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/tests/stream_matrix.py",
+      "sha256": "c5498b2028e923057b323d8d59ca4131d96371bc49ba8732f3e0b9c4136cb536",
+      "bytes": 9232
+    },
+    {
+      "path": "brainstem/tests/test_local_agents.py",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/tests/test_local_agents.py",
+      "sha256": "a9264b7a7251bf91667e71398f08da4ebe8184722d3ede8d1a25f4965d9079af",
+      "bytes": 56649
+    },
+    {
+      "path": "brainstem/tests/test_model_selection.py",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/tests/test_model_selection.py",
+      "sha256": "bd7d1ca3029308347e1a0b89696d3cc3e6038355607c286268e5d693502620a0",
+      "bytes": 12032
+    },
+    {
+      "path": "brainstem/tests/test_no_copilot_onboarding.py",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/tests/test_no_copilot_onboarding.py",
+      "sha256": "c9ab3cc0099737768ef11646626d62fa50d291dfca3dcc322830a61aacfc7b30",
+      "bytes": 18233
+    },
+    {
+      "path": "brainstem/tests/test_polish.py",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/tests/test_polish.py",
+      "sha256": "53c936262177da8df82002d8d85a5460f70cd7b01989f5d1f28db718bbb58337",
+      "bytes": 29567
+    },
+    {
+      "path": "brainstem/tests/test_security_hardening.py",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/tests/test_security_hardening.py",
+      "sha256": "cb9be97ae7283f89369ed193dfc455dc4ab1b432c422867165bfd11d316f925d",
+      "bytes": 24940
+    },
+    {
+      "path": "brainstem/tests/test_streaming.py",
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/tests/test_streaming.py",
+      "sha256": "b70f6ce730a82495fd85d4d96579dd256b54c6836f43d48394933eae7df89d1e",
+      "bytes": 21412
+    },
+    {
+      "path": "layers/brainstem_shape_agent.py",
+      "source_repo": "kody-w/grail-layers",
+      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
+      "source_path": "brainstem_shape_agent.py",
+      "sha256": "b98576d6bc20f55e4a4f4c809b2d92972a8c3351f54107780fdd039b6bc5508d",
+      "bytes": 8769
+    },
+    {
+      "path": "layers/chaos.py",
+      "source_repo": "kody-w/grail-layers",
+      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
+      "source_path": "chaos.py",
+      "sha256": "f7986c0a5334662754806f45c6c3761a4e0de29593d57f2c7106e8aad16ab7e8",
+      "bytes": 10167
+    },
+    {
+      "path": "layers/grail_layers.py",
+      "source_repo": "kody-w/grail-layers",
+      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
+      "source_path": "grail_layers.py",
+      "sha256": "6de3508dc8d5d715be421173ded013d814b864c2d1374246aff096a1bb77b41d",
+      "bytes": 35216
+    },
+    {
+      "path": "layers/hologram.py",
+      "source_repo": "kody-w/grail-layers",
+      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
+      "source_path": "hologram.py",
+      "sha256": "3d6a21ffc948f2710a54509fbada76cbacba550eab44f3e5dc10b0df37c93473",
+      "bytes": 12677
+    },
+    {
+      "path": "layers/install.sh",
+      "source_repo": "kody-w/grail-layers",
+      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
+      "source_path": "install.sh",
+      "sha256": "4d17c435d8e9fc3eda900e93b73e44739ae48bba735cd3b1951a4086b7776ba2",
+      "bytes": 10274
+    },
+    {
+      "path": "layers/packs.py",
+      "source_repo": "kody-w/grail-layers",
+      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
+      "source_path": "packs.py",
+      "sha256": "15918ed431a639ecfc653dd947d32c068ca00f836c4f5634d24181bbaff54d0c",
+      "bytes": 30769
+    },
+    {
+      "path": "layers/rapp.py",
+      "source_repo": "kody-w/grail-layers",
+      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
+      "source_path": "rapp.py",
+      "sha256": "76154a2b2e0a71cceda92c2c1b50a1cd8f7878b1892d0d093d523c4e5256eb87",
+      "bytes": 63199
+    },
+    {
+      "path": "layers/shape_lens.py",
+      "source_repo": "kody-w/grail-layers",
+      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
+      "source_path": "shape_lens.py",
+      "sha256": "e404727c61a9d3e2afeeb4967a7283ecdcacc8ece36d5f23cb15a48b10ac8160",
+      "bytes": 6852
+    },
+    {
+      "path": "layers/skills/rar-easy-mode/SKILL.md",
+      "source_repo": "kody-w/grail-layers",
+      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
+      "source_path": "skills/rar-easy-mode/SKILL.md",
+      "sha256": "3391f2e26df451102dd1e7aece623cfc9fdc21a527e8edcaa44e8349a9babae5",
+      "bytes": 4665
+    },
+    {
+      "path": "layers/stacks/grail-layers/README.md",
+      "source_repo": "kody-w/RAR",
+      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_path": "stacks/grail-layers/README.md",
+      "sha256": "a62b222a7e3a372ebe9632ce3b1073f9fd156dcd122f76fc1f0382a969f89c3c",
+      "bytes": 2319
+    },
+    {
+      "path": "layers/stacks/grail-layers/fragments_agent.py",
+      "source_repo": "kody-w/RAR",
+      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_path": "stacks/grail-layers/fragments_agent.py",
+      "sha256": "4d13906d0277d672c4b54489527e7fc8042c54ae6a32c2024fec407b0ee6d381",
+      "bytes": 8071
+    },
+    {
+      "path": "layers/stacks/grail-layers/journal_recall_agent.py",
+      "source_repo": "kody-w/RAR",
+      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_path": "stacks/grail-layers/journal_recall_agent.py",
+      "sha256": "f6358978b97b93606c74b987803dfc099f42e3ff143825040616102d5f8201bf",
+      "bytes": 6341
+    },
+    {
+      "path": "layers/stacks/grail-layers/journal_tap.py",
+      "source_repo": "kody-w/RAR",
+      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_path": "stacks/grail-layers/journal_tap.py",
+      "sha256": "1fb33db6b6dbab0bea2abe6733f941942a2eb3a5ef1a3cf3c82799f3f96863cc",
+      "bytes": 7219
+    },
+    {
+      "path": "layers/stacks/grail-layers/lispy_brainstem.py",
+      "source_repo": "kody-w/RAR",
+      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_path": "stacks/grail-layers/lispy_brainstem.py",
+      "sha256": "311e2162e397f7df5fe9262684f737178acdc0306b0a3a5b9cbd4df6b420a50b",
+      "bytes": 50358
+    },
+    {
+      "path": "layers/stacks/grail-layers/local_models.py",
+      "source_repo": "kody-w/RAR",
+      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_path": "stacks/grail-layers/local_models.py",
+      "sha256": "ea95cdc10ce7b274ae8bb579bcb52b5a7e7164d70dc2d9dcfa7bc135ca1aef13",
+      "bytes": 4653
+    },
+    {
+      "path": "layers/stacks/grail-layers/pack.json",
+      "source_repo": "kody-w/RAR",
+      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_path": "stacks/grail-layers/pack.json",
+      "sha256": "6de5088403f94c73d1ac1fe47b61e32678590d2bea0d7ae8f0131fc72cf1c265",
+      "bytes": 8273
+    },
+    {
+      "path": "layers/stacks/grail-layers/providers.py",
+      "source_repo": "kody-w/RAR",
+      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_path": "stacks/grail-layers/providers.py",
+      "sha256": "90bb46c6b82383378e83ba8669327d02dfc1df9aab5dcca764b4d7850c657bea",
+      "bytes": 8885
+    },
+    {
+      "path": "layers/stacks/grail-layers/providers_1_1.py",
+      "source_repo": "kody-w/RAR",
+      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_path": "stacks/grail-layers/providers_1_1.py",
+      "sha256": "2c1bd4d3453a2ae1259e81b51f86daeee9e4a04f68bf37d5e5a4cb5f637936b9",
+      "bytes": 12371
+    },
+    {
+      "path": "layers/stacks/grail-layers/responses_models.py",
+      "source_repo": "kody-w/RAR",
+      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_path": "stacks/grail-layers/responses_models.py",
+      "sha256": "edb0eee0313372a3aa51c8c513694f43885d305455872b90b7c589d921db0a8d",
+      "bytes": 6943
+    },
+    {
+      "path": "layers/stacks/grail-layers/senses_and_pages.py",
+      "source_repo": "kody-w/RAR",
+      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_path": "stacks/grail-layers/senses_and_pages.py",
+      "sha256": "c7af54d392156cb65bd3d6a2886f7fbf526e2edad0b09729c377ebcccefb016b",
+      "bytes": 7784
+    },
+    {
+      "path": "layers/succession.py",
+      "source_repo": "kody-w/grail-layers",
+      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
+      "source_path": "succession.py",
+      "sha256": "140b0d5ed394a31bc2a74c3dbcbc53b8f4b26224b9d22d5b2bef9f810396c074",
+      "bytes": 12204
+    },
+    {
+      "path": "layers/succession_drill.py",
+      "source_repo": "kody-w/grail-layers",
+      "source_ref": "db18afbd8b9dcbb620a98ffb311fa1823ddc9e18",
+      "source_path": "succession_drill.py",
+      "sha256": "7932bed7e907411216b9b8e9ed764344ceb732628eb4f075e31c32bead5b8657",
+      "bytes": 8106
+    },
+    {
+      "path": "rar-builder/LAYERS.md",
+      "source_repo": "kody-w/RAR",
+      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_path": "LAYERS.md",
+      "sha256": "16c655ea4db3300b683c9cf904930ed6288f40dbd4b217d3ae48ecbb174f2506",
+      "bytes": 6986
+    },
+    {
+      "path": "rar-builder/build_registry.py",
+      "source_repo": "kody-w/RAR",
+      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_path": "build_registry.py",
+      "sha256": "c9c8cc6aeceaf9836d18d5f97ab1cfa8b11ca3138c890ce0bda6f6fb69fd8441",
+      "bytes": 67253
+    },
+    {
+      "path": "rar-builder/marketplaces.json",
+      "source_repo": "kody-w/RAR",
+      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_path": "marketplaces.json",
+      "sha256": "c6b93ca27dab2a97ea17c02fe818839b2fb3fa6446430705f9165f51723fa364",
+      "bytes": 1970
+    },
+    {
+      "path": "rar-builder/rapp_sdk.py",
+      "source_repo": "kody-w/RAR",
+      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_path": "rapp_sdk.py",
+      "sha256": "aff08222649a2cdd655cb72e6ef411e5f1e16dff6dd7b3153f5ec38350df32a2",
+      "bytes": 103942
+    },
+    {
+      "path": "rar-builder/scripts/build_static_api.py",
+      "source_repo": "kody-w/RAR",
+      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_path": "scripts/build_static_api.py",
+      "sha256": "af78b3029bc553db5190d07df54c76bd00ffbf322a0b38a688b763fcb04c2443",
+      "bytes": 38086
+    },
+    {
+      "path": "rar-builder/scripts/static_api.py",
+      "source_repo": "kody-w/RAR",
+      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_path": "scripts/static_api.py",
+      "sha256": "1fed0deacb3eae579bb33e7f5f1e20a0260c68e2a3662054f5006fe7ec136a3c",
+      "bytes": 2923
+    },
+    {
+      "path": "rar-builder/template_agent.py",
+      "source_repo": "kody-w/RAR",
+      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_path": "template_agent.py",
+      "sha256": "0225e8e4274b7df58c939875861e47c793de1688470171dc6f50b67c36fe41fa",
+      "bytes": 5984
+    },
+    {
+      "path": "rar-builder/tools/build_agent_pages.py",
+      "source_repo": "kody-w/RAR",
+      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_path": "tools/build_agent_pages.py",
+      "sha256": "ee649310bb82e7a588c2605150f471730c6b44949cbc1d2244750c74c5d46346",
+      "bytes": 11536
+    },
+    {
+      "path": "rar-builder/tools/stamp_ticket.py",
+      "source_repo": "kody-w/RAR",
+      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_path": "tools/stamp_ticket.py",
+      "sha256": "ff1c054779fde140d7061e73f8104fc0bc197be2ca63418f8354bab2a0c4b8fa",
+      "bytes": 5276
+    },
+    {
+      "path": "rar-builder/tools/sync_layers.py",
+      "source_repo": "kody-w/RAR",
+      "source_ref": "4fa988a479828b177de3ef13838328d6190ff5d2",
+      "source_path": "tools/sync_layers.py",
+      "sha256": "9411c7576ec3777be1d0f3edfe50fc2e68eed22f245bd63c9d2d71b4900eca99",
+      "bytes": 16626
+    }
+  ],
+  "exclusions": [
+    {
+      "source_repo": "kody-w/rapp-installer",
+      "source_ref": "brainstem-v0.6.16",
+      "source_path": "rapp_brainstem/.env.example",
+      "reason": "environment file (including examples)"
+    }
+  ],
+  "executables": [
+    "brainstem/install.sh",
+    "brainstem/start.sh",
+    "layers/install.sh"
+  ]
+}
