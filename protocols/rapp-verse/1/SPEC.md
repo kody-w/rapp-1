@@ -19,6 +19,7 @@ other new noun to the protocol. Every part maps to one that exists:
 | **join** | two hands | `⟩Join⟨` | a lens whose parameters are the branch tiles |
 | **send** | stamp | `⊣Gate` | a gate: the only effect in the world, with a receipt |
 | **go back** to n, with p | rewind | `↺Fn+p` | re-genesis naming the old head, plus a new particle |
+| **loop** … **until** d | circle arrow | `⟳[…]⇥d` | the same lines re-run on their own last tile, until a lens's tile says d (or a person says stop) |
 
 ## 1. Rules
 
@@ -27,7 +28,7 @@ other new noun to the protocol. Every part maps to one that exists:
    doubled-letter rule: two p's lock the meaning), so ordinary talk about music never opens a verse. The verse runs
    from the opening words to the closing check ("and seal"); nothing outside that span is a command.
 
-1. **Eight verbs, fixed.** bring, through, ask, aside, split, join, send, back. Lens names are card names.
+1. **Nine verbs, fixed.** bring, through, ask, aside, split, join, send, back, loop (with *until*). Lens names are card names.
 2. **One beat per pass.** Each spoken line is one frame through one lens, so a dropped beat is a dropped step.
 3. **Words that sound unlike each other.** No two verbs may be confusable by ear (the NATO alphabet's lesson).
 4. **A closing check.** A verse ends with "and seal". The AI says back the step count and the chain before
@@ -36,6 +37,19 @@ other new noun to the protocol. Every part maps to one that exists:
    fill every described parameter from the frame and **ask** the person only for what the frame lacks.
 6. **Same governance as any pass.** A verse only proposes a chain. Lenses shape and check; nothing acts in
    the world except through a gate.
+
+## 1a. Loops (Kody, 2026-11-05)
+
+"Loop … until …" does for a verse what Claude Code's /loop does for a task: the lines re-run, each pass starting from
+the last tile (the next frame is the last output), until the *until* condition holds. The condition is itself a lens
+pass whose tile says done or not done; it is never a word match. A loop wakes on time ("every hour") or on an event (a
+new particle arrives: a file, a reply, a finished run). Rules:
+1. Every tick is ordinary passes; replay and travel work on loops like on any chain.
+2. A loop never re-fires a gate: each `send` inside a loop needs its own fresh yes.
+3. A loop always has a stop: its *until*, a person's "stop", or a tick limit stated in the verse. It ends with a seal frame.
+4. It runs outside the kernel: the schedule lives in a sidecar or the caller (the kernel stays stateless).
+
+Example: "R, A, P, P, verse. Loop: bring the new cases, through Risk, until no risk is high. Seal."
 
 ## 2. The recording rule (video, song, voicemail, meeting)
 
