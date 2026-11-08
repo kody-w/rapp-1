@@ -9,6 +9,7 @@ healthy there without mutating the serving system underneath its users.
 | RAPP CI/CD | `rapp-cicd/1` | [`rapp-cicd/1/SPEC.md`](rapp-cicd/1/SPEC.md) |
 | RAPP Deploy | `rapp-deploy/1` | [`rapp-deploy/1/SPEC.md`](rapp-deploy/1/SPEC.md) |
 | RAPP Work | `rapp-work/1` | [`rapp-work/1/SPEC.md`](rapp-work/1/SPEC.md) |
+| RAPP Trust | `rapp-trust/1` | [`rapp-trust/1/SPEC.md`](rapp-trust/1/SPEC.md) |
 
 The profiles are subordinate to RAPP/1:
 
@@ -31,6 +32,7 @@ remain inert locators or evidence rather than authority.
 ```bash
 python3 operations_conformance.py
 python3 work_conformance.py
+python3 trust_conformance.py
 ```
 
 The suites execute positive and negative vectors for exact-candidate promotion,
@@ -66,3 +68,8 @@ not authority.
 The profile index in [`index.json`](index.json) is generated from the committed
 specifications and checked in CI. It is a publication aid, not a substitute for
 the estate's signed registry.
+
+RAPP Trust gives every AI acting for an owner a trust score (base 100) that it
+wagers on high-stakes claims; only evidence settles a wager, a lost one costs the
+stake, and the computed score binds what the AI may do alone. The owner's
+Brainstem keeps the ledgers for every AI that plugs in.

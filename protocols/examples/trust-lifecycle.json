@@ -1,0 +1,112 @@
+[
+  {
+    "frame_hash": "4545f692f7668532060147cdea09c1c3ab78e681dcd9844a88a12252095d7d27",
+    "kind": "trust.genesis",
+    "payload": {
+      "base": 100,
+      "owner": "kody-w",
+      "schema": "trust-ledger/1",
+      "subject": "rappid:@kody-w/brainstem:b3e8f5681d8765c283a37d947d931db478bd32648df4ad04e527127f1e540e80"
+    },
+    "payload_hash": "a0aa44da8cb34c94f103cdcf626c1e3f985f57a6113b046508817832b5cf1cdb",
+    "prev": null,
+    "prev_wave": null,
+    "seq": 0,
+    "sig": null,
+    "spec": "rapp/1",
+    "stream_id": "rappid:@kody-w/brainstem:b3e8f5681d8765c283a37d947d931db478bd32648df4ad04e527127f1e540e80:trust",
+    "utc": "2026-11-08T14:00:00.000Z"
+  },
+  {
+    "frame_hash": "f53f52ad849193770adc0ee8d77f3efbb07e2ee7b487f39da9a3d9bfbbbaa245",
+    "kind": "trust.wager",
+    "payload": {
+      "claim": "PR 475 checks are green and it is safe to merge into staging",
+      "class": "release",
+      "counter": 0,
+      "evidence_required": [
+        "PR check rollup shows every check SUCCESS"
+      ],
+      "plug": "claude-fable-5-1",
+      "schema": "trust.wager",
+      "settles_by": "2026-11-08T16:00:00.000Z",
+      "stake": 10
+    },
+    "payload_hash": "1ffc3ad54b133a7b9b200a0e3ba225d51b977f9975219e66499635f640d57058",
+    "prev": "a0aa44da8cb34c94f103cdcf626c1e3f985f57a6113b046508817832b5cf1cdb",
+    "prev_wave": null,
+    "seq": 1,
+    "sig": null,
+    "spec": "rapp/1",
+    "stream_id": "rappid:@kody-w/brainstem:b3e8f5681d8765c283a37d947d931db478bd32648df4ad04e527127f1e540e80:trust",
+    "utc": "2026-11-08T14:40:00.000Z"
+  },
+  {
+    "frame_hash": "756bf2b124b33a9583d80f40d045229bbe42b4a6a2a9d6b49ade2846cc5a1373",
+    "kind": "trust.settle",
+    "payload": {
+      "evidence": [
+        "https://github.com/kody-w/aibast-agents-library/pull/475",
+        "log:09:40 475 [,,] merged 09:40 (check list was empty, read as green)"
+      ],
+      "note": "Merged before any check had started.",
+      "outcome": "lost",
+      "schema": "trust.settle",
+      "wager": "f53f52ad849193770adc0ee8d77f3efbb07e2ee7b487f39da9a3d9bfbbbaa245"
+    },
+    "payload_hash": "43cf6527576e1771eaa8de7966cb8bdb2e74213f7347dba4b8df62d108a676db",
+    "prev": "1ffc3ad54b133a7b9b200a0e3ba225d51b977f9975219e66499635f640d57058",
+    "prev_wave": null,
+    "seq": 2,
+    "sig": null,
+    "spec": "rapp/1",
+    "stream_id": "rappid:@kody-w/brainstem:b3e8f5681d8765c283a37d947d931db478bd32648df4ad04e527127f1e540e80:trust",
+    "utc": "2026-11-08T14:41:00.000Z"
+  },
+  {
+    "frame_hash": "4532961e9611f8a4ba592eca318dd68d7fcb8435fcc3e2f1288667fae758f9ee",
+    "kind": "trust.wager",
+    "payload": {
+      "claim": "Staging installer passes the clean row on a fresh Win11 clone while production fails it, same minute",
+      "class": "release",
+      "counter": 0,
+      "evidence_required": [
+        "sidebyside log with both columns"
+      ],
+      "plug": "claude-fable-5-1",
+      "schema": "trust.wager",
+      "settles_by": "2026-11-08T18:00:00.000Z",
+      "stake": 10
+    },
+    "payload_hash": "f2b7cb240064374e524a8531201a1ceabfc5f254a4fae8df71de1c168ca65b81",
+    "prev": "43cf6527576e1771eaa8de7966cb8bdb2e74213f7347dba4b8df62d108a676db",
+    "prev_wave": null,
+    "seq": 3,
+    "sig": null,
+    "spec": "rapp/1",
+    "stream_id": "rappid:@kody-w/brainstem:b3e8f5681d8765c283a37d947d931db478bd32648df4ad04e527127f1e540e80:trust",
+    "utc": "2026-11-08T15:10:00.000Z"
+  },
+  {
+    "frame_hash": "14c9e1ef4d1dd30f15fcaad822cc89fb463200f339f78175e962ba2050a1315c",
+    "kind": "trust.settle",
+    "payload": {
+      "evidence": [
+        "path:evidence/winlab-nightly/sidebyside-2026-11-07-1711.log",
+        "log:clean prod :: 0 of 1 passed; clean staging :: 1 of 1 passed"
+      ],
+      "note": "",
+      "outcome": "won",
+      "schema": "trust.settle",
+      "wager": "4532961e9611f8a4ba592eca318dd68d7fcb8435fcc3e2f1288667fae758f9ee"
+    },
+    "payload_hash": "cfe3c0ff5b40e8329e0b65c15ce05f920cd0cf2f84a721fc112e2d64dc354343",
+    "prev": "f2b7cb240064374e524a8531201a1ceabfc5f254a4fae8df71de1c168ca65b81",
+    "prev_wave": null,
+    "seq": 4,
+    "sig": null,
+    "spec": "rapp/1",
+    "stream_id": "rappid:@kody-w/brainstem:b3e8f5681d8765c283a37d947d931db478bd32648df4ad04e527127f1e540e80:trust",
+    "utc": "2026-11-08T15:30:00.000Z"
+  }
+]
