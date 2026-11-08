@@ -3,14 +3,14 @@
  "generated_utc": "2026-10-07T21:19:01.000Z",
  "stream_id": "rappid:@kody-w/rapp-1-anchor:a4298c417789ecff68b7be3df4d8b90d397c43f972eaf839977db16dbe02acc6",
  "head": {
-  "seq": 19,
-  "frame_hash": "a81e61325a2e25546220d965da6c99356da26b8a0aceeaed7ddee4267f33a9c9",
-  "payload_hash": "78199d286e9f2790a21b19015e0bd65b89b935f377b5ef478e2f34a936e83dd7"
+  "seq": 20,
+  "frame_hash": "548c9e90d03343b0addfd087c78ddfc48c5d427e2be80fb8c74396b749ce7a2e",
+  "payload_hash": "d5688652724b38170a7bc42914a2afd24dcf64a6ea5429ddab9a12ed25d0fa77"
  },
  "spec": {
-  "revision": "rev-19",
-  "revision_frame_hash": "a81e61325a2e25546220d965da6c99356da26b8a0aceeaed7ddee4267f33a9c9",
-  "revision_payload_hash": "78199d286e9f2790a21b19015e0bd65b89b935f377b5ef478e2f34a936e83dd7",
+  "revision": "rev-20",
+  "revision_frame_hash": "548c9e90d03343b0addfd087c78ddfc48c5d427e2be80fb8c74396b749ce7a2e",
+  "revision_payload_hash": "d5688652724b38170a7bc42914a2afd24dcf64a6ea5429ddab9a12ed25d0fa77",
   "schema": "rapp-spec-revision/1",
   "materialized_path": "SPEC.md",
   "normative_path": "SPEC.md",
@@ -140,6 +140,10 @@
   "rapp-layer": {
    "status": "live",
    "where": "protocols/rapp-layer/1/SPEC.md — device-local shape chains, pure lens replay, and host gates"
+  },
+  "rapp-trust": {
+   "status": "live",
+   "where": "protocols/rapp-trust/1/SPEC.md — a trust score every AI wagers on; evidence settles; the Brainstem keeps score"
   }
  },
  "operational_profiles": {
@@ -170,6 +174,13 @@
    "spec_sha256": "231c6970cb7a9cf43e5ad35a546abd08ee953bc41245fd1eed4458aa4a087241",
    "schema_path": "protocols/rapp-layer/1/schema.json",
    "schema_sha256": "1eb7400125f1ff3870be32bcd9f8a6404475a55afd1280db6edf5f7ecdd1e7af"
+  },
+  "rapp-trust/1": {
+   "status": "live",
+   "spec_path": "protocols/rapp-trust/1/SPEC.md",
+   "spec_sha256": "c1fceb124115377e49ee3d63b23c47dc3dc0b84ed8e25a3b71bd9a41fdbd8d52",
+   "schema_path": "protocols/rapp-trust/1/schema.json",
+   "schema_sha256": "6d745b26dc6688fe1ab7e21c29481d1229dada49f4e63268f4aa218c706fb971"
   }
  },
  "philosophy": {
@@ -215,7 +226,7 @@
  },
  "index": {
   "path": "anchor/index.json",
-  "sha256": "59fe8ea140ced80f02f2bc4c1f7701db0a9055186dab3c9fed67a4b489b95757",
-  "bytes": 9228
+  "sha256": "298800af664632af9e3d8974f13a41860d39a442aed1606ceaa29e9a53ed3aef",
+  "bytes": 9598
  }
 }
