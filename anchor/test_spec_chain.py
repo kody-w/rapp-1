@@ -635,7 +635,7 @@ class SpecChainTests(unittest.TestCase):
             payload,
             self.frames[-2]["payload_hash"],
         )
-        competing_chain = self.appended(competing, b"".join(self.lines[:19]))
+        competing_chain = self.appended(competing, b"".join(self.lines[:20]))
         with self.assertRaisesRegex(SystemExit, "stale or competing"):
             U.select_chain_base(
                 competing_chain,
