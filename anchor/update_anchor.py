@@ -650,7 +650,7 @@ def revision_payload(
     }
     payload["vocabulary"]["rapp-trust"] = {
         "status": "live",
-        "where": "protocols/rapp-trust/1/SPEC.md — a trust score every AI wagers on; evidence settles; the Brainstem keeps score",
+        "where": "protocols/rapp-trust/1/SPEC.md — the owner's Brainstem carries a trust score every plugged-in AI wagers on; evidence settles",
     }
     payload["vocabulary"]["offspring"] = {
         "status": "live",
@@ -669,7 +669,7 @@ def revision_payload(
             "t": "fact",
             "c": (
                 "RAPP Trust proposes three memory kinds on the unchanged frame; "
-                "every AI starts at 100, wagers before a high-stakes claim, and only "
+                "the owner's Brainstem starts at 100, each plugged-in AI wagers through it before a high-stakes claim, and only "
                 "evidence settles; the computed score binds what the AI may do alone."
             ),
         },

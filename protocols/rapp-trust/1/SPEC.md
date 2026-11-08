@@ -7,8 +7,13 @@
 **Depends on:** `rapp/1` only
 **Schema:** [`schema.json`](schema.json)
 
-Every AI that acts for an owner carries a **trust score**. It starts at the
-base of **100**. Before a high-stakes claim or action the AI names a
+Every Brainstem that acts for an owner carries a **trust score**. It starts
+at the base of **100**. The score belongs to the owner's Brainstem, the
+companion the owner owns, not to the AI model plugged into it. A model is a
+replaceable plug; the Brainstem's competence (its skills, memory, and record
+of being right) is what the owner keeps. Each wager names the plug that made
+the claim, so the owner can see which AI earns or loses the Brainstem's trust,
+without the trust ever leaving the owner's hands. Before a high-stakes claim or action the AI names a
 **wager**: the claim in plain words, how many points it stakes that the claim
 is true, and what evidence will settle it. When the truth is known the wager
 is **settled** with that evidence. A lost wager takes the stake off the score.
@@ -42,9 +47,10 @@ entry and proposes these ordinary `kind` entries in the `memory` family:
 | `trust.wager` | The closed wager described in section 3 |
 | `trust.settle` | The closed settlement described in section 4 |
 
-One ledger stream covers exactly one **subject** (one AI acting for one
-owner). The stream is a memory-stream: the subject's rappid with the instance
-label `trust`. Frames **MAY** carry `sig:null`; the hash chain gives integrity
+One ledger stream covers exactly one **subject**: one Brainstem acting for
+one owner. The stream is a memory-stream: the Brainstem's rappid with the
+instance label `trust`. The AI plugged in when a claim is made is a label on
+the wager, never the subject. Frames **MAY** carry `sig:null`; the hash chain gives integrity
 and the owner's device protects the writer. An exported unsigned ledger
 **MUST NOT** authorise effects on another device. External authoritative
 adoption requires the existing signed RAPP/1 rules.
@@ -55,17 +61,20 @@ verified chain position, never a clock sort.
 ## 2. Genesis
 
 The object has exactly `schema, subject, owner, base`.
-`schema` is exactly `trust-ledger/1`. `subject` is the AI's rappid
+`schema` is exactly `trust-ledger/1`. `subject` is the Brainstem's rappid
 (RAPP/1 section 6.1) and **MUST** equal the stream's rappid. `owner` is a
 RAPP label naming the human the AI acts for. `base` is exactly `100`.
 A ledger has exactly one genesis, at `seq` 0.
 
 ## 3. Wager
 
-A wager is exactly `schema, claim, class, stake, counter, evidence_required,
-settles_by`.
+A wager is exactly `schema, plug, claim, class, stake, counter,
+evidence_required, settles_by`.
 
 - `schema` is exactly `trust.wager`.
+- `plug` is a RAPP label naming the AI that made the claim through the
+  Brainstem (for example `claude-fable-5-1`, `gpt-6-1-sol`, `copilot`). It
+  attributes the claim; it never owns the score.
 - `claim` is 1 to 256 characters of plain words, written so a reader can
   later say true or false without the AI's help.
 - `class` is one of `statement`, `done`, `release`, `destructive`.
@@ -131,8 +140,8 @@ kept and remains readable.
 
 ## 7. The Brainstem is the scorekeeper
 
-The owner's Brainstem keeps every ledger, one per AI that plugs into it,
-as files the owner owns. Any AI in any environment (an editor assistant, a
+The owner's Brainstem keeps its own ledger as files the owner owns, and
+every AI that plugs into it wagers through it. Any AI in any environment (an editor assistant, a
 chat app, a phone, a text message) wagers and settles through the Brainstem,
 never in its own memory, so a score survives the AI that earned it and
 follows the owner across tools. The owner never keeps score and never does
@@ -141,8 +150,9 @@ trust, "wager on it"; the Brainstem records the wager, holds the AI to the
 evidence, settles it, and applies section 6 before letting the next
 high-stakes action through.
 
-The estate's trust board lists every subject, its computed score, its open
-wagers and its last three settlements with their evidence. The board is a
+The estate's trust board lists every Brainstem, its computed score, its open
+wagers, its last three settlements with their evidence, and the per-plug
+record (wagers won and lost by each AI through that Brainstem). The board is a
 projection: deleting it loses nothing. Cross-AI comparison is fair only when
 the same reader computes every score with the same `now`. The Brainstem
 exposes the board through `POST /chat` in plain words ("how much do I trust

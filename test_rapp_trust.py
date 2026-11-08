@@ -19,7 +19,7 @@ MUCH_LATER = "2026-11-09T15:00:00.000Z"
 
 
 def wager(claim="the gates are green", klass="release", stake=10, counter=0, by=MUCH_LATER):
-    return {"schema": "trust.wager", "claim": claim, "class": klass, "stake": stake, "counter": counter,
+    return {"schema": "trust.wager", "plug": "claude-fable-5-1", "claim": claim, "class": klass, "stake": stake, "counter": counter,
             "evidence_required": ["run URL"], "settles_by": by}
 
 
@@ -29,7 +29,7 @@ def settle(h, outcome="lost", evidence=("https://example.test/run/1",), note="")
 
 class RappTrustTests(unittest.TestCase):
     def fresh(self):
-        frames = [T.genesis_frame("kody-w", "claude-fable", T0)]
+        frames = [T.genesis_frame("kody-w", "brainstem", T0)]
         return T.TrustLedger(frames, LATER)
 
     def add(self, led, kind, payload, when=LATER):
@@ -138,6 +138,15 @@ class RappTrustTests(unittest.TestCase):
         frames[1]["payload"]["stake"] = 1
         with self.assertRaises(ValueError):
             T.TrustLedger(frames, LATER)
+
+    def test_plug_is_a_label_and_required(self):
+        led = self.fresh()
+        bad = wager(); bad["plug"] = "Claude Fable"
+        with self.assertRaises(ValueError):
+            led.append("trust.wager", bad)
+        gone = wager(); del gone["plug"]
+        with self.assertRaises(ValueError):
+            led.append("trust.wager", gone)
 
     def test_payload_key_sets_are_closed(self):
         led = self.fresh()

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Stdlib reference for the RAPP Trust profile: a per-AI trust ledger that is wagered on.
+"""Stdlib reference for the RAPP Trust profile: the owner's Brainstem keeps a trust ledger; each AI plugged in wagers through it.
 
-    rapp_trust.py init   LEDGER --owner kody-w --slug claude-fable
-    rapp_trust.py wager  LEDGER --claim "..." --class release --stake 10 --needs "run URL" --by 2026-11-08T20:00:00.000Z
+    rapp_trust.py init   LEDGER --owner kody-w --slug brainstem
+    rapp_trust.py wager  LEDGER --plug claude-fable-5-1 --claim "..." --class release --stake 10 --needs "run URL" --by 2026-11-08T20:00:00.000Z
     rapp_trust.py settle LEDGER WAGER_HASH --outcome lost --evidence https://... --note "..."
     rapp_trust.py score  LEDGER [--now UTC]
     rapp_trust.py board  LEDGER...            # the estate view: one line per subject
@@ -35,7 +35,7 @@ MAX_STAKE = 50
 HIGH_STAKES = ("done", "release", "destructive")
 AUTONOMY = ((80, "ordinary"), (50, "no-irreversible-alone"), (0, "owner-verifies-everything"))
 GENESIS_KEYS = {"schema", "subject", "owner", "base"}
-WAGER_KEYS = {"schema", "claim", "class", "stake", "counter", "evidence_required", "settles_by"}
+WAGER_KEYS = {"schema", "plug", "claim", "class", "stake", "counter", "evidence_required", "settles_by"}
 SETTLE_KEYS = {"schema", "wager", "outcome", "evidence", "note"}
 EVIDENCE = re.compile(r"(https://.+|sha256:[0-9a-f]{64}|path:[^\s].*|log:.+)", re.DOTALL)
 
@@ -54,6 +54,7 @@ def validate_genesis(payload: dict, stream_id: str) -> dict:
 def validate_wager(payload: dict, score: int) -> dict:
     p = exact_keys(payload, WAGER_KEYS, "wager")
     require(p["schema"] == "trust.wager", "wager: schema must be trust.wager")
+    label(p["plug"], "wager.plug")
     text(p["claim"], "wager.claim")
     require(p["class"] in MIN_STAKE, "wager: class must be statement, done, release or destructive")
     stake = bounded_int(p["stake"], "wager.stake", 1, MAX_STAKE)
@@ -185,7 +186,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     a = sub.add_parser("init"); a.add_argument("ledger", type=Path); a.add_argument("--owner", required=True); a.add_argument("--slug", required=True)
-    a = sub.add_parser("wager"); a.add_argument("ledger", type=Path); a.add_argument("--claim", required=True)
+    a = sub.add_parser("wager"); a.add_argument("ledger", type=Path); a.add_argument("--plug", required=True); a.add_argument("--claim", required=True)
     a.add_argument("--class", dest="klass", required=True, choices=sorted(MIN_STAKE)); a.add_argument("--stake", type=int, required=True)
     a.add_argument("--counter", type=int, default=0); a.add_argument("--needs", action="append", required=True); a.add_argument("--by", required=True)
     a = sub.add_parser("settle"); a.add_argument("ledger", type=Path); a.add_argument("wager"); a.add_argument("--outcome", required=True, choices=["won", "lost", "void"])
@@ -200,7 +201,7 @@ def main(argv=None) -> int:
             print(f"ledger started at {BASE}: {args.ledger}")
         elif args.cmd == "wager":
             led = load(args.ledger)
-            frame = led.append("trust.wager", {"schema": "trust.wager", "claim": args.claim, "class": args.klass,
+            frame = led.append("trust.wager", {"schema": "trust.wager", "plug": args.plug, "claim": args.claim, "class": args.klass,
                                                "stake": args.stake, "counter": args.counter,
                                                "evidence_required": args.needs, "settles_by": args.by}, now_utc())
             write_frame(args.ledger, frame)
@@ -223,7 +224,11 @@ def main(argv=None) -> int:
                 led = load(p, args.now)
                 last = led.settled[-1] if led.settled else None
                 ev = f" | last: {last[1]['outcome']} '{last[0]['claim'][:50]}' {last[1]['evidence'][0][:60]}" if last else ""
-                print(f"{led.score:3d} {led.autonomy:28s} {led.genesis['subject'].split(':')[1]} open={len(led.open)}{ev}")
+                plugs = {}
+                for w_, s_ in led.settled:
+                    r = plugs.setdefault(w_["plug"], [0, 0]); r[0 if s_["outcome"] == "won" else 1] += s_["outcome"] != "void"
+                rec = " ".join(f"{k}:{v[0]}w/{v[1]}l" for k, v in sorted(plugs.items()))
+                print(f"{led.score:3d} {led.autonomy:28s} {led.genesis['subject'].split(':')[1]} open={len(led.open)} plugs[{rec}]{ev}")
     except (OSError, ValueError) as error:
         print(f"rapp-trust refused: {error}", file=sys.stderr)
         return 1
