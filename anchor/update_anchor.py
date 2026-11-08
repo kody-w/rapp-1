@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Append the deterministic rev-19 RAPP/1 specification-chain frame."""
+"""Append the deterministic rev-20 RAPP/1 specification-chain frame."""
 
 from __future__ import annotations
 
@@ -32,8 +32,8 @@ INDEX = ANCHOR / "index.json"
 FRAMES = ANCHOR / "frames"
 BOOTSTRAP = ANCHOR / "bootstrap"
 LOCK = ANCHOR / ".update_anchor.lock"
-REVISION = "rev-19"
-PREVIOUS_REVISION = "rev-18"
+REVISION = "rev-20"
+PREVIOUS_REVISION = "rev-19"
 INPUT_PATHS = [
     "SPEC.md",
     "CONSTITUTION.md",
@@ -648,6 +648,10 @@ def revision_payload(
         "status": "live",
         "where": "protocols/rapp-layer/1/SPEC.md — device-local shape chains, pure lens replay, and host gates",
     }
+    payload["vocabulary"]["rapp-trust"] = {
+        "status": "live",
+        "where": "protocols/rapp-trust/1/SPEC.md — a trust score every AI wagers on; evidence settles; the Brainstem keeps score",
+    }
     payload["vocabulary"]["offspring"] = {
         "status": "live",
         "where": "§9.4 typed lineage and PHILOSOPHY.md",
@@ -661,6 +665,14 @@ def revision_payload(
         "where": "§12 and Constitution Article 18 — the rapp/1 verified forms never change; a change is rapp/2",
     }
     rules = [
+        {
+            "t": "fact",
+            "c": (
+                "RAPP Trust proposes three memory kinds on the unchanged frame; "
+                "every AI starts at 100, wagers before a high-stakes claim, and only "
+                "evidence settles; the computed score binds what the AI may do alone."
+            ),
+        },
         {
             "t": "fact",
             "c": (
