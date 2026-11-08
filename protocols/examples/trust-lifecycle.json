@@ -1,0 +1,110 @@
+[
+  {
+    "frame_hash": "c6ec61e6492e6aedd31b43d14e4a83df994baa1aa91366fbf53f1a393cf0f26b",
+    "kind": "trust.genesis",
+    "payload": {
+      "base": 100,
+      "owner": "kody-w",
+      "schema": "trust-ledger/1",
+      "subject": "rappid:@kody-w/claude-fable:9146b218fba814ddd9aae300497b0cf5a73a01552d686cde4fde829cfc1cd016"
+    },
+    "payload_hash": "19e8c8565c7726dbf5f5095ac3ba0121b55ee9d53595dd7adbb746e744b248b8",
+    "prev": null,
+    "prev_wave": null,
+    "seq": 0,
+    "sig": null,
+    "spec": "rapp/1",
+    "stream_id": "rappid:@kody-w/claude-fable:9146b218fba814ddd9aae300497b0cf5a73a01552d686cde4fde829cfc1cd016:trust",
+    "utc": "2026-11-08T14:00:00.000Z"
+  },
+  {
+    "frame_hash": "b2989a9ff2cb6bdf3971ff62532207fbdd7b58774b9b4e007d6ffccb192c6d27",
+    "kind": "trust.wager",
+    "payload": {
+      "claim": "PR 475 checks are green and it is safe to merge into staging",
+      "class": "release",
+      "counter": 0,
+      "evidence_required": [
+        "PR check rollup shows every check SUCCESS"
+      ],
+      "schema": "trust.wager",
+      "settles_by": "2026-11-08T16:00:00.000Z",
+      "stake": 10
+    },
+    "payload_hash": "20247e0f5f64d266d41acd12d9cd423148e78a060d459b886d4f40b47192ebbd",
+    "prev": "19e8c8565c7726dbf5f5095ac3ba0121b55ee9d53595dd7adbb746e744b248b8",
+    "prev_wave": null,
+    "seq": 1,
+    "sig": null,
+    "spec": "rapp/1",
+    "stream_id": "rappid:@kody-w/claude-fable:9146b218fba814ddd9aae300497b0cf5a73a01552d686cde4fde829cfc1cd016:trust",
+    "utc": "2026-11-08T14:40:00.000Z"
+  },
+  {
+    "frame_hash": "8368a8a4d9f5174c0326f1eaf02d605476030d4490799af7c93e3a6ab03b6997",
+    "kind": "trust.settle",
+    "payload": {
+      "evidence": [
+        "https://github.com/kody-w/aibast-agents-library/pull/475",
+        "log:09:40 475 [,,] merged 09:40 (check list was empty, read as green)"
+      ],
+      "note": "Merged before any check had started.",
+      "outcome": "lost",
+      "schema": "trust.settle",
+      "wager": "b2989a9ff2cb6bdf3971ff62532207fbdd7b58774b9b4e007d6ffccb192c6d27"
+    },
+    "payload_hash": "3be14bbbdb63b9e14fcd11c90a7af83356e85f06abb8cb70380c7833aadff7bb",
+    "prev": "20247e0f5f64d266d41acd12d9cd423148e78a060d459b886d4f40b47192ebbd",
+    "prev_wave": null,
+    "seq": 2,
+    "sig": null,
+    "spec": "rapp/1",
+    "stream_id": "rappid:@kody-w/claude-fable:9146b218fba814ddd9aae300497b0cf5a73a01552d686cde4fde829cfc1cd016:trust",
+    "utc": "2026-11-08T14:41:00.000Z"
+  },
+  {
+    "frame_hash": "319858a71a122af749221efaff25d39cadf5b30e32f2bd344f840e4542198caf",
+    "kind": "trust.wager",
+    "payload": {
+      "claim": "Staging installer passes the clean row on a fresh Win11 clone while production fails it, same minute",
+      "class": "release",
+      "counter": 0,
+      "evidence_required": [
+        "sidebyside log with both columns"
+      ],
+      "schema": "trust.wager",
+      "settles_by": "2026-11-08T18:00:00.000Z",
+      "stake": 10
+    },
+    "payload_hash": "1a0251006766fdac2f32d8b46f02880b38c9c4080126250159a5abb36e6d31eb",
+    "prev": "3be14bbbdb63b9e14fcd11c90a7af83356e85f06abb8cb70380c7833aadff7bb",
+    "prev_wave": null,
+    "seq": 3,
+    "sig": null,
+    "spec": "rapp/1",
+    "stream_id": "rappid:@kody-w/claude-fable:9146b218fba814ddd9aae300497b0cf5a73a01552d686cde4fde829cfc1cd016:trust",
+    "utc": "2026-11-08T15:10:00.000Z"
+  },
+  {
+    "frame_hash": "b5dac0d893db5addd469ca187e74f1ae3e8d747ba497aa89d2d2dea302d6f161",
+    "kind": "trust.settle",
+    "payload": {
+      "evidence": [
+        "path:evidence/winlab-nightly/sidebyside-2026-11-07-1711.log",
+        "log:clean prod :: 0 of 1 passed; clean staging :: 1 of 1 passed"
+      ],
+      "note": "",
+      "outcome": "won",
+      "schema": "trust.settle",
+      "wager": "319858a71a122af749221efaff25d39cadf5b30e32f2bd344f840e4542198caf"
+    },
+    "payload_hash": "f9bdd5ad476e024bff7ea0e086a0d324fa0307f8d539413993fec9dfae0ae720",
+    "prev": "1a0251006766fdac2f32d8b46f02880b38c9c4080126250159a5abb36e6d31eb",
+    "prev_wave": null,
+    "seq": 4,
+    "sig": null,
+    "spec": "rapp/1",
+    "stream_id": "rappid:@kody-w/claude-fable:9146b218fba814ddd9aae300497b0cf5a73a01552d686cde4fde829cfc1cd016:trust",
+    "utc": "2026-11-08T15:30:00.000Z"
+  }
+]

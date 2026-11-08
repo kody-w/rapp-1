@@ -49,6 +49,8 @@ INPUT_PATHS = [
     "protocols/rapp-work/1/schema.json",
     "protocols/rapp-layer/1/SPEC.md",
     "protocols/rapp-layer/1/schema.json",
+    "protocols/rapp-trust/1/SPEC.md",
+    "protocols/rapp-trust/1/schema.json",
     "protocols/lispy/1/SPEC.md",
     "anchor/materialize_spec.py",
     "anchor/bootstrap_verify.py",

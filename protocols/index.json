@@ -42,6 +42,16 @@
       "schema_path": "protocols/rapp-layer/1/schema.json",
       "schema_sha256": "1eb7400125f1ff3870be32bcd9f8a6404475a55afd1280db6edf5f7ecdd1e7af",
       "conformance": "layer_conformance.py"
+    },
+    {
+      "name": "rapp-trust/1",
+      "human_name": "RAPP Trust",
+      "parent": "rapp/1",
+      "spec_path": "protocols/rapp-trust/1/SPEC.md",
+      "spec_sha256": "c1fceb124115377e49ee3d63b23c47dc3dc0b84ed8e25a3b71bd9a41fdbd8d52",
+      "schema_path": "protocols/rapp-trust/1/schema.json",
+      "schema_sha256": "6d745b26dc6688fe1ab7e21c29481d1229dada49f4e63268f4aa218c706fb971",
+      "conformance": "trust_conformance.py"
     }
   ]
 }
