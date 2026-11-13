@@ -29,6 +29,7 @@ import json
 import re
 import unicodedata
 import urllib.request
+import urllib.error
 import uuid
 
 # ── graceful base: use the brainstem's BasicAgent if present, else a standalone shim ──
@@ -862,12 +863,26 @@ class RappSdkBuilderAgent(BasicAgent):
             return json.dumps({"status": "error", "message": f"cannot parse repo from {repo!r}"})
         owner, name = m.group(1), m.group(2).replace(".git", "")
         findings, evidence = [], []
+        url = f"https://raw.githubusercontent.com/{owner}/{name}/main/rappid.json"
         try:
-            raw = _fetch(f"https://raw.githubusercontent.com/{owner}/{name}/main/rappid.json")
-            d = json.loads(raw)
-        except Exception:
+            raw = _fetch(url)
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return json.dumps({"status": "ok", "action": "check", "repo": f"{owner}/{name}",
+                                   "verdict": "CLEAN", "note": "no rappid.json on main — no RAPP artifacts to lint"})
             return json.dumps({"status": "ok", "action": "check", "repo": f"{owner}/{name}",
-                               "verdict": "CLEAN", "note": "no rappid.json on main — no RAPP artifacts to lint"})
+                               "verdict": "UNKNOWN", "note": f"could not read rappid.json (HTTP {e.code}); nothing was checked"})
+        except Exception as e:
+            return json.dumps({"status": "ok", "action": "check", "repo": f"{owner}/{name}",
+                               "verdict": "UNKNOWN", "note": f"could not reach rappid.json ({type(e).__name__}); nothing was checked"})
+        try:
+            d = json.loads(raw)
+            if not isinstance(d, dict):
+                raise ValueError("not a JSON object")
+        except Exception as e:
+            return json.dumps({"status": "ok", "action": "check", "repo": f"{owner}/{name}",
+                               "verdict": "DRIFT", "findings": [f"rappid.json is not a valid JSON object: {e}"],
+                               "evidence": []}, indent=2)
         rid = d.get("rappid", "")
         if rappid_valid(rid):
             evidence.append(f"rappid §6.1 grammar OK: {rid}")
