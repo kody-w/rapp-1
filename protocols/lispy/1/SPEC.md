@@ -5,13 +5,13 @@
 **Status:** Profile stub; proposed registration, not authenticated adoption
 **Parent:** [`rapp/1`](../../../SPEC.md)
 **Implementation:** [kody-w/lisppy](https://github.com/kody-w/lisppy)
-**Release:** `v0.25.0`
+**Release:** `v0.26.0`
 **One page:** <https://kody-w.github.io/lisppy/llms.txt>
 
 The proposed core identity is **`lispy-core@1`**, bound to the exact raw
 SHA-256 of `lisp.py`:
 
-`2a6be9272cd49991a6e13929b923afd78e2ec62d35843a509b1d28046ca43d2c`
+`5bf8de8fac8168e7850f545f9217da33a632e34221dd966fa614d92cc75f5df2`
 
 The digest is supplied by the release owner's local source measurement.
 A consumer MUST measure the actual source bytes before use; a release label,
