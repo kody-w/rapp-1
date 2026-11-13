@@ -34,7 +34,7 @@ You never need to type code to use RAPP. Copy one prompt, paste it into your
 
 ```text
 You are my hands — I watch, you type. Clone https://github.com/kody-w/rapp-1 and prove
-RAPP to me end to end: (1) run python3 conformance.py — I expect 22/22 PASS; (2) run
+RAPP to me end to end: (1) run python3 conformance.py — I expect every check to PASS; (2) run
 python3 operations_conformance.py — I expect every RAPP CI/CD and RAPP Deploy vector
 to pass; (3) run python3 work_conformance.py — I expect every RAPP Work vector to
 pass; (4) run python3 realcheck.py — the spec against the live public estate — and
@@ -52,7 +52,7 @@ Prefer to drive the machine yourself? The commands your brainsurgeon runs:
 git clone https://github.com/kody-w/rapp-1
 cd rapp-1
 
-python3 conformance.py     # 22/22 — controlled protocol vectors
+python3 conformance.py     # all PASS — controlled protocol vectors
 python3 operations_conformance.py  # CI/CD + deployment safety vectors
 python3 work_conformance.py  # organization, Hive high-water, migration, custody
 python3 anchor/materialize_spec.py --check SPEC.md  # current view == verified chain head
