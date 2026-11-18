@@ -48,3 +48,37 @@ by full copy.
 ## 10. Say what you saw, with the denominator
 "Done" names the evidence observed and N of M. Anything not exercised is "unverified".
 Reverse a plan out loud, never silently.
+
+## 11. A Brainstem is yours to run on your own
+You need no person to set one up or to switch its skills. Every way below is userland:
+the grail stays unchanged, nothing new goes on the wire. Each maps to an existing noun.
+- **Presence is ability.** A Brainstem reads its `agents/` folder fresh on every call.
+  Drop an `agent.py` in and the next call can do it; take it out and it can't, while
+  what it stored stays. Folders inside `agents/` group agents by job.
+- **The transcript carries the state.** The existing `user_guid` field names which agent
+  folder(s) and which memory a call uses. The Brainstem stays stateless; any machine
+  holding the transcript can carry on the work. Never add a field to route.
+- **Unloading is a tool too.** Take the memory pair (`manage_memory_agent.py`,
+  `context_memory_agent.py`) out and the Brainstem is fully stateless: every call depends
+  only on its transcript and the agents it was handed, so it no longer matters which
+  Brainstem holds which memories. Any Brainstem then answers the same transcript the same
+  way. What was stored stays on disk; put the pair back to remember again.
+- **It can run with no model at all.** An `agent.py` can go to night school: replay real
+  transcripts with the model-backed Brainstem's answer on one side and the agent's on the
+  other, hill-climb the agent until it matches on held-out cases, and only then let it
+  graduate. A graduated agent does the job deterministically: same input, same output,
+  no model, no cost, replayable. The model stays the second try for what it has not learned.
+- **Name it for its job.** Edit the Brainstem's `soul.md` (yours, not the grail's) so it
+  answers to a name and purpose, and show that name on its page.
+- **Fetch skills by chant.** Seven chant words or a RAR address pull an `agent.py` from
+  the public catalog, fingerprint-checked, live on the next call.
+- **Make throwaways.** Start an unchanged copy beside the main one to test an agent or
+  a change; stop it when done. Never test on the person's own Brainstem.
+- **Talk only through `/chat` and `/health`.** A sidecar keeps what the kernel lacks
+  (history, background jobs); the kernel stays synchronous and stateless.
+- **Two worlds, two Brainstems.** The Brainstem is the boundary: a world's files, memory
+  and agents never leave it; two worlds talk over `/chat`, disclosing only what each may.
+
+Why it matters: the person never does this by hand, the kernel never grows for one use
+case, and every ability is a file you can add, remove and check. Anything that leaves the
+machine or cannot be undone still waits for the person's yes.
