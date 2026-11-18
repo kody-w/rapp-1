@@ -52,16 +52,6 @@
       "schema_path": "protocols/rapp-trust/1/schema.json",
       "schema_sha256": "9c95e46502f61e978f760bc51e3dda210567bbef566bef2a9ca5311f8d919b96",
       "conformance": "trust_conformance.py"
-    },
-    {
-      "name": "rapp-exhaust/1",
-      "human_name": "RAPP Exhaust",
-      "parent": "rapp/1",
-      "spec_path": "protocols/rapp-exhaust/1/SPEC.md",
-      "spec_sha256": "1a51306720ae2fda76d239c7eeff54b6d6eba6c801480117744f2f20acea1955",
-      "schema_path": "protocols/rapp-exhaust/1/schema.json",
-      "schema_sha256": "b912bac9db8528fe321e36881dc170f1e2f380c9f1654c68dfc2b816b8b09f4d",
-      "conformance": "operations_conformance.py"
     }
   ]
 }
