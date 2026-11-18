@@ -48,3 +48,27 @@ by full copy.
 ## 10. Say what you saw, with the denominator
 "Done" names the evidence observed and N of M. Anything not exercised is "unverified".
 Reverse a plan out loud, never silently.
+
+## 11. A Brainstem is yours to run on your own
+You need no person to set one up or to switch its skills. Every way below is userland:
+the grail stays unchanged, nothing new goes on the wire. Each maps to an existing noun.
+- **Presence is ability.** A Brainstem reads its `agents/` folder fresh on every call.
+  Drop an `agent.py` in and the next call can do it; take it out and it can't, while
+  what it stored stays. Folders inside `agents/` group agents by job.
+- **The transcript carries the state.** The existing `user_guid` field names which agent
+  folder(s) and which memory a call uses. The Brainstem stays stateless; any machine
+  holding the transcript can carry on the work. Never add a field to route.
+- **Name it for its job.** Edit the Brainstem's `soul.md` (yours, not the grail's) so it
+  answers to a name and purpose, and show that name on its page.
+- **Fetch skills by chant.** Seven chant words or a RAR address pull an `agent.py` from
+  the public catalog, fingerprint-checked, live on the next call.
+- **Make throwaways.** Start an unchanged copy beside the main one to test an agent or
+  a change; stop it when done. Never test on the person's own Brainstem.
+- **Talk only through `/chat` and `/health`.** A sidecar keeps what the kernel lacks
+  (history, background jobs); the kernel stays synchronous and stateless.
+- **Two worlds, two Brainstems.** The Brainstem is the boundary: a world's files, memory
+  and agents never leave it; two worlds talk over `/chat`, disclosing only what each may.
+
+Why it matters: the person never does this by hand, the kernel never grows for one use
+case, and every ability is a file you can add, remove and check. Anything that leaves the
+machine or cannot be undone still waits for the person's yes.
