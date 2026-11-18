@@ -57,7 +57,6 @@
       "name": "rapp-exhaust/1",
       "human_name": "RAPP Exhaust",
       "parent": "rapp/1",
-      "status": "staging",
       "spec_path": "protocols/rapp-exhaust/1/SPEC.md",
       "spec_sha256": "1a51306720ae2fda76d239c7eeff54b6d6eba6c801480117744f2f20acea1955",
       "schema_path": "protocols/rapp-exhaust/1/schema.json",
