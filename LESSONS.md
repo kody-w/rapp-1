@@ -58,6 +58,11 @@ the grail stays unchanged, nothing new goes on the wire. Each maps to an existin
 - **The transcript carries the state.** The existing `user_guid` field names which agent
   folder(s) and which memory a call uses. The Brainstem stays stateless; any machine
   holding the transcript can carry on the work. Never add a field to route.
+- **Unloading is a tool too.** Take the memory pair (`manage_memory_agent.py`,
+  `context_memory_agent.py`) out and the Brainstem is fully stateless: every call depends
+  only on its transcript and the agents it was handed, so it no longer matters which
+  Brainstem holds which memories. Any Brainstem then answers the same transcript the same
+  way. What was stored stays on disk; put the pair back to remember again.
 - **Name it for its job.** Edit the Brainstem's `soul.md` (yours, not the grail's) so it
   answers to a name and purpose, and show that name on its page.
 - **Fetch skills by chant.** Seven chant words or a RAR address pull an `agent.py` from
