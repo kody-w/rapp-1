@@ -63,6 +63,11 @@ the grail stays unchanged, nothing new goes on the wire. Each maps to an existin
   only on its transcript and the agents it was handed, so it no longer matters which
   Brainstem holds which memories. Any Brainstem then answers the same transcript the same
   way. What was stored stays on disk; put the pair back to remember again.
+- **It can run with no model at all.** An `agent.py` can go to night school: replay real
+  transcripts with the model-backed Brainstem's answer on one side and the agent's on the
+  other, hill-climb the agent until it matches on held-out cases, and only then let it
+  graduate. A graduated agent does the job deterministically: same input, same output,
+  no model, no cost, replayable. The model stays the second try for what it has not learned.
 - **Name it for its job.** Edit the Brainstem's `soul.md` (yours, not the grail's) so it
   answers to a name and purpose, and show that name on its page.
 - **Fetch skills by chant.** Seven chant words or a RAR address pull an `agent.py` from
