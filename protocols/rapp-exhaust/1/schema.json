@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kody-w.github.io/rapp-1/protocols/rapp-exhaust/1/schema.json",
+  "title": "rapp-exhaust/1 .exhaust.json",
+  "type": "object",
+  "required": ["schema"],
+  "properties": {
+    "schema": {"const": "rapp-exhaust/1"},
+    "kind": {"enum": ["record", "rebuildable", "picture"]},
+    "keep": {"type": "object", "properties": {"last": {"type": "integer", "minimum": 0}, "hours": {"type": "number", "minimum": 0}}, "additionalProperties": false},
+    "match": {"type": "string"},
+    "rules": {"type": "array", "items": {"type": "object", "required": ["kind"], "properties": {
+      "kind": {"enum": ["record", "rebuildable", "picture"]},
+      "keep": {"type": "object"}, "match": {"type": "string"}}}}
+  },
+  "anyOf": [{"required": ["kind"]}, {"required": ["rules"]}]
+}

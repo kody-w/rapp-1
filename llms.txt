@@ -31,6 +31,7 @@ Start at the beacon, verify the chain, then read the materialized spec. Names li
 - RAPP Work (`rapp-work/1`): https://kody-w.github.io/rapp-1/protocols/rapp-work/1/SPEC.md
 - RAPP Work reference: https://kody-w.github.io/rapp-1/rapp_work.py
 - Contributing: https://kody-w.github.io/rapp-1/CONTRIBUTING.md
+- Lessons for AIs (non-normative; read before working on an estate): https://kody-w.github.io/rapp-1/LESSONS.md
 
 ## Discipline
 - The chain is unsigned on purpose; authority is owner-ratified acceptance onto protected main.
