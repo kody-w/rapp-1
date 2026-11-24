@@ -1,6 +1,6 @@
 # Kernel climb — how every fork of the Brainstem kernel improves without breaking it
 
-Status: **staging** (proposed 2026-11-24; becomes current when the owner accepts it).
+Status: **current** (proposed and accepted by the owner 2026-11-24).
 Applies to: the Grail (`kody-w/rapp-installer`), its release train (canary, nightly,
 alpha, beta), and **any fork or distro of the kernel**, public or private.
 
