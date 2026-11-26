@@ -32,7 +32,8 @@ _MAX_WALK_ENTRIES = 100_000
 _MAX_WALK_DIRS = 10_000
 _MAX_WALK_DEPTH = 32
 _MAX_JSON_FILES = 10_000
-_MAX_JSON_BYTES = 256 * 1024 * 1024   # 2026-11-26: RAR append-only versions passed 64 MiB; chained check replaces this bound next
+_COPY_NAME = re.compile(r"^[0-9a-f]{8,64}$")
+_MAX_JSON_BYTES = 256 * 1024 * 1024   # content-addressed copies under versions/ do not count (see below)
 
 
 def _untagged(payload):
@@ -345,12 +346,32 @@ def check_repo(root, signature_verifier=None):
     for path in sorted(required):
         consider(path, True)
 
+    # Content-addressed copies (Git's object rule): a JSON file under a `versions/` directory whose name is
+    # the start of its own SHA-256 is an immutable snapshot, not a RAPP/1 artifact. It is confirmed by hashing
+    # its bytes, never parsed, and never counted against the discovery budget, so append-only history adds no
+    # bound. A name that does not match its bytes is parsed like any other file.
+    copies, skip = 0, set()
+    for path in json_paths:
+        stem, rel_parts = os.path.basename(path)[:-5], os.path.relpath(path, root).split(os.sep)
+        if "versions" in rel_parts[:-1] and _COPY_NAME.fullmatch(stem):
+            try:
+                with open(path, "rb") as fh:
+                    digest = hashlib.sha256(fh.read()).hexdigest()
+            except OSError:
+                continue
+            if digest.startswith(stem):
+                copies += 1
+                skip.add(path)
+    if copies:
+        evidence.append({"artifact": ".", "ok": f"{copies} content-addressed copies under versions/ confirmed by hash, not parsed"})
+
     # Bounded exact-shape discovery finds Frames regardless of filename/layout.
     count = total = 0
     for path in (
         p
         for p in json_paths
         if p not in required
+        and p not in skip
         and os.path.basename(p) not in ("rappid.json", _INDEX_NAME)
     ):
         try:

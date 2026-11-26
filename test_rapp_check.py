@@ -262,3 +262,51 @@ class RappCheckDiscoveryTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ContentAddressedCopyTests(unittest.TestCase):
+    """RAR 2026-11-26: append-only versions/ snapshots (named by their own SHA-256) exhausted the discovery
+    budget. Such copies are confirmed by hash and never parsed, so history no longer grows the bound."""
+
+    def repo(self):
+        t = tempfile.TemporaryDirectory(prefix=".rapp-check-test-", dir=ROOT)
+        self.addCleanup(t.cleanup)
+        return Path(t.name)
+
+    def copy(self, directory, value):
+        import hashlib
+        data = (json.dumps(value) + "\n").encode()
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / (hashlib.sha256(data).hexdigest()[:8] + ".json")).write_bytes(data)
+
+    def test_history_does_not_spend_the_budget(self):
+        repo = self.repo()
+        for i in range(30):
+            self.copy(repo / "versions" / "api", {"n": i, "pad": "x" * 2000})
+        budget = C._MAX_JSON_BYTES
+        C._MAX_JSON_BYTES = 1000          # far smaller than 30 copies
+        self.addCleanup(setattr, C, "_MAX_JSON_BYTES", budget)
+        verdict, findings, evidence = C.check_repo(repo)
+        self.assertEqual((verdict, findings), ("CLEAN", []))
+        # control: the same files under names that are not their hashes exhaust the tiny budget
+        for f in (repo / "versions" / "api").iterdir():
+            f.rename(f.with_name("x" + f.name))
+        verdict, findings, evidence = C.check_repo(repo)
+        self.assertIn("budget exhausted", json.dumps(findings))
+
+    def test_a_name_that_does_not_match_its_bytes_is_still_read(self):
+        repo = self.repo()
+        frame_like = {k: None for k in R.FRAME_KEYS}
+        frame_like["spec"] = R.SPEC
+        p = repo / "versions" / "deadbeef.json"
+        p.parent.mkdir(parents=True)
+        p.write_text(json.dumps(frame_like))
+        verdict, findings, evidence = C.check_repo(repo)
+        self.assertNotIn("content-addressed", json.dumps(evidence))
+        self.assertTrue(findings)       # parsed as a frame candidate, so its problems are reported
+
+    def test_outside_versions_nothing_changes(self):
+        repo = self.repo()
+        self.copy(repo / "api", {"n": 1})
+        verdict, findings, evidence = C.check_repo(repo)
+        self.assertEqual((verdict, findings, evidence), ("CLEAN", [], []))
