@@ -32,7 +32,7 @@ _MAX_WALK_ENTRIES = 100_000
 _MAX_WALK_DIRS = 10_000
 _MAX_WALK_DEPTH = 32
 _MAX_JSON_FILES = 10_000
-_MAX_JSON_BYTES = 64 * 1024 * 1024
+_MAX_JSON_BYTES = 256 * 1024 * 1024   # 2026-11-26: RAR append-only versions passed 64 MiB; chained check replaces this bound next
 
 
 def _untagged(payload):
