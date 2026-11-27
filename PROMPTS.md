@@ -19,7 +19,7 @@ Paste into your brainsurgeon:
 
 ```text
 You are my hands — I watch, you type. Clone https://github.com/kody-w/rapp-1 and prove
-RAPP to me end to end: (1) run python3 conformance.py — I expect 22/22 PASS; (2) run
+RAPP to me end to end: (1) run python3 conformance.py — I expect every check to PASS; (2) run
 python3 anchor/materialize_spec.py --check SPEC.md and show that the checked-in view
 matches the verified specification-chain head; (3) run python3 realcheck.py — the spec
 against the live public estate — and explain the verdict in plain English; (4) run
