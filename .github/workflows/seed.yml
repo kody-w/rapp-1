@@ -1,0 +1,28 @@
+name: Seed integrity
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "23 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python3 seed/refresh.py --check --scan
+      - run: python3 seed/verify_refresh.py
+      - name: Reproduce pinned sources
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: |
+          python3 seed/refresh.py
+          git diff --exit-code -- seed/
+          test -z "$(git ls-files --others --exclude-standard -- seed/)"
